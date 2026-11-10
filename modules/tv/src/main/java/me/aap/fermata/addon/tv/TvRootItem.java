@@ -42,6 +42,7 @@ public class TvRootItem extends ItemContainer<TvM3uItem> implements TvItem {
 	public TvRootItem(DefaultMediaLib lib) {
 		super(ID, null, null);
 		this.lib = lib;
+		me.aap.fermata.addon.tv.m3u.YoldaSeed.seed(this); // Yolda: kanal listesi hazır gelsin
 	}
 
 	@Nullable

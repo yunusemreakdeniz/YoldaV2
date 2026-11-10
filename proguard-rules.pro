@@ -14,3 +14,8 @@
 
 -keepnames class androidx.media3.exoplayer.ExoPlayerImpl { *; }
 -keepnames class androidx.media3.exoplayer.ExoPlayerImplInternal { *; }
+
+# Yolda: ana ekran YouTube eklentisini adıyla çağırır
+-keepclassmembers class me.aap.fermata.addon.web.yt.YoutubeFragment {
+    public void loadUrl(java.lang.String);
+}

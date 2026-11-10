@@ -217,6 +217,11 @@ public class TvM3uFileSystemProvider extends M3uFileSystemProvider {
 		f.setResponseTimeout(ps.getIntPref(RESP_TIMEOUT));
 	}
 
+	/** Yolda: ayar penceresi açmadan, verilen ayarlarla bir TV kaynağı yükler. */
+	public static FutureSupplier<TvM3uFile> loadSource(PreferenceStore ps) {
+		return new TvM3uFileSystemProvider().load(ps, TvM3uFileSystem.getInstance()).cast();
+	}
+
 	public static void removeSource(TvM3uFile f) {
 		Log.d("Removing TV source ", f);
 		f.cleanUp();

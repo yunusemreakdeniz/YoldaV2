@@ -134,6 +134,40 @@ public class HomeFragment extends MainActivityFragment {
 		addCard(grid, card(ctx, "⚙️", "Ayarlar", "Eklentiler, görünüm", 0xFF455A64, 0xFF263238, false,
 				v -> a.showFragment(R.id.settings_fragment)));
 
+		// YouTube'da canlı yayın yapan kanallar: tek dokunuşla canlı yayın
+		if (am.hasAddon(R.id.youtube_fragment)) {
+			TextView yt = text(ctx, "YouTube'da canlı", 17, true, INK);
+			yt.setPadding(dp(ctx, 4), dp(ctx, 10), 0, dp(ctx, 8));
+			col.addView(yt);
+			LinearLayout row = new LinearLayout(ctx);
+			row.setOrientation(LinearLayout.HORIZONTAL);
+			String[][] live = {
+					{"Habertürk", "UCK3mI2lsk3LSo8PBUc8JTSw"}, {"CNN Türk", "UCV6zcRug6Hqp1UX_FdyUeBg"},
+					{"Show TV", "UC9JMe_We017gYrRc7kZHgmg"}, {"Haber Global", "UCtc-a9ZUIg0_5HpsPxEO7Qg"},
+					{"TVNET", "UC8rh34IlJTN0lDZlTwzWzjg"}, {"tv100", "UCndsdUW_oPLqpQJY9J8oIRg"},
+			};
+			for (String[] ch : live) {
+				TextView chip = text(ctx, "🔴 " + ch[0], 16, true, Color.WHITE);
+				chip.setGravity(Gravity.CENTER);
+				chip.setPadding(dp(ctx, 18), dp(ctx, 14), dp(ctx, 18), dp(ctx, 14));
+				GradientDrawable cb = new GradientDrawable();
+				cb.setCornerRadius(dp(ctx, 16));
+				cb.setColor(0xFF1B1E24);
+				cb.setStroke(dp(ctx, 1), 0x55FF0033);
+				chip.setBackground(cb);
+				chip.setClickable(true);
+				String url = "https://m.youtube.com/channel/" + ch[1] + "/live";
+				chip.setOnClickListener(v -> openYoutube(a, url));
+				LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-2, -2);
+				clp.rightMargin = dp(ctx, 10);
+				row.addView(chip, clp);
+			}
+			android.widget.HorizontalScrollView hs = new android.widget.HorizontalScrollView(ctx);
+			hs.setHorizontalScrollBarEnabled(false);
+			hs.addView(row);
+			col.addView(hs);
+		}
+
 		TextView hint = text(ctx,
 				"📱 Telefon ekranı: Android Auto uygulama listesinden “Yolda Telefon”u aç.", 14, false, MUTED);
 		hint.setPadding(dp(ctx, 4), dp(ctx, 18), dp(ctx, 4), 0);
@@ -155,6 +189,17 @@ public class HomeFragment extends MainActivityFragment {
 			}
 		});
 		return scroll;
+	}
+
+	/** YouTube bölümünü açıp verilen adrese gider (YouTube eklentisi ayrı modülde, adıyla çağrılır). */
+	private static void openYoutube(MainActivityDelegate a, String url) {
+		Object f = a.showFragment(R.id.youtube_fragment);
+		if (f == null) return;
+		try {
+			f.getClass().getMethod("loadUrl", String.class).invoke(f, url);
+		} catch (Exception ex) {
+			me.aap.utils.log.Log.e(ex, "YouTube açılamadı: ", url);
+		}
 	}
 
 	private static void addCard(GridLayout grid, View card) {
