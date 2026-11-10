@@ -2,7 +2,7 @@ name: Yolda APK derle
 
 on:
   push:
-    branches: [main]
+    branches: [main, auto]
     paths-ignore:
       - "kanallar/**"
       - "**.md"
@@ -61,8 +61,9 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::KEYSTORE_BASE64 yok. Sabit anahtar olmadan her sürüm eskisinin üzerine kurulamaz."
-            exit 1
+            # Fermata kendi geçici anahtarını üretir; APK kurulur ama sonraki sürüm için eskisi silinmeli
+            echo "::warning::KEYSTORE_BASE64 yok, geçici anahtarla imzalanacak"
+            exit 0
           fi
           echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
           {
@@ -91,6 +92,8 @@ jobs:
       - name: Release'e ekle (telefondan indirme)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: Yolda ${{ github.run_number }} (${{ env.APP_VERSION }})
+          tag_name: auto-${{ github.run_number }}
+          name: Yolda Auto ${{ github.run_number }} (${{ env.APP_VERSION }})
+          target_commitish: ${{ github.sha }}
+          prerelease: true
           files: dist/*.apk
