@@ -62,6 +62,30 @@ public class HomeFragment extends MainActivityFragment {
 			lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
 			view.setLayoutParams(lp);
 		}
+		greetOnce();
+	}
+
+	private static boolean greeted;
+
+	/** Araç ekranında ilk açılışta kısa sesli karşılama ("İyi akşamlar, Yolda hazır."). */
+	private void greetOnce() {
+		if (greeted) return;
+		MainActivityDelegate a = getActivityDelegate();
+		if (a == null || !a.isCarActivity()) return;
+		greeted = true;
+		Context app = requireContext().getApplicationContext();
+		final android.speech.tts.TextToSpeech[] tts = new android.speech.tts.TextToSpeech[1];
+		tts[0] = new android.speech.tts.TextToSpeech(app, status -> {
+			if (status != android.speech.tts.TextToSpeech.SUCCESS) return;
+			android.speech.tts.TextToSpeech t = tts[0];
+			t.setLanguage(new java.util.Locale("tr", "TR"));
+			t.setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener() {
+				@Override public void onStart(String id) { }
+				@Override public void onDone(String id) { t.shutdown(); }
+				@Override public void onError(String id) { t.shutdown(); }
+			});
+			t.speak(greeting() + ", Yolda hazır.", android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "yolda_hello");
+		});
 	}
 
 	private View build(Context ctx) {
