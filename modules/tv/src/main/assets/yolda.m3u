@@ -101,3 +101,47 @@ https://livetv.powerapp.com.tr/pturkslow/slow.smil/playlist.m3u8
 https://live.duhnet.tv/S2/HLS_LIVE/dreamturknp/playlist.m3u8
 #EXTINF:-1 tvg-logo="https://i.imgur.com/02cDIBi.png" group-title="Müzik",Number 1 TV
 https://b01c02nl.mediatriple.net/videoonlylive/mtkgeuihrlfwlive/broadcast_5c9e17cd59e8b.smil/playlist.m3u8
+#EXTINF:-1 group-title="Radyo",TRT FM
+https://rd-trtfm.medya.trt.com.tr/master_128.m3u8
+#EXTINF:-1 group-title="Radyo",TRT Radyo Haber
+https://rd-trtradyohaber.medya.trt.com.tr/master_128.m3u8
+#EXTINF:-1 group-title="Radyo",TRT Radyo 1
+https://rd-trtradyo1.medya.trt.com.tr/master_128.m3u8
+#EXTINF:-1 group-title="Radyo",TRT Radyo 3
+https://rd-trtradyo3.medya.trt.com.tr/master_128.m3u8
+#EXTINF:-1 group-title="Radyo",TRT Türkü
+https://rd-trtturku.medya.trt.com.tr/master_128.m3u8
+#EXTINF:-1 group-title="Radyo",TRT Nağme
+https://rd-trtnagme.medya.trt.com.tr/master_128.m3u8
+#EXTINF:-1 group-title="Radyo",Kral FM
+https://dygedge2.radyotvonline.net/kralfm/playlist.m3u8
+#EXTINF:-1 group-title="Radyo",Kral Pop
+https://ssldyg.radyotvonline.com/smil/smil:kralpop.smil/playlist.m3u8
+#EXTINF:-1 group-title="Radyo",Power Türk
+https://live.powerapp.com.tr/powerturk/abr/playlist.m3u8
+#EXTINF:-1 group-title="Radyo",Power Pop
+https://listen.powerapp.com.tr/powerpop/128/chunks.m3u8
+#EXTINF:-1 group-title="Radyo",Best FM
+https://ssldyg.radyotvonline.com/best/bestfm.stream/playlist.m3u8
+#EXTINF:-1 group-title="Radyo",Alem FM
+https://turkmedya.radyotvonline.net/alemfmaac
+#EXTINF:-1 group-title="Radyo",Radyo Fenomen
+https://live.radyofenomen.com/fenomen/128/icecast.audio
+#EXTINF:-1 group-title="Radyo",Fenomen Türk
+https://live.radyofenomen.com/fenomenturk/abr/fenomenturk/256/chunks.m3u8
+#EXTINF:-1 group-title="Radyo",Radyo Turkuvaz
+https://trkvz-radyolar.ercdn.net/radyoturkuvaz/playlist.m3u8
+#EXTINF:-1 group-title="Radyo",Virgin Radio
+https://playerservices.streamtheworld.com/api/livestream-redirect/VIRGIN_RADIO_ITUNES.mp3
+#EXTINF:-1 group-title="Radyo",Joy Türk
+https://playerservices.streamtheworld.com/api/livestream-redirect/JOY_TURK_ITUNES.mp3
+#EXTINF:-1 group-title="Radyo",Metro FM
+https://playerservices.streamtheworld.com/api/livestream-redirect/METRO_FM_SC
+#EXTINF:-1 group-title="Radyo",Süper FM
+https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER_FM_SC
+#EXTINF:-1 group-title="Radyo",Show Radyo
+https://showradyo.radyotvonline.net/showradyoaac/
+#EXTINF:-1 group-title="Radyo",Baba Radyo
+https://babaradyo.turkhosted.com/best/babaradyo.stream/playlist.m3u8
+#EXTINF:-1 group-title="Radyo",Kafa Radyo
+https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8

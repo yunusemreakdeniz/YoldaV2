@@ -126,7 +126,7 @@ public class HomeFragment extends MainActivityFragment {
 
 		AddonManager am = AddonManager.get();
 		if (am.hasAddon(R.id.tv_fragment))
-			addCard(grid, card(ctx, "📺", "TV", "Canlı kanallar", 0xFFE53935, 0xFF8E1B18, false,
+			addCard(grid, card(ctx, "📺", "TV ve Radyo", "51 kanal · 22 radyo", 0xFFE53935, 0xFF8E1B18, false,
 					v -> a.showFragment(R.id.tv_fragment)));
 		if (am.hasAddon(R.id.youtube_fragment))
 			addCard(grid, card(ctx, "▶️", "YouTube", "Videolar ve canlı yayınlar", 0xFFFF0033, 0xFF7A0019, false,
