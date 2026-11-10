@@ -67,7 +67,7 @@ public interface MainActivityPrefs
 	Pref<IntSupplier> LOCALE =
 			Pref.i("LOCALE", () -> Lang.get(Locale.getDefault().getLanguage()).ordinal());
 
-	Pref<IntSupplier> THEME_AA = Pref.i("THEME_AA", THEME_DARK);
+	Pref<IntSupplier> THEME_AA = Pref.i("THEME_AA", THEME_BLACK); // Yolda: arabada siyah tema
 	Pref<BooleanSupplier> HIDE_BARS_AA = AUTO ? Pref.b("HIDE_BARS_AA", false) : null;
 	Pref<BooleanSupplier> FULLSCREEN_AA = AUTO ? Pref.b("FULLSCREEN_AA", false) : null;
 	Pref<BooleanSupplier> SHOW_PG_UP_DOWN_AA = AUTO ? Pref.b("SHOW_PG_UP_DOWN_AA", true) : null;
@@ -76,8 +76,8 @@ public interface MainActivityPrefs
 	Pref<DoubleSupplier> NAV_BAR_SIZE_AA = AUTO ? Pref.f("NAV_BAR_SIZE_AA", 1f) : null;
 	Pref<DoubleSupplier> TOOL_BAR_SIZE_AA = AUTO ? Pref.f("TOOL_BAR_SIZE_AA", 1f) : null;
 	Pref<DoubleSupplier> CONTROL_PANEL_SIZE_AA = AUTO ? Pref.f("CONTROL_PANEL_SIZE_AA", 1f) : null;
-	Pref<DoubleSupplier> TEXT_ICON_SIZE_AA = AUTO ? Pref.f("TEXT_ICON_SIZE_AA", 1f) : null;
-	Pref<BooleanSupplier> GRID_VIEW_AA = AUTO ? Pref.b("GRID_VIEW_AA", false) : null;
+	Pref<DoubleSupplier> TEXT_ICON_SIZE_AA = AUTO ? Pref.f("TEXT_ICON_SIZE_AA", 1.15f) : null; // Yolda: arabada büyük yazı
+	Pref<BooleanSupplier> GRID_VIEW_AA = AUTO ? Pref.b("GRID_VIEW_AA", true) : null; // Yolda: büyük kutucuklar
 
 	static MainActivityPrefs get() {
 		return MainActivityDelegate.Prefs.instance;
