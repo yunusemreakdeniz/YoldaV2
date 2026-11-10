@@ -109,6 +109,13 @@ public class HomeFragment extends MainActivityFragment {
 			col.addView(resume, rlp);
 		}
 
+		// Sesli komut: "TRT Haber'i aç", "YouTube'da Habertürk aç", "durdur", "favorileri oynat"
+		View voice = card(ctx, "🎤", "Sesli komut", "“TRT Haber'i aç” · “YouTube'da Habertürk aç” · “durdur”",
+				0xFF5E35B1, 0xFF311B92, true, v -> a.startVoiceAssistant());
+		LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(-1, dp(ctx, 88));
+		vlp.topMargin = dp(ctx, 12);
+		col.addView(voice, vlp);
+
 		// Ana kartlar
 		GridLayout grid = new GridLayout(ctx);
 		int cols = ctx.getResources().getConfiguration().screenWidthDp >= 840 ? 3 : 2;

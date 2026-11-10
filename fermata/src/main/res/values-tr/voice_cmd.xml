@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Yolda: Türkçe sesli komutlar. Türkçede fiil sonda gelir: "TRT Haber'i aç", "YouTube'da Habertürk aç".
+  Türkçe harfler (ç, ş, ı…) \b ile sınır sayılmadığı için kelime sınırı boşlukla ve başla/sonla kurulur.
+-->
+<!DOCTYPE resources [
+    <!ENTITY action_find "bul|ara">
+    <!ENTITY action_open "aç|ac|göster|goster">
+    <!ENTITY action_pause "duraklat|durdur|bekle|sus">
+    <!ENTITY action_stop "kapat|bitir|stop">
+    <!ENTITY action_play "oynat|başlat|baslat|izle|dinle|koy|aç|ac|devam( et)?">
+    <!ENTITY location_folders "klasör(ler)?|klasor(ler)?|videolar">
+    <!ENTITY location_favorites "favori(ler)?">
+    <!ENTITY location_playlists "çalma listeleri?|calma listeleri?|liste(ler)?">
+    <!ENTITY location_tv "tv|televizyon">
+    <!ENTITY location_youtube "youtube|yutup|yutub">
+    <!ENTITY location_browser "tarayıcı|tarayici|internet">
+    <!ENTITY time_unit_second "saniye">
+    <!ENTITY time_unit_minute "dakika">
+    <!ENTITY time_unit_hour "saat">
+    <!ENTITY sfx_loc "(\'|’)?(de|da|te|ta|den|dan|ten|tan|ye|ya|e|a)">
+    <!ENTITY sfx_obj "(\'|’)?(yi|yı|yu|yü|ni|nı|nu|nü|i|ı|u|ü)">
+    ]>
+
+<resources>
+    <string name="vcmd_action_find">&action_find;</string>
+    <string name="vcmd_action_open">&action_open;</string>
+    <string name="vcmd_action_pause">&action_pause;</string>
+    <string name="vcmd_action_stop">&action_stop;</string>
+    <string name="vcmd_action_play">&action_play;</string>
+    <string name="vcmd_action_play_favorites">(&location_favorites;)(&sfx_obj;|den|dan)? (&action_play;)</string>
+    <string name="vcmd_action_sub_on">altyazı(yı)? (aç|göster)|altyazi(yi)? (ac|goster)</string>
+    <string name="vcmd_action_sub_off">altyazı(yı)? (kapat|gizle)|altyazi(yi)? (kapat|gizle)</string>
+    <string name="vcmd_action_sub_change">altyazı(yı)? değiştir|altyazi(yi)? degistir</string>
+    <string name="vcmd_action_audio_change">(ses|dil)( kanalını| parçasını| kanalini| parcasini)? (değiştir|degistir)</string>
+    <string name="vcmd_location_folders">&location_folders;</string>
+    <string name="vcmd_location_favorites">&location_favorites;</string>
+    <string name="vcmd_location_playlists">&location_playlists;</string>
+    <string name="vcmd_location_tv">&location_tv;</string>
+    <string name="vcmd_location_youtube">&location_youtube;</string>
+    <string name="vcmd_location_browser">&location_browser;</string>
+    <string name="vcmd_time_unit_second">&time_unit_second;</string>
+    <string name="vcmd_time_unit_minute">&time_unit_minute;</string>
+    <string name="vcmd_time_unit_hour">&time_unit_hour;</string>
+    <string name="vcmd_nums">sıfır bir iki üç dört beş altı yedi sekiz dokuz</string>
+
+    <string name="vcmd_cur_track">(şu an |şimdi )?(ne çalıyor|çalan ne|ne oynuyor)|su an ne caliyor</string>
+    <string name="vcmd_ff">(?&lt;N&gt;\\d+|\\p{L}+) ?(?&lt;U&gt;(&time_unit_second;)|(&time_unit_minute;)|(&time_unit_hour;)) (ileri( sar)?|atla)</string>
+    <string name="vcmd_rw">(?&lt;N&gt;\\d+|\\p{L}+) ?(?&lt;U&gt;(&time_unit_second;)|(&time_unit_minute;)|(&time_unit_hour;)) geri( sar)?</string>
+    <string name="vcmd_find_play_open">((?&lt;L&gt;(&location_folders;)|(&location_favorites;)|(&location_playlists;)|(&location_tv;)|(&location_youtube;)|(&location_browser;))(&sfx_loc;)? )?(?&lt;Q&gt;.+?)(&sfx_obj;)?( (?&lt;A&gt;(&action_find;)|(&action_play;)|(&action_open;)))?</string>
+    <string name="vcmd_chat">(sohbet|chat( ?gpt)?)(?&lt;Q&gt;.*)</string>
+</resources>
