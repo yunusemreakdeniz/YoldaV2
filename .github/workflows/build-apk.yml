@@ -1,0 +1,96 @@
+name: Yolda APK derle
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "kanallar/**"
+      - "**.md"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  JAVA_VERSION: '17'
+  # Kişisel sürüm: ad ve paket kimliği Fermata'dan ayrı (telefonda Fermata/Mola ile çakışmaz)
+  APP_NAME: 'Yolda'
+  APP_ID_SFX: '.yolda'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sürüm bilgisi
+        run: |
+          ver_file=gradle/libs.versions.toml
+          version() { grep -Po "(?<=$1).+" $ver_file | sed -e 's/[= "]//g'; }
+          app_version="$(version appVersionName)-yolda.${{ github.run_number }}"
+          sed -ri "s/appVersionName.+/appVersionName = \"$app_version\"/" $ver_file
+          echo "APP_VERSION=$app_version" >> $GITHUB_ENV
+          echo "ANDROID_NDK_VERSION=$(version ndkVersion)" >> $GITHUB_ENV
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - name: Android NDK önbelleği
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/lib/android/sdk/ndk/${{ env.ANDROID_NDK_VERSION }}
+          key: ${{ runner.os }}-android-ndk-${{ env.ANDROID_NDK_VERSION }}
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: İmza anahtarı
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::KEYSTORE_BASE64 yok. Sabit anahtar olmadan her sürüm eskisinin üzerine kurulamaz."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+          {
+            echo "storeFile=$(pwd)/keystore.jks"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+          } > local.properties
+
+      - name: Derle (arm64)
+        env:
+          NO_GS: true
+        run: |
+          chmod +x gradlew
+          ./gradlew fermata:packageAutoReleaseUniversalApk -PABI=arm64-v8a \
+            "-PAPP_NAME=$APP_NAME" "-PAPP_ID_SFX=$APP_ID_SFX" --build-cache
+          mkdir -p dist
+          cp fermata/build/outputs/apk_from_bundle/autoRelease/*.apk dist/Yolda-${{ github.run_number }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Yolda-${{ github.run_number }}
+          path: dist/*.apk
+          retention-days: 30
+
+      - name: Release'e ekle (telefondan indirme)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Yolda ${{ github.run_number }} (${{ env.APP_VERSION }})
+          files: dist/*.apk
