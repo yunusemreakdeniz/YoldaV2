@@ -344,18 +344,9 @@ public class MainActivityDelegate extends ActivityDelegate
 			}
 		}
 
-		FutureSupplier<Boolean> f = goToCurrent().onCompletion((ok, fail1) -> {
-			if ((fail1 != null) && !isCancellation(fail1)) {
-				Log.e(fail1, "Last played track not found");
-			}
-			if ((ok == null) || !ok) showFragment(R.id.folders_fragment);
-			checkUpdates();
-		});
-
-		if (!f.isDone() || f.isFailed() || !Boolean.TRUE.equals(f.peek())) {
-			showFragment(R.id.folders_fragment);
-			setContentLoading(f);
-		}
+		// Yolda: açılışta ana ekran (büyük kartlar); "kaldığın yerden devam" kartı oradadır
+		showFragment(R.id.home_fragment);
+		checkUpdates();
 	}
 
 	private void checkUpdates() {
@@ -709,7 +700,9 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	protected ActivityFragment createFragment(int id) {
-		if (id == R.id.folders_fragment) {
+		if (id == R.id.home_fragment) {
+			return new me.aap.fermata.ui.fragment.HomeFragment();
+		} else if (id == R.id.folders_fragment) {
 			return new FoldersFragment();
 		} else if (id == R.id.favorites_fragment) {
 			return new FavoritesFragment();

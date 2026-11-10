@@ -77,6 +77,8 @@ public class NavBarMediator extends PrefNavBarMediator
 		List<NavBarItem> items = new ArrayList<>(names.size());
 		AddonManager amgr = getAddonManager();
 		Context ctx = nb.getContext();
+		// Yolda: her zaman ilk düğme ana sayfa
+		items.add(create(ctx, R.id.home_fragment, R.drawable.yolda_home, R.string.yolda_home, true));
 
 		for (String name : names) {
 			switch (name) {

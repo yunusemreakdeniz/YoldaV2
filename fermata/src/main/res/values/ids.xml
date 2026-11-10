@@ -30,6 +30,7 @@
     <item name="settings_fragment" type="id" />
     <item name="audio_effects_fragment" type="id" />
     <item name="subtitles_fragment" type="id" />
+    <item name="home_fragment" type="id" />
     <item name="tv_fragment" type="id" />
     <item name="youtube_fragment" type="id" />
     <item name="web_browser_fragment" type="id" />

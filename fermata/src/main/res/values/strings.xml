@@ -4,9 +4,10 @@
     <string name="app_name_auto_release" translatable="false">Fermata Auto</string>
     <string name="app_name_mobile_debug" translatable="false">Debug Fermata</string>
     <string name="app_name_auto_debug" translatable="false">Debug Fermata Auto</string>
-    <string name="mirror_service_name_release" translatable="false">Fermata Mirror</string>
+    <string name="yolda_home" translatable="false">Ana sayfa</string>
+    <string name="mirror_service_name_release" translatable="false">Yolda Telefon</string>
     <string name="mirror_service_name_debug" translatable="false">Debug Fermata Mirror</string>
-    <string name="mirror_fs_service_name_release" translatable="false">FS Fermata Mirror</string>
+    <string name="mirror_fs_service_name_release" translatable="false">Yolda Telefon (tam ekran)</string>
     <string name="mirror_fs_service_name_debug" translatable="false">Debug FS Fermata Mirror</string>
     <string name="media_service_name_mobile_release" translatable="false">@string/app_name_mobile_release</string>
     <string name="media_service_name_auto_release" translatable="false">Fermata Media Service</string>
