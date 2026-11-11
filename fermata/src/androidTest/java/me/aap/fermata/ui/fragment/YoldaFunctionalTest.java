@@ -42,6 +42,16 @@ public class YoldaFunctionalTest {
 	public void start() {
 		// Kurulum ekranını atla (emülatör Play Store'dan kurulmuş görünmez)
 		MainActivityDelegate.skipSetupThisRun = true;
+		// Açılıştaki izin penceresi testi bekletmesin: izinleri önceden ver
+		String pkg = ctx().getPackageName();
+		for (String p : new String[]{"android.permission.READ_EXTERNAL_STORAGE", "android.permission.RECORD_AUDIO",
+				"android.permission.POST_NOTIFICATIONS", "android.permission.READ_MEDIA_AUDIO",
+				"android.permission.READ_MEDIA_VIDEO", "android.permission.ACCESS_FINE_LOCATION"}) {
+			try {
+				InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(pkg, p);
+			} catch (Exception ignore) {
+			}
+		}
 		scenario = ActivityScenario.launch(MainActivity.class);
 		waitIdle(2500);
 	}
@@ -53,6 +63,7 @@ public class YoldaFunctionalTest {
 
 	@Test
 	public void acilistaAnaSayfa() {
+		for (int i = 0; (i < 30) && (onMain(MainActivityDelegate::getActiveFragmentId) == 0); i++) waitIdle(500);
 		assertEquals(R.id.home_fragment, onMain(MainActivityDelegate::getActiveFragmentId).intValue());
 		assertTrue("Ana sayfa görünümü kurulmalı", onMain(a -> {
 			ActivityFragment f = a.getActiveFragment();
@@ -179,7 +190,6 @@ public class YoldaFunctionalTest {
 		InstrumentationRegistry.getInstrumentation().waitForIdleSync();
 	}
 
-	@SuppressWarnings("unused")
 	private static Context ctx() {
 		return InstrumentationRegistry.getInstrumentation().getTargetContext();
 	}
