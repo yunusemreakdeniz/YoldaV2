@@ -34,6 +34,7 @@ import java.util.Set;
 import me.aap.fermata.R;
 import me.aap.fermata.media.lib.MediaLib;
 import me.aap.fermata.ui.activity.MainActivityDelegate;
+import me.aap.fermata.ui.view.YoldaStyle;
 import me.aap.utils.log.Log;
 
 /**
@@ -49,7 +50,7 @@ public class ChannelsFragment extends MainActivityFragment {
 
 	private final List<MediaLib.PlayableItem> items = new ArrayList<>();
 	private final List<String> groups = new ArrayList<>();
-	private HomeFragment.Theme t;
+	private YoldaStyle.Theme t;
 	private LinearLayout grid;
 	private LinearLayout chips;
 	private TextView status;
@@ -76,11 +77,10 @@ public class ChannelsFragment extends MainActivityFragment {
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
 													 @Nullable Bundle savedInstanceState) {
 		Context ctx = requireContext();
-		t = HomeFragment.THEMES[Math.floorMod(ctx.getApplicationContext()
-				.getSharedPreferences("yolda_home", Context.MODE_PRIVATE).getInt("theme", 0), HomeFragment.THEMES.length)];
+		t = YoldaStyle.current(ctx);
 
 		FrameLayout root = new FrameLayout(ctx);
-		root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{t.bg1, t.bg2}));
+		root.addView(new YoldaStyle.Backdrop(ctx, t), new FrameLayout.LayoutParams(-1, -1));
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
 		col.setPadding(dp(18), dp(14), dp(18), 0);
@@ -95,11 +95,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		search.setTextColor(t.ink);
 		search.setHintTextColor(t.muted);
 		search.setPadding(dp(18), dp(14), dp(18), dp(14));
-		GradientDrawable sb = new GradientDrawable();
-		sb.setColor(t.surface);
-		sb.setStroke(dp(1), t.stroke);
-		sb.setCornerRadius(dp(999));
-		search.setBackground(sb);
+		search.setBackground(YoldaStyle.glass(ctx, t, 999));
 		search.addTextChangedListener(new TextWatcher() {
 			@Override
 			public void beforeTextChanged(CharSequence s, int st, int c, int a1) {
@@ -191,14 +187,14 @@ public class ChannelsFragment extends MainActivityFragment {
 		chips.removeAllViews();
 		for (String g : groups) {
 			boolean on = g.equals(group);
-			TextView c = text(ctx, g, 15, true, on ? Color.WHITE : t.ink);
+			TextView c = text(ctx, g, 15, true, on ? 0xFF1C1A2B : t.ink);
 			c.setPadding(dp(18), dp(10), dp(18), dp(10));
-			GradientDrawable bg = new GradientDrawable();
-			bg.setColor(on ? t.accent : t.surface);
-			bg.setStroke(dp(1), on ? t.accent : t.stroke);
-			bg.setCornerRadius(dp(999));
-			c.setBackground(bg);
-			if (on) c.setTextColor(0xFF0B1026);
+			if (on) {
+				GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{t.hero1, t.hero2});
+				bg.setCornerRadius(dp(999));
+				bg.setStroke(Math.max(1, dp(1)), 0x66FFFFFF);
+				c.setBackground(bg);
+			} else c.setBackground(YoldaStyle.glass(ctx, t, 999));
 			c.setClickable(true);
 			c.setOnClickListener(v -> {
 				group = g;
@@ -254,11 +250,7 @@ public class ChannelsFragment extends MainActivityFragment {
 	@SuppressLint("ClickableViewAccessibility")
 	private View card(Context ctx, MainActivityDelegate a, MediaLib.PlayableItem pi) {
 		FrameLayout f = new FrameLayout(ctx);
-		GradientDrawable bg = new GradientDrawable();
-		bg.setColor(t.surface);
-		bg.setStroke(dp(1), t.stroke);
-		bg.setCornerRadius(dp(20));
-		f.setBackground(bg);
+		f.setBackground(YoldaStyle.glass(ctx, t, 24));
 		f.setClickable(true);
 		f.setOnClickListener(v -> a.getBody().playItem(pi));
 		f.setOnTouchListener((v, e) -> {
@@ -298,7 +290,7 @@ public class ChannelsFragment extends MainActivityFragment {
 				logo.setVisibility(View.VISIBLE);
 				GradientDrawable lb = new GradientDrawable();
 				lb.setCornerRadius(dp(14));
-				lb.setColor(0x26FFFFFF);
+				lb.setColor(0xF5FFFFFF); // logolar her temada okunur: Apple TV gibi açık plaka
 				initials.setBackground(lb);
 				initials.setText("");
 			});

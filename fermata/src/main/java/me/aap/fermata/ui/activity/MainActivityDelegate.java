@@ -1300,25 +1300,28 @@ public class MainActivityDelegate extends ActivityDelegate
 				DisplayMetrics dm = getResources().getDisplayMetrics();
 				int min = Math.min(dm.heightPixels, dm.widthPixels);
 				int size = Math.max(min / 2, toIntPx(ctx, 260));
-				int imgColor = android.graphics.Color.WHITE;
+				int imgColor = me.aap.fermata.ui.view.YoldaStyle.current(ctx).ink;
 				LinearLayoutCompat layout = new LinearLayoutCompat(ctx);
 				layout.setOrientation(LinearLayoutCompat.VERTICAL);
 				layout.setGravity(Gravity.CENTER_HORIZONTAL);
 				int pad = toIntPx(ctx, 18);
 				layout.setPadding(pad, pad, pad, pad);
+				me.aap.fermata.ui.view.YoldaStyle.Theme yt = me.aap.fermata.ui.view.YoldaStyle.current(ctx);
 				android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(
 						android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-						new int[]{0xF0141A3A, 0xF00B1026});
-				bg.setCornerRadius(toIntPx(ctx, 28));
+						new int[]{(yt.base & 0x00FFFFFF) | 0xEB000000, (yt.base & 0x00FFFFFF) | 0xF5000000});
+				bg.setCornerRadius(toIntPx(ctx, 32));
+				bg.setStroke(Math.max(1, toIntPx(ctx, 1)), yt.edge);
 				layout.setBackground(bg);
 
 				orb = new me.aap.fermata.ui.view.VoiceOrbView(ctx);
+				orb.setColors(yt.blobs[1], yt.blobs[0], yt.blobs[2]);
 				int orbSize = Math.min(size - 2 * pad, min / 3);
 				layout.addView(orb, new LinearLayoutCompat.LayoutParams(orbSize, orbSize));
 
 				statusText = new android.widget.TextView(ctx);
 				statusText.setText(onDevice ? "Dinliyorum…  ·  internetsiz" : "Dinliyorum…");
-				statusText.setTextColor(0xFF22D3EE);
+				statusText.setTextColor(yt.accent);
 				statusText.setTextSize(15);
 				statusText.setLetterSpacing(0.06f);
 				statusText.setGravity(Gravity.CENTER);
@@ -1330,12 +1333,12 @@ public class MainActivityDelegate extends ActivityDelegate
 				text.setTextSize(22);
 				text.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
 				text.setEllipsize(TextUtils.TruncateAt.END);
-				text.setTextColor(ColorStateList.valueOf(0xFFF1F5F9));
+				text.setTextColor(ColorStateList.valueOf(yt.ink));
 				text.setLayoutParams(new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
 
 				android.widget.TextView hint = new android.widget.TextView(ctx);
 				hint.setText("“TRT Haber'i aç”  ·  “YouTube'da Habertürk aç”  ·  “durdur”");
-				hint.setTextColor(0xFFA5B0C2);
+				hint.setTextColor(yt.muted);
 				hint.setTextSize(13);
 				hint.setGravity(Gravity.CENTER);
 				hint.setPadding(0, toIntPx(ctx, 10), 0, 0);

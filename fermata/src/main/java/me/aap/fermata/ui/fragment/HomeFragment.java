@@ -39,6 +39,7 @@ import me.aap.fermata.R;
 import me.aap.fermata.addon.AddonManager;
 import me.aap.fermata.media.lib.MediaLib;
 import me.aap.fermata.ui.activity.MainActivityDelegate;
+import me.aap.fermata.ui.view.YoldaStyle;
 import me.aap.utils.log.Log;
 import me.aap.utils.ui.UiUtils;
 
@@ -60,31 +61,6 @@ public class HomeFragment extends MainActivityFragment {
 
 	private static final String PREFS = "yolda_home";
 
-	/** Tema: zemin geçişi, kart yüzeyi, vurgu ve büyük kartın geçişi. */
-	static final class Theme {
-		final String name;
-		final int bg1, bg2, surface, stroke, accent, hero1, hero2, ink, muted;
-
-		Theme(String name, int bg1, int bg2, int accent, int hero1, int hero2) {
-			this.name = name;
-			this.bg1 = bg1;
-			this.bg2 = bg2;
-			this.surface = 0x1AFFFFFF;
-			this.stroke = 0x22FFFFFF;
-			this.accent = accent;
-			this.hero1 = hero1;
-			this.hero2 = hero2;
-			this.ink = 0xFFF1F5F9;
-			this.muted = 0xFFA5B0C2;
-		}
-	}
-
-	static final Theme[] THEMES = {
-			new Theme("Gece mavisi", 0xFF0B1026, 0xFF1B1446, 0xFF22D3EE, 0xFF4F46E5, 0xFF0EA5E9),
-			new Theme("Grafit", 0xFF111214, 0xFF23252B, 0xFFEF4444, 0xFFDC2626, 0xFF7F1D1D),
-			new Theme("Gece yeşili", 0xFF06201A, 0xFF0E3B30, 0xFFF5C451, 0xFF10B981, 0xFF065F46),
-	};
-
 	private static final String[][] DEFAULT_YT = {
 			{"Habertürk", "https://m.youtube.com/channel/UCK3mI2lsk3LSo8PBUc8JTSw/live"},
 			{"CNN Türk", "https://m.youtube.com/channel/UCV6zcRug6Hqp1UX_FdyUeBg/live"},
@@ -95,7 +71,9 @@ public class HomeFragment extends MainActivityFragment {
 	};
 
 	private FrameLayout root;
-	private Theme t;
+	private YoldaStyle.Theme t;
+	/** Büyük (pastel) kart üzerindeki yazı rengi. */
+	private int heroInk;
 
 	@Override
 	public int getFragmentId() {
@@ -141,9 +119,11 @@ public class HomeFragment extends MainActivityFragment {
 
 	private void render() {
 		Context ctx = requireContext();
-		t = THEMES[Math.floorMod(prefs().getInt("theme", 0), THEMES.length)];
+		t = YoldaStyle.current(ctx);
+		heroInk = YoldaStyle.onHero(t);
 		root.removeAllViews();
-		root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{t.bg1, t.bg2}));
+		root.setBackground(null);
+		root.addView(new YoldaStyle.Backdrop(ctx, t), new FrameLayout.LayoutParams(-1, -1));
 
 		ScrollView scroll = new ScrollView(ctx);
 		scroll.setFillViewport(true);
@@ -224,35 +204,30 @@ public class HomeFragment extends MainActivityFragment {
 
 	/** Çalan yayın: ikon, etiket, başlık ve ⏮ ⏯ ⏭ ★ düğmeleri; oynatma durumu saniyede bir yenilenir. */
 	private View nowPlaying(Context ctx, MainActivityDelegate a) {
-		GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-				new int[]{t.hero1, t.hero2});
-		bg.setCornerRadius(dp(26));
-		FrameLayout f = base(ctx, bg, v -> {
+		// Apple "Şimdi Çalıyor" gibi: cam kart, solda pastel kapak, sağda yuvarlak cam düğmeler
+		FrameLayout f = base(ctx, YoldaStyle.glass(ctx, t, 28), v -> {
 			if (a.hasCurrent()) a.goToCurrent();
 			else a.startVoiceAssistant();
 		});
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.HORIZONTAL);
 		box.setGravity(Gravity.CENTER_VERTICAL);
-		box.setPadding(dp(18), dp(14), dp(14), dp(14));
+		box.setPadding(dp(16), dp(14), dp(14), dp(14));
 
-		TextView art = text(ctx, "📺", 34, false, Color.WHITE);
+		TextView art = text(ctx, "📺", 34, false, heroInk);
 		art.setGravity(Gravity.CENTER);
-		GradientDrawable ab = new GradientDrawable();
-		ab.setColor(0x33FFFFFF);
-		ab.setCornerRadius(dp(20));
-		art.setBackground(ab);
-		box.addView(art, new LinearLayout.LayoutParams(dp(96), dp(96)));
+		art.setBackground(YoldaStyle.hero(ctx, t, 22));
+		box.addView(art, new LinearLayout.LayoutParams(dp(100), dp(100)));
 
 		LinearLayout info = new LinearLayout(ctx);
 		info.setOrientation(LinearLayout.VERTICAL);
-		info.setPadding(dp(16), 0, dp(8), 0);
-		TextView eyebrow = text(ctx, "", 12, true, 0xCCFFFFFF);
-		eyebrow.setLetterSpacing(0.12f);
-		TextView title = text(ctx, "", 22, true, Color.WHITE);
+		info.setPadding(dp(18), 0, dp(8), 0);
+		TextView eyebrow = text(ctx, "", 12, true, t.accent);
+		eyebrow.setLetterSpacing(0.14f);
+		TextView title = text(ctx, "", 23, true, t.ink);
 		title.setMaxLines(1);
 		title.setEllipsize(android.text.TextUtils.TruncateAt.END);
-		TextView sub = text(ctx, "", 14, false, 0xE6FFFFFF);
+		TextView sub = text(ctx, "", 14, false, t.muted);
 		sub.setMaxLines(1);
 		info.addView(eyebrow);
 		info.addView(title);
@@ -263,11 +238,11 @@ public class HomeFragment extends MainActivityFragment {
 		LinearLayout ctl = new LinearLayout(ctx);
 		ctl.setOrientation(LinearLayout.HORIZONTAL);
 		ctl.setGravity(Gravity.CENTER_VERTICAL);
-		View prev = roundButton(ctx, "⏮", 0x33FFFFFF, v -> b.onPrevNextButtonClick(false));
-		TextView play = (TextView) roundButton(ctx, "▶", Color.WHITE, v -> b.onPlayPauseButtonClick());
-		play.setTextColor(t.hero2);
-		View next = roundButton(ctx, "⏭", 0x33FFFFFF, v -> b.onPrevNextButtonClick(true));
-		TextView fav = (TextView) roundButton(ctx, "☆", 0x33FFFFFF, v -> {
+		View prev = glassButton(ctx, "⏮", v -> b.onPrevNextButtonClick(false));
+		TextView play = (TextView) roundButton(ctx, "▶", t.accent, v -> b.onPlayPauseButtonClick());
+		play.setTextColor(heroInk);
+		View next = glassButton(ctx, "⏭", v -> b.onPrevNextButtonClick(true));
+		TextView fav = (TextView) glassButton(ctx, "☆", v -> {
 			MediaLib.PlayableItem pi = b.getCurrentItem();
 			if (pi == null) return;
 			MediaLib.Favorites fs = a.getLib().getFavorites();
@@ -311,21 +286,14 @@ public class HomeFragment extends MainActivityFragment {
 	}
 
 	private View row(Context ctx, String icon, String title, String sub, int color, View.OnClickListener click) {
-		GradientDrawable bg = new GradientDrawable();
-		bg.setColor(t.surface);
-		bg.setStroke(dp(1), t.stroke);
-		bg.setCornerRadius(dp(20));
-		FrameLayout f = base(ctx, bg, click);
+		FrameLayout f = base(ctx, YoldaStyle.glass(ctx, t, 22), click);
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.HORIZONTAL);
 		box.setGravity(Gravity.CENTER_VERTICAL);
 		box.setPadding(dp(14), dp(10), dp(18), dp(10));
 		TextView ic = text(ctx, icon, 22, false, Color.WHITE);
 		ic.setGravity(Gravity.CENTER);
-		GradientDrawable ib = new GradientDrawable();
-		ib.setShape(GradientDrawable.OVAL);
-		ib.setColor(color);
-		ic.setBackground(ib);
+		ic.setBackground(iconBg(color));
 		box.addView(ic, new LinearLayout.LayoutParams(dp(50), dp(50)));
 		LinearLayout tx = new LinearLayout(ctx);
 		tx.setOrientation(LinearLayout.VERTICAL);
@@ -386,9 +354,10 @@ public class HomeFragment extends MainActivityFragment {
 		hello.addView(date);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
 
-		head.addView(roundButton(ctx, "🎤", t.accent, v -> a.startVoiceAssistant()));
+		TextView mic = (TextView) roundButton(ctx, "🎤", t.accent, v -> a.startVoiceAssistant());
+		head.addView(mic);
 		boolean flow = prefs().getInt("layout", 0) == 1;
-		View layoutBtn = roundButton(ctx, flow ? "▦" : "☰", t.surface, v -> {
+		View layoutBtn = glassButton(ctx, flow ? "▦" : "☰", v -> {
 			prefs().edit().putInt("layout", flow ? 0 : 1).apply();
 			render();
 			UiUtils.showInfo(ctx, flow ? "Kart görünümü" : "Akıcı görünüm");
@@ -396,11 +365,10 @@ public class HomeFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(dp(52), dp(52));
 		llp.leftMargin = dp(10);
 		head.addView(layoutBtn, llp);
-		View themeBtn = roundButton(ctx, "🎨", t.surface, v -> {
-			int next = Math.floorMod(prefs().getInt("theme", 0) + 1, THEMES.length);
-			prefs().edit().putInt("theme", next).apply();
+		View themeBtn = glassButton(ctx, "🎨", v -> {
+			YoldaStyle.next(ctx);
 			render();
-			UiUtils.showInfo(ctx, "Tema: " + THEMES[next].name);
+			UiUtils.showInfo(ctx, "Tema: " + YoldaStyle.current(ctx).name);
 		});
 		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(52), dp(52));
 		tlp.leftMargin = dp(10);
@@ -421,16 +389,14 @@ public class HomeFragment extends MainActivityFragment {
 			}
 		}
 		View.OnClickListener click = resume ? v -> a.goToCurrent() : v -> a.startVoiceAssistant();
-		GradientDrawable hbg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{t.hero1, t.hero2});
-		hbg.setCornerRadius(dp(26));
-		FrameLayout f = base(ctx, hbg, click);
+		FrameLayout f = base(ctx, YoldaStyle.hero(ctx, t, 30), click);
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.VERTICAL);
 		box.setGravity(Gravity.BOTTOM);
-		box.setPadding(dp(20), dp(18), dp(20), dp(18));
-		box.addView(text(ctx, resume ? "▶" : "🎤", 40, false, Color.WHITE));
-		box.addView(text(ctx, resume ? title : "Sesli komut", 24, true, Color.WHITE));
-		TextView s = text(ctx, resume ? sub : "“TRT Haber'i aç” · “YouTube'da Habertürk aç”", 14, false, 0xE6FFFFFF);
+		box.setPadding(dp(22), dp(18), dp(22), dp(20));
+		box.addView(text(ctx, resume ? "▶" : "🎤", 40, false, heroInk));
+		box.addView(text(ctx, resume ? title : "Sesli komut", 25, true, heroInk));
+		TextView s = text(ctx, resume ? sub : "“TRT Haber'i aç” · “YouTube'da Habertürk aç”", 14, false, (heroInk & 0x00FFFFFF) | 0xB3000000);
 		s.setMaxLines(2);
 		box.addView(s);
 		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
@@ -512,21 +478,14 @@ public class HomeFragment extends MainActivityFragment {
 	}
 
 	private View ytCard(Context ctx, String name, View.OnClickListener click) {
-		GradientDrawable bg = new GradientDrawable();
-		bg.setColor(t.surface);
-		bg.setStroke(dp(1), t.stroke);
-		bg.setCornerRadius(dp(18));
-		FrameLayout f = base(ctx, bg, click);
+		FrameLayout f = base(ctx, YoldaStyle.glass(ctx, t, 22), click);
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.VERTICAL);
 		box.setGravity(Gravity.CENTER);
 		box.setPadding(dp(10), dp(10), dp(10), dp(10));
-		TextView av = text(ctx, initials(name), 18, true, Color.WHITE);
+		TextView av = text(ctx, initials(name), 18, true, 0xFF1C1A2B);
 		av.setGravity(Gravity.CENTER);
-		GradientDrawable ab = new GradientDrawable();
-		ab.setShape(GradientDrawable.OVAL);
-		ab.setColor(avatarColor(name));
-		av.setBackground(ab);
+		av.setBackground(iconBg(avatarColor(name)));
 		box.addView(av, new LinearLayout.LayoutParams(dp(52), dp(52)));
 		TextView n = text(ctx, name, 14, true, t.ink);
 		n.setGravity(Gravity.CENTER);
@@ -540,9 +499,9 @@ public class HomeFragment extends MainActivityFragment {
 
 	private View addCard(Context ctx) {
 		GradientDrawable bg = new GradientDrawable();
-		bg.setColor(0x00000000);
+		bg.setColor(t.light ? 0x40FFFFFF : 0x0DFFFFFF);
 		bg.setStroke(dp(2), t.accent, dp(8), dp(6));
-		bg.setCornerRadius(dp(18));
+		bg.setCornerRadius(dp(22));
 		FrameLayout f = base(ctx, bg, v -> addYoutube(ctx));
 		TextView plus = text(ctx, "＋\nKanal ekle", 15, true, t.accent);
 		plus.setGravity(Gravity.CENTER);
@@ -662,7 +621,7 @@ public class HomeFragment extends MainActivityFragment {
 	private FrameLayout base(Context ctx, android.graphics.drawable.Drawable bg, View.OnClickListener click) {
 		FrameLayout f = new FrameLayout(ctx);
 		f.setBackground(bg);
-		f.setElevation(dp(3));
+		f.setElevation(0); // cam yüzeyde gölge, saydamlıktan görünüp kirli durur
 		f.setClickable(true);
 		f.setFocusable(true);
 		f.setOnClickListener(click);
@@ -677,21 +636,14 @@ public class HomeFragment extends MainActivityFragment {
 	}
 
 	private View tile(Context ctx, String icon, String label, int color, View.OnClickListener click) {
-		GradientDrawable bg = new GradientDrawable();
-		bg.setColor(t.surface);
-		bg.setStroke(dp(1), t.stroke);
-		bg.setCornerRadius(dp(22));
-		FrameLayout f = base(ctx, bg, click);
+		FrameLayout f = base(ctx, YoldaStyle.glass(ctx, t, 26), click);
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.VERTICAL);
 		box.setGravity(Gravity.CENTER_VERTICAL);
-		box.setPadding(dp(14), dp(10), dp(14), dp(10));
+		box.setPadding(dp(16), dp(12), dp(16), dp(12));
 		TextView ic = text(ctx, icon, 22, false, Color.WHITE);
 		ic.setGravity(Gravity.CENTER);
-		GradientDrawable ib = new GradientDrawable();
-		ib.setShape(GradientDrawable.OVAL);
-		ib.setColor(color);
-		ic.setBackground(ib);
+		ic.setBackground(iconBg(color));
 		box.addView(ic, new LinearLayout.LayoutParams(dp(44), dp(44)));
 		TextView l = text(ctx, label, 16, true, t.ink);
 		l.setMaxLines(1);
@@ -705,11 +657,7 @@ public class HomeFragment extends MainActivityFragment {
 		TextView c = text(ctx, label, 15, true, t.ink);
 		c.setGravity(Gravity.CENTER);
 		c.setPadding(dp(18), dp(12), dp(18), dp(12));
-		GradientDrawable bg = new GradientDrawable();
-		bg.setColor(t.surface);
-		bg.setStroke(dp(1), t.stroke);
-		bg.setCornerRadius(dp(999));
-		c.setBackground(bg);
+		c.setBackground(YoldaStyle.glass(ctx, t, 999));
 		c.setClickable(true);
 		c.setOnClickListener(click);
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
@@ -731,12 +679,41 @@ public class HomeFragment extends MainActivityFragment {
 		return b;
 	}
 
+	/** Yuvarlak cam düğme (tema/görünüm/oynatıcı düğmeleri). */
+	private View glassButton(Context ctx, String icon, View.OnClickListener click) {
+		TextView b = text(ctx, icon, 21, false, t.ink);
+		b.setGravity(Gravity.CENTER);
+		b.setBackground(YoldaStyle.glass(ctx, t, 999));
+		b.setClickable(true);
+		b.setOnClickListener(click);
+		b.setLayoutParams(new LinearLayout.LayoutParams(dp(52), dp(52)));
+		return b;
+	}
+
+	/** Pastel ikon dairesi: verilen rengin beyazla yumuşatılmış hali, ince parlak kenar. */
+	private GradientDrawable iconBg(int color) {
+		GradientDrawable ib = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+				new int[]{soften(color, 0.55f), soften(color, 0.30f)});
+		ib.setShape(GradientDrawable.OVAL);
+		ib.setStroke(Math.max(1, dp(1)), 0x66FFFFFF);
+		return ib;
+	}
+
+	private static int soften(int c, float white) {
+		int r = Math.round(Color.red(c) + (255 - Color.red(c)) * white);
+		int g = Math.round(Color.green(c) + (255 - Color.green(c)) * white);
+		int b = Math.round(Color.blue(c) + (255 - Color.blue(c)) * white);
+		return Color.rgb(r, g, b);
+	}
+
+	/** Apple tarzı yazı: başlıklar orta kalınlıkta (sans-serif-medium), gövde normal. */
 	private static TextView text(Context ctx, String s, float size, boolean bold, int color) {
 		TextView tv = new TextView(ctx);
 		tv.setText(s);
 		tv.setTextSize(size);
 		tv.setTextColor(color);
-		if (bold) tv.setTypeface(Typeface.DEFAULT_BOLD);
+		tv.setTypeface(bold ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
+		if (bold && size >= 20) tv.setLetterSpacing(-0.01f);
 		return tv;
 	}
 
