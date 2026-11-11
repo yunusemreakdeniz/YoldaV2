@@ -103,6 +103,8 @@ public class ControlPanelView extends ConstraintLayout
 		g.setOnClickListener(this::showHideBars);
 		g = findViewById(R.id.control_menu_button);
 		g.setOnClickListener(this::showMenu);
+		View close = findViewById(R.id.control_close_icon);
+		if (close != null) close.setOnClickListener(v -> closePlayer());
 		setShowHideBarsIcon(a);
 	}
 
@@ -160,6 +162,7 @@ public class ControlPanelView extends ConstraintLayout
 			setHeight(seek, iconSize);
 			setSize(R.id.show_hide_bars_icon, iconSize);
 			setSize(R.id.control_menu_button_icon, iconSize);
+			setSize(R.id.control_close_icon, iconSize);
 			seTextAppearance(seekTime, textSize);
 			seTextAppearance(seekTotal, textSize);
 			setHeight(R.id.control_prev, buttonSize);
@@ -170,6 +173,7 @@ public class ControlPanelView extends ConstraintLayout
 			panelSize = buttonSize;
 			setSize(R.id.show_hide_bars_icon, buttonSize);
 			setSize(R.id.control_menu_button_icon, buttonSize);
+			setSize(R.id.control_close_icon, buttonSize);
 			setHeight(R.id.control_prev, buttonSize);
 			setHeight(R.id.control_play_pause, buttonSize);
 		}
@@ -202,6 +206,20 @@ public class ControlPanelView extends ConstraintLayout
 		ViewGroup.LayoutParams lp = v.getLayoutParams();
 		lp.height = h;
 		v.setLayoutParams(lp);
+	}
+
+	/** Yolda: ✕ — çalmayı durdurur, oynatıcıyı ve video ekranını kapatır. */
+	public void closePlayer() {
+		MainActivityDelegate a = getActivity();
+		try {
+			a.getMediaSessionCallback().onStop();
+		} catch (Throwable ex) {
+			me.aap.utils.log.Log.e(ex, "Oynatıcı durdurulamadı");
+		}
+		if ((mask & MASK_VIDEO_MODE) != 0) disableVideoMode();
+		BodyLayout b = a.getBody();
+		if ((b != null) && b.isVideoMode()) b.setMode(BodyLayout.Mode.FRAME);
+		setVisibility(GONE);
 	}
 
 	public boolean isActive() {

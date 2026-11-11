@@ -163,7 +163,7 @@ public class MusicFragment extends MainActivityFragment {
 		search.setHintTextColor(t.muted);
 		search.setPadding(dp(20), 0, dp(20), 0);
 		search.setGravity(Gravity.CENTER_VERTICAL);
-		search.setBackground(YoldaStyle.pill(ctx, t));
+		search.setBackground(YoldaStyle.searchField(ctx, t));
 		search.setElevation(dp(8));
 		search.setOnEditorActionListener((v, id, ev) -> {
 			boolean enter = (ev != null) && (ev.getKeyCode() == KeyEvent.KEYCODE_ENTER)
@@ -550,39 +550,61 @@ public class MusicFragment extends MainActivityFragment {
 
 	// ---- çalma ----
 
+	/** Doğrudan çalma bu oturumda bir kez başarısız olduysa her şarkıda beklemeden YouTube oynatıcısı. */
+	private static boolean directBroken;
+
 	private void play(List<YtMusic.Track> list, int idx) {
 		if ((idx < 0) || (idx >= list.size())) return;
 		MainActivityDelegate a = getActivityDelegate();
 		List<YtMusic.Track> queue = new ArrayList<>(list);
 		YtMusic.Track tr = queue.get(idx);
-		status.setText("Açılıyor…");
 		addRecent(requireContext(), tr);
+		if (directBroken) {
+			status.setText("Çalıyor: " + tr.title());
+			playInYoutube(a, tr);
+			return;
+		}
+		status.setText("Açılıyor…");
 		YtMusicItem.create(a.getLib(), queue, idx).onCompletion((item, err) -> {
 			if (!isAdded()) return;
 			if ((err != null) || (item == null)) {
 				// YouTube doğrudan ses akışı vermedi (ör. "bot değilim" doğrulaması): YouTube oynatıcısında çal
 				Log.e(err, "Doğrudan çalınamadı, YouTube oynatıcısına geçiliyor");
-				status.setText("YouTube oynatıcısında açılıyor (" + reason(err) + ")");
+				directBroken = true;
+				status.setText("YouTube oynatıcısında (" + reason(err) + ")");
 				playInYoutube(a, tr);
 				return;
 			}
 			a.getBody().playItem(item);
 			status.setText("Çalıyor: " + tr.title());
-			// 7 sn içinde gerçekten çalmaya başlamadıysa (akış reddedildi) YouTube oynatıcısına geç
-			content.postDelayed(() -> {
-				if (!isAdded()) return;
-				MediaLib.PlayableItem cur = a.getCurrentPlayable();
-				boolean ok = (cur instanceof YtMusicItem m) && m.getTrack().id().equals(tr.id())
-						&& a.getMediaSessionCallback().isPlaying();
-				boolean other = !(cur instanceof YtMusicItem m2) || !m2.getTrack().id().equals(tr.id());
-				if (!ok && !other) {
-					status.setText("YouTube oynatıcısında açılıyor");
-					playInYoutube(a, tr);
-				} else if (ok) {
-					refresh();
-				}
-			}, 7000);
+			checkStarted(a, tr, 0);
 		});
+	}
+
+	/** Çalma başladı mı: 6 ve 12. saniyede bakılır; başlamadıysa durdurup YouTube oynatıcısına geçilir. */
+	private void checkStarted(MainActivityDelegate a, YtMusic.Track tr, int attempt) {
+		content.postDelayed(() -> {
+			if (!isAdded()) return;
+			MediaLib.PlayableItem cur = a.getCurrentPlayable();
+			boolean mine = (cur instanceof YtMusicItem m) && m.getTrack().id().equals(tr.id());
+			if (!mine) return; // bu arada başka bir şey seçildi
+			if (a.getMediaSessionCallback().isPlaying()) {
+				refresh();
+				return;
+			}
+			if (attempt == 0) {
+				status.setText("Bağlanıyor…");
+				checkStarted(a, tr, 1);
+				return;
+			}
+			directBroken = true;
+			try {
+				a.getMediaSessionCallback().onStop();
+			} catch (Throwable ignore) {
+			}
+			status.setText("YouTube oynatıcısında");
+			playInYoutube(a, tr);
+		}, 6000);
 	}
 
 	/** Yedek yol: şarkıyı YouTube sekmesinin oynatıcısında aç, sonra Müzik ekranına dön (ses sürer). */

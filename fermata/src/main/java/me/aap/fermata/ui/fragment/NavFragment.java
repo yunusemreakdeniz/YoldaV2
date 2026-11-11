@@ -139,7 +139,7 @@ public class NavFragment extends MainActivityFragment {
 		search.setOrientation(LinearLayout.HORIZONTAL);
 		search.setGravity(Gravity.CENTER_VERTICAL);
 		search.setPadding(dp(22), 0, dp(8), 0);
-		search.setBackground(YoldaStyle.pill(ctx, t));
+		search.setBackground(YoldaStyle.searchField(ctx, t));
 		search.addView(icon(ctx, R.drawable.yi_search, 0xC7FFFFFF), sq(24));
 		EditText input = a.createEditText(ctx);
 		input.setSingleLine();

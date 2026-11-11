@@ -93,15 +93,30 @@ public class FermataWebClient extends WebViewClientCompat {
 			    + ' ytm-mealbar-promo-renderer, ytm-statement-banner-renderer, #player-ads, .ytp-ad-overlay-container,'
 			    + ' .ytp-ad-image-overlay, ytm-paid-content-overlay-renderer {display: none !important}';
 			  (document.head || document.documentElement).appendChild(css);
+			  var start = Date.now(), href = location.href;
+			  // Kullanıcı sesi kendisi kapatırsa bir daha açmayalım
+			  document.addEventListener('click', function(e) {
+			    var b = e.target && e.target.closest && e.target.closest('.ytp-mute-button, .ytmMuteButton, [aria-label*="Sesi kapat"], [aria-label*="Mute"]');
+			    if (b) window.__yoldaUserMute = 1;
+			  }, true);
 			  setInterval(function() {
+			    if (location.href !== href) { href = location.href; start = Date.now(); window.__yoldaUserMute = 0; }
 			    var v = document.querySelector('video');
 			    var ad = document.querySelector('.ad-showing, .ad-interrupting');
 			    if (v) {
-			      if (ad) {
-			        if (!v.muted) { v.muted = true; v.__yoldaMuted = 1; }
-			        if (isFinite(v.duration) && v.duration > 0 && v.currentTime < v.duration - 0.3)
-			          v.currentTime = v.duration;
-			      } else if (v.__yoldaMuted) { v.muted = false; v.__yoldaMuted = 0; }
+			      // Reklam: sona atla (ses kısılmaz; kısılan ses bazen geri açılmıyordu)
+			      if (ad && isFinite(v.duration) && v.duration > 0 && v.currentTime < v.duration - 0.3)
+			        v.currentTime = v.duration;
+			      // Mobil YouTube kendiliğinden başlayan videoyu sessiz oynatır ("sesi açmak için dokun"): sesi aç
+			      // Yalnız izleme sayfasında (ana sayfadaki sessiz önizlemeler açılmasın)
+			      var watch = /\\/watch|\\/shorts\\//.test(location.pathname);
+			      if (watch && (v.muted || v.volume === 0) && !window.__yoldaUserMute && (Date.now() - start < 30000)) {
+			        v.muted = false;
+			        if (v.volume === 0) v.volume = 1;
+			        var u = document.querySelector('.ytp-unmute, .ytmUnmuteButton, ytm-unmute-button button, button.ytp-unmute-inner, .ytp-unmute-inner');
+			        if (u) u.click();
+			      }
+			      if (watch && v.paused && !ad && (Date.now() - start < 8000) && v.readyState > 2) v.play();
 			    }
 			    var s = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytm-skip-ad-button');
 			    if (s) s.click();

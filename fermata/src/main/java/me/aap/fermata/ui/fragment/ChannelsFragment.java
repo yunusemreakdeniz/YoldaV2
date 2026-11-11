@@ -155,7 +155,7 @@ public class ChannelsFragment extends MainActivityFragment {
 				new int[]{(t.base & 0x00FFFFFF) | 0xCC000000, (t.base & 0x00FFFFFF) | 0xE6000000});
 		sbg.setCornerRadius(dp(999));
 		sbg.setStroke(Math.max(1, dp(1)), t.edge);
-		search.setBackground(YoldaStyle.pill(ctx, t)); // Navigasyon aramasıyla aynı cam
+		search.setBackground(YoldaStyle.searchField(ctx, t)); // Navigasyon aramasıyla aynı cam
 		search.setElevation(dp(8));
 		// Sesli asistan düğmesiyle aynı hizada, hemen sağında (düğme: solda 22dp, 56dp, alttan 14dp)
 		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, dp(56), Gravity.BOTTOM);

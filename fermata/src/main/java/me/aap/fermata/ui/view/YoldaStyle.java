@@ -96,6 +96,17 @@ public final class YoldaStyle {
 		return glass(ctx, 999, 0x47FFFFFF, 0x1AFFFFFF, 0x2EFFFFFF, 0x73FFFFFF);
 	}
 
+	/** Arama kutusu: fazla saydam olmasın; koyu tema rengi dolgu, üstte cam parlaması, belirgin kenar. */
+	public static Drawable searchField(Context ctx, Theme t) {
+		float r = dp(ctx, 999);
+		GradientDrawable fill = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+				new int[]{(t.base & 0x00FFFFFF) | 0xEB000000, (t.base & 0x00FFFFFF) | 0xF5000000});
+		fill.setCornerRadius(r);
+		fill.setStroke(Math.max(1, Math.round(dp(ctx, 1))), 0x8CFFFFFF);
+		return new android.graphics.drawable.LayerDrawable(new Drawable[]{fill,
+				glass(ctx, 999, 0x2EFFFFFF, 0x0DFFFFFF, 0x14FFFFFF, 0x00FFFFFF)});
+	}
+
 	/** Seçili öğe (menüdeki aktif sekme, seçili çip): dolgun cam. */
 	public static Drawable selected(Context ctx, float radiusDp) {
 		return glass(ctx, radiusDp, 0x5CFFFFFF, 0x33FFFFFF, 0x40FFFFFF, 0x99FFFFFF);

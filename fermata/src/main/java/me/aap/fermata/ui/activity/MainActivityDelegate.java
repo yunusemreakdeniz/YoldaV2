@@ -371,7 +371,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		Context ctx = getContext();
 		float d = ctx.getResources().getDisplayMetrics().density;
 		int[] ids = {R.id.control_prev, R.id.control_rw, R.id.control_play_pause, R.id.control_ff,
-				R.id.control_next, R.id.show_hide_bars_icon, R.id.control_menu_button_icon};
+				R.id.control_next, R.id.show_hide_bars_icon, R.id.control_menu_button_icon, R.id.control_close_icon};
 		for (int id : ids) {
 			View v = cp.findViewById(id);
 			if (v instanceof android.widget.ImageView iv) {
