@@ -73,6 +73,11 @@ public class ChannelsFragment extends MainActivityFragment {
 	}
 
 	@Override
+	public me.aap.utils.ui.view.FloatingButton.Mediator getFloatingButtonMediator() {
+		return YoldaNoFab.instance; // yüzen ≡ düğmesi yok
+	}
+
+	@Override
 	public boolean isVideoModeSupported() {
 		return true;
 	}

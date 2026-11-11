@@ -42,3 +42,10 @@
 -dontwarn javax.lang.model.**
 -dontwarn org.jsoup.**
 -dontwarn com.google.protobuf.**
+
+# Yolda Müzik: YouTube yanıtları protobuf-lite ile çözülür; alan adları yansımayla okunur,
+# küçültülürse "ParsingException" verir
+-keep class com.google.protobuf.** { *; }
+-keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
+-keep class com.grack.nanojson.** { *; }
+-keep class org.jsoup.** { *; }

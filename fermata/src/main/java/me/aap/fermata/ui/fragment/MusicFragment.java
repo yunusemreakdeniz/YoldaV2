@@ -90,6 +90,11 @@ public class MusicFragment extends MainActivityFragment {
 		return YoldaFullScreen.instance;
 	}
 
+	@Override
+	public me.aap.utils.ui.view.FloatingButton.Mediator getFloatingButtonMediator() {
+		return YoldaNoFab.instance; // yüzen ≡ düğmesi yok
+	}
+
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -670,6 +675,12 @@ public class MusicFragment extends MainActivityFragment {
 		if (n.contains("ReCaptcha")) return "çok fazla istek";
 		if ((err instanceof java.io.IOException) || n.contains("Timeout")) return "bağlantı sorunu";
 		if (n.contains("ContentNotAvailable") || n.contains("Private")) return "şarkı erişilemez";
+		String m = err.getMessage();
+		if (m != null) {
+			m = m.replaceAll("\\s+", " ").trim();
+			if (m.length() > 70) m = m.substring(0, 70) + "…";
+			return n + ": " + m;
+		}
 		return n;
 	}
 

@@ -91,6 +91,11 @@ public class HomeFragment extends MainActivityFragment {
 		return YoldaFullScreen.instance; // tam ekran: başlık çubuğu yok
 	}
 
+	@Override
+	public me.aap.utils.ui.view.FloatingButton.Mediator getFloatingButtonMediator() {
+		return YoldaNoFab.instance; // yüzen ≡ düğmesi yok
+	}
+
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,

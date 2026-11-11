@@ -385,15 +385,17 @@ public class MainActivityDelegate extends ActivityDelegate
 			View v = cp.findViewById(id);
 			if (v == null) continue;
 			boolean isPlay = (id == R.id.control_play_pause);
-			if (isPlay) v.setBackground(new CircleDrawable(0x47FFFFFF, 0x66FFFFFF, Math.max(1, Math.round(d))));
-			else v.setBackground(null);
+			v.setBackground(null);
 			v.addOnLayoutChangeListener((view, l, t, r, b, ol, ot, or, ob) -> {
 				int h = b - t;
 				if ((h <= 0) || (h == ob - ot)) return; // yalnız yükseklik değişince (ilk açılış, döndürme)
-				int pv = Math.round(h * (isPlay ? 0.26f : 0.24f));
+				int pv = Math.round(h * (isPlay ? 0.14f : 0.24f));
 				view.setPadding(0, pv, 0, pv);
 			});
 		}
+		int ip = Math.round(4 * d);
+		View close = cp.findViewById(R.id.control_close_icon);
+		if (close != null) close.setPadding(ip, ip, ip, ip);
 		for (int id : new int[]{R.id.seek_time, R.id.seek_total}) {
 			View v = cp.findViewById(id);
 			if (v instanceof android.widget.TextView tv) tv.setTextColor(0xE6FFFFFF);
