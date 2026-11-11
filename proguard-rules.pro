@@ -18,9 +18,11 @@
 # Yolda: ana ekran YouTube eklentisini adıyla çağırır
 -keepclassmembers class me.aap.fermata.addon.web.yt.YoutubeFragment {
     public void loadUrl(java.lang.String);
+    public java.lang.String getUrl();
 }
 -keepclassmembers class me.aap.fermata.addon.web.WebBrowserFragment {
     public void loadUrl(java.lang.String);
+    public java.lang.String getUrl();
 }
 
 # Yolda: Shizuku (gömülü araç modu kurulumu) ve yansımayla çağrılan newProcess

@@ -103,6 +103,9 @@ public class FermataWebView extends WebView
 
 		setDesktopMode(addon, false);
 		setForceDark(addon, false);
+		if (VERSION.SDK_INT >= VERSION_CODES.O)
+			setRendererPriorityPolicy(RENDERER_PRIORITY_IMPORTANT, false);
+		getSettings().setMediaPlaybackRequiresUserGesture(false);
 	}
 
 	@Override

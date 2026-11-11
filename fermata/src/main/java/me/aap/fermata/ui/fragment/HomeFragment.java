@@ -785,7 +785,20 @@ public class HomeFragment extends MainActivityFragment {
 
 	/** Tarayıcı bölümünde bir site açar (YouTube Music gibi). Alt menüdeki "Müzik" de bunu kullanır. */
 	static void openWeb(MainActivityDelegate a, String url) {
-		invokeLoadUrl(a.showFragment(R.id.web_browser_fragment), url);
+		Object f = a.showFragment(R.id.web_browser_fragment);
+		// YouTube Music zaten açıksa sayfayı baştan yükleme: çalan şarkı kesilip ekran donmuş gibi oluyordu
+		if (MUSIC_URL.equals(url) && isMusicPage(f)) return;
+		invokeLoadUrl(f, url);
+	}
+
+	private static boolean isMusicPage(Object f) {
+		if (f == null) return false;
+		try {
+			Object u = f.getClass().getMethod("getUrl").invoke(f);
+			return (u instanceof String s) && s.contains("music.youtube.com");
+		} catch (Exception ex) {
+			return false;
+		}
 	}
 
 	private static void openYoutube(MainActivityDelegate a, String url) {
