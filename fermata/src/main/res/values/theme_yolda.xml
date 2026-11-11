@@ -18,15 +18,15 @@
 
         <!-- Üst çubuk, alt menü, oynatıcı paneli: koyu buzlu cam -->
         <item name="colorPrimaryDark">#00000000</item>
-        <item name="colorPrimary">#59101626</item>
+        <item name="colorPrimary">#D90E1424</item>
         <item name="colorOnPrimary">#F5F3F7</item>
         <item name="android:textColorPrimary">#F5F3F7</item>
 
         <!-- Liste/kanal kartları: açık cam -->
-        <item name="colorSecondary">#1FFFFFFF</item>
-        <item name="colorOnSecondary">#C9BCFF</item>
+        <item name="colorSecondary">#24FFFFFF</item>
+        <item name="colorOnSecondary">#E6E1F0</item>
         <item name="android:textColorSecondary">#F5F3F7</item>
-        <item name="boxStrokeColor">#40FFFFFF</item>
+        <item name="boxStrokeColor">#2EFFFFFF</item>
 
         <!-- Seçili / çalan öğe: pastel lavanta cam -->
         <item name="alpha">0.8</item>

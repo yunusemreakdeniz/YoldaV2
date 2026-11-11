@@ -46,7 +46,7 @@ public class ChannelsFragment extends MainActivityFragment {
 
 	private static final String TV_ROOT = "TV";
 	private static final String ALL = "Tümü";
-	private static final String FAV = "⭐ Favoriler";
+	private static final String FAV = "Favoriler";
 
 	private final List<MediaLib.PlayableItem> items = new ArrayList<>();
 	private final List<String> groups = new ArrayList<>();
@@ -97,7 +97,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		status = text(ctx, "Kanallar yükleniyor…", 14, false, t.muted);
 		titles.addView(status);
 		head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1f));
-		TextView adv = text(ctx, "＋  Liste ekle", 15, true, t.ink);
+		TextView adv = text(ctx, "+  Liste ekle", 15, true, t.ink);
 		adv.setGravity(Gravity.CENTER);
 		adv.setPadding(dp(18), dp(12), dp(18), dp(12));
 		adv.setBackground(YoldaStyle.glass(ctx, t, 999));
@@ -112,7 +112,15 @@ public class ChannelsFragment extends MainActivityFragment {
 		// Arama: altta sabit, cam görünümlü (kartların üstünde süzülür)
 		EditText search = a.createEditText(ctx);
 		search.setSingleLine();
-		search.setHint("🔍  Kanal ya da radyo ara");
+		search.setHint("Kanal ya da radyo ara");
+		android.graphics.drawable.Drawable sIcon = ctx.getDrawable(R.drawable.yi_search);
+		if (sIcon != null) {
+			sIcon = sIcon.mutate();
+			sIcon.setTint(t.muted);
+			sIcon.setBounds(0, 0, dp(24), dp(24));
+			search.setCompoundDrawablesRelative(sIcon, null, null, null);
+			search.setCompoundDrawablePadding(dp(12));
+		}
 		search.setTextSize(18);
 		search.setTextColor(t.ink);
 		search.setHintTextColor(t.muted);

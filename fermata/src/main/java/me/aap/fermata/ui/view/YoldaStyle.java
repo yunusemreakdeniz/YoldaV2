@@ -41,10 +41,11 @@ public final class YoldaStyle {
 			this.hero2 = hero2;
 			this.ink = light ? 0xFF1C2230 : 0xFFF5F3F7;
 			this.muted = light ? 0xFF5E6678 : 0xFFB9B4C7;
-			this.glassTop = light ? 0xB3FFFFFF : 0x33FFFFFF;
-			this.glassBottom = light ? 0x80FFFFFF : 0x14FFFFFF;
-			this.edge = light ? 0xE6FFFFFF : 0x4DFFFFFF;
-			this.surface = light ? 0x99FFFFFF : 0x1FFFFFFF;
+			// Koyu, buzlu cam: tabanın %55'i + üstte ince beyaz parıltı. Yazılar arkadaki ışıklara karışmaz.
+			this.glassTop = light ? 0xB3FFFFFF : 0x1FFFFFFF;
+			this.glassBottom = light ? 0x80FFFFFF : 0x0AFFFFFF;
+			this.edge = light ? 0xE6FFFFFF : 0x33FFFFFF;
+			this.surface = light ? 0x99FFFFFF : 0x1AFFFFFF;
 			this.stroke = edge;
 			this.bg1 = base;
 			this.bg2 = base;
@@ -132,13 +133,19 @@ public final class YoldaStyle {
 			float dy = (float) Math.cos(s * 0.05 + i * 1.7) * 0.05f * h;
 			float cx = pos[i][0] * w + dx, cy = pos[i][1] * h + dy, r = pos[i][2] * m;
 			int col = t.blobs[i];
-			int a = t.light ? 0xCC : 0x70;
+			int a = t.light ? 0xCC : 0x48; // hafif ışık: ekranı yıkamaz, sadece derinlik verir
 			p.setShader(new RadialGradient(cx, cy, r,
 					new int[]{Color.argb(a, Color.red(col), Color.green(col), Color.blue(col)),
 							Color.argb(0, Color.red(col), Color.green(col), Color.blue(col))},
 					null, Shader.TileMode.CLAMP));
 			c.drawCircle(cx, cy, r, p);
 		}
+		// Üstte ve altta koyulaşma: başlık ve alt menü her zaman okunur
+		int dark = (t.base & 0x00FFFFFF);
+		p.setShader(new android.graphics.LinearGradient(0, 0, 0, h,
+				new int[]{dark | 0x99000000, dark, dark, dark | 0xB3000000}, new float[]{0f, 0.22f, 0.70f, 1f},
+				Shader.TileMode.CLAMP));
+		c.drawRect(0, 0, w, h, p);
 	}
 
 	private YoldaStyle() {
@@ -161,14 +168,18 @@ public final class YoldaStyle {
 	/** Buzlu cam yüzey: üstten alta hafifleyen beyaz, ince parlak kenar, üst yarıda ışık yansıması. */
 	public static Drawable glass(Context ctx, Theme t, float radiusDp) {
 		float r = dp(ctx, radiusDp);
+		// 1) koyu cam gövde (tabanın rengiyle), 2) ince beyaz parıltı, 3) üstte ışık yansıması + parlak kenar
+		GradientDrawable tint = new GradientDrawable();
+		tint.setColor((t.base & 0x00FFFFFF) | 0x8C000000);
+		tint.setCornerRadius(r);
 		GradientDrawable body = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
 				new int[]{t.glassTop, t.glassBottom});
 		body.setCornerRadius(r);
 		body.setStroke(Math.max(1, Math.round(dp(ctx, 1))), t.edge);
 		GradientDrawable sheen = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-				new int[]{t.light ? 0x66FFFFFF : 0x1FFFFFFF, 0x00FFFFFF, 0x00FFFFFF});
+				new int[]{t.light ? 0x66FFFFFF : 0x14FFFFFF, 0x00FFFFFF, 0x00FFFFFF});
 		sheen.setCornerRadius(r);
-		return new LayerDrawable(new Drawable[]{body, sheen});
+		return new LayerDrawable(new Drawable[]{tint, body, sheen});
 	}
 
 	/** Pastel geçişli büyük kart, üstünde cam parıltısı. */
