@@ -118,7 +118,7 @@ public class YoldaSetupFragment extends MainActivityFragment {
 		scroll.setVerticalScrollBarEnabled(false);
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
-		col.setPadding(dp(44), dp(32), dp(44), dp(90));
+		col.setPadding(dp(me.aap.fermata.ui.view.YoldaStyle.side(ctx)), dp(me.aap.fermata.ui.view.YoldaStyle.top(ctx)), dp(me.aap.fermata.ui.view.YoldaStyle.side(ctx)), dp(me.aap.fermata.ui.view.YoldaStyle.bottom(ctx)));
 		scroll.addView(col, new ScrollView.LayoutParams(-1, -2));
 		root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
 

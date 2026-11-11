@@ -265,4 +265,39 @@ public final class YoldaStyle {
 			return PixelFormat.OPAQUE;
 		}
 	}
+
+	// ---- duyarlı ölçüler: dar telefon / orta / geniş (araç) ekran ----
+	public static int widthDp(android.content.Context c) {
+		return c.getResources().getConfiguration().screenWidthDp;
+	}
+
+	public static int heightDp(android.content.Context c) {
+		return c.getResources().getConfiguration().screenHeightDp;
+	}
+
+	/** Dikey telefon gibi dar ekran. */
+	public static boolean compact(android.content.Context c) {
+		return widthDp(c) < 600;
+	}
+
+	/** Araç ekranı gibi geniş ama alçak ekran. */
+	public static boolean shortScreen(android.content.Context c) {
+		return heightDp(c) < 520;
+	}
+
+	/** Sayfa yan boşluğu (dp). */
+	public static int side(android.content.Context c) {
+		int w = widthDp(c);
+		return (w < 600) ? 18 : (w < 900) ? 28 : 44;
+	}
+
+	/** Sayfa üst boşluğu (dp). */
+	public static int top(android.content.Context c) {
+		return (compact(c) || shortScreen(c)) ? 16 : 28;
+	}
+
+	/** Alt menü + sesli asistan düğmesinin altında içerik kalmasın diye alt boşluk (dp). */
+	public static int bottom(android.content.Context c) {
+		return 100;
+	}
 }

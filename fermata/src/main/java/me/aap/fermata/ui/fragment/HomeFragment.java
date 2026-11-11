@@ -135,7 +135,7 @@ public class HomeFragment extends MainActivityFragment {
 		scroll.setVerticalScrollBarEnabled(false);
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
-		col.setPadding(dp(44), dp(28), dp(44), dp(90));
+		col.setPadding(dp(me.aap.fermata.ui.view.YoldaStyle.side(ctx)), dp(me.aap.fermata.ui.view.YoldaStyle.top(ctx)), dp(me.aap.fermata.ui.view.YoldaStyle.side(ctx)), dp(me.aap.fermata.ui.view.YoldaStyle.bottom(ctx)));
 		scroll.addView(col, new ScrollView.LayoutParams(-1, -2));
 		root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
 
@@ -273,7 +273,7 @@ public class HomeFragment extends MainActivityFragment {
 		date.setTextColor(0xBFFFFFFF);
 		date.setShadowLayer(dp(6), 0, dp(1), 0x40000000);
 		hello.addView(date);
-		TextView g = text(ctx, greeting(), 40, true);
+		TextView g = text(ctx, greeting(), YoldaStyle.compact(ctx) ? 30 : 40, true);
 		g.setLetterSpacing(-0.025f);
 		hello.addView(g);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -282,13 +282,13 @@ public class HomeFragment extends MainActivityFragment {
 			if (picking) picking = false;
 			else editing = !editing;
 			render();
-		}), leftMargin(sq(58), 12));
+		}), leftMargin(sq(btnDp(ctx)), 12));
 		head.addView(roundGlass(ctx, R.drawable.yi_palette, v -> {
 			YoldaStyle.next(ctx);
 			YoldaStyle.refreshBackdrop(ctx);
 			render();
 			UiUtils.showInfo(ctx, "Tema: " + YoldaStyle.current(ctx).name);
-		}), leftMargin(sq(58), 12));
+		}), leftMargin(sq(btnDp(ctx)), 12));
 		return head;
 	}
 
@@ -305,7 +305,9 @@ public class HomeFragment extends MainActivityFragment {
 		if (editing) cards.add(addAppCard(ctx));
 
 		// Geniş ekranda 6'lı, dar ekranda 3'lü sıralar
-		int perRow = ctx.getResources().getConfiguration().screenWidthDp >= 900 ? 6 : 3;
+		int w = YoldaStyle.widthDp(ctx);
+		int perRow = (w >= 900) ? 6 : (w >= 600) ? 4 : 3;
+		int gap = YoldaStyle.compact(ctx) ? 12 : 18;
 		LinearLayout grid = new LinearLayout(ctx);
 		grid.setOrientation(LinearLayout.VERTICAL);
 		LinearLayout row = null;
@@ -313,19 +315,19 @@ public class HomeFragment extends MainActivityFragment {
 			if (i % perRow == 0) {
 				row = new LinearLayout(ctx);
 				row.setOrientation(LinearLayout.HORIZONTAL);
-				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, dp(224));
-				if (i > 0) rlp.topMargin = dp(18);
+				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, dp(cardH(ctx)));
+				if (i > 0) rlp.topMargin = dp(gap);
 				grid.addView(row, rlp);
 			}
 			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
-			if (i % perRow != 0) lp.leftMargin = dp(18);
+			if (i % perRow != 0) lp.leftMargin = dp(gap);
 			row.addView(cards.get(i), lp);
 		}
 		// Son sırayı boşlukla doldur: kartlar her sırada aynı boyda kalsın
 		if (row != null) {
 			for (int i = cards.size() % perRow; (i > 0) && (i < perRow); i++) {
 				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
-				lp.leftMargin = dp(18);
+				lp.leftMargin = dp(gap);
 				row.addView(new View(ctx), lp);
 			}
 		}
@@ -434,7 +436,7 @@ public class HomeFragment extends MainActivityFragment {
 		Intent main = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
 		List<android.content.pm.ResolveInfo> apps = new ArrayList<>(pm.queryIntentActivities(main, 0));
 		apps.sort((x, y) -> String.valueOf(x.loadLabel(pm)).compareToIgnoreCase(String.valueOf(y.loadLabel(pm))));
-		int perRow = ctx.getResources().getConfiguration().screenWidthDp >= 900 ? 8 : 4;
+		int perRow = (YoldaStyle.widthDp(ctx) >= 900) ? 8 : (YoldaStyle.widthDp(ctx) >= 600) ? 6 : 4;
 		LinearLayout row = null;
 		int n = 0;
 		for (android.content.pm.ResolveInfo ri : apps) {
@@ -493,13 +495,15 @@ public class HomeFragment extends MainActivityFragment {
 			ic.setBackground(iconBg);
 			ic.setElevation(dp(6));
 		}
-		ic.addView(g, new FrameLayout.LayoutParams(dp(glyphDp), dp(glyphDp), Gravity.CENTER));
-		box.addView(ic, sq(104));
-		TextView l = text(ctx, label, 17, true);
+		int icon = iconDp(ctx);
+		int glyph = Math.round(glyphDp * icon / 104f);
+		ic.addView(g, new FrameLayout.LayoutParams(dp(glyph), dp(glyph), Gravity.CENTER));
+		box.addView(ic, sq(icon));
+		TextView l = text(ctx, label, YoldaStyle.compact(ctx) ? 13 : 17, true);
 		l.setGravity(Gravity.CENTER);
 		l.setMaxLines(1);
 		l.setEllipsize(TextUtils.TruncateAt.END);
-		l.setPadding(dp(6), dp(16), dp(6), 0);
+		l.setPadding(dp(4), dp(YoldaStyle.compact(ctx) ? 10 : 16), dp(4), 0);
 		box.addView(l, new LinearLayout.LayoutParams(-1, -2));
 		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
 		return f;
@@ -861,6 +865,23 @@ public class HomeFragment extends MainActivityFragment {
 			v.animate().alpha(1f).translationY(0f).setStartDelay(i * 60L).setDuration(320)
 					.setInterpolator(new DecelerateInterpolator()).start();
 		}
+	}
+
+	/** Uygulama kartı yüksekliği: dar telefonda küçük, alçak araç ekranında ekrana sığacak kadar. */
+	private static int cardH(Context ctx) {
+		if (YoldaStyle.compact(ctx)) return 132;
+		if (YoldaStyle.shortScreen(ctx)) return Math.max(170, Math.min(210, YoldaStyle.heightDp(ctx) / 2 - 20));
+		return 224;
+	}
+
+	private static int iconDp(Context ctx) {
+		if (YoldaStyle.compact(ctx)) return 64;
+		if (YoldaStyle.shortScreen(ctx)) return Math.round(cardH(ctx) * 0.46f);
+		return 104;
+	}
+
+	private static int btnDp(Context ctx) {
+		return YoldaStyle.compact(ctx) ? 48 : 58;
 	}
 
 	private LinearLayout.LayoutParams sq(int sizeDp) {

@@ -383,10 +383,13 @@ public class ChannelsFragment extends MainActivityFragment {
 		name.setMaxLines(1);
 		name.setEllipsize(android.text.TextUtils.TruncateAt.END);
 		name.setPadding(dp(4), dp(10), dp(4), 0);
+		name.setGravity(Gravity.CENTER_HORIZONTAL);
 		f.addView(name, new LinearLayout.LayoutParams(-1, -2));
 		TextView grp = text(ctx, groupOf(pi), 12, false, 0xB3FFFFFF);
 		grp.setMaxLines(1);
-		grp.setPadding(dp(4), 0, dp(4), 0);
+		grp.setEllipsize(android.text.TextUtils.TruncateAt.END);
+		grp.setGravity(Gravity.CENTER_HORIZONTAL);
+		grp.setPadding(dp(4), dp(2), dp(4), 0);
 		f.addView(grp, new LinearLayout.LayoutParams(-1, -2));
 		return f;
 	}
