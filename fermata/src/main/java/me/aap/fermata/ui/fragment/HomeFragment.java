@@ -813,10 +813,8 @@ public class HomeFragment extends MainActivityFragment {
 		ImageView plus = new ImageView(ctx);
 		plus.setImageResource(R.drawable.yi_add);
 		plus.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		box.addView(plus, sq(34));
-		TextView l = text(ctx, "Kanal ekle", 14, true);
-		l.setPadding(0, dp(8), 0, 0);
-		box.addView(l);
+		box.addView(plus, sq(40));
+		f.setContentDescription("YouTube kanalı ekle");
 		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
 		return f;
 	}

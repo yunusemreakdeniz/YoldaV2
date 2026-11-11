@@ -175,7 +175,8 @@ public class ControlPanelView extends ConstraintLayout
 		}
 
 		setHeight(R.id.control_next, buttonSize);
-		getLayoutParams().height = panelSize;
+		// Yolda: cam panelin iç boşluğu yüksekliğe eklenir; eklenmezse düğmeler eziliyor, simgeler kayıyordu
+		getLayoutParams().height = panelSize + getPaddingTop() + getPaddingBottom();
 	}
 
 	private void seTextAppearance(TextView t, float size) {

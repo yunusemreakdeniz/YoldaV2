@@ -376,12 +376,20 @@ public class MainActivityDelegate extends ActivityDelegate
 				iv.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
 			}
 		}
-		View play = cp.findViewById(R.id.control_play_pause);
-		if (play != null) {
-			int in = Math.round(4 * d);
-			play.setBackground(new android.graphics.drawable.InsetDrawable(
-					me.aap.fermata.ui.view.YoldaStyle.selected(ctx, 999), in, in, in, in));
-			play.setPadding(Math.round(10 * d), Math.round(8 * d), Math.round(10 * d), Math.round(8 * d));
+		// Yan düğmeler: simge yüksekliğin ~%55'i, ortada; oynat düğmesi ortada tam daire içinde
+		for (int id : new int[]{R.id.control_prev, R.id.control_rw, R.id.control_ff, R.id.control_next,
+				R.id.control_play_pause}) {
+			View v = cp.findViewById(id);
+			if (v == null) continue;
+			boolean isPlay = (id == R.id.control_play_pause);
+			if (isPlay) v.setBackground(new CircleDrawable(0x47FFFFFF, 0x66FFFFFF, Math.max(1, Math.round(d))));
+			else v.setBackground(null);
+			v.addOnLayoutChangeListener((view, l, t, r, b, ol, ot, or, ob) -> {
+				int h = b - t;
+				if ((h <= 0) || (h == ob - ot)) return; // yalnız yükseklik değişince (ilk açılış, döndürme)
+				int pv = Math.round(h * (isPlay ? 0.26f : 0.24f));
+				view.setPadding(0, pv, 0, pv);
+			});
 		}
 		for (int id : new int[]{R.id.seek_time, R.id.seek_total}) {
 			View v = cp.findViewById(id);
@@ -389,6 +397,43 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 		int p = Math.round(8 * d);
 		cp.setPadding(Math.round(10 * d), p, Math.round(10 * d), p);
+	}
+
+	/** Görünümün kısa kenarı kadar, ortalanmış daire (geniş düğmede yayvan hap olmasın). */
+	private static final class CircleDrawable extends android.graphics.drawable.Drawable {
+		private final android.graphics.Paint fill = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+		private final android.graphics.Paint edge = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+		CircleDrawable(int fillColor, int edgeColor, int edgeWidth) {
+			fill.setColor(fillColor);
+			edge.setColor(edgeColor);
+			edge.setStyle(android.graphics.Paint.Style.STROKE);
+			edge.setStrokeWidth(edgeWidth);
+		}
+
+		@Override
+		public void draw(@NonNull android.graphics.Canvas c) {
+			android.graphics.Rect r = getBounds();
+			float rad = Math.min(r.width(), r.height()) / 2f - edge.getStrokeWidth() - 2;
+			if (rad <= 0) return;
+			c.drawCircle(r.exactCenterX(), r.exactCenterY(), rad, fill);
+			c.drawCircle(r.exactCenterX(), r.exactCenterY(), rad, edge);
+		}
+
+		@Override
+		public void setAlpha(int a) {
+			fill.setAlpha(a);
+		}
+
+		@Override
+		public void setColorFilter(@Nullable android.graphics.ColorFilter cf) {
+			fill.setColorFilter(cf);
+		}
+
+		@Override
+		public int getOpacity() {
+			return android.graphics.PixelFormat.TRANSLUCENT;
+		}
 	}
 
 	private void selectHomeNavButton() {
