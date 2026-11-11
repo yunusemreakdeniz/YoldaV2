@@ -465,8 +465,10 @@ public class MainActivityDelegate extends ActivityDelegate
 			case MainActivityPrefs.THEME_STAR_WARS -> R.style.AppTheme_BlackStarWars;
 			case MainActivityPrefs.THEME_PURPLE -> R.style.AppTheme_Purple;
 			case MainActivityPrefs.THEME_CLASSIC -> R.style.AppTheme_Classic;
+			case MainActivityPrefs.THEME_YOLDA -> R.style.AppTheme_YoldaGlass;
 			default -> R.style.AppTheme_Dark;
 		};
+		me.aap.fermata.ui.view.YoldaStyle.glassActive = (theme == R.style.AppTheme_YoldaGlass);
 		ctx.setTheme(theme);
 		if ((VERSION.SDK_INT >= VERSION_CODES.S) && (ctx instanceof Activity a)) {
 			a.getSplashScreen().setSplashScreenTheme(theme);
@@ -694,6 +696,9 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Nullable
 	@Override
 	public ActivityFragment showFragment(int id, Object input) {
+		// Yolda: TV'ye girince klasör menüsü yerine kart ekranı (sesli aramada ve "Gelişmiş" düğmesinde atlanır)
+		if ((id == R.id.tv_fragment) && !me.aap.fermata.ui.fragment.ChannelsFragment.consumeBypass())
+			id = R.id.yolda_channels_fragment;
 		BodyLayout b = getBody();
 		if (b.isVideoMode()) b.setMode(BodyLayout.Mode.BOTH);
 		return super.showFragment(id, input);
@@ -992,6 +997,11 @@ public class MainActivityDelegate extends ActivityDelegate
 		floatingButton = a.findViewById(R.id.floating_button);
 		floatingButton.setScale(getPrefs().getTextIconSizePref(this));
 		controlPanel.bind(getMediaServiceBinder());
+		// Yolda Cam: tüm uygulamanın arkasında süzülen pastel ışıklar; çubuklar ve listeler yarı saydam
+		if (me.aap.fermata.ui.view.YoldaStyle.glassActive) {
+			View root = a.findViewById(R.id.main_activity);
+			if (root != null) me.aap.fermata.ui.view.YoldaStyle.applyBackdrop(root);
+		}
 
 		if (VERSION.SDK_INT >= VERSION_CODES.VANILLA_ICE_CREAM && !a.isCarActivity()) {
 			ViewCompat.setOnApplyWindowInsetsListener(toolBar, (v, insets) -> {

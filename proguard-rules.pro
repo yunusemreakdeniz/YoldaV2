@@ -19,3 +19,6 @@
 -keepclassmembers class me.aap.fermata.addon.web.yt.YoutubeFragment {
     public void loadUrl(java.lang.String);
 }
+-keepclassmembers class me.aap.fermata.addon.web.WebBrowserFragment {
+    public void loadUrl(java.lang.String);
+}

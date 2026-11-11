@@ -123,7 +123,7 @@ public class HomeFragment extends MainActivityFragment {
 		heroInk = YoldaStyle.onHero(t);
 		root.removeAllViews();
 		root.setBackground(null);
-		root.addView(new YoldaStyle.Backdrop(ctx, t), new FrameLayout.LayoutParams(-1, -1));
+		YoldaStyle.applyScreenBackground(root, t);
 
 		ScrollView scroll = new ScrollView(ctx);
 		scroll.setFillViewport(true);
@@ -166,6 +166,8 @@ public class HomeFragment extends MainActivityFragment {
 		LinearLayout chips = new LinearLayout(ctx);
 		chips.setOrientation(LinearLayout.HORIZONTAL);
 		chips.addView(chip(ctx, "⭐  Favoriler", v -> a.showFragment(R.id.favorites_fragment)));
+		if (AddonManager.get().hasAddon(R.id.web_browser_fragment))
+			chips.addView(chip(ctx, "🌐  Tarayıcı", v -> a.showFragment(R.id.web_browser_fragment)));
 		chips.addView(chip(ctx, "🎬  Videolar", v -> a.showFragment(R.id.folders_fragment)));
 		chips.addView(chip(ctx, "⚙️  Ayarlar", v -> a.showFragment(R.id.settings_fragment)));
 		HorizontalScrollView chs = new HorizontalScrollView(ctx);
@@ -194,6 +196,8 @@ public class HomeFragment extends MainActivityFragment {
 			col.addView(row(ctx, "📺", "TV ve Radyo", "51 kanal · 22 radyo", 0xFFEF4444, v -> a.showFragment(R.id.yolda_channels_fragment)));
 		if (am.hasAddon(R.id.youtube_fragment))
 			col.addView(row(ctx, "▶️", "YouTube", "Videolar, canlı yayınlar, kanalların", 0xFFFF0033, v -> a.showFragment(R.id.youtube_fragment)));
+		if (am.hasAddon(R.id.web_browser_fragment))
+			col.addView(row(ctx, "🎵", "YouTube Music", "Müzik, çalma listeleri, podcast", 0xFFE879F9, v -> openWeb(a, "https://music.youtube.com")));
 		col.addView(row(ctx, "📱", "Telefon", "Telefon ekranını araçtan kullan", 0xFF22C55E, v -> phone(ctx)));
 		if (am.hasAddon(R.id.web_browser_fragment))
 			col.addView(row(ctx, "🌐", "Tarayıcı", "İnternette gezin", 0xFF3B82F6, v -> a.showFragment(R.id.web_browser_fragment)));
@@ -206,7 +210,7 @@ public class HomeFragment extends MainActivityFragment {
 	private View nowPlaying(Context ctx, MainActivityDelegate a) {
 		// Apple "Şimdi Çalıyor" gibi: cam kart, solda pastel kapak, sağda yuvarlak cam düğmeler
 		FrameLayout f = base(ctx, YoldaStyle.glass(ctx, t, 28), v -> {
-			if (a.hasCurrent()) a.goToCurrent();
+			if (a.hasCurrent()) resume(a);
 			else a.startVoiceAssistant();
 		});
 		LinearLayout box = new LinearLayout(ctx);
@@ -367,6 +371,7 @@ public class HomeFragment extends MainActivityFragment {
 		head.addView(layoutBtn, llp);
 		View themeBtn = glassButton(ctx, "🎨", v -> {
 			YoldaStyle.next(ctx);
+			YoldaStyle.refreshBackdrop(ctx);
 			render();
 			UiUtils.showInfo(ctx, "Tema: " + YoldaStyle.current(ctx).name);
 		});
@@ -388,7 +393,7 @@ public class HomeFragment extends MainActivityFragment {
 			} catch (Exception ignore) {
 			}
 		}
-		View.OnClickListener click = resume ? v -> a.goToCurrent() : v -> a.startVoiceAssistant();
+		View.OnClickListener click = resume ? v -> resume(a) : v -> a.startVoiceAssistant();
 		FrameLayout f = base(ctx, YoldaStyle.hero(ctx, t, 30), click);
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.VERTICAL);
@@ -412,7 +417,7 @@ public class HomeFragment extends MainActivityFragment {
 			tiles.add(tile(ctx, "▶️", "YouTube", 0xFFFF0033, v -> a.showFragment(R.id.youtube_fragment)));
 		tiles.add(tile(ctx, "📱", "Telefon", 0xFF22C55E, v -> phone(ctx)));
 		if (am.hasAddon(R.id.web_browser_fragment))
-			tiles.add(tile(ctx, "🌐", "Tarayıcı", 0xFF3B82F6, v -> a.showFragment(R.id.web_browser_fragment)));
+			tiles.add(tile(ctx, "🎵", "YouTube Music", 0xFFE879F9, v -> openWeb(a, "https://music.youtube.com")));
 		else tiles.add(tile(ctx, "⭐", "Favoriler", 0xFFF59E0B, v -> a.showFragment(R.id.favorites_fragment)));
 
 		LinearLayout q = new LinearLayout(ctx);
@@ -573,6 +578,31 @@ public class HomeFragment extends MainActivityFragment {
 		} catch (Exception ignore) {
 		}
 		prefs().edit().putString("yt", arr.toString()).apply();
+	}
+
+	/** Kaldığın yerden devam: çalan varsa sürdür ve videoyu göster; yoksa son yayını başlat. */
+	private static void resume(MainActivityDelegate a) {
+		me.aap.fermata.media.service.FermataServiceUiBinder b = a.getMediaServiceBinder();
+		MediaLib.PlayableItem cur = b.getCurrentItem();
+		if (cur != null) {
+			if (!b.isPlaying()) b.onPlayPauseButtonClick();
+			if (cur.isVideo()) a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.VIDEO);
+			return;
+		}
+		a.getLib().getLastPlayedItem().main().onSuccess(pi -> {
+			if (pi != null) a.getBody().playItem(pi);
+		});
+	}
+
+	/** Tarayıcı bölümünde bir site açar (YouTube Music gibi). */
+	private static void openWeb(MainActivityDelegate a, String url) {
+		Object f = a.showFragment(R.id.web_browser_fragment);
+		if (f == null) return;
+		try {
+			f.getClass().getMethod("loadUrl", String.class).invoke(f, url);
+		} catch (Exception ex) {
+			Log.e(ex, "Sayfa açılamadı: ", url);
+		}
 	}
 
 	/** YouTube bölümünü açıp verilen adrese gider (YouTube eklentisi ayrı modülde, adıyla çağrılır). */

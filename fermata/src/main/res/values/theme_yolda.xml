@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Yolda Cam teması: Fermata'nın tüm ekranları (üst çubuk, alt menü, oynatıcı paneli, listeler,
+  TV/YouTube/klasör ekranları, menüler) Yolda ana ekranıyla aynı cam görünüme geçer.
+  Zemindeki süzülen pastel ışıklar MainActivityDelegate'te kök görünüme çizilir; buradaki yüzeyler
+  yarı saydam olduğu için o ışıklar her yerden hafifçe görünür.
+-->
+<resources>
+
+    <style name="AppTheme.YoldaGlass">
+
+        <!-- Zemin saydam: ışıklar kök görünümde -->
+        <item name="android:colorBackground">#00000000</item>
+        <item name="android:windowBackground">@color/yolda_base</item>
+        <item name="android:editTextColor">#F5F3F7</item>
+        <item name="android:statusBarColor">#00000000</item>
+        <item name="android:navigationBarColor">#00000000</item>
+
+        <!-- Üst çubuk, alt menü, oynatıcı paneli: koyu buzlu cam -->
+        <item name="colorPrimaryDark">#00000000</item>
+        <item name="colorPrimary">#59101626</item>
+        <item name="colorOnPrimary">#F5F3F7</item>
+        <item name="android:textColorPrimary">#F5F3F7</item>
+
+        <!-- Liste/kanal kartları: açık cam -->
+        <item name="colorSecondary">#1FFFFFFF</item>
+        <item name="colorOnSecondary">#C9BCFF</item>
+        <item name="android:textColorSecondary">#F5F3F7</item>
+        <item name="boxStrokeColor">#40FFFFFF</item>
+
+        <!-- Seçili / çalan öğe: pastel lavanta cam -->
+        <item name="alpha">0.8</item>
+        <item name="colorSecondaryVariant">#5CB8A9F5</item>
+        <item name="android:textColorTertiary">#FFFFFF</item>
+
+        <!-- Açılır menüler ve pencereler -->
+        <item name="colorSurface">#F2181D30</item>
+        <item name="colorOnSurface">#F5F3F7</item>
+        <item name="colorPrimarySurface">#F2181D30</item>
+        <item name="colorOnPrimarySurface">#F5F3F7</item>
+
+        <!-- Vurgu: pastel lavanta -->
+        <item name="colorAccent">#C9BCFF</item>
+        <item name="rippleColor">#33FFFFFF</item>
+        <item name="android:textColorHint">#B9B4C7</item>
+        <item name="colorControlNormal">#E6E1F0</item>
+        <item name="colorControlActivated">#C9BCFF</item>
+
+        <!-- Geniş, yumuşak köşeler -->
+        <item name="cornerRadius">18dp</item>
+    </style>
+
+    <color name="yolda_base">#0E1424</color>
+
+</resources>

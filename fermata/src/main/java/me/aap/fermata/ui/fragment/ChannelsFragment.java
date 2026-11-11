@@ -80,22 +80,53 @@ public class ChannelsFragment extends MainActivityFragment {
 		t = YoldaStyle.current(ctx);
 
 		FrameLayout root = new FrameLayout(ctx);
-		root.addView(new YoldaStyle.Backdrop(ctx, t), new FrameLayout.LayoutParams(-1, -1));
+		YoldaStyle.applyScreenBackground(root, t);
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
 		col.setPadding(dp(18), dp(14), dp(18), 0);
 		root.addView(col, new FrameLayout.LayoutParams(-1, -1));
-
-		// Arama
 		MainActivityDelegate a = getActivityDelegate();
+
+		// Başlık: "Kanallar" · sayı · Gelişmiş (Fermata'nın liste ekleme/düzenleme ekranı)
+		LinearLayout head = new LinearLayout(ctx);
+		head.setOrientation(LinearLayout.HORIZONTAL);
+		head.setGravity(Gravity.CENTER_VERTICAL);
+		LinearLayout titles = new LinearLayout(ctx);
+		titles.setOrientation(LinearLayout.VERTICAL);
+		titles.addView(text(ctx, "Kanallar", 28, true, t.ink));
+		status = text(ctx, "Kanallar yükleniyor…", 14, false, t.muted);
+		titles.addView(status);
+		head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1f));
+		TextView adv = text(ctx, "＋  Liste ekle", 15, true, t.ink);
+		adv.setGravity(Gravity.CENTER);
+		adv.setPadding(dp(18), dp(12), dp(18), dp(12));
+		adv.setBackground(YoldaStyle.glass(ctx, t, 999));
+		adv.setClickable(true);
+		adv.setOnClickListener(v -> {
+			bypassOnce();
+			a.showFragment(R.id.tv_fragment);
+		});
+		head.addView(adv);
+		col.addView(head, new LinearLayout.LayoutParams(-1, -2));
+
+		// Arama: altta sabit, cam görünümlü (kartların üstünde süzülür)
 		EditText search = a.createEditText(ctx);
 		search.setSingleLine();
 		search.setHint("🔍  Kanal ya da radyo ara");
 		search.setTextSize(18);
 		search.setTextColor(t.ink);
 		search.setHintTextColor(t.muted);
-		search.setPadding(dp(18), dp(14), dp(18), dp(14));
-		search.setBackground(YoldaStyle.glass(ctx, t, 999));
+		search.setPadding(dp(22), dp(16), dp(22), dp(16));
+		android.graphics.drawable.GradientDrawable sbg = new android.graphics.drawable.GradientDrawable(
+				android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+				new int[]{(t.base & 0x00FFFFFF) | 0xCC000000, (t.base & 0x00FFFFFF) | 0xE6000000});
+		sbg.setCornerRadius(dp(999));
+		sbg.setStroke(Math.max(1, dp(1)), t.edge);
+		search.setBackground(new android.graphics.drawable.LayerDrawable(
+				new android.graphics.drawable.Drawable[]{sbg, YoldaStyle.glass(ctx, t, 999)}));
+		search.setElevation(dp(8));
+		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
+		slp.setMargins(dp(22), 0, dp(22), dp(16));
 		search.addTextChangedListener(new TextWatcher() {
 			@Override
 			public void beforeTextChanged(CharSequence s, int st, int c, int a1) {
@@ -111,8 +142,6 @@ public class ChannelsFragment extends MainActivityFragment {
 				showGrid();
 			}
 		});
-		col.addView(search, new LinearLayout.LayoutParams(-1, -2));
-
 		// Grup çipleri
 		chips = new LinearLayout(ctx);
 		chips.setOrientation(LinearLayout.HORIZONTAL);
@@ -123,19 +152,32 @@ public class ChannelsFragment extends MainActivityFragment {
 		hlp.topMargin = dp(12);
 		col.addView(hs, hlp);
 
-		status = text(ctx, "Kanallar yükleniyor…", 15, false, t.muted);
-		status.setPadding(dp(4), dp(14), 0, 0);
-		col.addView(status);
-
 		ScrollView scroll = new ScrollView(ctx);
+		scroll.setClipToPadding(false);
 		grid = new LinearLayout(ctx);
 		grid.setOrientation(LinearLayout.VERTICAL);
-		grid.setPadding(0, dp(12), 0, dp(24));
+		grid.setPadding(0, dp(14), 0, dp(96)); // altta arama çubuğuna yer
 		scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
 		col.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
+		root.addView(search, slp);
 		load(a);
 		return root;
+	}
+
+	// ---- Fermata TV ekranına geçiş (TV her açıldığında buraya yönlendirilir) ----
+
+	private static volatile boolean bypass;
+
+	/** Bir sonraki TV açılışında Fermata'nın kendi TV ekranı gelsin (sesli arama, liste ekleme). */
+	public static void bypassOnce() {
+		bypass = true;
+	}
+
+	public static boolean consumeBypass() {
+		boolean b = bypass;
+		bypass = false;
+		return b;
 	}
 
 	@Override

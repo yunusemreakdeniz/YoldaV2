@@ -231,6 +231,7 @@ class VoiceCommandHandler {
 			}
 
 			if (fid == ID_NULL) return false;
+			if (fid == R.id.tv_fragment) me.aap.fermata.ui.fragment.ChannelsFragment.bypassOnce(); // TV içinde ara
 			activity.showFragment(fid);
 			searchInFragment(fid, vcmd, 0);
 			return true;

@@ -60,9 +60,86 @@ public final class YoldaStyle {
 					new int[]{0xFFA8E6CF, 0xFF8FD3FE, 0xFFC3B1E1}, 0xFFA8E6CF, 0xFF7FCFC0, 0xFF6FA9D6),
 			new Theme("Gül kurusu", false, 0xFF1A1317,
 					new int[]{0xFFE8B4BC, 0xFFC8A2C8, 0xFFF5E6CC}, 0xFFEDC1C8, 0xFFD99AA7, 0xFFA884B5),
-			new Theme("İnci", true, 0xFFEEF0F6,
-					new int[]{0xFFDCD6F7, 0xFFF9D8D6, 0xFFCDEDF6}, 0xFF7C6FD6, 0xFFB7AEF0, 0xFF9BC7EE),
 	};
+
+	/** Fermata "Yolda Cam" teması etkinse true: Yolda ekranları kendi zeminini çizmez, kökteki ortak zemin görünür. */
+	public static volatile boolean glassActive;
+
+	private static java.lang.ref.WeakReference<View> backdropHost;
+
+	/** Kök görünüme süzülen ışıklı zemini çizer (tüm uygulamanın arkası). */
+	public static void applyBackdrop(View root) {
+		backdropHost = new java.lang.ref.WeakReference<>(root);
+		root.setBackground(new BackdropDrawable(root.getContext(), current(root.getContext())));
+	}
+
+	/** Tema değişince ortak zemini yenile. */
+	public static void refreshBackdrop(Context ctx) {
+		View v = (backdropHost != null) ? backdropHost.get() : null;
+		if (v != null) v.setBackground(new BackdropDrawable(ctx, current(ctx)));
+	}
+
+	/** Yolda ekranının zemini: ortak zemin varsa saydam, yoksa kendi ışıklı zemini. */
+	public static void applyScreenBackground(android.widget.FrameLayout root, Theme t) {
+		if (glassActive) root.setBackground(null);
+		else root.addView(new Backdrop(root.getContext(), t), 0, new android.widget.FrameLayout.LayoutParams(-1, -1));
+	}
+
+	/** {@link Backdrop} ile aynı çizim, arka plan (Drawable) olarak; kendini yavaşça yeniden çizer. */
+	public static final class BackdropDrawable extends Drawable implements Runnable {
+		private final Theme t;
+		private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+		private final long start = SystemClock.uptimeMillis();
+
+		BackdropDrawable(Context ctx, Theme t) {
+			this.t = t;
+		}
+
+		@Override
+		public void draw(Canvas c) {
+			android.graphics.Rect b = getBounds();
+			drawLights(c, t, p, b.width(), b.height(), (SystemClock.uptimeMillis() - start) / 1000f);
+			scheduleSelf(this, SystemClock.uptimeMillis() + 66); // ~15 fps yeter, pil dostu
+		}
+
+		@Override
+		public void run() {
+			invalidateSelf();
+		}
+
+		@Override
+		public void setAlpha(int alpha) {
+		}
+
+		@Override
+		public void setColorFilter(android.graphics.ColorFilter cf) {
+		}
+
+		@Override
+		public int getOpacity() {
+			return android.graphics.PixelFormat.OPAQUE;
+		}
+	}
+
+	/** Taban rengi ve üç pastel ışık. */
+	static void drawLights(Canvas c, Theme t, Paint p, float w, float h, float s) {
+		if (w <= 0 || h <= 0) return;
+		c.drawColor(t.base);
+		float m = Math.max(w, h);
+		float[][] pos = {{0.15f, 0.10f, 0.62f}, {0.92f, 0.30f, 0.55f}, {0.40f, 1.00f, 0.70f}};
+		for (int i = 0; i < t.blobs.length && i < pos.length; i++) {
+			float dx = (float) Math.sin(s * 0.07 + i * 2.1) * 0.06f * w;
+			float dy = (float) Math.cos(s * 0.05 + i * 1.7) * 0.05f * h;
+			float cx = pos[i][0] * w + dx, cy = pos[i][1] * h + dy, r = pos[i][2] * m;
+			int col = t.blobs[i];
+			int a = t.light ? 0xCC : 0x70;
+			p.setShader(new RadialGradient(cx, cy, r,
+					new int[]{Color.argb(a, Color.red(col), Color.green(col), Color.blue(col)),
+							Color.argb(0, Color.red(col), Color.green(col), Color.blue(col))},
+					null, Shader.TileMode.CLAMP));
+			c.drawCircle(cx, cy, r, p);
+		}
+	}
 
 	private YoldaStyle() {
 	}
@@ -134,25 +211,8 @@ public final class YoldaStyle {
 
 		@Override
 		protected void onDraw(Canvas c) {
-			float w = getWidth(), h = getHeight();
-			if (w <= 0 || h <= 0) return;
-			c.drawColor(t.base);
-			float s = (SystemClock.uptimeMillis() - start) / 1000f;
-			float m = Math.max(w, h);
-			float[][] pos = {{0.15f, 0.10f, 0.62f}, {0.92f, 0.30f, 0.55f}, {0.40f, 1.00f, 0.70f}};
-			for (int i = 0; i < t.blobs.length && i < pos.length; i++) {
-				float dx = (float) Math.sin(s * 0.07 + i * 2.1) * 0.06f * w;
-				float dy = (float) Math.cos(s * 0.05 + i * 1.7) * 0.05f * h;
-				float cx = pos[i][0] * w + dx, cy = pos[i][1] * h + dy, r = pos[i][2] * m;
-				int col = t.blobs[i];
-				int a = t.light ? 0xCC : 0x70;
-				p.setShader(new RadialGradient(cx, cy, r,
-						new int[]{Color.argb(a, Color.red(col), Color.green(col), Color.blue(col)),
-								Color.argb(0, Color.red(col), Color.green(col), Color.blue(col))},
-						null, Shader.TileMode.CLAMP));
-				c.drawCircle(cx, cy, r, p);
-			}
-			postInvalidateDelayed(50); // ~20 fps: göze akıcı, pile yük değil
+			drawLights(c, t, p, getWidth(), getHeight(), (SystemClock.uptimeMillis() - start) / 1000f);
+			postInvalidateDelayed(66);
 		}
 	}
 }

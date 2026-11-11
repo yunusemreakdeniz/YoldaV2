@@ -84,6 +84,8 @@ public class NavBarMediator extends PrefNavBarMediator
 			items.add(create(ctx, R.id.yolda_channels_fragment, R.drawable.yolda_tv, R.string.yolda_channels, true));
 
 		for (String name : names) {
+			// Yolda: TV düğmesi zaten "Kanallar" olarak var; ikinci kez gösterme
+			if ("me.aap.fermata.addon.tv.TvAddon".equals(name)) continue;
 			switch (name) {
 				case "folders":
 					items.add(
