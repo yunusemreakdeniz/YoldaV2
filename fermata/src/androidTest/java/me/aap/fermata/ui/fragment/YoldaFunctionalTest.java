@@ -82,18 +82,10 @@ public class YoldaFunctionalTest {
 
 	@Test
 	public void sesliKomutlarDogruEkranaGider() {
-		voice("müzik aç", R.id.yolda_music);
 		voice("ana sayfa", R.id.home_fragment);
 		voice("navigasyon", R.id.yolda_nav_fragment);
 		voice("kanallar", R.id.yolda_channels_fragment);
 		voice("menü", R.id.yolda_menu_fragment);
-	}
-
-	@Test
-	public void sesliSarkiIstegiMuzikEkraniniAcar() {
-		onMain(a -> YoldaVoice.handle(a, "Tarkan çal"));
-		waitIdle(800);
-		assertEquals(R.id.yolda_music, onMain(MainActivityDelegate::getActiveFragmentId).intValue());
 	}
 
 	@Test

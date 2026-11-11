@@ -442,7 +442,7 @@ public class NavFragment extends MainActivityFragment {
 	private TextView text(Context ctx, String s, float size, boolean bold) {
 		TextView tv = new TextView(ctx);
 		tv.setText(s);
-		tv.setTextSize(size);
+		tv.setTextSize(size * me.aap.fermata.ui.view.YoldaStyle.textScale(ctx)); // araçta küçük
 		tv.setTextColor(0xFFFFFFFF);
 		tv.setTypeface(bold ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
 		if (bold && size >= 28) tv.setLetterSpacing(-0.02f);

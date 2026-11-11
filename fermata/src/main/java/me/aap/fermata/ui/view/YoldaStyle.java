@@ -303,6 +303,15 @@ public final class YoldaStyle {
 	}
 
 	/** Sayfa üst boşluğu (dp). */
+	/** Tarayıcı üst çubuğu gizli mi (YouTube Music tam ekran açılır; "Tarayıcı" kartında çubuk görünür). */
+	public static volatile boolean webNoToolbar;
+
+	/** Yazı ölçeği: alçak geniş ekranda (araç, yatay telefon) yazılar daha küçük; yer kaplamasın. */
+	public static float textScale(android.content.Context c) {
+		if (shortScreen(c)) return 0.74f;
+		return 1f;
+	}
+
 	/** Kamera çentiğinin üstten yüksekliği (px); tam ekran katmanlar içeriği bunun altına koyar. */
 	public static volatile int cutoutTopPx;
 

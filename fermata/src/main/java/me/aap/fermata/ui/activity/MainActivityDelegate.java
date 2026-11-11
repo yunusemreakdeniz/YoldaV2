@@ -815,6 +815,12 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Nullable
 	@Override
 	public ActivityFragment showFragment(int id, Object input) {
+		if (isCarActivity()) {
+			try {
+				me.aap.fermata.ui.fragment.YoldaLog.add("araç ekranı: " + getContext().getResources().getResourceEntryName(id));
+			} catch (Exception ignore) {
+			}
+		}
 		// Yolda: TV'ye girince klasör menüsü yerine kart ekranı (sesli aramada ve "Gelişmiş" düğmesinde atlanır)
 		if ((id == R.id.tv_fragment) && !me.aap.fermata.ui.fragment.ChannelsFragment.consumeBypass())
 			id = R.id.yolda_channels_fragment;
@@ -1142,9 +1148,14 @@ public class MainActivityDelegate extends ActivityDelegate
 		});
 		int s = toIntPx(ctx, 56);
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
-		lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+		if ((navBar != null) && navBar.isLeft()) {
+			lp.startToEnd = R.id.nav_bar; // araç: dikey menünün hemen sağında
+			lp.leftMargin = toIntPx(ctx, 12);
+		} else {
+			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.leftMargin = toIntPx(ctx, 22);
+		}
 		lp.bottomToTop = R.id.control_panel; // oynatıcı kapalıyken menünün hemen üstü
-		lp.leftMargin = toIntPx(ctx, 22);
 		lp.bottomMargin = toIntPx(ctx, 14);
 		b.setId(View.generateViewId());
 		host.addView(b, lp);
@@ -1210,6 +1221,10 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	private void init() {
 		FermataActivity a = getAppActivity();
+		// Yolda tanı günlüğü: çökmeleri ve açılışları kaydet (araçta yeniden başlama nedenini bulmak için)
+		me.aap.fermata.ui.fragment.YoldaLog.install(getContext());
+		me.aap.fermata.ui.fragment.YoldaLog.add("Açılış: " + (isCarActivity() ? "ARAÇ" : "telefon")
+				+ " · " + me.aap.fermata.BuildConfig.VERSION_NAME);
 		a.setContentView(getLayout());
 		toolBar = a.findViewById(R.id.tool_bar);
 		progressBar = a.findViewById(R.id.content_loading_progress);

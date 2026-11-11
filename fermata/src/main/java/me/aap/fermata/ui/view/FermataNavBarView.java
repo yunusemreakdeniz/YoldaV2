@@ -39,6 +39,10 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 	 * (en çok 640dp genişlikte, ortalı, alttan 14dp yukarıda).
 	 */
 	public void applyYoldaPill() {
+		if (YoldaStyle.glassActive && isLeft()) {
+			applyYoldaRail();
+			return;
+		}
 		if (!YoldaStyle.glassActive || !isBottom()) return;
 		if (!(getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams lp)) return;
 		float d = getResources().getDisplayMetrics().density;
@@ -85,6 +89,31 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 		if (YoldaStyle.glassActive) child.setSelected(child.isSelected());
 	}
 
+	/** Araç: solda dikey, yuvarlak cam şerit; yalnız simgeler. */
+	private void applyYoldaRail() {
+		if (!(getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams lp)) return;
+		float d = getResources().getDisplayMetrics().density;
+		lp.width = railWidth();
+		lp.leftMargin = Math.round(10 * d);
+		lp.topMargin = Math.round(10 * d);
+		lp.bottomMargin = Math.round(10 * d);
+		setLayoutParams(lp);
+		setBackground(YoldaStyle.pill(getContext(), YoldaStyle.current(getContext())));
+		setPadding(Math.round(6 * d), Math.round(10 * d), Math.round(6 * d), Math.round(10 * d));
+		setClipToOutline(true);
+		me.aap.utils.ui.view.NavButtonView.iconsOnly = true;
+		me.aap.utils.ui.view.NavButtonView.selectedBackground = c -> new android.graphics.drawable.InsetDrawable(
+				YoldaStyle.selected(c, 999), 0, Math.round(4 * d), 0, Math.round(4 * d));
+		for (int i = 0; i < getChildCount(); i++) {
+			android.view.View b = getChildAt(i);
+			b.setSelected(b.isSelected());
+		}
+	}
+
+	private int railWidth() {
+		return Math.round(72 * getResources().getDisplayMetrics().density);
+	}
+
 	private int pillHeight() {
 		return Math.round(72 * getResources().getDisplayMetrics().density);
 	}
@@ -99,6 +128,10 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 			android.view.ViewGroup.LayoutParams lp = getLayoutParams();
 			if ((lp != null) && (lp.height != pillHeight())) lp.height = pillHeight();
 			heightMeasureSpec = MeasureSpec.makeMeasureSpec(pillHeight(), MeasureSpec.EXACTLY);
+		} else if (YoldaStyle.glassActive && isLeft()) {
+			android.view.ViewGroup.LayoutParams lp = getLayoutParams();
+			if ((lp != null) && (lp.width != railWidth())) lp.width = railWidth();
+			widthMeasureSpec = MeasureSpec.makeMeasureSpec(railWidth(), MeasureSpec.EXACTLY);
 		}
 		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 	}

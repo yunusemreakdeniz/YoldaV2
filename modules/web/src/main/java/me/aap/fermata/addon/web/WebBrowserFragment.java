@@ -207,6 +207,9 @@ public class WebBrowserFragment extends MainActivityFragment
 
 	@Override
 	public ToolBarView.Mediator getToolBarMediator() {
+		// Yolda: YouTube Music tam ekran, adres çubuğu yok
+		if (me.aap.fermata.ui.view.YoldaStyle.glassActive && me.aap.fermata.ui.view.YoldaStyle.webNoToolbar)
+			return ToolBarView.Mediator.Invisible.instance;
 		return WebToolBarMediator.getInstance();
 	}
 

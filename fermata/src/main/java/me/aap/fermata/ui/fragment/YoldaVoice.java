@@ -54,8 +54,8 @@ public final class YoldaVoice {
 
 		// "<şarkı/sanatçı> çal", "… şarkısını aç": Yolda Müzik'te ara, ilk şarkıyı çal
 		String song = songQuery(c);
-		if (song != null) {
-			MusicFragment.playQuery(a, song);
+		if (song != null) { // YouTube Music'te ara
+			HomeFragment.openWeb(a, HomeFragment.MUSIC_URL + "/search?q=" + android.net.Uri.encode(song));
 			return true;
 		}
 
@@ -63,7 +63,7 @@ public final class YoldaVoice {
 		String app = ACTION_TAIL.matcher(c).replaceAll("").trim();
 		switch (app) {
 			case "youtube music", "yutup müzik", "müzik", "muzik", "müzikler":
-				a.showFragment(R.id.yolda_music);
+				HomeFragment.openWeb(a, HomeFragment.MUSIC_URL);
 				return true;
 			case "youtube", "yutup", "yutub":
 				if (am.hasAddon(R.id.youtube_fragment)) {

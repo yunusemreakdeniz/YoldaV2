@@ -138,6 +138,7 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			render();
 		}));
 		set.addView(item(ctx, R.drawable.yi_mic, "Sesli komut", 0xFFA7F3D0, 0xFF059669, v -> a.startVoiceAssistant()));
+		set.addView(item(ctx, R.drawable.yi_history, "Tanı günlüğü", 0xFFFECACA, 0xFFDC2626, v -> showLog(ctx, a)));
 		set.addView(item(ctx, R.drawable.yi_settings, "Gelişmiş ayarlar", 0xFFE2E8F0, 0xFF64748B,
 				v -> a.showFragment(R.id.settings_fragment)));
 		set.addView(item(ctx, R.drawable.yi_grid, "Diğer seçenekler", 0xFFBAE6FD, 0xFF0284C7,
@@ -195,6 +196,25 @@ public class YoldaMenuFragment extends MainActivityFragment {
 	}
 
 	@SuppressLint("ClickableViewAccessibility")
+	/** Tanı günlüğü: çökmeler ve açılışlar; kopyalanıp gönderilebilir. */
+	private void showLog(Context ctx, MainActivityDelegate a) {
+		String log = YoldaLog.read(ctx);
+		if (log.isEmpty()) log = "Kayıt yok. Bir sorun yaşadıktan sonra burayı yeniden aç.";
+		else if (log.length() > 6000) log = "…" + log.substring(log.length() - 6000);
+		String text = log;
+		a.createDialogBuilder(ctx)
+				.setTitle("Tanı günlüğü")
+				.setMessage(text)
+				.setPositiveButton("Kopyala", (d, w) -> {
+					android.content.ClipboardManager cm =
+							(android.content.ClipboardManager) ctx.getSystemService(Context.CLIPBOARD_SERVICE);
+					if (cm != null) cm.setPrimaryClip(android.content.ClipData.newPlainText("Yolda günlüğü", text));
+					me.aap.utils.ui.UiUtils.showInfo(ctx, "Kopyalandı; mesaj olarak gönderebilirsin");
+				})
+				.setNegativeButton("Temizle", (d, w) -> YoldaLog.clear(ctx))
+				.show();
+	}
+
 	private View item(Context ctx, @DrawableRes int ic, String label, int c1, int c2, View.OnClickListener click) {
 		LinearLayout r = new LinearLayout(ctx);
 		r.setOrientation(LinearLayout.HORIZONTAL);
@@ -230,7 +250,7 @@ public class YoldaMenuFragment extends MainActivityFragment {
 	private TextView text(Context ctx, String s, float size, boolean bold) {
 		TextView tv = new TextView(ctx);
 		tv.setText(s);
-		tv.setTextSize(size);
+		tv.setTextSize(size * me.aap.fermata.ui.view.YoldaStyle.textScale(ctx)); // araçta küçük
 		tv.setTextColor(0xFFFFFFFF);
 		tv.setTypeface(bold ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
 		tv.setShadowLayer(dp(6), 0, dp(1), 0x40000000);

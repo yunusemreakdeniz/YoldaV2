@@ -73,7 +73,7 @@ public interface MainActivityPrefs
 	Pref<BooleanSupplier> FULLSCREEN_AA = AUTO ? Pref.b("FULLSCREEN_AA", true) : null; // Yolda: aracta tam ekran
 	Pref<BooleanSupplier> SHOW_PG_UP_DOWN_AA = AUTO ? Pref.b("SHOW_PG_UP_DOWN_AA", true) : null;
 	Pref<IntSupplier> NAV_BAR_POS_AA =
-			AUTO ? Pref.i("NAV_BAR_POS_AA", NavBarView.POSITION_BOTTOM) : null;
+			AUTO ? Pref.i("NAV_BAR_POS_AA", NavBarView.POSITION_LEFT) : null; // Yolda: araçta dikey menü
 	Pref<DoubleSupplier> NAV_BAR_SIZE_AA = AUTO ? Pref.f("NAV_BAR_SIZE_AA", 1.15f) : null; // Yolda: büyük menü
 	Pref<DoubleSupplier> TOOL_BAR_SIZE_AA = AUTO ? Pref.f("TOOL_BAR_SIZE_AA", 1f) : null;
 	Pref<DoubleSupplier> CONTROL_PANEL_SIZE_AA = AUTO ? Pref.f("CONTROL_PANEL_SIZE_AA", 1.35f) : null; // Yolda: büyük oynatıcı

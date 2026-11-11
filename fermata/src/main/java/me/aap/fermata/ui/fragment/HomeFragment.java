@@ -226,13 +226,17 @@ public class HomeFragment extends MainActivityFragment {
 						v -> a.showFragment(R.id.youtube_fragment));
 			case "music":
 				return appCard(ctx, "YouTube Music", YoldaStyle.appIcon(ctx, 0xFFFF2A2A, 0xFFE00000, 28), glyph(ctx, R.drawable.yi_brand_ytmusic, false), 70,
-						v -> a.showFragment(R.id.yolda_music));
+						v -> openWeb(a, MUSIC_URL));
 			case "phone":
 				return appCard(ctx, "Telefon", YoldaStyle.appIcon(ctx, 0xFF5EE07B, 0xFF1DB954, 28), glyph(ctx, R.drawable.yi_phone, true), 54,
 						v -> phone(ctx));
 			case "web":
 				return appCard(ctx, "Tarayıcı", YoldaStyle.appIcon(ctx, 0xFF6BB8FF, 0xFF1E6FE6, 28), glyph(ctx, R.drawable.yi_globe, true), 54,
-						v -> a.showFragment(R.id.web_browser_fragment));
+						v -> {
+							YoldaStyle.webNoToolbar = false; // genel tarayıcı: adres çubuğu görünsün
+							a.showFragment(R.id.web_browser_fragment);
+							a.postBroadcastEvent(me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED);
+						});
 		}
 		// Telefondaki uygulama: kendi simgesi ve adı
 		String pkg = k.substring(4);
@@ -281,7 +285,7 @@ public class HomeFragment extends MainActivityFragment {
 		TextClock date = new TextClock(ctx);
 		date.setFormat24Hour("EEEE, d MMMM · HH:mm");
 		date.setFormat12Hour("EEEE, d MMMM · HH:mm");
-		date.setTextSize(15);
+		date.setTextSize(15 * YoldaStyle.textScale(ctx));
 		date.setTextColor(0xBFFFFFFF);
 		date.setShadowLayer(dp(6), 0, dp(1), 0x40000000);
 		hello.addView(date);
@@ -468,7 +472,6 @@ public class HomeFragment extends MainActivityFragment {
 		}
 		if (cur instanceof me.aap.fermata.media.yt.YtMusicItem) { // duraklatılmış müzik: kaldığı yerden
 			if (!cb.isPlaying()) cb.onPlay();
-			a.showFragment(R.id.yolda_music);
 			return;
 		}
 		a.getLib().getLastPlayedItem().main().onCompletion((item, err) -> {
@@ -922,7 +925,10 @@ public class HomeFragment extends MainActivityFragment {
 
 	/** Tarayıcı bölümünde bir site açar (YouTube Music gibi). Alt menüdeki "Müzik" de bunu kullanır. */
 	static void openWeb(MainActivityDelegate a, String url) {
+		// YouTube Music: tarayıcı çubuğu yok, tam ekran (eskisi gibi site, ama adres çubuğu görünmez)
+		YoldaStyle.webNoToolbar = url.contains("music.youtube.com");
 		Object f = a.showFragment(R.id.web_browser_fragment);
+		a.postBroadcastEvent(me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED);
 		// YouTube Music zaten açıksa sayfayı baştan yükleme: çalan şarkı kesilip ekran donmuş gibi oluyordu
 		if (MUSIC_URL.equals(url) && isMusicPage(f)) return;
 		invokeLoadUrl(f, url);
@@ -1009,7 +1015,7 @@ public class HomeFragment extends MainActivityFragment {
 	private TextView text(Context ctx, String s, float size, boolean bold) {
 		TextView tv = new TextView(ctx);
 		tv.setText(s);
-		tv.setTextSize(size);
+		tv.setTextSize(size * me.aap.fermata.ui.view.YoldaStyle.textScale(ctx)); // araçta küçük
 		tv.setTextColor(0xFFFFFFFF);
 		tv.setTypeface(bold ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
 		tv.setShadowLayer(dp(8), 0, dp(1), 0x4D000000);
