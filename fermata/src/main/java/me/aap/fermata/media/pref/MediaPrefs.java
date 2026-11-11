@@ -38,7 +38,7 @@ public interface MediaPrefs extends PreferenceStore {
 	int HW_ACCEL_DISABLED = 3;
 
 	Pref<IntSupplier> AUDIO_ENGINE = Pref.i("AUDIO_ENGINE", MEDIA_ENG_MP);
-	Pref<IntSupplier> VIDEO_ENGINE = Pref.i("VIDEO_ENGINE", MEDIA_ENG_MP);
+	Pref<IntSupplier> VIDEO_ENGINE = Pref.i("VIDEO_ENGINE", MEDIA_ENG_EXO); // Yolda: HLS'de en yüksek kalite için ExoPlayer
 	Pref<IntSupplier> VIDEO_SCALE = Pref.i("VIDEO_SCALE", SCALE_BEST);
 	Pref<IntSupplier> MEDIA_SCANNER =
 			Pref.i("MEDIA_SCANNER", MEDIA_SCANNER_DEFAULT).withInheritance(false);

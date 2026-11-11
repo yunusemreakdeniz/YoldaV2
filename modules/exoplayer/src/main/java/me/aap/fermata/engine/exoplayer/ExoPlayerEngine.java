@@ -130,6 +130,9 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 								new DefaultAudioSink.DefaultAudioProcessorChain(audioProc)).build();
 			}
 		}).setMediaSourceFactory(msFactory).build();
+		// Yolda: canlı TV (HLS) düşük kaliteden başlayıp orada kalmasın; cihazın oynatabildiği en yüksek kalite
+		player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
+				.setForceHighestSupportedBitrate(true).build());
 		player.addListener(this);
 		audioEffects = AudioEffects.create(0, player.getAudioSessionId());
 
