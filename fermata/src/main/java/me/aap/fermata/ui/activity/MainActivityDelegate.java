@@ -499,6 +499,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	public void onActivityResume() {
 		super.onActivityResume();
 		checkMirroringMode(true);
+		me.aap.fermata.ui.fragment.YoldaWake.start(this); // "Hey Yolda" dinlemeye başla (açıksa)
 		for (FermataAddon addon : AddonManager.get().getAddons()) {
 			if (addon instanceof FermataActivityAddon)
 				((FermataActivityAddon) addon).onActivityResume(this);
@@ -508,6 +509,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	protected void onActivityPause() {
 		super.onActivityPause();
+		me.aap.fermata.ui.fragment.YoldaWake.pause();
 		for (FermataAddon addon : AddonManager.get().getAddons()) {
 			if (addon instanceof FermataActivityAddon)
 				((FermataActivityAddon) addon).onActivityPause(this);
@@ -975,6 +977,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	public FutureSupplier<List<String>> startSpeechRecognizer(String locale, boolean textInput) {
+		me.aap.fermata.ui.fragment.YoldaWake.pause(); // mikrofon sesli asistanda
 		FutureSupplier<int[]> check =
 				isCarActivityNotMirror() ? completed(new int[]{PERMISSION_GRANTED}) :
 						getAppActivity().checkPermissions(Manifest.permission.RECORD_AUDIO);
@@ -1602,6 +1605,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 
 		private void removeGlow() {
+			me.aap.fermata.ui.fragment.YoldaWake.resumeSoon(); // asistan bitti: "Hey Yolda"yı yeniden dinle
 			View v = glow;
 			glow = null;
 			if (v == null) return;

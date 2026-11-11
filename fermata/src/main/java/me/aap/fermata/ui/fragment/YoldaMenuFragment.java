@@ -138,6 +138,12 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			render();
 		}));
 		set.addView(item(ctx, R.drawable.yi_mic, "Sesli komut", 0xFFA7F3D0, 0xFF059669, v -> a.startVoiceAssistant()));
+		boolean wake = YoldaWake.isEnabled(ctx);
+		set.addView(item(ctx, R.drawable.yi_mic, "“Hey Yolda” ile uyandır: " + (wake ? "Açık" : "Kapalı"),
+				0xFFBBF7D0, 0xFF16A34A, v -> {
+					YoldaWake.setEnabled(a, !wake);
+					render();
+				}));
 		set.addView(item(ctx, R.drawable.yi_history, "Tanı günlüğü", 0xFFFECACA, 0xFFDC2626, v -> showLog(ctx, a)));
 		set.addView(item(ctx, R.drawable.yi_settings, "Gelişmiş ayarlar", 0xFFE2E8F0, 0xFF64748B,
 				v -> a.showFragment(R.id.settings_fragment)));

@@ -49,3 +49,9 @@
 -keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
 -keep class com.grack.nanojson.** { *; }
 -keep class org.jsoup.** { *; }
+
+# Yolda: "Hey Yolda" (Vosk + JNA yerel köprü, yansıma kullanır)
+-keep class com.sun.jna.** { *; }
+-keep class * implements com.sun.jna.** { *; }
+-keep class org.vosk.** { *; }
+-dontwarn java.awt.**

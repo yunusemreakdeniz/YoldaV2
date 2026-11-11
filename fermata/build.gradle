@@ -121,6 +121,9 @@ dependencies {
     implementation 'dev.rikka.shizuku:provider:13.1.5'
     // Yolda Müzik: YouTube Music araması ve ses akışı (GPL-3, açık kaynak)
     implementation 'com.github.teamnewpipe:NewPipeExtractor:v0.27.1'
+    // Yolda: "Hey Yolda" uyandırma sözcüğü (cihazda, internetsiz; Vosk Apache-2.0)
+    implementation 'com.alphacephei:vosk-android:0.3.47@aar'
+    implementation 'net.java.dev.jna:jna:5.17.0@aar'
 }
 
 // Yolda testleri: uygulamanın resValue tanımları (@string/app_name_auto_debug gibi) test APK'sına geçmesin;

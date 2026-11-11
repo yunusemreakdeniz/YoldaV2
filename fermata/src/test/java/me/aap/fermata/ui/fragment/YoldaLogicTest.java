@@ -108,6 +108,19 @@ public class YoldaLogicTest {
 		assertTrue(MusicFragment.subtitle(new YtMusic.Track("u", "t", "", null, 30)).endsWith("0:30"));
 	}
 
+	// ---- "Hey Yolda" uyandırma ----
+
+	@Test
+	public void heyYolda() {
+		assertTrue(YoldaWake.isWake("{\"partial\" : \"hey yolda\"}"));
+		assertTrue(YoldaWake.isWake("{\"text\" : \"hey yol da\"}"));
+		assertTrue(YoldaWake.isWake("{\"text\" : \"HEY YOLDA\"}"));
+		// konuşmada geçen "yolda" tek başına uyandırmaz
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"yolda\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"partial\" : \"\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.isWake(null));
+	}
+
 	private static YtMusic.Track track(String url) {
 		return new YtMusic.Track(url, "t", "a", null, 0);
 	}
