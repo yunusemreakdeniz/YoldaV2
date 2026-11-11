@@ -2,17 +2,23 @@ package me.aap.fermata.ui.fragment;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.GridLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextClock;
@@ -21,21 +27,75 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
 
 import me.aap.fermata.R;
 import me.aap.fermata.addon.AddonManager;
+import me.aap.fermata.media.lib.MediaLib;
 import me.aap.fermata.ui.activity.MainActivityDelegate;
+import me.aap.utils.log.Log;
+import me.aap.utils.ui.UiUtils;
 
 /**
- * Yolda ana ekranı: büyük, renk geçişli kartlarla TV, YouTube, tarayıcı, favoriler, videolar ve ayarlar.
- * Araç ekranında tek dokunuşla basılabilecek büyüklükte; dar ekranda 2, geniş ekranda 3 sütun.
+ * Yolda ana ekranı.
+ * <pre>
+ *  ┌ saat · selam · tarih ─────────────────── 🎤  🎨 ┐
+ *  │ ┌ Devam et / Sesli komut ┐ ┌ TV ┐ ┌ YouTube ┐   │
+ *  │ │       (büyük kart)     │ ├────┤ ├─────────┤   │
+ *  │ └────────────────────────┘ └Tel ┘ └Tarayıcı ┘   │
+ *  │ ⭐ Favoriler · 🎬 Videolar · ⚙️ Ayarlar           │
+ *  │ ▶ YouTube kanallarım   [kart] [kart] … [+ Ekle] │
+ *  └─────────────────────────────────────────────────┘
+ * </pre>
+ * Tema 🎨 ile değişir (Gece mavisi, Grafit, Gece yeşili). YouTube kanalları kullanıcı tarafından
+ * eklenir/silinir; telefonda saklanır.
  */
 public class HomeFragment extends MainActivityFragment {
 
-	private static final int BG = 0xFF0F1115;
-	private static final int INK = 0xFFECEFF4;
-	private static final int MUTED = 0xFF9AA3AF;
+	private static final String PREFS = "yolda_home";
+
+	/** Tema: zemin geçişi, kart yüzeyi, vurgu ve büyük kartın geçişi. */
+	private static final class Theme {
+		final String name;
+		final int bg1, bg2, surface, stroke, accent, hero1, hero2, ink, muted;
+
+		Theme(String name, int bg1, int bg2, int accent, int hero1, int hero2) {
+			this.name = name;
+			this.bg1 = bg1;
+			this.bg2 = bg2;
+			this.surface = 0x1AFFFFFF;
+			this.stroke = 0x22FFFFFF;
+			this.accent = accent;
+			this.hero1 = hero1;
+			this.hero2 = hero2;
+			this.ink = 0xFFF1F5F9;
+			this.muted = 0xFFA5B0C2;
+		}
+	}
+
+	private static final Theme[] THEMES = {
+			new Theme("Gece mavisi", 0xFF0B1026, 0xFF1B1446, 0xFF22D3EE, 0xFF4F46E5, 0xFF0EA5E9),
+			new Theme("Grafit", 0xFF111214, 0xFF23252B, 0xFFEF4444, 0xFFDC2626, 0xFF7F1D1D),
+			new Theme("Gece yeşili", 0xFF06201A, 0xFF0E3B30, 0xFFF5C451, 0xFF10B981, 0xFF065F46),
+	};
+
+	private static final String[][] DEFAULT_YT = {
+			{"Habertürk", "https://m.youtube.com/channel/UCK3mI2lsk3LSo8PBUc8JTSw/live"},
+			{"CNN Türk", "https://m.youtube.com/channel/UCV6zcRug6Hqp1UX_FdyUeBg/live"},
+			{"Show TV", "https://m.youtube.com/channel/UC9JMe_We017gYrRc7kZHgmg/live"},
+			{"Haber Global", "https://m.youtube.com/channel/UCtc-a9ZUIg0_5HpsPxEO7Qg/live"},
+			{"TVNET", "https://m.youtube.com/channel/UC8rh34IlJTN0lDZlTwzWzjg/live"},
+			{"tv100", "https://m.youtube.com/channel/UCndsdUW_oPLqpQJY9J8oIRg/live"},
+	};
+
+	private FrameLayout root;
+	private Theme t;
 
 	@Override
 	public int getFragmentId() {
@@ -51,7 +111,9 @@ public class HomeFragment extends MainActivityFragment {
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
 													 @Nullable Bundle savedInstanceState) {
-		return build(requireContext());
+		root = new FrameLayout(requireContext());
+		render();
+		return root;
 	}
 
 	@Override
@@ -65,161 +127,314 @@ public class HomeFragment extends MainActivityFragment {
 		greetOnce();
 	}
 
-	private static boolean greeted;
-
-	/** Araç ekranında ilk açılışta kısa sesli karşılama ("İyi akşamlar, Yolda hazır."). */
-	private void greetOnce() {
-		if (greeted) return;
-		MainActivityDelegate a = getActivityDelegate();
-		if (a == null || !a.isCarActivity()) return;
-		greeted = true;
-		Context app = requireContext().getApplicationContext();
-		final android.speech.tts.TextToSpeech[] tts = new android.speech.tts.TextToSpeech[1];
-		tts[0] = new android.speech.tts.TextToSpeech(app, status -> {
-			if (status != android.speech.tts.TextToSpeech.SUCCESS) return;
-			android.speech.tts.TextToSpeech t = tts[0];
-			t.setLanguage(new java.util.Locale("tr", "TR"));
-			t.setOnUtteranceProgressListener(new android.speech.tts.UtteranceProgressListener() {
-				@Override public void onStart(String id) { }
-				@Override public void onDone(String id) { t.shutdown(); }
-				@Override public void onError(String id) { t.shutdown(); }
-			});
-			t.speak(greeting() + ", Yolda hazır.", android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "yolda_hello");
-		});
+	@Override
+	public void onHiddenChanged(boolean hidden) {
+		super.onHiddenChanged(hidden);
+		if (!hidden && root != null) render(); // geri dönünce "devam et" güncel olsun
 	}
 
-	private View build(Context ctx) {
-		ScrollView scroll = new ScrollView(ctx);
-		scroll.setBackgroundColor(BG);
-		scroll.setFillViewport(true);
+	private SharedPreferences prefs() {
+		return requireContext().getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+	}
 
+	// ---- çizim ----
+
+	private void render() {
+		Context ctx = requireContext();
+		t = THEMES[Math.floorMod(prefs().getInt("theme", 0), THEMES.length)];
+		root.removeAllViews();
+		root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{t.bg1, t.bg2}));
+
+		ScrollView scroll = new ScrollView(ctx);
+		scroll.setFillViewport(true);
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
-		int pad = dp(ctx, 20);
-		col.setPadding(pad, dp(ctx, 16), pad, pad);
+		int pad = dp(20);
+		col.setPadding(pad, dp(14), pad, pad);
 		scroll.addView(col, new ScrollView.LayoutParams(-1, -2));
+		root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
 
-		// Üst şerit: selam + saat/tarih
+		MainActivityDelegate a = getActivityDelegate();
+		boolean wide = ctx.getResources().getConfiguration().screenWidthDp >= 600;
+
+		col.addView(header(ctx, a));
+
+		// Büyük kart + 2x2 hızlı erişim
+		LinearLayout hero = new LinearLayout(ctx);
+		hero.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
+		int heroH = wide ? dp(228) : dp(132);
+		hero.addView(heroCard(ctx, a), wide ? new LinearLayout.LayoutParams(0, heroH, 1.15f)
+				: new LinearLayout.LayoutParams(-1, heroH));
+		LinearLayout quad = quad(ctx, a);
+		LinearLayout.LayoutParams qlp = wide ? new LinearLayout.LayoutParams(0, heroH, 1f)
+				: new LinearLayout.LayoutParams(-1, dp(232));
+		if (wide) qlp.leftMargin = dp(14);
+		else qlp.topMargin = dp(14);
+		hero.addView(quad, qlp);
+		LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(-1, -2);
+		hlp.topMargin = dp(16);
+		col.addView(hero, hlp);
+
+		// İkincil kısayollar
+		LinearLayout chips = new LinearLayout(ctx);
+		chips.setOrientation(LinearLayout.HORIZONTAL);
+		chips.addView(chip(ctx, "⭐  Favoriler", v -> a.showFragment(R.id.favorites_fragment)));
+		chips.addView(chip(ctx, "🎬  Videolar", v -> a.showFragment(R.id.folders_fragment)));
+		chips.addView(chip(ctx, "⚙️  Ayarlar", v -> a.showFragment(R.id.settings_fragment)));
+		HorizontalScrollView chs = new HorizontalScrollView(ctx);
+		chs.setHorizontalScrollBarEnabled(false);
+		chs.addView(chips);
+		LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-1, -2);
+		clp.topMargin = dp(16);
+		col.addView(chs, clp);
+
+		if (AddonManager.get().hasAddon(R.id.youtube_fragment)) ytShelf(ctx, a, col);
+	}
+
+	private View header(Context ctx, MainActivityDelegate a) {
 		LinearLayout head = new LinearLayout(ctx);
 		head.setOrientation(LinearLayout.HORIZONTAL);
 		head.setGravity(Gravity.CENTER_VERTICAL);
-		LinearLayout hello = new LinearLayout(ctx);
-		hello.setOrientation(LinearLayout.VERTICAL);
-		hello.addView(text(ctx, greeting(), 26, true, INK));
-		TextClock date = new TextClock(ctx);
-		date.setFormat24Hour("d MMMM EEEE");
-		date.setFormat12Hour("d MMMM EEEE");
-		date.setTextSize(15);
-		date.setTextColor(MUTED);
-		hello.addView(date);
-		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
+
 		TextClock clock = new TextClock(ctx);
 		clock.setFormat24Hour("HH:mm");
 		clock.setFormat12Hour("HH:mm");
-		clock.setTextSize(40);
+		clock.setTextSize(44);
 		clock.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
-		clock.setTextColor(INK);
+		clock.setTextColor(t.ink);
 		head.addView(clock);
-		col.addView(head);
 
-		MainActivityDelegate a = getActivityDelegate();
+		LinearLayout hello = new LinearLayout(ctx);
+		hello.setOrientation(LinearLayout.VERTICAL);
+		hello.setPadding(dp(16), 0, 0, 0);
+		hello.addView(text(ctx, greeting(), 20, true, t.ink));
+		TextClock date = new TextClock(ctx);
+		date.setFormat24Hour("d MMMM EEEE");
+		date.setFormat12Hour("d MMMM EEEE");
+		date.setTextSize(14);
+		date.setTextColor(t.muted);
+		hello.addView(date);
+		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
 
-		// Kaldığın yerden devam
-		if (a.hasCurrent()) {
-			View resume = card(ctx, "▶", "Kaldığın yerden devam", "Son izlediğin yayın",
-					0xFF2E7D32, 0xFF1B5E20, true, v -> a.goToCurrent());
-			LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, dp(ctx, 88));
-			rlp.topMargin = dp(ctx, 18);
-			col.addView(resume, rlp);
+		head.addView(roundButton(ctx, "🎤", t.accent, v -> a.startVoiceAssistant()));
+		View themeBtn = roundButton(ctx, "🎨", t.surface, v -> {
+			int next = Math.floorMod(prefs().getInt("theme", 0) + 1, THEMES.length);
+			prefs().edit().putInt("theme", next).apply();
+			render();
+			UiUtils.showInfo(ctx, "Tema: " + THEMES[next].name);
+		});
+		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(52), dp(52));
+		tlp.leftMargin = dp(10);
+		head.addView(themeBtn, tlp);
+		return head;
+	}
+
+	/** Çalan/son yayın varsa "Devam et", yoksa "Sesli komut". */
+	private View heroCard(Context ctx, MainActivityDelegate a) {
+		boolean resume = a.hasCurrent();
+		String title = "Kaldığın yerden devam";
+		String sub = "Son izlediğin yayın";
+		if (resume) {
+			try {
+				MediaLib.PlayableItem pi = a.getMediaServiceBinder().getCurrentItem();
+				if (pi != null) sub = String.valueOf(pi.getName());
+			} catch (Exception ignore) {
+			}
 		}
+		View.OnClickListener click = resume ? v -> a.goToCurrent() : v -> a.startVoiceAssistant();
+		GradientDrawable hbg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{t.hero1, t.hero2});
+		hbg.setCornerRadius(dp(26));
+		FrameLayout f = base(ctx, hbg, click);
+		LinearLayout box = new LinearLayout(ctx);
+		box.setOrientation(LinearLayout.VERTICAL);
+		box.setGravity(Gravity.BOTTOM);
+		box.setPadding(dp(20), dp(18), dp(20), dp(18));
+		box.addView(text(ctx, resume ? "▶" : "🎤", 40, false, Color.WHITE));
+		box.addView(text(ctx, resume ? title : "Sesli komut", 24, true, Color.WHITE));
+		TextView s = text(ctx, resume ? sub : "“TRT Haber'i aç” · “YouTube'da Habertürk aç”", 14, false, 0xE6FFFFFF);
+		s.setMaxLines(2);
+		box.addView(s);
+		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
+		return f;
+	}
 
-		// Sesli komut: "TRT Haber'i aç", "YouTube'da Habertürk aç", "durdur", "favorileri oynat"
-		View voice = card(ctx, "🎤", "Sesli komut", "“TRT Haber'i aç” · “YouTube'da Habertürk aç” · “durdur”",
-				0xFF5E35B1, 0xFF311B92, true, v -> a.startVoiceAssistant());
-		LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(-1, dp(ctx, 88));
-		vlp.topMargin = dp(ctx, 12);
-		col.addView(voice, vlp);
-
-		// Ana kartlar
-		GridLayout grid = new GridLayout(ctx);
-		int cols = ctx.getResources().getConfiguration().screenWidthDp >= 840 ? 3 : 2;
-		grid.setColumnCount(cols);
-		LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(-1, -2);
-		glp.topMargin = dp(ctx, 18);
-		col.addView(grid, glp);
-
+	private LinearLayout quad(Context ctx, MainActivityDelegate a) {
 		AddonManager am = AddonManager.get();
+		List<View> tiles = new ArrayList<>();
 		if (am.hasAddon(R.id.tv_fragment))
-			addCard(grid, card(ctx, "📺", "TV ve Radyo", "51 kanal · 22 radyo", 0xFFE53935, 0xFF8E1B18, false,
-					v -> a.showFragment(R.id.tv_fragment)));
+			tiles.add(tile(ctx, "📺", "TV ve Radyo", 0xFFEF4444, v -> a.showFragment(R.id.tv_fragment)));
 		if (am.hasAddon(R.id.youtube_fragment))
-			addCard(grid, card(ctx, "▶️", "YouTube", "Videolar ve canlı yayınlar", 0xFFFF0033, 0xFF7A0019, false,
-					v -> a.showFragment(R.id.youtube_fragment)));
+			tiles.add(tile(ctx, "▶️", "YouTube", 0xFFFF0033, v -> a.showFragment(R.id.youtube_fragment)));
+		tiles.add(tile(ctx, "📱", "Telefon", 0xFF22C55E, v -> phone(ctx)));
 		if (am.hasAddon(R.id.web_browser_fragment))
-			addCard(grid, card(ctx, "🌐", "Tarayıcı", "İnternette gezin", 0xFF1E88E5, 0xFF0D3C7A, false,
-					v -> a.showFragment(R.id.web_browser_fragment)));
-		addCard(grid, card(ctx, "⭐", "Favoriler", "Kaydettiklerin", 0xFFF9A825, 0xFF8A5A00, false,
-				v -> a.showFragment(R.id.favorites_fragment)));
-		addCard(grid, card(ctx, "🎬", "Videolar", "Telefondaki dosyalar", 0xFF8E24AA, 0xFF4A148C, false,
-				v -> a.showFragment(R.id.folders_fragment)));
-		addCard(grid, card(ctx, "⚙️", "Ayarlar", "Eklentiler, görünüm", 0xFF455A64, 0xFF263238, false,
-				v -> a.showFragment(R.id.settings_fragment)));
+			tiles.add(tile(ctx, "🌐", "Tarayıcı", 0xFF3B82F6, v -> a.showFragment(R.id.web_browser_fragment)));
+		else tiles.add(tile(ctx, "⭐", "Favoriler", 0xFFF59E0B, v -> a.showFragment(R.id.favorites_fragment)));
 
-		// YouTube'da canlı yayın yapan kanallar: tek dokunuşla canlı yayın
-		if (am.hasAddon(R.id.youtube_fragment)) {
-			TextView yt = text(ctx, "YouTube'da canlı", 17, true, INK);
-			yt.setPadding(dp(ctx, 4), dp(ctx, 10), 0, dp(ctx, 8));
-			col.addView(yt);
+		LinearLayout q = new LinearLayout(ctx);
+		q.setOrientation(LinearLayout.VERTICAL);
+		for (int r = 0; r < 2; r++) {
 			LinearLayout row = new LinearLayout(ctx);
 			row.setOrientation(LinearLayout.HORIZONTAL);
-			String[][] live = {
-					{"Habertürk", "UCK3mI2lsk3LSo8PBUc8JTSw"}, {"CNN Türk", "UCV6zcRug6Hqp1UX_FdyUeBg"},
-					{"Show TV", "UC9JMe_We017gYrRc7kZHgmg"}, {"Haber Global", "UCtc-a9ZUIg0_5HpsPxEO7Qg"},
-					{"TVNET", "UC8rh34IlJTN0lDZlTwzWzjg"}, {"tv100", "UCndsdUW_oPLqpQJY9J8oIRg"},
-			};
-			for (String[] ch : live) {
-				TextView chip = text(ctx, "🔴 " + ch[0], 16, true, Color.WHITE);
-				chip.setGravity(Gravity.CENTER);
-				chip.setPadding(dp(ctx, 18), dp(ctx, 14), dp(ctx, 18), dp(ctx, 14));
-				GradientDrawable cb = new GradientDrawable();
-				cb.setCornerRadius(dp(ctx, 16));
-				cb.setColor(0xFF1B1E24);
-				cb.setStroke(dp(ctx, 1), 0x55FF0033);
-				chip.setBackground(cb);
-				chip.setClickable(true);
-				String url = "https://m.youtube.com/channel/" + ch[1] + "/live";
-				chip.setOnClickListener(v -> openYoutube(a, url));
-				LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-2, -2);
-				clp.rightMargin = dp(ctx, 10);
-				row.addView(chip, clp);
+			for (int c = 0; c < 2; c++) {
+				int i = r * 2 + c;
+				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
+				if (c == 1) lp.leftMargin = dp(12);
+				row.addView(i < tiles.size() ? tiles.get(i) : new View(ctx), lp);
 			}
-			android.widget.HorizontalScrollView hs = new android.widget.HorizontalScrollView(ctx);
-			hs.setHorizontalScrollBarEnabled(false);
-			hs.addView(row);
-			col.addView(hs);
+			LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, 0, 1f);
+			if (r == 1) rlp.topMargin = dp(12);
+			q.addView(row, rlp);
 		}
+		return q;
+	}
 
-		TextView hint = text(ctx,
-				"📱 Telefon ekranı: Android Auto uygulama listesinden “Yolda Telefon”u aç.", 14, false, MUTED);
-		hint.setPadding(dp(ctx, 4), dp(ctx, 18), dp(ctx, 4), 0);
+	// ---- YouTube kanallarım ----
+
+	private void ytShelf(Context ctx, MainActivityDelegate a, LinearLayout col) {
+		TextView title = text(ctx, "▶  YouTube kanallarım", 17, true, t.ink);
+		title.setPadding(dp(4), dp(22), 0, dp(10));
+		col.addView(title);
+
+		LinearLayout row = new LinearLayout(ctx);
+		row.setOrientation(LinearLayout.HORIZONTAL);
+		List<String[]> list = ytList();
+		for (int i = 0; i < list.size(); i++) {
+			String[] ch = list.get(i);
+			final int idx = i;
+			View card = ytCard(ctx, ch[0], v -> openYoutube(a, ch[1]));
+			card.setOnLongClickListener(v -> {
+				UiUtils.showQuestion(ctx, "Kanalı kaldır", "“" + ch[0] + "” kaldırılsın mı?", null)
+						.onSuccess(x -> {
+							List<String[]> l = ytList();
+							if (idx < l.size()) l.remove(idx);
+							saveYt(l);
+							render();
+						});
+				return true;
+			});
+			row.addView(card, shelfLp());
+		}
+		row.addView(addCard(ctx), shelfLp());
+
+		HorizontalScrollView hs = new HorizontalScrollView(ctx);
+		hs.setHorizontalScrollBarEnabled(false);
+		hs.addView(row);
+		col.addView(hs);
+
+		TextView hint = text(ctx, "Dokun: aç  ·  Uzun bas: kaldır  ·  + ile @kanal adı ya da bağlantı ekle", 12, false, t.muted);
+		hint.setPadding(dp(4), dp(8), 0, 0);
 		col.addView(hint);
+	}
 
-		// Kartlar ekran genişliğine göre eşit bölünsün
-		grid.post(() -> {
-			int w = grid.getWidth();
-			if (w <= 0) return;
-			int gap = dp(ctx, 12);
-			int cw = (w - gap * (cols - 1)) / cols;
-			for (int i = 0; i < grid.getChildCount(); i++) {
-				View c = grid.getChildAt(i);
-				GridLayout.LayoutParams p = (GridLayout.LayoutParams) c.getLayoutParams();
-				p.width = cw;
-				p.height = dp(ctx, 132);
-				p.setMargins(0, 0, (i % cols == cols - 1) ? 0 : gap, gap);
-				c.setLayoutParams(p);
+	private LinearLayout.LayoutParams shelfLp() {
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(150), dp(118));
+		lp.rightMargin = dp(12);
+		return lp;
+	}
+
+	private View ytCard(Context ctx, String name, View.OnClickListener click) {
+		GradientDrawable bg = new GradientDrawable();
+		bg.setColor(t.surface);
+		bg.setStroke(dp(1), t.stroke);
+		bg.setCornerRadius(dp(18));
+		FrameLayout f = base(ctx, bg, click);
+		LinearLayout box = new LinearLayout(ctx);
+		box.setOrientation(LinearLayout.VERTICAL);
+		box.setGravity(Gravity.CENTER);
+		box.setPadding(dp(10), dp(10), dp(10), dp(10));
+		TextView av = text(ctx, initials(name), 18, true, Color.WHITE);
+		av.setGravity(Gravity.CENTER);
+		GradientDrawable ab = new GradientDrawable();
+		ab.setShape(GradientDrawable.OVAL);
+		ab.setColor(avatarColor(name));
+		av.setBackground(ab);
+		box.addView(av, new LinearLayout.LayoutParams(dp(52), dp(52)));
+		TextView n = text(ctx, name, 14, true, t.ink);
+		n.setGravity(Gravity.CENTER);
+		n.setMaxLines(1);
+		n.setEllipsize(android.text.TextUtils.TruncateAt.END);
+		n.setPadding(0, dp(8), 0, 0);
+		box.addView(n, new LinearLayout.LayoutParams(-1, -2));
+		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
+		return f;
+	}
+
+	private View addCard(Context ctx) {
+		GradientDrawable bg = new GradientDrawable();
+		bg.setColor(0x00000000);
+		bg.setStroke(dp(2), t.accent, dp(8), dp(6));
+		bg.setCornerRadius(dp(18));
+		FrameLayout f = base(ctx, bg, v -> addYoutube(ctx));
+		TextView plus = text(ctx, "＋\nKanal ekle", 15, true, t.accent);
+		plus.setGravity(Gravity.CENTER);
+		f.addView(plus, new FrameLayout.LayoutParams(-1, -1));
+		return f;
+	}
+
+	private void addYoutube(Context ctx) {
+		UiUtils.queryText(ctx, R.string.yolda_add_yt, R.drawable.yolda_home).onSuccess(in -> {
+			String[] ch = parseYoutube(in);
+			if (ch == null) {
+				UiUtils.showAlert(ctx, "Kanal anlaşılamadı. Örnek: @cnnturk ya da youtube.com/@cnnturk");
+				return;
 			}
+			List<String[]> l = ytList();
+			l.add(ch);
+			saveYt(l);
+			render();
 		});
-		return scroll;
+	}
+
+	/** "@cnnturk", "youtube.com/@x", "youtube.com/channel/UC…", ya da düz ad (arama). */
+	static String[] parseYoutube(String in) {
+		if (in == null) return null;
+		String s = in.trim();
+		if (s.isEmpty()) return null;
+		if (s.startsWith("@")) {
+			String h = s.substring(1).replaceAll("[^A-Za-z0-9._-]", "");
+			return h.isEmpty() ? null : new String[]{h, "https://m.youtube.com/@" + h};
+		}
+		if (s.contains("youtube.com") || s.contains("youtu.be")) {
+			String u = s.startsWith("http") ? s : "https://" + s;
+			u = u.replace("://www.youtube.com", "://m.youtube.com").replace("://youtube.com", "://m.youtube.com");
+			Uri uri = Uri.parse(u);
+			List<String> seg = uri.getPathSegments();
+			String name = seg.isEmpty() ? "YouTube" : seg.get(seg.size() - 1);
+			if (("live".equals(name) || "videos".equals(name) || "featured".equals(name)) && seg.size() >= 2)
+				name = seg.get(seg.size() - 2);
+			if (name.startsWith("@")) name = name.substring(1);
+			if (name.startsWith("UC") && name.length() == 24) name = "Kanal";
+			return new String[]{name, u};
+		}
+		return new String[]{s, "https://m.youtube.com/results?search_query=" + Uri.encode(s)};
+	}
+
+	private List<String[]> ytList() {
+		List<String[]> l = new ArrayList<>();
+		String json = prefs().getString("yt", null);
+		if (json == null) {
+			for (String[] d : DEFAULT_YT) l.add(d.clone());
+			return l;
+		}
+		try {
+			JSONArray arr = new JSONArray(json);
+			for (int i = 0; i < arr.length(); i++) {
+				JSONObject o = arr.getJSONObject(i);
+				l.add(new String[]{o.getString("n"), o.getString("u")});
+			}
+		} catch (Exception ex) {
+			Log.e(ex, "YouTube kanalları okunamadı");
+		}
+		return l;
+	}
+
+	private void saveYt(List<String[]> l) {
+		JSONArray arr = new JSONArray();
+		try {
+			for (String[] c : l) arr.put(new JSONObject().put("n", c[0]).put("u", c[1]));
+		} catch (Exception ignore) {
+		}
+		prefs().edit().putString("yt", arr.toString()).apply();
 	}
 
 	/** YouTube bölümünü açıp verilen adrese gider (YouTube eklentisi ayrı modülde, adıyla çağrılır). */
@@ -229,59 +444,134 @@ public class HomeFragment extends MainActivityFragment {
 		try {
 			f.getClass().getMethod("loadUrl", String.class).invoke(f, url);
 		} catch (Exception ex) {
-			me.aap.utils.log.Log.e(ex, "YouTube açılamadı: ", url);
+			Log.e(ex, "YouTube açılamadı: ", url);
 		}
 	}
 
-	private static void addCard(GridLayout grid, View card) {
-		grid.addView(card, new GridLayout.LayoutParams());
+	// ---- telefonu araçtan kullanma ----
+
+	/**
+	 * Telefon ekranı ayrı bir Android Auto uygulaması ("Yolda Telefon") olarak açılır; araç ekranındaki
+	 * dokunuşların telefona geçmesi için Yolda'nın erişilebilirlik hizmeti açık olmalı.
+	 */
+	private void phone(Context ctx) {
+		if (remoteTouchEnabled(ctx)) {
+			UiUtils.showInfo(ctx, "Araç ekranının uygulama listesinden “Yolda Telefon”u aç. "
+					+ "Telefon ekranı burada görünür; dokunarak, kaydırarak kullanabilirsin.");
+		} else {
+			UiUtils.showQuestion(ctx, "Uzaktan dokunma kapalı",
+					"Telefonu araç ekranından yönetmek için telefonda Ayarlar → Erişilebilirlik → Yolda'yı aç. "
+							+ "Ayarları telefonda açayım mı?", null).onSuccess(v -> {
+				try {
+					ctx.getApplicationContext().startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+							.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+				} catch (Exception ex) {
+					Log.e(ex, "Erişilebilirlik ayarı açılamadı");
+				}
+			});
+		}
 	}
 
+	private static boolean remoteTouchEnabled(Context ctx) {
+		String s = Settings.Secure.getString(ctx.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+		return (s != null) && s.contains(ctx.getPackageName() + "/") && s.contains("AccessibilityEventDispatcherService");
+	}
+
+	// ---- parçalar ----
+
 	@SuppressLint("ClickableViewAccessibility")
-	private View card(Context ctx, String icon, String title, String sub, int c1, int c2, boolean wide,
-										View.OnClickListener onClick) {
+	private FrameLayout base(Context ctx, android.graphics.drawable.Drawable bg, View.OnClickListener click) {
 		FrameLayout f = new FrameLayout(ctx);
-		GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{c1, c2});
-		bg.setCornerRadius(dp(ctx, 22));
 		f.setBackground(bg);
-		f.setElevation(dp(ctx, 4));
+		f.setElevation(dp(3));
 		f.setClickable(true);
 		f.setFocusable(true);
-		f.setOnClickListener(onClick);
-		// Basınca hafif küçülsün
+		f.setOnClickListener(click);
 		f.setOnTouchListener((v, e) -> {
-			if (e.getAction() == MotionEvent.ACTION_DOWN) v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(80).start();
-			else if (e.getAction() == MotionEvent.ACTION_UP || e.getAction() == MotionEvent.ACTION_CANCEL)
-				v.animate().scaleX(1f).scaleY(1f).setDuration(120).start();
+			int act = e.getActionMasked();
+			if (act == MotionEvent.ACTION_DOWN) v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(80).start();
+			else if (act == MotionEvent.ACTION_UP || act == MotionEvent.ACTION_CANCEL)
+				v.animate().scaleX(1f).scaleY(1f).setDuration(140).start();
 			return false;
 		});
+		return f;
+	}
 
+	private View tile(Context ctx, String icon, String label, int color, View.OnClickListener click) {
+		GradientDrawable bg = new GradientDrawable();
+		bg.setColor(t.surface);
+		bg.setStroke(dp(1), t.stroke);
+		bg.setCornerRadius(dp(22));
+		FrameLayout f = base(ctx, bg, click);
 		LinearLayout box = new LinearLayout(ctx);
-		box.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-		box.setGravity(wide ? Gravity.CENTER_VERTICAL : Gravity.BOTTOM);
-		int p = dp(ctx, 16);
-		box.setPadding(p, p, p, p);
-		TextView ic = text(ctx, icon, wide ? 30 : 34, false, Color.WHITE);
-		box.addView(ic);
-		LinearLayout t = new LinearLayout(ctx);
-		t.setOrientation(LinearLayout.VERTICAL);
-		if (wide) t.setPadding(dp(ctx, 16), 0, 0, 0);
-		t.addView(text(ctx, title, 21, true, Color.WHITE));
-		TextView s = text(ctx, sub, 13, false, 0xDDFFFFFF);
-		s.setMaxLines(1);
-		t.addView(s);
-		box.addView(t);
+		box.setOrientation(LinearLayout.VERTICAL);
+		box.setGravity(Gravity.CENTER_VERTICAL);
+		box.setPadding(dp(14), dp(10), dp(14), dp(10));
+		TextView ic = text(ctx, icon, 22, false, Color.WHITE);
+		ic.setGravity(Gravity.CENTER);
+		GradientDrawable ib = new GradientDrawable();
+		ib.setShape(GradientDrawable.OVAL);
+		ib.setColor(color);
+		ic.setBackground(ib);
+		box.addView(ic, new LinearLayout.LayoutParams(dp(44), dp(44)));
+		TextView l = text(ctx, label, 16, true, t.ink);
+		l.setMaxLines(1);
+		l.setPadding(0, dp(8), 0, 0);
+		box.addView(l);
 		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
 		return f;
 	}
 
+	private View chip(Context ctx, String label, View.OnClickListener click) {
+		TextView c = text(ctx, label, 15, true, t.ink);
+		c.setGravity(Gravity.CENTER);
+		c.setPadding(dp(18), dp(12), dp(18), dp(12));
+		GradientDrawable bg = new GradientDrawable();
+		bg.setColor(t.surface);
+		bg.setStroke(dp(1), t.stroke);
+		bg.setCornerRadius(dp(999));
+		c.setBackground(bg);
+		c.setClickable(true);
+		c.setOnClickListener(click);
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
+		lp.rightMargin = dp(10);
+		c.setLayoutParams(lp);
+		return c;
+	}
+
+	private View roundButton(Context ctx, String icon, int color, View.OnClickListener click) {
+		TextView b = text(ctx, icon, 22, false, Color.WHITE);
+		b.setGravity(Gravity.CENTER);
+		GradientDrawable bg = new GradientDrawable();
+		bg.setShape(GradientDrawable.OVAL);
+		bg.setColor(color);
+		b.setBackground(bg);
+		b.setClickable(true);
+		b.setOnClickListener(click);
+		b.setLayoutParams(new LinearLayout.LayoutParams(dp(52), dp(52)));
+		return b;
+	}
+
 	private static TextView text(Context ctx, String s, float size, boolean bold, int color) {
-		TextView t = new TextView(ctx);
-		t.setText(s);
-		t.setTextSize(size);
-		t.setTextColor(color);
-		if (bold) t.setTypeface(Typeface.DEFAULT_BOLD);
-		return t;
+		TextView tv = new TextView(ctx);
+		tv.setText(s);
+		tv.setTextSize(size);
+		tv.setTextColor(color);
+		if (bold) tv.setTypeface(Typeface.DEFAULT_BOLD);
+		return tv;
+	}
+
+	private static String initials(String name) {
+		StringBuilder b = new StringBuilder();
+		for (String w : name.trim().split("\\s+")) {
+			if (!w.isEmpty() && b.length() < 2) b.appendCodePoint(w.codePointAt(0));
+		}
+		return b.toString().toUpperCase(new Locale("tr"));
+	}
+
+	private static int avatarColor(String name) {
+		int[] c = {0xFFEF4444, 0xFF8B5CF6, 0xFF0EA5E9, 0xFF10B981, 0xFFF59E0B, 0xFFEC4899, 0xFF6366F1};
+		return c[Math.floorMod(name.hashCode(), c.length)];
 	}
 
 	private static String greeting() {
@@ -292,7 +582,42 @@ public class HomeFragment extends MainActivityFragment {
 		return "İyi akşamlar";
 	}
 
-	private static int dp(Context ctx, int v) {
-		return Math.round(v * ctx.getResources().getDisplayMetrics().density);
+	private int dp(int v) {
+		return Math.round(v * requireContext().getResources().getDisplayMetrics().density);
+	}
+
+	// ---- sesli karşılama ----
+
+	private static boolean greeted;
+
+	/** Araç ekranında ilk açılışta kısa sesli karşılama ("İyi akşamlar, Yolda hazır."). */
+	private void greetOnce() {
+		if (greeted) return;
+		MainActivityDelegate a = getActivityDelegate();
+		if (a == null || !a.isCarActivity()) return;
+		greeted = true;
+		Context app = requireContext().getApplicationContext();
+		final TextToSpeech[] tts = new TextToSpeech[1];
+		tts[0] = new TextToSpeech(app, status -> {
+			if (status != TextToSpeech.SUCCESS) return;
+			TextToSpeech s = tts[0];
+			s.setLanguage(new Locale("tr", "TR"));
+			s.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+				@Override
+				public void onStart(String id) {
+				}
+
+				@Override
+				public void onDone(String id) {
+					s.shutdown();
+				}
+
+				@Override
+				public void onError(String id) {
+					s.shutdown();
+				}
+			});
+			s.speak(greeting() + ", Yolda hazır.", TextToSpeech.QUEUE_FLUSH, null, "yolda_hello");
+		});
 	}
 }
