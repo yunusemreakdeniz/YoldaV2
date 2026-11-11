@@ -107,6 +107,13 @@ public class YoldaSetupFragment extends MainActivityFragment {
 		shizukuListener = null;
 	}
 
+	/** Döndürmede (dikey ↔ yatay) ölçüler yeni ekran genişliğine göre baştan hesaplansın. */
+	@Override
+	public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		if (getView() != null) getView().post(this::render);
+	}
+
 	private void render() {
 		Context ctx = requireContext();
 		t = YoldaStyle.current(ctx);

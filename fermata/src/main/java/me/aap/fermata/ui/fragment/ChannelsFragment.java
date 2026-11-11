@@ -214,6 +214,21 @@ public class ChannelsFragment extends MainActivityFragment {
 		return b;
 	}
 
+	/** Döndürmede kartlar, sütun sayısı ve arama kutusu yeni ekrana göre yeniden kurulsun. */
+	@Override
+	public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		View v = getView();
+		if (v != null) v.post(this::rebuildView);
+	}
+
+	private void rebuildView() {
+		if (!isAdded() || isStateSaved()) return;
+		androidx.fragment.app.FragmentManager fm = getParentFragmentManager();
+		fm.beginTransaction().detach(this).commitNow();
+		fm.beginTransaction().attach(this).commitNow();
+	}
+
 	@Override
 	public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
 		ViewGroup.LayoutParams lp = view.getLayoutParams();

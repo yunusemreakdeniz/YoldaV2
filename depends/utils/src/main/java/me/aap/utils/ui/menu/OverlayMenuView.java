@@ -44,6 +44,14 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 	@Nullable
 	MenuBuilder builder;
 
+	/** Yolda: menü ve diyalogların görünümünü uygulama teması verir (cam panel, büyük satırlar). */
+	public interface Styler {
+		void style(OverlayMenuView menu);
+	}
+
+	@Nullable
+	public static Styler styler;
+
 	public OverlayMenuView(Context ctx, AttributeSet attrs) {
 		super(ctx, attrs, androidx.appcompat.R.attr.popupMenuStyle);
 
@@ -70,6 +78,7 @@ public class OverlayMenuView extends ScrollView implements OverlayMenu {
 
 		ViewGroup g = builder.view;
 		builder.consumer.apply(builder).main().onSuccess(ignore -> {
+			if (styler != null) styler.style(this);
 			int count = g.getChildCount();
 			if (count == 0) return;
 

@@ -359,6 +359,38 @@ public class MainActivityDelegate extends ActivityDelegate
 		checkUpdates();
 	}
 
+	/**
+	 * Oynatıcı: simgeler beyaz, oynat/duraklat ortada parlayan cam daire içinde; dokunma alanları büyük.
+	 */
+	private void styleYoldaPlayer() {
+		ControlPanelView cp = getControlPanel();
+		if (cp == null) return;
+		Context ctx = getContext();
+		float d = ctx.getResources().getDisplayMetrics().density;
+		int[] ids = {R.id.control_prev, R.id.control_rw, R.id.control_play_pause, R.id.control_ff,
+				R.id.control_next, R.id.show_hide_bars_icon, R.id.control_menu_button_icon};
+		for (int id : ids) {
+			View v = cp.findViewById(id);
+			if (v instanceof android.widget.ImageView iv) {
+				iv.setImageTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
+				iv.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+			}
+		}
+		View play = cp.findViewById(R.id.control_play_pause);
+		if (play != null) {
+			int in = Math.round(4 * d);
+			play.setBackground(new android.graphics.drawable.InsetDrawable(
+					me.aap.fermata.ui.view.YoldaStyle.selected(ctx, 999), in, in, in, in));
+			play.setPadding(Math.round(10 * d), Math.round(8 * d), Math.round(10 * d), Math.round(8 * d));
+		}
+		for (int id : new int[]{R.id.seek_time, R.id.seek_total}) {
+			View v = cp.findViewById(id);
+			if (v instanceof android.widget.TextView tv) tv.setTextColor(0xE6FFFFFF);
+		}
+		int p = Math.round(8 * d);
+		cp.setPadding(Math.round(10 * d), p, Math.round(10 * d), p);
+	}
+
 	private void selectHomeNavButton() {
 		if (getActiveFragmentId() != R.id.home_fragment) return;
 		NavBarView nb = getNavBar();
@@ -1142,6 +1174,9 @@ public class MainActivityDelegate extends ActivityDelegate
 						me.aap.fermata.ui.view.YoldaStyle.current(getContext()), 28));
 				controlPanel.setClipToOutline(true);
 			}
+			// Menüler ve diyaloglar: koyu cam panel, 56dp satırlar, büyük düğmeler
+			me.aap.utils.ui.menu.OverlayMenuView.styler = me.aap.fermata.ui.view.YoldaStyle::styleMenu;
+			styleYoldaPlayer();
 			if (root instanceof ConstraintLayout cl) {
 				addVoiceButton(cl);
 				showYoldaSplash(cl);

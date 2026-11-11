@@ -64,6 +64,27 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 		}
 	}
 
+	/**
+	 * Döndürmede uygulama yeniden başlamıyor; Fermata düğmeleri baştan kuruyor. Kapsül kenar boşlukları
+	 * yeni genişliğe göre, yeni düğmeler de tek tip simge boyuna göre yeniden ayarlanır; zemin yenilenir.
+	 */
+	@Override
+	protected void onConfigurationChanged(android.content.res.Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		if (!YoldaStyle.glassActive) return;
+		post(() -> {
+			applyYoldaPill();
+			YoldaStyle.refreshBackdrop(getContext());
+		});
+	}
+
+	/** Sonradan eklenen her düğme de hemen cam kapsül biçimini alsın (seçili olmasa bile aynı boy). */
+	@Override
+	public void onViewAdded(android.view.View child) {
+		super.onViewAdded(child);
+		if (YoldaStyle.glassActive) child.setSelected(child.isSelected());
+	}
+
 	private int pillHeight() {
 		return Math.round(72 * getResources().getDisplayMetrics().density);
 	}

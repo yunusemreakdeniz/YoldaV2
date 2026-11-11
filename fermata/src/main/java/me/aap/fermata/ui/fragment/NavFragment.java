@@ -94,6 +94,13 @@ public class NavFragment extends MainActivityFragment {
 		return prefs().getBoolean("nav_waze", false);
 	}
 
+	/** Döndürmede (dikey ↔ yatay) ölçüler yeni ekran genişliğine göre baştan hesaplansın. */
+	@Override
+	public void onConfigurationChanged(@NonNull android.content.res.Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		if (getView() != null) getView().post(this::render);
+	}
+
 	private void render() {
 		Context ctx = requireContext();
 		t = YoldaStyle.current(ctx);

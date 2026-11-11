@@ -300,4 +300,99 @@ public final class YoldaStyle {
 	public static int bottom(android.content.Context c) {
 		return 100;
 	}
+
+	// ---- menüler ve diyaloglar: koyu cam panel, büyük dokunma alanları ----
+
+	/** Açılan menü / diyalog paneli: okunaklı olsun diye koyu, üstünde cam parlaması. */
+	public static Drawable menuPanel(Context ctx) {
+		Theme t = current(ctx);
+		float d = ctx.getResources().getDisplayMetrics().density;
+		android.graphics.drawable.GradientDrawable solid = new android.graphics.drawable.GradientDrawable();
+		solid.setColor((t.base & 0x00FFFFFF) | 0xF2000000);
+		solid.setCornerRadius(28 * d);
+		solid.setStroke(Math.max(1, Math.round(d)), 0x40FFFFFF);
+		return new android.graphics.drawable.LayerDrawable(new Drawable[]{solid, glass(ctx, t, 28)});
+	}
+
+	/** Basılı / seçili / odaklı satırda yumuşak cam hap, normalde saydam. */
+	private static Drawable rowBackground(Context ctx) {
+		float d = ctx.getResources().getDisplayMetrics().density;
+		android.graphics.drawable.StateListDrawable sl = new android.graphics.drawable.StateListDrawable();
+		int in = Math.round(2 * d);
+		Drawable on = new android.graphics.drawable.InsetDrawable(selected(ctx, 18), in, in, in, in);
+		sl.addState(new int[]{android.R.attr.state_pressed}, on);
+		sl.addState(new int[]{android.R.attr.state_focused}, on);
+		sl.addState(new int[]{android.R.attr.state_selected}, on);
+		sl.addState(new int[]{}, new android.graphics.drawable.ColorDrawable(0));
+		return sl;
+	}
+
+	public static void styleMenu(me.aap.utils.ui.menu.OverlayMenuView m) {
+		if (!glassActive) return;
+		Context ctx = m.getContext();
+		float d = ctx.getResources().getDisplayMetrics().density;
+		m.setBackground(menuPanel(ctx));
+		m.setClipToOutline(true);
+		m.setElevation(24 * d);
+		int p = Math.round(10 * d);
+		m.setPadding(p, p, p, p);
+		int screenW = Math.round(widthDp(ctx) * d);
+		m.setMinimumWidth(Math.min(Math.round(320 * d), screenW - Math.round(32 * d)));
+		if (m.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams lp) {
+			int mg = Math.round(16 * d);
+			if (lp.leftMargin != mg) {
+				lp.setMargins(mg, mg, mg, mg);
+				m.setLayoutParams(lp);
+			}
+		}
+		if (m.getChildCount() > 0) styleTree(ctx, m.getChildAt(0), d);
+	}
+
+	private static void styleTree(Context ctx, android.view.View v, float d) {
+		if (v instanceof me.aap.utils.ui.menu.OverlayMenuItemView item) {
+			item.setMinHeight(Math.round(56 * d));
+			item.setGravity(android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.START);
+			item.setPadding(Math.round(18 * d), Math.round(6 * d), Math.round(18 * d), Math.round(6 * d));
+			item.setCompoundDrawablePadding(Math.round(16 * d));
+			item.setTextColor(0xFFFFFFFF);
+			item.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 17);
+			androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(item,
+					android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
+			item.setBackground(rowBackground(ctx));
+			return;
+		}
+		if (v instanceof android.widget.EditText e) {
+			e.setTextColor(0xFFFFFFFF);
+			e.setHintTextColor(0x99FFFFFF);
+			return;
+		}
+		if (v instanceof android.widget.Button b) {
+			// Diyalog düğmeleri: büyük, yuvarlak cam
+			b.setTextColor(0xFFFFFFFF);
+			b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
+			b.setAllCaps(false);
+			b.setMinHeight(Math.round(52 * d));
+			b.setMinWidth(Math.round(96 * d));
+			b.setPadding(Math.round(20 * d), 0, Math.round(20 * d), 0);
+			b.setBackground(new android.graphics.drawable.InsetDrawable(glass(ctx, current(ctx), 999),
+					Math.round(4 * d)));
+			return;
+		}
+		if (v instanceof android.widget.TextView t) {
+			if (t.getId() == me.aap.utils.R.id.overlay_menu_title) {
+				t.setTextColor(0xFFFFFFFF);
+				t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 19);
+				t.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+			} else if (!(t instanceof android.widget.CompoundButton)) {
+				t.setTextColor(0xF2FFFFFF);
+			} else {
+				t.setTextColor(0xFFFFFFFF);
+				t.setMinHeight(Math.round(52 * d));
+			}
+			return;
+		}
+		if (v instanceof android.view.ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) styleTree(ctx, g.getChildAt(i), d);
+		}
+	}
 }
