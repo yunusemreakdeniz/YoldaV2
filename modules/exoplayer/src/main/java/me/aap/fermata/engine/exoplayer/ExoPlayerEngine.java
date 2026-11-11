@@ -129,10 +129,16 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 						.setAudioProcessorChain(
 								new DefaultAudioSink.DefaultAudioProcessorChain(audioProc)).build();
 			}
-		}).setMediaSourceFactory(msFactory).build();
-		// Yolda: canlı TV (HLS) düşük kaliteden başlayıp orada kalmasın; cihazın oynatabildiği en yüksek kalite
-		player.setTrackSelectionParameters(player.getTrackSelectionParameters().buildUpon()
-				.setForceHighestSupportedBitrate(true).build());
+		}).setMediaSourceFactory(msFactory)
+				// Yolda: canlı TV hızlı ve HD açılsın.
+				// Bağlantı baştan hızlı varsayılır (8 Mbit/sn): uyarlamalı seçim ilk parçadan HD seçer,
+				// en düşük kaliteden başlayıp yavaşça çıkmaz; hız gerçekten düşükse kendiliğinden iner.
+				.setBandwidthMeter(new androidx.media3.exoplayer.upstream.DefaultBandwidthMeter.Builder(ctx)
+						.setInitialBitrateEstimate(8_000_000).build())
+				// Oynatma 1 sn tampon dolunca başlar (varsayılan 2,5 sn); takılmadan sonra 2 sn
+				.setLoadControl(new androidx.media3.exoplayer.DefaultLoadControl.Builder()
+						.setBufferDurationsMs(15_000, 50_000, 1_000, 2_000).build())
+				.build();
 		player.addListener(this);
 		audioEffects = AudioEffects.create(0, player.getAudioSessionId());
 
