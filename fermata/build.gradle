@@ -122,3 +122,11 @@ dependencies {
     // Yolda Müzik: YouTube Music araması ve ses akışı (GPL-3, açık kaynak)
     implementation 'com.github.teamnewpipe:NewPipeExtractor:v0.27.1'
 }
+
+// Yolda testleri: uygulamanın resValue tanımları (@string/app_name_auto_debug gibi) test APK'sına geçmesin;
+// test APK'sı bu kaynakları göremediği için derlenemiyordu
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.androidTest?.resValues?.empty()
+    }
+}
