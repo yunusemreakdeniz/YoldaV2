@@ -65,7 +65,7 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 	}
 
 	private int pillHeight() {
-		return Math.round(92 * getResources().getDisplayMetrics().density);
+		return Math.round(72 * getResources().getDisplayMetrics().density);
 	}
 
 	/**

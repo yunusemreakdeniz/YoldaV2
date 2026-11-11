@@ -1027,7 +1027,7 @@ public class MainActivityDelegate extends ActivityDelegate
 					.withEndAction(() -> v.animate().scaleX(1f).scaleY(1f).setDuration(140).start()).start();
 			startVoiceAssistant();
 		});
-		int s = toIntPx(ctx, 68);
+		int s = toIntPx(ctx, 56);
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
 		lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
 		lp.bottomToTop = R.id.control_panel; // oynatıcı kapalıyken menünün hemen üstü

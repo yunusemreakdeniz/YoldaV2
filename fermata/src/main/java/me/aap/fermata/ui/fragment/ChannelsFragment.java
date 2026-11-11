@@ -155,7 +155,7 @@ public class ChannelsFragment extends MainActivityFragment {
 				new android.graphics.drawable.Drawable[]{sbg, YoldaStyle.glass(ctx, t, 999)}));
 		search.setElevation(dp(8));
 		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
-		slp.setMargins(dp(22), 0, dp(22), dp(16));
+		slp.setMargins(dp(22), 0, dp(22), dp(80)); // sesli asistan düğmesinin üstünde
 		search.addTextChangedListener(new TextWatcher() {
 			@Override
 			public void beforeTextChanged(CharSequence s, int st, int c, int a1) {
@@ -185,7 +185,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		scroll.setClipToPadding(false);
 		grid = new LinearLayout(ctx);
 		grid.setOrientation(LinearLayout.VERTICAL);
-		grid.setPadding(0, dp(14), 0, dp(96)); // altta arama çubuğuna yer
+		grid.setPadding(0, dp(14), 0, dp(168)); // altta arama + sesli asistan düğmesi
 		scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
 		col.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 

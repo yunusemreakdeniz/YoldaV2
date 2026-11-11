@@ -81,7 +81,7 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		scroll.setVerticalScrollBarEnabled(false);
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
-		col.setPadding(dp(44), dp(28), dp(44), dp(28));
+		col.setPadding(dp(44), dp(28), dp(44), dp(90));
 		scroll.addView(col, new ScrollView.LayoutParams(-1, -2));
 		root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
 
