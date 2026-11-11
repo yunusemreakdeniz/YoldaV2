@@ -702,6 +702,8 @@ public class MainActivityDelegate extends ActivityDelegate
 	protected ActivityFragment createFragment(int id) {
 		if (id == R.id.home_fragment) {
 			return new me.aap.fermata.ui.fragment.HomeFragment();
+		} else if (id == R.id.yolda_channels_fragment) {
+			return new me.aap.fermata.ui.fragment.ChannelsFragment();
 		} else if (id == R.id.folders_fragment) {
 			return new FoldersFragment();
 		} else if (id == R.id.favorites_fragment) {
@@ -1198,19 +1200,69 @@ public class MainActivityDelegate extends ActivityDelegate
 	private final class SpeechListener implements RecognitionListener {
 		private final Promise<List<String>> promise;
 		private final boolean textInput;
-		private final SpeechRecognizer recognizer;
+		private SpeechRecognizer recognizer;
 		private final MaterialTextView text;
 		private PlaybackStateCompat playbackState;
+		// Yolda: internetsiz (cihaz içi) tanıma, animasyonlu küre, durum yazısı
+		private boolean onDevice;
+		private boolean fallbackTried;
+		private Intent intent;
+		private me.aap.fermata.ui.view.VoiceOrbView orb;
+		private android.widget.TextView statusText;
 
 		private SpeechListener(Promise<List<String>> promise, boolean textInput) {
 			this.promise = promise;
 			this.textInput = textInput;
-			recognizer = SpeechRecognizer.createSpeechRecognizer(getContext());
-			recognizer.setRecognitionListener(this);
+			recognizer = createRecognizer(true);
 			text = new MaterialTextView(getContext());
 		}
 
+		/** Android 12+ ve cihazda tanıma varsa internetsiz motor; yoksa normal motor. */
+		private SpeechRecognizer createRecognizer(boolean preferOnDevice) {
+			Context ctx = getContext();
+			SpeechRecognizer r = null;
+			onDevice = false;
+			if (preferOnDevice && (VERSION.SDK_INT >= VERSION_CODES.S)) {
+				try {
+					if (SpeechRecognizer.isOnDeviceRecognitionAvailable(ctx)) {
+						r = SpeechRecognizer.createOnDeviceSpeechRecognizer(ctx);
+						onDevice = true;
+					}
+				} catch (Exception ex) {
+					Log.e(ex, "Cihaz içi tanıma açılamadı");
+				}
+			}
+			if (r == null) r = SpeechRecognizer.createSpeechRecognizer(ctx);
+			r.setRecognitionListener(this);
+			return r;
+		}
+
+		/** Tanımayı kanal adları ve komutlarla yönlendir: "Habertürk", "TGRT", "A Spor" daha doğru anlaşılır. */
+		private void addHints(Intent i) {
+			i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+			i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+			if (VERSION.SDK_INT < 33) return;
+			ArrayList<String> hints = new ArrayList<>();
+			for (String s : new String[]{"aç", "oynat", "durdur", "devam et", "favoriler", "YouTube", "radyo",
+					"ileri sar", "geri sar", "sonraki kanal", "önceki kanal"}) hints.add(s);
+			try {
+				java.io.File f = new java.io.File(getContext().getFilesDir(), "yolda.m3u");
+				if (f.isFile()) {
+					for (String line : new String(java.nio.file.Files.readAllBytes(f.toPath()),
+							java.nio.charset.StandardCharsets.UTF_8).split("\n")) {
+						if (line.startsWith("#EXTINF") && line.contains(",") && (hints.size() < 120))
+							hints.add(line.substring(line.lastIndexOf(',') + 1).trim());
+					}
+				}
+			} catch (Exception ex) {
+				Log.e(ex, "Kanal adları okunamadı");
+			}
+			i.putStringArrayListExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, hints);
+		}
+
 		void start(Intent i) {
+			addHints(i);
+			intent = i;
 			var cb = getMediaSessionCallback();
 			if (cb.isPlaying()) {
 				var eng = cb.getEngine();
@@ -1243,32 +1295,56 @@ public class MainActivityDelegate extends ActivityDelegate
 		@Override
 		public void onReadyForSpeech(Bundle params) {
 			getContextMenu().show(b -> {
+				// Yolda: koyu kart, animasyonlu küre, "Dinliyorum…", canlı yazı ve örnek komutlar
 				Context ctx = getContext();
 				DisplayMetrics dm = getResources().getDisplayMetrics();
-				int size = Math.min(dm.heightPixels, dm.widthPixels) / 3;
+				int min = Math.min(dm.heightPixels, dm.widthPixels);
+				int size = Math.max(min / 2, toIntPx(ctx, 260));
+				int imgColor = android.graphics.Color.WHITE;
 				LinearLayoutCompat layout = new LinearLayoutCompat(ctx);
 				layout.setOrientation(LinearLayoutCompat.VERTICAL);
-				AppCompatImageView img = new AppCompatImageView(ctx);
-				TypedArray ta = ctx.getTheme()
-						.obtainStyledAttributes(new int[]{com.google.android.material.R.attr.colorOnSecondary});
-				int imgColor = ta.getColor(0, 0);
-				ta.recycle();
-				img.setMinimumWidth(size);
-				img.setMinimumHeight(size);
-				img.setImageResource(R.drawable.record_voice);
-				img.setImageTintList(ColorStateList.valueOf(imgColor));
-				text.setMaxLines(5);
+				layout.setGravity(Gravity.CENTER_HORIZONTAL);
+				int pad = toIntPx(ctx, 18);
+				layout.setPadding(pad, pad, pad, pad);
+				android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(
+						android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+						new int[]{0xF0141A3A, 0xF00B1026});
+				bg.setCornerRadius(toIntPx(ctx, 28));
+				layout.setBackground(bg);
+
+				orb = new me.aap.fermata.ui.view.VoiceOrbView(ctx);
+				int orbSize = Math.min(size - 2 * pad, min / 3);
+				layout.addView(orb, new LinearLayoutCompat.LayoutParams(orbSize, orbSize));
+
+				statusText = new android.widget.TextView(ctx);
+				statusText.setText(onDevice ? "Dinliyorum…  ·  internetsiz" : "Dinliyorum…");
+				statusText.setTextColor(0xFF22D3EE);
+				statusText.setTextSize(15);
+				statusText.setLetterSpacing(0.06f);
+				statusText.setGravity(Gravity.CENTER);
+				statusText.setPadding(0, toIntPx(ctx, 8), 0, toIntPx(ctx, 4));
+				layout.addView(statusText, new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
+
+				text.setMaxLines(3);
 				text.setGravity(Gravity.CENTER);
-				text.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-				ta = ctx.getTheme().obtainStyledAttributes(new int[]{android.R.attr.textColorSecondary});
-				text.setTextColor(ColorStateList.valueOf(ta.getColor(0, 0)));
-				ta.recycle();
+				text.setTextSize(22);
+				text.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+				text.setEllipsize(TextUtils.TruncateAt.END);
+				text.setTextColor(ColorStateList.valueOf(0xFFF1F5F9));
 				text.setLayoutParams(new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
+
+				android.widget.TextView hint = new android.widget.TextView(ctx);
+				hint.setText("“TRT Haber'i aç”  ·  “YouTube'da Habertürk aç”  ·  “durdur”");
+				hint.setTextColor(0xFFA5B0C2);
+				hint.setTextSize(13);
+				hint.setGravity(Gravity.CENTER);
+				hint.setPadding(0, toIntPx(ctx, 10), 0, 0);
+
 				layout.setLayoutParams(new ConstraintLayout.LayoutParams(size, WRAP_CONTENT));
 				b.setView(layout);
 				b.setCloseHandlerHandler(m -> destroy());
-				layout.addView(img);
 				layout.addView(text);
+				layout.addView(hint, new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
 
 				if (textInput) {
 					int kbSize = size / 5;
@@ -1305,6 +1381,24 @@ public class MainActivityDelegate extends ActivityDelegate
 
 		@Override
 		public void onError(int error) {
+			// Yolda: cihaz içi motorda Türkçe paketi yoksa indirmesini iste ve bu sefer normal motorla dene
+			if (onDevice && !fallbackTried && (intent != null) && (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
+					|| error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE || error == SpeechRecognizer.ERROR_CLIENT
+					|| error == SpeechRecognizer.ERROR_SERVER_DISCONNECTED)) {
+				fallbackTried = true;
+				if ((error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE) && (VERSION.SDK_INT >= 33)) {
+					try {
+						recognizer.triggerModelDownload(intent);
+					} catch (Exception ex) {
+						Log.e(ex, "Türkçe tanıma paketi indirilemedi");
+					}
+				}
+				recognizer.destroy();
+				recognizer = createRecognizer(false);
+				if (statusText != null) statusText.setText("Dinliyorum…");
+				recognizer.startListening(intent);
+				return;
+			}
 			String msg = "Speech recognition failed with error code " + error;
 			Log.e(msg);
 			promise.completeExceptionally(new IOException(msg));
@@ -1317,10 +1411,12 @@ public class MainActivityDelegate extends ActivityDelegate
 
 		@Override
 		public void onBeginningOfSpeech() {
+			if (statusText != null) statusText.setText("Seni duyuyorum…");
 		}
 
 		@Override
 		public void onRmsChanged(float rmsdB) {
+			if (orb != null) orb.setLevel((rmsdB + 2f) / 12f);
 		}
 
 		@Override
@@ -1329,6 +1425,8 @@ public class MainActivityDelegate extends ActivityDelegate
 
 		@Override
 		public void onEndOfSpeech() {
+			if (statusText != null) statusText.setText("Anlıyorum…");
+			if (orb != null) orb.setThinking(true);
 		}
 
 		@Override

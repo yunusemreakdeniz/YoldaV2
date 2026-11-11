@@ -79,6 +79,9 @@ public class NavBarMediator extends PrefNavBarMediator
 		Context ctx = nb.getContext();
 		// Yolda: her zaman ilk düğme ana sayfa
 		items.add(create(ctx, R.id.home_fragment, R.drawable.yolda_home, R.string.yolda_home, true));
+		// Yolda: ikinci düğme kart görünümlü kanallar (Fermata'nın klasör menüsü yerine)
+		if (amgr.hasAddon(R.id.tv_fragment))
+			items.add(create(ctx, R.id.yolda_channels_fragment, R.drawable.yolda_tv, R.string.yolda_channels, true));
 
 		for (String name : names) {
 			switch (name) {
@@ -324,7 +327,7 @@ public class NavBarMediator extends PrefNavBarMediator
 		String[] pref = getPreferenceStore(nb).getStringArrayPref(getPref(nb));
 		CollectionUtils.addAll(names, pref);
 		// Yolda: önce TV ve YouTube, sonra favoriler
-		for (String cls : new String[]{"me.aap.fermata.addon.tv.TvAddon", "me.aap.fermata.addon.web.yt.YoutubeAddon"}) {
+		for (String cls : new String[]{"me.aap.fermata.addon.web.yt.YoutubeAddon"}) {
 			if (amgr.getAddon(cls) instanceof FermataFragmentAddon) names.add(cls);
 		}
 		names.add("favorites");

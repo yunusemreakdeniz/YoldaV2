@@ -61,7 +61,7 @@ public class HomeFragment extends MainActivityFragment {
 	private static final String PREFS = "yolda_home";
 
 	/** Tema: zemin geçişi, kart yüzeyi, vurgu ve büyük kartın geçişi. */
-	private static final class Theme {
+	static final class Theme {
 		final String name;
 		final int bg1, bg2, surface, stroke, accent, hero1, hero2, ink, muted;
 
@@ -79,7 +79,7 @@ public class HomeFragment extends MainActivityFragment {
 		}
 	}
 
-	private static final Theme[] THEMES = {
+	static final Theme[] THEMES = {
 			new Theme("Gece mavisi", 0xFF0B1026, 0xFF1B1446, 0xFF22D3EE, 0xFF4F46E5, 0xFF0EA5E9),
 			new Theme("Grafit", 0xFF111214, 0xFF23252B, 0xFFEF4444, 0xFFDC2626, 0xFF7F1D1D),
 			new Theme("Gece yeşili", 0xFF06201A, 0xFF0E3B30, 0xFFF5C451, 0xFF10B981, 0xFF065F46),
@@ -211,7 +211,7 @@ public class HomeFragment extends MainActivityFragment {
 
 		AddonManager am = AddonManager.get();
 		if (am.hasAddon(R.id.tv_fragment))
-			col.addView(row(ctx, "📺", "TV ve Radyo", "51 kanal · 22 radyo", 0xFFEF4444, v -> a.showFragment(R.id.tv_fragment)));
+			col.addView(row(ctx, "📺", "TV ve Radyo", "51 kanal · 22 radyo", 0xFFEF4444, v -> a.showFragment(R.id.yolda_channels_fragment)));
 		if (am.hasAddon(R.id.youtube_fragment))
 			col.addView(row(ctx, "▶️", "YouTube", "Videolar, canlı yayınlar, kanalların", 0xFFFF0033, v -> a.showFragment(R.id.youtube_fragment)));
 		col.addView(row(ctx, "📱", "Telefon", "Telefon ekranını araçtan kullan", 0xFF22C55E, v -> phone(ctx)));
@@ -441,7 +441,7 @@ public class HomeFragment extends MainActivityFragment {
 		AddonManager am = AddonManager.get();
 		List<View> tiles = new ArrayList<>();
 		if (am.hasAddon(R.id.tv_fragment))
-			tiles.add(tile(ctx, "📺", "TV ve Radyo", 0xFFEF4444, v -> a.showFragment(R.id.tv_fragment)));
+			tiles.add(tile(ctx, "📺", "TV ve Radyo", 0xFFEF4444, v -> a.showFragment(R.id.yolda_channels_fragment)));
 		if (am.hasAddon(R.id.youtube_fragment))
 			tiles.add(tile(ctx, "▶️", "YouTube", 0xFFFF0033, v -> a.showFragment(R.id.youtube_fragment)));
 		tiles.add(tile(ctx, "📱", "Telefon", 0xFF22C55E, v -> phone(ctx)));
