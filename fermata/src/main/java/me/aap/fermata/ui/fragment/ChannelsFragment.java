@@ -93,7 +93,9 @@ public class ChannelsFragment extends MainActivityFragment {
 		head.setGravity(Gravity.CENTER_VERTICAL);
 		LinearLayout titles = new LinearLayout(ctx);
 		titles.setOrientation(LinearLayout.VERTICAL);
-		titles.addView(text(ctx, "Kanallar", 28, true, t.ink));
+		TextView big = text(ctx, "TV ve Radyo", 40, true, t.ink);
+		big.setLetterSpacing(-0.025f);
+		titles.addView(big);
 		status = text(ctx, "Kanallar yükleniyor…", 14, false, t.muted);
 		titles.addView(status);
 		head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -265,7 +267,7 @@ public class ChannelsFragment extends MainActivityFragment {
 			if (!query.isEmpty() && !norm(pi.getName()).contains(query)) continue;
 			shown.add(pi);
 		}
-		status.setText(items.isEmpty() ? "Kanal bulunamadı" : shown.size() + " kanal");
+		status.setText(items.isEmpty() ? "Kanal bulunamadı" : (shown.size() + " yayın · hepsi resmi yayın adresleri"));
 		grid.removeAllViews();
 
 		int cols = Math.max(2, Math.min(6, ctx.getResources().getConfiguration().screenWidthDp / 170));
@@ -274,7 +276,7 @@ public class ChannelsFragment extends MainActivityFragment {
 			if (i % cols == 0) {
 				row = new LinearLayout(ctx);
 				row.setOrientation(LinearLayout.HORIZONTAL);
-				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, dp(132));
+				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, dp(168));
 				rlp.bottomMargin = dp(12);
 				grid.addView(row, rlp);
 			}
@@ -294,8 +296,9 @@ public class ChannelsFragment extends MainActivityFragment {
 
 	@SuppressLint("ClickableViewAccessibility")
 	private View card(Context ctx, MainActivityDelegate a, MediaLib.PlayableItem pi) {
-		FrameLayout f = new FrameLayout(ctx);
-		f.setBackground(YoldaStyle.glass(ctx, t, 24));
+		// Taslaktaki gibi: beyaz plaka üzerinde logo, altında kanal adı ve grubu
+		LinearLayout f = new LinearLayout(ctx);
+		f.setOrientation(LinearLayout.VERTICAL);
 		f.setClickable(true);
 		f.setOnClickListener(v -> a.getBody().playItem(pi));
 		f.setOnTouchListener((v, e) -> {
@@ -306,26 +309,23 @@ public class ChannelsFragment extends MainActivityFragment {
 			return false;
 		});
 
-		LinearLayout box = new LinearLayout(ctx);
-		box.setOrientation(LinearLayout.VERTICAL);
-		box.setGravity(Gravity.CENTER);
-		box.setPadding(dp(10), dp(10), dp(10), dp(10));
-
-		// Logo yoksa baş harfler
-		FrameLayout logoBox = new FrameLayout(ctx);
-		TextView initials = text(ctx, initials(pi.getName()), 22, true, Color.WHITE);
+		FrameLayout plate = new FrameLayout(ctx);
+		GradientDrawable pb = new GradientDrawable();
+		pb.setColor(0xEBFFFFFF);
+		pb.setCornerRadius(dp(22));
+		pb.setStroke(Math.max(1, dp(1)), 0xFFFFFFFF);
+		plate.setBackground(pb);
+		plate.setElevation(dp(4));
+		TextView initials = text(ctx, initials(pi.getName()), 22, true, color(pi.getName()));
+		initials.setShadowLayer(0, 0, 0, 0);
 		initials.setGravity(Gravity.CENTER);
-		GradientDrawable ib = new GradientDrawable();
-		ib.setCornerRadius(dp(14));
-		ib.setColor(color(pi.getName()));
-		initials.setBackground(ib);
-		logoBox.addView(initials, new FrameLayout.LayoutParams(-1, -1));
+		plate.addView(initials, new FrameLayout.LayoutParams(-1, -1));
 		ImageView logo = new ImageView(ctx);
 		logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
-		logo.setPadding(dp(6), dp(6), dp(6), dp(6));
+		logo.setPadding(dp(14), dp(12), dp(14), dp(12));
 		logo.setVisibility(View.GONE);
-		logoBox.addView(logo, new FrameLayout.LayoutParams(-1, -1));
-		box.addView(logoBox, new LinearLayout.LayoutParams(dp(110), dp(64)));
+		plate.addView(logo, new FrameLayout.LayoutParams(-1, -1));
+		f.addView(plate, new LinearLayout.LayoutParams(-1, 0, 1f));
 
 		pi.getIconUri().main().onCompletion((u, err) -> {
 			if (u == null) return;
@@ -333,21 +333,19 @@ public class ChannelsFragment extends MainActivityFragment {
 				if (bmp == null) return;
 				logo.setImageBitmap(bmp);
 				logo.setVisibility(View.VISIBLE);
-				GradientDrawable lb = new GradientDrawable();
-				lb.setCornerRadius(dp(14));
-				lb.setColor(0xF5FFFFFF); // logolar her temada okunur: Apple TV gibi açık plaka
-				initials.setBackground(lb);
 				initials.setText("");
 			});
 		});
 
-		TextView name = text(ctx, pi.getName(), 15, true, t.ink);
-		name.setGravity(Gravity.CENTER);
+		TextView name = text(ctx, pi.getName(), 15, true, 0xFFFFFFFF);
 		name.setMaxLines(1);
 		name.setEllipsize(android.text.TextUtils.TruncateAt.END);
-		name.setPadding(0, dp(10), 0, 0);
-		box.addView(name, new LinearLayout.LayoutParams(-1, -2));
-		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
+		name.setPadding(dp(4), dp(10), dp(4), 0);
+		f.addView(name, new LinearLayout.LayoutParams(-1, -2));
+		TextView grp = text(ctx, groupOf(pi), 12, false, 0xB3FFFFFF);
+		grp.setMaxLines(1);
+		grp.setPadding(dp(4), 0, dp(4), 0);
+		f.addView(grp, new LinearLayout.LayoutParams(-1, -2));
 		return f;
 	}
 

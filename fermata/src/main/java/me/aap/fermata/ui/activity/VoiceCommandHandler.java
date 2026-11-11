@@ -119,6 +119,8 @@ class VoiceCommandHandler {
 	public boolean handle(String cmd) {
 		init();
 		cmd = subst(cmd);
+		// Yolda: "eve git", "Taksim'e git", "Ankara'ya yol tarifi" → navigasyon
+		if (me.aap.fermata.ui.fragment.NavFragment.handleVoice(activity, cmd)) return true;
 
 		AddonManager amgr = AddonManager.get();
 

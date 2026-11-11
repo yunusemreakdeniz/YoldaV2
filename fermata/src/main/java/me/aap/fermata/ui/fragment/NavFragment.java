@@ -349,6 +349,70 @@ public class NavFragment extends MainActivityFragment {
 		prefs().edit().putString("nav_recent", a.toString()).apply();
 	}
 
+	// ---- sesli komut: "eve git", "işe git", "Taksim'e git", "Ankara'ya yol tarifi" ----
+
+	private static final java.util.regex.Pattern V_HOME = java.util.regex.Pattern.compile("^(eve|evime) (git|götür|gidelim|yol tarifi)$");
+	private static final java.util.regex.Pattern V_WORK = java.util.regex.Pattern.compile("^(işe|işyerine|iş yerine|ofise) (git|götür|gidelim|yol tarifi)$");
+	private static final java.util.regex.Pattern V_DEST = java.util.regex.Pattern.compile(
+			"^(.+?)(?:['’]?(?:ye|ya|e|a|ne|na))? (git|götür|gidelim|yol tarifi( ver)?|navigasyon( başlat)?)$");
+
+	/** @return true komut navigasyon komutuysa (yol tarifi başlatıldı ya da adres istendi). */
+	public static boolean handleVoice(MainActivityDelegate a, String cmd) {
+		if (cmd == null) return false;
+		String c = cmd.trim().toLowerCase(new java.util.Locale("tr"));
+		Context ctx = a.getContext();
+		SharedPreferences p = ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+		String dest;
+		if (V_HOME.matcher(c).matches()) dest = p.getString("nav_home", null);
+		else if (V_WORK.matcher(c).matches()) dest = p.getString("nav_work", null);
+		else {
+			java.util.regex.Matcher m = V_DEST.matcher(c);
+			if (!m.matches()) return false;
+			dest = m.group(1).replaceAll("['’]$", "").trim();
+		}
+		if ((dest == null) || dest.isEmpty()) {
+			a.showFragment(R.id.yolda_nav_fragment);
+			UiUtils.showInfo(ctx, "Önce Navigasyon ekranında Ev/İş adresini kaydet");
+			return true;
+		}
+		navigateTo(ctx, dest, true);
+		return true;
+	}
+
+	/** Yol tarifini başlat (ekrandan ve sesli komuttan). */
+	public static void navigateTo(Context ctx, String dest, boolean remember) {
+		SharedPreferences p = ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+		String d = dest.trim();
+		if (remember) {
+			List<String> l = new ArrayList<>();
+			try {
+				JSONArray arr = new JSONArray(p.getString("nav_recent", "[]"));
+				for (int i = 0; i < arr.length(); i++) l.add(arr.getString(i));
+			} catch (Exception ignore) {
+			}
+			l.remove(d);
+			l.add(0, d);
+			JSONArray arr = new JSONArray();
+			for (int i = 0; i < l.size() && i < 6; i++) arr.put(l.get(i));
+			p.edit().putString("nav_recent", arr.toString()).apply();
+		}
+		boolean waze = p.getBoolean("nav_waze", false);
+		Intent i = waze
+				? new Intent(Intent.ACTION_VIEW, Uri.parse("https://waze.com/ul?q=" + Uri.encode(d) + "&navigate=yes")).setPackage(WAZE)
+				: new Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=" + Uri.encode(d))).setPackage(MAPS);
+		if (!startStatic(ctx, i)) startStatic(ctx, new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=" + Uri.encode(d))));
+	}
+
+	private static boolean startStatic(Context ctx, Intent i) {
+		try {
+			ctx.getApplicationContext().startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+			return true;
+		} catch (Exception ex) {
+			Log.d("Navigasyon açılamadı: ", i);
+			return false;
+		}
+	}
+
 	// ---- yardımcılar ----
 
 	private ImageView icon(Context ctx, @DrawableRes int res, int tint) {

@@ -492,7 +492,7 @@ public class HomeFragment extends MainActivityFragment {
 	}
 
 	/** Telefon ekranı: Android Auto listesindeki "Yolda Telefon"; dokunmak için erişilebilirlik izni gerekir. */
-	private void phone(Context ctx) {
+	static void phone(Context ctx) {
 		if (remoteTouchEnabled(ctx)) {
 			UiUtils.showInfo(ctx, "Araç ekranının uygulama listesinden “Yolda Telefon”u aç. "
 					+ "Telefon ekranı burada görünür; dokunarak, kaydırarak kullanabilirsin.");

@@ -188,7 +188,9 @@ public class NavBarMediator extends PrefNavBarMediator
 
 	@Override
 	public void itemSelected(View item, int id, ActivityDelegate a) {
-		if (id == R.id.menu) {
+		if ((id == R.id.menu) && me.aap.fermata.ui.view.YoldaStyle.glassActive) {
+			MainActivityDelegate.get(item.getContext()).showFragment(R.id.yolda_menu_fragment);
+		} else if (id == R.id.menu) {
 			showMenu(MainActivityDelegate.get(item.getContext()));
 		} else if (id == R.id.yolda_music) {
 			HomeFragment.openWeb(MainActivityDelegate.get(item.getContext()), HomeFragment.MUSIC_URL);

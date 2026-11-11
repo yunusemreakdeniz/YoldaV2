@@ -711,6 +711,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.ChannelsFragment();
 		} else if (id == R.id.yolda_nav_fragment) {
 			return new me.aap.fermata.ui.fragment.NavFragment();
+		} else if (id == R.id.yolda_menu_fragment) {
+			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
 		} else if (id == R.id.folders_fragment) {
 			return new FoldersFragment();
 		} else if (id == R.id.favorites_fragment) {
@@ -1337,10 +1339,11 @@ public class MainActivityDelegate extends ActivityDelegate
 				me.aap.fermata.ui.view.YoldaStyle.Theme yt = me.aap.fermata.ui.view.YoldaStyle.current(ctx);
 				android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(
 						android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-						new int[]{(yt.base & 0x00FFFFFF) | 0xEB000000, (yt.base & 0x00FFFFFF) | 0xF5000000});
-				bg.setCornerRadius(toIntPx(ctx, 32));
-				bg.setStroke(Math.max(1, toIntPx(ctx, 1)), yt.edge);
-				layout.setBackground(bg);
+						new int[]{(yt.base & 0x00FFFFFF) | 0x99000000, (yt.base & 0x00FFFFFF) | 0xB3000000});
+				bg.setCornerRadius(toIntPx(ctx, 36));
+				// Liquid Glass: koyu taban (okunurluk) + berrak cam, parlak kenar
+				layout.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{
+						bg, me.aap.fermata.ui.view.YoldaStyle.glass(ctx, yt, 36)}));
 
 				orb = new me.aap.fermata.ui.view.VoiceOrbView(ctx);
 				orb.setColors(yt.blobs[1], yt.blobs[0], yt.blobs[2]);
@@ -1365,7 +1368,7 @@ public class MainActivityDelegate extends ActivityDelegate
 				text.setLayoutParams(new LinearLayoutCompat.LayoutParams(MATCH_PARENT, WRAP_CONTENT));
 
 				android.widget.TextView hint = new android.widget.TextView(ctx);
-				hint.setText("“TRT Haber'i aç”  ·  “YouTube'da Habertürk aç”  ·  “durdur”");
+				hint.setText("“TRT Haber'i aç”  ·  “YouTube'da Habertürk aç”  ·  “Kral FM'i aç”  ·  “durdur”");
 				hint.setTextColor(yt.muted);
 				hint.setTextSize(13);
 				hint.setGravity(Gravity.CENTER);
