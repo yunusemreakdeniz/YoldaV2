@@ -79,7 +79,7 @@ public class NavButtonView extends LinearLayoutCompat {
 		if (iconsOnly) {
 			TextView t = getText();
 			if (t != null) t.setVisibility(GONE);
-			int p = toIntPx(getContext(), 15);
+			int p = toIntPx(getContext(), 18); // 92dp kapsülde simge ~40dp
 			i.setPadding(0, p, 0, p);
 			i.setAlpha(selected ? 1f : 0.62f);
 			setBackground((selected && (selectedBackground != null)) ? selectedBackground.apply(getContext()) : null);

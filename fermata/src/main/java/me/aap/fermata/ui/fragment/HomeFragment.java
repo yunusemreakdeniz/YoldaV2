@@ -156,6 +156,7 @@ public class HomeFragment extends MainActivityFragment {
 			hint.setTextColor(0xCCFFFFFF);
 			hint.setPadding(dp(4), dp(20), 0, 0);
 			col.addView(hint);
+			if (AddonManager.get().hasAddon(R.id.youtube_fragment)) ytShelf(ctx, a, col);
 		}
 		animateIn(col);
 	}
@@ -277,7 +278,6 @@ public class HomeFragment extends MainActivityFragment {
 		hello.addView(g);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
 
-		head.addView(roundGlass(ctx, R.drawable.yi_mic, v -> a.startVoiceAssistant()), sq(58));
 		head.addView(roundGlass(ctx, (editing || picking) ? R.drawable.yi_check : R.drawable.yi_edit, v -> {
 			if (picking) picking = false;
 			else editing = !editing;
@@ -524,6 +524,7 @@ public class HomeFragment extends MainActivityFragment {
 				for (MediaLib.PlayableItem pi : list) {
 					MediaLib.BrowsableItem p = pi.getParent();
 					if ((p != null) && "Radyo".equals(p.getName())) continue;
+					if (ChannelsFragment.isHidden(ctx, pi.getName())) continue;
 					row.addView(channelCard(ctx, a, pi));
 					if (++n == 12) break;
 				}
@@ -586,7 +587,30 @@ public class HomeFragment extends MainActivityFragment {
 		for (int i = 0; i < list.size(); i++) {
 			String[] ch = list.get(i);
 			final int idx = i;
-			View card = ytCard(ctx, ch[0], v -> openYoutube(a, ch[1]));
+			View card = ytCard(ctx, ch[0], v -> {
+				if (!editing) openYoutube(a, ch[1]);
+			});
+			if (editing) {
+				// Düzenleme: kanalı sola/sağa taşı ya da kaldır
+				FrameLayout wrap = new FrameLayout(ctx);
+				wrap.addView(card, new FrameLayout.LayoutParams(-1, -1));
+				LinearLayout bar = new LinearLayout(ctx);
+				bar.setOrientation(LinearLayout.HORIZONTAL);
+				final int n = list.size();
+				if (idx > 0) bar.addView(miniButton(ctx, R.drawable.yi_left, v -> moveYt(idx, idx - 1)));
+				bar.addView(miniButton(ctx, R.drawable.yi_close, v -> {
+					List<String[]> l = ytList();
+					if (idx < l.size()) l.remove(idx);
+					saveYt(l);
+					render();
+				}));
+				if (idx < n - 1) bar.addView(miniButton(ctx, R.drawable.yi_right, v -> moveYt(idx, idx + 1)));
+				wrap.addView(bar, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+				LinearLayout.LayoutParams wlp = new LinearLayout.LayoutParams(dp(170), dp(150));
+				wlp.rightMargin = dp(14);
+				row.addView(wrap, wlp);
+				continue;
+			}
 			card.setOnLongClickListener(v -> {
 				UiUtils.showQuestion(ctx, "Kanalı kaldır", "“" + ch[0] + "” kaldırılsın mı?", null)
 						.onSuccess(x -> {
@@ -604,6 +628,14 @@ public class HomeFragment extends MainActivityFragment {
 		hs.setHorizontalScrollBarEnabled(false);
 		hs.addView(row);
 		col.addView(hs);
+	}
+
+	private void moveYt(int from, int to) {
+		List<String[]> l = ytList();
+		if ((from < 0) || (from >= l.size()) || (to < 0) || (to >= l.size())) return;
+		l.add(to, l.remove(from));
+		saveYt(l);
+		render();
 	}
 
 	private View shelfHead(Context ctx, String title, String action, @Nullable View.OnClickListener click) {

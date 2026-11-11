@@ -114,6 +114,20 @@ public class ChannelsFragment extends MainActivityFragment {
 			a.showFragment(R.id.tv_fragment);
 		});
 		head.addView(adv);
+		TextView edit = text(ctx, editing ? "Bitti" : "Düzenle", 15, true, t.ink);
+		edit.setGravity(Gravity.CENTER);
+		edit.setPadding(dp(18), dp(12), dp(18), dp(12));
+		edit.setBackground(editing ? YoldaStyle.selected(ctx, 999) : YoldaStyle.glass(ctx, t, 999));
+		edit.setClickable(true);
+		edit.setOnClickListener(v -> {
+			editing = !editing;
+			edit.setText(editing ? "Bitti" : "Düzenle");
+			edit.setBackground(editing ? YoldaStyle.selected(ctx, 999) : YoldaStyle.glass(ctx, t, 999));
+			showGrid();
+		});
+		LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(-2, -2);
+		elp.leftMargin = dp(10);
+		head.addView(edit, elp);
 		col.addView(head, new LinearLayout.LayoutParams(-1, -2));
 
 		// Arama: altta sabit, cam görünümlü (kartların üstünde süzülür)
@@ -270,9 +284,12 @@ public class ChannelsFragment extends MainActivityFragment {
 				if (!favs.isFavoriteItem(pi)) continue;
 			} else if (!ALL.equals(group) && !group.equals(groupOf(pi))) continue;
 			if (!query.isEmpty() && !norm(pi.getName()).contains(query)) continue;
+			if (!editing && isHidden(ctx, pi.getName())) continue; // gizlenenler yalnız düzenlerken görünür
 			shown.add(pi);
 		}
-		status.setText(items.isEmpty() ? "Kanal bulunamadı" : (shown.size() + " yayın · hepsi resmi yayın adresleri"));
+		status.setText(items.isEmpty() ? "Kanal bulunamadı" : editing
+				? "Düzenleme: ★ favori yap · ✕ gizle · + geri getir"
+				: (shown.size() + " yayın · hepsi resmi yayın adresleri"));
 		grid.removeAllViews();
 
 		int cols = Math.max(2, Math.min(6, ctx.getResources().getConfiguration().screenWidthDp / 170));
@@ -305,7 +322,9 @@ public class ChannelsFragment extends MainActivityFragment {
 		LinearLayout f = new LinearLayout(ctx);
 		f.setOrientation(LinearLayout.VERTICAL);
 		f.setClickable(true);
-		f.setOnClickListener(v -> a.getBody().playItem(pi));
+		f.setOnClickListener(v -> {
+			if (!editing) a.getBody().playItem(pi);
+		});
 		f.setOnTouchListener((v, e) -> {
 			int act = e.getActionMasked();
 			if (act == MotionEvent.ACTION_DOWN) v.animate().scaleX(0.95f).scaleY(0.95f).setDuration(80).start();
@@ -331,6 +350,24 @@ public class ChannelsFragment extends MainActivityFragment {
 		logo.setVisibility(View.GONE);
 		plate.addView(logo, new FrameLayout.LayoutParams(-1, -1));
 		f.addView(plate, new LinearLayout.LayoutParams(-1, 0, 1f));
+		if (editing) {
+			boolean hidden = isHidden(ctx, pi.getName());
+			MediaLib.Favorites favs = a.getLib().getFavorites();
+			boolean fav = favs.isFavoriteItem(pi);
+			if (hidden) f.setAlpha(0.4f);
+			LinearLayout bar = new LinearLayout(ctx);
+			bar.setOrientation(LinearLayout.HORIZONTAL);
+			bar.addView(mini(ctx, fav ? R.drawable.yi_star : R.drawable.yi_star_border, v -> {
+				if (favs.isFavoriteItem(pi)) favs.removeItem(pi);
+				else favs.addItem(pi);
+				grid.postDelayed(this::showGrid, 150);
+			}));
+			bar.addView(mini(ctx, hidden ? R.drawable.yi_add : R.drawable.yi_close, v -> {
+				setHidden(ctx, pi.getName(), !hidden);
+				showGrid();
+			}));
+			plate.addView(bar, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.END));
+		}
 
 		pi.getIconUri().main().onCompletion((u, err) -> {
 			if (u == null) return;
@@ -352,6 +389,42 @@ public class ChannelsFragment extends MainActivityFragment {
 		grp.setPadding(dp(4), 0, dp(4), 0);
 		f.addView(grp, new LinearLayout.LayoutParams(-1, -2));
 		return f;
+	}
+
+	// ---- düzenleme: kanal gizleme (ana ekrandaki raf da buna uyar) ----
+
+	private boolean editing;
+
+	static boolean isHidden(Context ctx, String name) {
+		return ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE)
+				.getStringSet("ch_hidden", java.util.Collections.emptySet()).contains(name);
+	}
+
+	private static void setHidden(Context ctx, String name, boolean hide) {
+		android.content.SharedPreferences sp = ctx.getApplicationContext()
+				.getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
+		Set<String> set = new java.util.HashSet<>(sp.getStringSet("ch_hidden", java.util.Collections.emptySet()));
+		if (hide) set.add(name);
+		else set.remove(name);
+		sp.edit().putStringSet("ch_hidden", set).apply();
+	}
+
+	private View mini(Context ctx, int res, View.OnClickListener click) {
+		FrameLayout b = new FrameLayout(ctx);
+		GradientDrawable bg = new GradientDrawable();
+		bg.setShape(GradientDrawable.OVAL);
+		bg.setColor(0xE61C1A2B);
+		b.setBackground(bg);
+		b.setClickable(true);
+		b.setOnClickListener(click);
+		ImageView iv = new ImageView(ctx);
+		iv.setImageResource(res);
+		iv.setImageTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
+		b.addView(iv, new FrameLayout.LayoutParams(dp(22), dp(22), Gravity.CENTER));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(42), dp(42));
+		lp.setMargins(dp(4), dp(6), dp(4), 0);
+		b.setLayoutParams(lp);
+		return b;
 	}
 
 	// ---- yardımcılar ----

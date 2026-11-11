@@ -17,7 +17,7 @@
     <string name="mirror_fs_service_name_release" translatable="false">Yolda Telefon (tam ekran)</string>
     <string name="mirror_fs_service_name_debug" translatable="false">Debug FS Fermata Mirror</string>
     <string name="media_service_name_mobile_release" translatable="false">@string/app_name_mobile_release</string>
-    <string name="media_service_name_auto_release" translatable="false">Yolda</string>
+    <string name="media_service_name_auto_release" translatable="false">Yolda Medya</string>
     <string name="media_service_name_mobile_debug" translatable="false">@string/app_name_mobile_debug</string>
     <string name="media_service_name_auto_debug" translatable="false">Debug Fermata Media Service</string>
     <string name="engine_mp_name" translatable="false">MediaPlayer</string>

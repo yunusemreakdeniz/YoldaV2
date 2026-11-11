@@ -46,7 +46,7 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 		int maxW = Math.round(640 * d);
 		int side = Math.max(Math.round(16 * d), (screenW - maxW) / 2);
 		lp.width = 0; // ConstraintLayout: soldan sağa kısıtlara göre, kenar boşluklarıyla
-		lp.height = Math.round(84 * d); // daha yüksek kapsül
+		lp.height = pillHeight(); // kalın kapsül
 		lp.leftMargin = side;
 		lp.rightMargin = side;
 		lp.bottomMargin = Math.round(14 * d);
@@ -62,6 +62,24 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 			android.view.View b = getChildAt(i);
 			b.setSelected(b.isSelected());
 		}
+	}
+
+	private int pillHeight() {
+		return Math.round(92 * getResources().getDisplayMetrics().density);
+	}
+
+	/**
+	 * Fermata yüksekliği bazen doğrudan eski (ince) değere çekiyor; o zaman simgelere yer kalmıyor ve
+	 * kayboluyorlardı. Cam kapsülde yükseklik her ölçümde sabit.
+	 */
+	@Override
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+		if (YoldaStyle.glassActive && isBottom()) {
+			android.view.ViewGroup.LayoutParams lp = getLayoutParams();
+			if ((lp != null) && (lp.height != pillHeight())) lp.height = pillHeight();
+			heightMeasureSpec = MeasureSpec.makeMeasureSpec(pillHeight(), MeasureSpec.EXACTLY);
+		}
+		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 	}
 
 	protected boolean interceptTouchEvent(MotionEvent e) {

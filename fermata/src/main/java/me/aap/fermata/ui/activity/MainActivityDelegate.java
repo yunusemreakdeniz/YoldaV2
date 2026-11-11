@@ -990,6 +990,46 @@ public class MainActivityDelegate extends ActivityDelegate
 		return R.string.press_back_again;
 	}
 
+	/** Her sayfada sol altta, menünün hemen üstünde sesli asistan düğmesi (video tam ekranda gizlenir). */
+	private void addVoiceButton(ConstraintLayout host) {
+		Context ctx = host.getContext();
+		me.aap.fermata.ui.view.YoldaStyle.Theme t = me.aap.fermata.ui.view.YoldaStyle.current(ctx);
+		android.widget.FrameLayout b = new android.widget.FrameLayout(ctx);
+		android.graphics.drawable.GradientDrawable glow = new android.graphics.drawable.GradientDrawable(
+				android.graphics.drawable.GradientDrawable.Orientation.TL_BR, new int[]{t.blobs[0], t.blobs[1], t.blobs[2]});
+		glow.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+		glow.setStroke(Math.max(1, toIntPx(ctx, 1)), 0x99FFFFFF);
+		android.graphics.drawable.GradientDrawable sheen = new android.graphics.drawable.GradientDrawable(
+				android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x59FFFFFF, 0x00FFFFFF, 0x00FFFFFF});
+		sheen.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+		b.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{glow, sheen}));
+		b.setElevation(toIntPx(ctx, 10));
+		b.setClickable(true);
+		b.setFocusable(true);
+		b.setContentDescription("Sesli komut");
+		android.widget.ImageView mic = new android.widget.ImageView(ctx);
+		mic.setImageResource(R.drawable.yi_mic);
+		mic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		int is = toIntPx(ctx, 30);
+		b.addView(mic, new android.widget.FrameLayout.LayoutParams(is, is, Gravity.CENTER));
+		b.setOnClickListener(v -> {
+			v.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80)
+					.withEndAction(() -> v.animate().scaleX(1f).scaleY(1f).setDuration(140).start()).start();
+			startVoiceAssistant();
+		});
+		int s = toIntPx(ctx, 68);
+		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
+		lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+		lp.bottomToTop = R.id.control_panel; // oynatıcı kapalıyken menünün hemen üstü
+		lp.leftMargin = toIntPx(ctx, 22);
+		lp.bottomMargin = toIntPx(ctx, 14);
+		b.setId(View.generateViewId());
+		host.addView(b, lp);
+		// Video tam ekrandayken alt menü gizlenir; düğme de onunla birlikte gizlensin
+		navBar.getViewTreeObserver().addOnGlobalLayoutListener(() ->
+				b.setVisibility(navBar.getVisibility() == View.VISIBLE ? View.VISIBLE : View.GONE));
+	}
+
 	private static boolean yoldaSplashShown;
 
 	/** Yolda açılışı (telefonda ve araçta): logo büyüyerek gelir, "Yolda" yazısı, sonra yumuşak geçiş. */
@@ -1072,7 +1112,10 @@ public class MainActivityDelegate extends ActivityDelegate
 						me.aap.fermata.ui.view.YoldaStyle.current(getContext()), 28));
 				controlPanel.setClipToOutline(true);
 			}
-			if (root instanceof ConstraintLayout cl) showYoldaSplash(cl);
+			if (root instanceof ConstraintLayout cl) {
+				addVoiceButton(cl);
+				showYoldaSplash(cl);
+			}
 		}
 
 		if (VERSION.SDK_INT >= VERSION_CODES.VANILLA_ICE_CREAM && !a.isCarActivity()) {
