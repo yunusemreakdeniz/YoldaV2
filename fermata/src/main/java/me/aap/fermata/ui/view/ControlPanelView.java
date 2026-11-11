@@ -212,6 +212,7 @@ public class ControlPanelView extends ConstraintLayout
 	public void closePlayer() {
 		MainActivityDelegate a = getActivity();
 		try {
+			a.getMediaSessionCallback().onPause(); // önce duraklat: bazı motorlar durdurmayı geç işler
 			a.getMediaSessionCallback().onStop();
 		} catch (Throwable ex) {
 			me.aap.utils.log.Log.e(ex, "Oynatıcı durdurulamadı");

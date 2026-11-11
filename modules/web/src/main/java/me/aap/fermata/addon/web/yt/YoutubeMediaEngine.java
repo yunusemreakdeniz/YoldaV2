@@ -138,7 +138,7 @@ class YoutubeMediaEngine implements MediaEngine, OverlayMenu.SelectionHandler {
 
 	@Override
 	public void stop() {
-		if ((current == null) || (current == end)) return;
+		// Yolda: oynatıcı kaydı olmasa da sayfadaki video her zaman dursun (✕ ile kapatınca çalmaya devam ediyordu)
 		current = null;
 		qualityUrl = null;
 		web.stop();

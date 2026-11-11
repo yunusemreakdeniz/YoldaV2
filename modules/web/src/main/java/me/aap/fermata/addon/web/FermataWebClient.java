@@ -100,7 +100,7 @@ public class FermataWebClient extends WebViewClientCompat {
 			    if (b) window.__yoldaUserMute = 1;
 			  }, true);
 			  setInterval(function() {
-			    if (location.href !== href) { href = location.href; start = Date.now(); window.__yoldaUserMute = 0; }
+			    if (location.href !== href) { href = location.href; start = Date.now(); window.__yoldaUserMute = 0; window.__yoldaUnmuted = 0; }
 			    var v = document.querySelector('video');
 			    var ad = document.querySelector('.ad-showing, .ad-interrupting');
 			    if (v) {
@@ -110,13 +110,13 @@ public class FermataWebClient extends WebViewClientCompat {
 			      // Mobil YouTube kendiliğinden başlayan videoyu sessiz oynatır ("sesi açmak için dokun"): sesi aç
 			      // Yalnız izleme sayfasında (ana sayfadaki sessiz önizlemeler açılmasın)
 			      var watch = /\\/watch|\\/shorts\\//.test(location.pathname);
-			      if (watch && (v.muted || v.volume === 0) && !window.__yoldaUserMute && (Date.now() - start < 30000)) {
+			      if (watch && !window.__yoldaUnmuted && !v.paused && (v.muted || v.volume === 0) && !window.__yoldaUserMute && (Date.now() - start < 30000)) {
+			        window.__yoldaUnmuted = 1;
 			        v.muted = false;
 			        if (v.volume === 0) v.volume = 1;
 			        var u = document.querySelector('.ytp-unmute, .ytmUnmuteButton, ytm-unmute-button button, button.ytp-unmute-inner, .ytp-unmute-inner');
 			        if (u) u.click();
 			      }
-			      if (watch && v.paused && !ad && (Date.now() - start < 8000) && v.readyState > 2) v.play();
 			    }
 			    var s = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, .ytm-skip-ad-button');
 			    if (s) s.click();
