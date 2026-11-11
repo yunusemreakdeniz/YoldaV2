@@ -313,7 +313,7 @@ public class HomeFragment extends MainActivityFragment {
 		List<View> cards = new ArrayList<>();
 		List<Integer> spans = new ArrayList<>();
 		// "Kaldığın yerden devam et": ilk sırada 2 hücre genişliğinde
-		if (!editing && a.hasCurrent()) {
+		if (!editing && (a.hasCurrent() || !MusicFragment.recent(ctx).isEmpty())) {
 			cards.add(resumeCard(ctx, a));
 			spans.add(2);
 		}
@@ -415,8 +415,27 @@ public class HomeFragment extends MainActivityFragment {
 		plp.setMargins(0, 0, dp(small ? 12 : 16), dp(small ? 12 : 16));
 		f.addView(play, plp);
 
-		currentOrLast(a).onSuccess(item -> {
-			if (!isAdded() || (item == null)) return;
+		currentOrLast(a).onCompletion((item, err) -> {
+			if (!isAdded()) return;
+			if ((item == null) || item.isExternal()) {
+				// Son dinlenen müzik (YouTube Music) ya da hiçbir şey
+				List<me.aap.fermata.media.yt.YtMusic.Track> rec = MusicFragment.recent(ctx);
+				if (rec.isEmpty()) {
+					name.setText("Henüz bir şey dinlemedin");
+					return;
+				}
+				me.aap.fermata.media.yt.YtMusic.Track tr = rec.get(0);
+				name.setText(tr.title());
+				sub.setText((tr.artist() != null) ? tr.artist() : "");
+				if (tr.thumb() != null) {
+					a.getLib().getBitmap(tr.thumb(), true, true).main().onCompletion((bmp, e2) -> {
+						if (!isAdded() || (bmp == null)) return;
+						art.setImageBitmap(bmp);
+						art.setVisibility(View.VISIBLE);
+					});
+				}
+				return;
+			}
 			name.setText(item.getName());
 			MediaLib.BrowsableItem p = item.getParent();
 			sub.setText((p != null) ? p.getName() : "");
@@ -447,9 +466,19 @@ public class HomeFragment extends MainActivityFragment {
 			a.goToCurrent();
 			return;
 		}
-		a.getLib().getLastPlayedItem().main().onSuccess(item -> {
-			if (item != null) a.getBody().playItem(item);
-			else UiUtils.showInfo(requireContext(), "Henüz bir şey izlemedin");
+		if (cur instanceof me.aap.fermata.media.yt.YtMusicItem) { // duraklatılmış müzik: kaldığı yerden
+			if (!cb.isPlaying()) cb.onPlay();
+			a.showFragment(R.id.yolda_music);
+			return;
+		}
+		a.getLib().getLastPlayedItem().main().onCompletion((item, err) -> {
+			if ((item != null) && !item.isExternal()) {
+				a.getBody().playItem(item);
+				return;
+			}
+			List<me.aap.fermata.media.yt.YtMusic.Track> rec = MusicFragment.recent(a.getContext());
+			if (!rec.isEmpty()) MusicFragment.playTracks(a, rec, 0); // son dinlenen şarkıdan devam
+			else UiUtils.showInfo(a.getContext(), "Henüz bir şey dinlemedin");
 		});
 	}
 

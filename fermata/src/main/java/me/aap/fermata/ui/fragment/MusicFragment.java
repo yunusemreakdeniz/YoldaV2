@@ -77,9 +77,20 @@ public class MusicFragment extends MainActivityFragment {
 	private View miniBar;
 	private Runnable ticker;
 	private boolean advanced;
+	/** Şu anki şarkı en az bir kez çaldı mı (sonra durduysa ✕ ile kapatılmış demektir). */
+	private boolean everPlayed;
+	private static List<YtMusic.Track> pendingTracks;
+	private static int pendingIndex;
 
 	public static void playQuery(MainActivityDelegate a, String q) {
 		pendingPlay = q;
+		if (a.showFragment(R.id.yolda_music) instanceof MusicFragment f && (f.getView() != null)) f.consumePending();
+	}
+
+	/** Ana sayfadaki "Kaldığın yerden devam et": Müzik ekranını açıp listedeki şarkıyı çal. */
+	public static void playTracks(MainActivityDelegate a, List<YtMusic.Track> list, int idx) {
+		pendingTracks = new ArrayList<>(list);
+		pendingIndex = idx;
 		if (a.showFragment(R.id.yolda_music) instanceof MusicFragment f && (f.getView() != null)) f.consumePending();
 	}
 
@@ -228,6 +239,12 @@ public class MusicFragment extends MainActivityFragment {
 	}
 
 	private void consumePending() {
+		if ((pendingTracks != null) && (content != null)) {
+			List<YtMusic.Track> l = pendingTracks;
+			pendingTracks = null;
+			play(l, pendingIndex);
+			return;
+		}
 		String q = pendingPlay;
 		if ((q == null) || (content == null)) return;
 		pendingPlay = null;
@@ -556,7 +573,7 @@ public class MusicFragment extends MainActivityFragment {
 		return e;
 	}
 
-	private static String subtitle(YtMusic.Track tr) {
+	static String subtitle(YtMusic.Track tr) {
 		StringBuilder b = new StringBuilder("Şarkı");
 		if (tr.artist() != null && !tr.artist().isEmpty()) b.append(" • ").append(tr.artist());
 		if (tr.durationSec() > 0) b.append(" • ").append(fmt(tr.durationSec()));
@@ -577,6 +594,7 @@ public class MusicFragment extends MainActivityFragment {
 		nowQueue = queue;
 		nowIndex = idx;
 		advanced = false;
+		everPlayed = false;
 		showNowPlaying();
 		if (directBroken) {
 			status.setText("Çalıyor: " + tr.title());
@@ -672,7 +690,7 @@ public class MusicFragment extends MainActivityFragment {
 
 	/** YouTube Music kapağını büyük boyutla iste (arama sonuçları küçük kapak verir). */
 	@Nullable
-	private static String bigThumb(@Nullable String u) {
+	static String bigThumb(@Nullable String u) {
 		if (u == null) return null;
 		if (u.contains("googleusercontent.com") || u.contains("ggpht.com"))
 			return u.replaceAll("=w\\d+-h\\d+[^&]*$", "=w720-h720-l90-rj").replaceAll("=s\\d+[^&]*$", "=s720");
@@ -703,23 +721,21 @@ public class MusicFragment extends MainActivityFragment {
 		down.setPadding(dp(10), dp(10), dp(10), dp(10));
 		down.setBackground(YoldaStyle.glass(ctx, t, 999));
 		down.setOnClickListener(v -> hideNowPlaying());
+		int cut = me.aap.fermata.ui.view.YoldaStyle.cutoutTopPx; // kamera çentiği
 		FrameLayout.LayoutParams dlp = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.TOP | Gravity.START);
-		dlp.setMargins(dp(18), dp(12), 0, 0);
+		dlp.setMargins(dp(18), cut + dp(12), 0, 0);
 		TextView lbl = text(ctx, "ŞİMDİ ÇALIYOR", 12, true, t.muted);
 		lbl.setLetterSpacing(0.12f);
 		FrameLayout.LayoutParams llp = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-		llp.topMargin = dp(26);
+		llp.topMargin = cut + dp(26);
 
 		LinearLayout body = new LinearLayout(ctx);
 		body.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
 		body.setGravity(Gravity.CENTER);
-		body.setPadding(dp(24), dp(72), dp(24), dp(110));
+		body.setPadding(dp(24), cut + dp(72), dp(24), dp(84)); // altta yalnız sesli asistan düğmesi
 
-		float dens = getResources().getDisplayMetrics().density;
-		int availW = Math.round(YoldaStyle.widthDp(ctx) * dens) - dp(48);
-		int availH = Math.round(YoldaStyle.heightDp(ctx) * dens) - dp(182);
-		int cover = wide ? Math.min(availH - dp(20), availW / 2 - dp(24)) : Math.min(availW, Math.round(availH * 0.5f));
-		cover = Math.max(dp(120), cover);
+		// Kapak önce küçük; ekran yerleşince gerçek yüksekliğe göre büyütülür (butonlara yer kalsın)
+		int cover = dp(160);
 		FrameLayout art = thumb(ctx, tr, 18, false);
 		art.setElevation(dp(12));
 		ImageView big = new ImageView(ctx);
@@ -794,6 +810,8 @@ public class MusicFragment extends MainActivityFragment {
 		ov.addView(down, dlp);
 		ov.addView(lbl, llp);
 		rootView.addView(ov, new FrameLayout.LayoutParams(-1, -1));
+		if (search != null) search.setVisibility(View.GONE); // katmanın üstünde görünüyordu
+		ov.post(() -> fitCover(ov, body, info, art, wide));
 		ov.setAlpha(0f);
 		ov.setTranslationY(dp(40));
 		ov.animate().alpha(1f).translationY(0).setDuration(220).start();
@@ -820,6 +838,7 @@ public class MusicFragment extends MainActivityFragment {
 
 		startTicker(() -> {
 			me.aap.fermata.media.service.MediaSessionCallback cb = a.getMediaSessionCallback();
+			if (checkClosed(cb)) return;
 			boolean playing = cb.isPlaying();
 			pp.setImageResource(playing ? R.drawable.yi_pause : R.drawable.yi_play);
 			long p = positionMs(cb);
@@ -834,8 +853,68 @@ public class MusicFragment extends MainActivityFragment {
 
 	private void togglePlay(MainActivityDelegate a) {
 		me.aap.fermata.media.service.MediaSessionCallback cb = a.getMediaSessionCallback();
-		if (cb.isPlaying()) cb.onPause();
-		else cb.onPlay();
+		if (cb.isPlaying()) {
+			cb.onPause();
+		} else if (isStopped(cb) && (nowQueue != null)) {
+			play(nowQueue, nowIndex); // ✕ ya da hata ile durmuş: şarkıyı yeniden aç
+		} else {
+			cb.onPlay();
+		}
+	}
+
+	private static boolean isStopped(me.aap.fermata.media.service.MediaSessionCallback cb) {
+		android.support.v4.media.session.PlaybackStateCompat st = cb.getPlaybackState();
+		if (st == null) return true;
+		int s = st.getState();
+		return (s == android.support.v4.media.session.PlaybackStateCompat.STATE_STOPPED)
+				|| (s == android.support.v4.media.session.PlaybackStateCompat.STATE_NONE)
+				|| (s == android.support.v4.media.session.PlaybackStateCompat.STATE_ERROR);
+	}
+
+	/** Oynatıcıdaki ✕ ile durdurulduysa Şimdi çalıyor ekranı ve küçük çubuk da kapansın. */
+	private boolean checkClosed(me.aap.fermata.media.service.MediaSessionCallback cb) {
+		if (cb.isPlaying()) {
+			everPlayed = true;
+			return false;
+		}
+		if (!everPlayed || !isStopped(cb)) return false;
+		closeNow();
+		return true;
+	}
+
+	private void closeNow() {
+		stopTicker();
+		if ((nowView != null) && (rootView != null)) rootView.removeView(nowView);
+		nowView = null;
+		removeMini();
+		if (search != null) search.setVisibility(View.VISIBLE);
+		if (content != null) content.setPadding(0, dp(6), 0, dp(96));
+		nowQueue = null;
+		nowIndex = -1;
+		everPlayed = false;
+		if (status != null) status.setText("");
+	}
+
+	/** Kapağı, ad + çubuk + butonlar sığacak en büyük kareye ayarla. */
+	private void fitCover(View ov, LinearLayout body, LinearLayout info, View art, boolean wide) {
+		int h = ov.getHeight();
+		int w = ov.getWidth();
+		if ((h <= 0) || (w <= 0)) return;
+		int padV = body.getPaddingTop() + body.getPaddingBottom();
+		int padH = body.getPaddingLeft() + body.getPaddingRight();
+		int c;
+		if (wide) {
+			c = Math.min(h - padV, (w - padH) / 2 - dp(16));
+		} else {
+			info.measure(View.MeasureSpec.makeMeasureSpec(w - padH, View.MeasureSpec.EXACTLY),
+					View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+			c = Math.min(w - padH, h - padV - info.getMeasuredHeight() - dp(22));
+		}
+		c = Math.max(dp(96), c);
+		android.view.ViewGroup.LayoutParams lp = art.getLayoutParams();
+		lp.width = c;
+		lp.height = c;
+		art.setLayoutParams(lp);
 	}
 
 	private ImageView ctlButton(Context ctx, int icon, boolean primary) {
@@ -916,6 +995,7 @@ public class MusicFragment extends MainActivityFragment {
 		FrameLayout r = rootView;
 		nowView = null;
 		v.animate().alpha(0f).translationY(dp(40)).setDuration(180).withEndAction(() -> r.removeView(v)).start();
+		if (search != null) search.setVisibility(View.VISIBLE);
 		addMiniBar();
 	}
 
@@ -970,6 +1050,7 @@ public class MusicFragment extends MainActivityFragment {
 		if (content != null) content.setPadding(0, dp(6), 0, dp(96 + 76));
 		startTicker(() -> {
 			me.aap.fermata.media.service.MediaSessionCallback cb = a.getMediaSessionCallback();
+			if (checkClosed(cb)) return;
 			pp.setImageResource(cb.isPlaying() ? R.drawable.yi_pause : R.drawable.yi_play);
 			autoAdvance(positionMs(cb), durationMs(tr));
 		});
@@ -1085,7 +1166,7 @@ public class MusicFragment extends MainActivityFragment {
 
 	// ---- yardımcılar ----
 
-	private static String fmt(long s) {
+	static String fmt(long s) {
 		return (s / 60) + ":" + ((s % 60 < 10) ? "0" : "") + (s % 60);
 	}
 

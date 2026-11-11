@@ -53,11 +53,9 @@ public final class YoldaVoice {
 		if (NavFragment.handleVoice(a, c)) return true;
 
 		// "<şarkı/sanatçı> çal", "… şarkısını aç": Yolda Müzik'te ara, ilk şarkıyı çal
-		java.util.regex.Matcher mm = PLAY_SONG.matcher(c);
-		if (mm.matches()) {
-			String q = ((mm.group(1) != null) ? mm.group(1) : mm.group(2)).trim();
-			if (q.matches("(bir )?(müzik|muzik|şarkı|sarki|şarkılar)")) q = "Türkçe pop";
-			MusicFragment.playQuery(a, q);
+		String song = songQuery(c);
+		if (song != null) {
+			MusicFragment.playQuery(a, song);
 			return true;
 		}
 
@@ -92,9 +90,9 @@ public final class YoldaVoice {
 
 		// Müzik ekranındayken söylenen her şey şarkı / sanatçı araması: "Tarkan", "Sezen Aksu dinle"
 		if (a.getActiveFragment() instanceof MusicFragment) {
-			String song = MUSIC_TAIL.matcher(app).replaceAll("").trim();
-			if (!song.isEmpty()) {
-				MusicFragment.playQuery(a, song);
+			String song2 = musicContextQuery(app);
+			if (song2 != null) {
+				MusicFragment.playQuery(a, song2);
 				return true;
 			}
 		}
@@ -122,6 +120,27 @@ public final class YoldaVoice {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * "Tarkan çal", "Sezen Aksu şarkısını aç" → çalınacak arama; komut şarkı isteği değilse null.
+	 * "müzik çal" gibi genel istek Türkçe pop'a döner.
+	 */
+	static String songQuery(String cmd) {
+		if (cmd == null) return null;
+		java.util.regex.Matcher m = PLAY_SONG.matcher(cmd.trim().toLowerCase(TR));
+		if (!m.matches()) return null;
+		String q = ((m.group(1) != null) ? m.group(1) : m.group(2)).trim();
+		if (q.isEmpty()) return null;
+		if (q.matches("(bir )?(müzik|muzik|şarkı|sarki|şarkılar)")) q = "Türkçe pop";
+		return q;
+	}
+
+	/** Müzik ekranındayken: "Duman şarkılarını" → "duman"; boşsa null. */
+	static String musicContextQuery(String app) {
+		if (app == null) return null;
+		String s = MUSIC_TAIL.matcher(app.trim()).replaceAll("").trim();
+		return s.isEmpty() ? null : s;
 	}
 
 	static String norm(String s) {

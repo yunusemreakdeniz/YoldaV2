@@ -389,7 +389,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			v.addOnLayoutChangeListener((view, l, t, r, b, ol, ot, or, ob) -> {
 				int h = b - t;
 				if ((h <= 0) || (h == ob - ot)) return; // yalnız yükseklik değişince (ilk açılış, döndürme)
-				int pv = Math.round(h * (isPlay ? 0.14f : 0.24f));
+				int pv = Math.round(h * 0.22f); // hepsi aynı: oynat simgesinin çizimi ortalı değil, büyütünce kayıyordu
 				view.setPadding(0, pv, 0, pv);
 			});
 		}
@@ -1256,8 +1256,20 @@ public class MainActivityDelegate extends ActivityDelegate
 				var bars = insets.getInsets(
 						WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
 				);
-				a.findViewById(R.id.main_activity).setPadding(bars.left, bars.top, bars.right,
-						bars.bottom);
+				me.aap.fermata.ui.view.YoldaStyle.cutoutTopPx =
+						insets.getInsets(WindowInsetsCompat.Type.displayCutout()).top;
+				if (me.aap.fermata.ui.view.YoldaStyle.glassActive) {
+					// Üst boşluk tüm ekrana değil yalnız Fermata'nın üst çubuğuna: Yolda sayfaları kendi
+					// boşluğunu bırakıyor, iki kez eklenince üstte büyük boşluk kalıyordu.
+					v.setPadding(bars.left, 0, bars.right, bars.bottom);
+					if (toolBar.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams tlp
+							&& (tlp.topMargin != bars.top)) {
+						tlp.topMargin = bars.top;
+						toolBar.setLayoutParams(tlp);
+					}
+				} else {
+					v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+				}
 				return WindowInsetsCompat.CONSUMED;
 			});
 		}

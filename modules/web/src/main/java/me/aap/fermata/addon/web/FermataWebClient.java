@@ -55,15 +55,21 @@ public class FermataWebClient extends WebViewClientCompat {
 			"/api/stats/qoe?adformat", "/pcs/activeview", "/ad_data_204", "/generate_204?ad"};
 
 	static boolean isAd(Uri u) {
-		String host = u.getHost();
+		return isAd(u.getHost(), u.getEncodedPath(), u.getEncodedQuery());
+	}
+
+	/** Adresin parçalarına göre reklam/izleme isteği mi (birim testlerde Android'siz çağrılır). */
+	static boolean isAd(String host, String path, String query) {
 		if (host == null) return false;
+		host = host.toLowerCase(java.util.Locale.ROOT);
+		if (path == null) path = "";
 		for (String h : AD_HOSTS) {
 			if (h.contains("/")) {
-				if ((host + u.getPath()).contains(h)) return true;
+				if ((host + path).contains(h)) return true;
 			} else if (host.equals(h) || host.endsWith("." + h)) return true;
 		}
 		if (host.endsWith("youtube.com")) {
-			String pq = u.getEncodedPath() + ((u.getEncodedQuery() != null) ? "?" + u.getEncodedQuery() : "");
+			String pq = path + ((query != null) ? "?" + query : "");
 			for (String p : YT_AD_PATHS) if (pq.startsWith(p)) return true;
 		}
 		return false;

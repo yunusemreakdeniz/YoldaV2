@@ -303,6 +303,9 @@ public final class YoldaStyle {
 	}
 
 	/** Sayfa üst boşluğu (dp). */
+	/** Kamera çentiğinin üstten yüksekliği (px); tam ekran katmanlar içeriği bunun altına koyar. */
+	public static volatile int cutoutTopPx;
+
 	public static int top(android.content.Context c) {
 		return (compact(c) || shortScreen(c)) ? 16 : 28;
 	}

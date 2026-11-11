@@ -1,0 +1,100 @@
+name: Yolda testleri
+
+on:
+  push:
+    branches: [auto]
+    paths-ignore:
+      - "kanallar/**"
+      - "**.md"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
+  GRADLE_ARGS: '-PABI=x86_64 -PAPP_NAME=Yolda -PAPP_ID_SFX=.yolda'
+
+jobs:
+  # Hızlı: cihaz gerektirmeyen mantık (sesli komut çözümleme, kapak adresi, süre, reklam filtresi)
+  birim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: NDK sürümü
+        run: echo "ANDROID_NDK_VERSION=$(grep -Po '(?<=ndkVersion).+' gradle/libs.versions.toml | sed -e 's/[= \"]//g')" >> $GITHUB_ENV
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Birim testleri
+        env:
+          NO_GS: true
+        run: |
+          chmod +x gradlew
+          ./gradlew fermata:testAutoDebugUnitTest web:testAutoDebugUnitTest $GRADLE_ARGS
+      - name: Sonuçlar
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: birim-test-raporu
+          path: |
+            fermata/build/reports/tests/
+            modules/web/build/reports/tests/
+          retention-days: 14
+
+  # Uygulama emülatörde gerçekten açılır: ekranlar, sesli komutlar, oynatıcı, döndürme, müzik araması
+  fonksiyonel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: NDK sürümü
+        run: echo "ANDROID_NDK_VERSION=$(grep -Po '(?<=ndkVersion).+' gradle/libs.versions.toml | sed -e 's/[= \"]//g')" >> $GITHUB_ENV
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+      - name: Android NDK önbelleği
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/lib/android/sdk/ndk/${{ env.ANDROID_NDK_VERSION }}
+          key: ${{ runner.os }}-android-ndk-${{ env.ANDROID_NDK_VERSION }}
+      - uses: gradle/actions/setup-gradle@v4
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test APK'larını derle
+        env:
+          NO_GS: true
+        run: |
+          chmod +x gradlew
+          ./gradlew fermata:assembleAutoDebug fermata:assembleAutoDebugAndroidTest $GRADLE_ARGS
+      - name: Emülatörde fonksiyonel testler
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          NO_GS: true
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./gradlew fermata:connectedAutoDebugAndroidTest $GRADLE_ARGS; code=$?; adb logcat -d -s YoldaTest:I AndroidRuntime:E | tail -60; exit $code
+      - name: Sonuçlar
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fonksiyonel-test-raporu
+          path: fermata/build/reports/androidTests/
+          retention-days: 14
