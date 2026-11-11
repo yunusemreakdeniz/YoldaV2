@@ -349,9 +349,25 @@ public class MainActivityDelegate extends ActivityDelegate
 				&& !me.aap.fermata.ui.fragment.YoldaInstaller.isCarReady(getContext())) {
 			showFragment(R.id.yolda_setup_fragment);
 		} else {
+			// İlk açılışta alt menüde Ana sayfa etkin görünsün: menü düğmeleri sayfadan sonra
+			// kurulduğunda da seçili gelmesi için etkin öğe önceden ayarlanır, kurulunca bir daha işaretlenir.
+			if (getActiveNavItemId() == View.NO_ID || getActiveNavItemId() == 0)
+				setActiveNavItemId(R.id.home_fragment);
 			showFragment(R.id.home_fragment);
+			App.get().getHandler().postDelayed(this::selectHomeNavButton, 300);
 		}
 		checkUpdates();
+	}
+
+	private void selectHomeNavButton() {
+		if (getActiveFragmentId() != R.id.home_fragment) return;
+		NavBarView nb = getNavBar();
+		if (nb == null) return;
+		for (int i = 0; i < nb.getChildCount(); i++) {
+			View c = nb.getChildAt(i);
+			c.setSelected(c.getId() == R.id.home_fragment);
+		}
+		setActiveNavItemId(R.id.home_fragment);
 	}
 
 	/** Kurulum ekranı "Şimdi değil" ile atlandıysa bu açılışta bir daha gösterme. */
