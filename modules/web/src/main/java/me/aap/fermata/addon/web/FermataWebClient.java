@@ -83,7 +83,10 @@ public class FermataWebClient extends WebViewClientCompat {
 
 	public static boolean isYoutubeUri(Uri uri) {
 		String host = uri.getHost();
-		return ((host != null) && ((host.endsWith("youtube.com") && !host.endsWith("tv.youtube.com")) ||
+		// Yolda: YouTube Music (music.youtube.com) tarayıcıda kalır; yoksa YouTube sekmesine taşınıp
+		// onu ele geçiriyor, menüden YouTube'a geri dönülemiyordu.
+		return ((host != null) && ((host.endsWith("youtube.com") && !host.endsWith("tv.youtube.com")
+				&& !host.endsWith("music.youtube.com")) ||
 				host.equals("youtu.be")));
 	}
 
