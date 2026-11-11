@@ -87,8 +87,7 @@ public class NavBarMediator extends PrefNavBarMediator
 		if (me.aap.fermata.ui.view.YoldaStyle.glassActive) {
 			if (amgr.hasAddon(R.id.youtube_fragment))
 				items.add(create(ctx, R.id.youtube_fragment, R.drawable.yi_youtube, R.string.yolda_youtube, true));
-			if (amgr.hasAddon(R.id.web_browser_fragment))
-				items.add(create(ctx, R.id.yolda_music, R.drawable.yi_music, R.string.yolda_music, true));
+			items.add(create(ctx, R.id.yolda_music, R.drawable.yi_music, R.string.yolda_music, true));
 			// Menü artık ana sayfanın üstünde (ayarlar simgesi)
 			return items;
 		}
@@ -193,14 +192,7 @@ public class NavBarMediator extends PrefNavBarMediator
 			MainActivityDelegate.get(item.getContext()).showFragment(R.id.yolda_menu_fragment);
 		} else if (id == R.id.menu) {
 			showMenu(MainActivityDelegate.get(item.getContext()));
-		} else if (id == R.id.yolda_music) {
-			// Müzik ayrı bir sayfa değil (tarayıcıda açılır); yine de menüde etkin öğe olsun ki
-			// sonra YouTube'a dokunulunca "zaten seçili" sanılıp geçiş engellenmesin.
-			View active = a.getNavBar().findViewById(a.getActiveNavItemId());
-			if ((active != null) && (active != item)) active.setSelected(false);
-			item.setSelected(true);
-			a.setActiveNavItemId(id);
-			HomeFragment.openWeb(MainActivityDelegate.get(item.getContext()), HomeFragment.MUSIC_URL);
+
 		} else {
 			super.itemSelected(item, id, a);
 		}

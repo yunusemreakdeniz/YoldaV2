@@ -51,6 +51,11 @@ allprojects {
         google()
         mavenCentral()
         gradlePluginPortal()
+        // Yolda Müzik: NewPipeExtractor ve nanojson yalnız JitPack'te
+        maven {
+            url 'https://jitpack.io'
+            content { includeGroupByRegex 'com\\.github\\..*' }
+        }
     }
 }
 

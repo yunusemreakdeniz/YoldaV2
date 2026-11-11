@@ -29,3 +29,16 @@
 -keep class rikka.shizuku.** { *; }
 -keep class rikka.sui.** { *; }
 -dontwarn rikka.shizuku.**
+
+# Yolda Müzik: NewPipeExtractor (JS çözücü Rhino yansıma kullanır)
+-keep class org.schabi.newpipe.extractor.** { *; }
+-keep class org.mozilla.javascript.** { *; }
+-keep class org.mozilla.classfile.ClassFileWriter
+-dontwarn org.mozilla.javascript.**
+-dontwarn org.mozilla.classfile.**
+-dontwarn javax.script.**
+-dontwarn java.beans.**
+-dontwarn jdk.dynalink.**
+-dontwarn javax.lang.model.**
+-dontwarn org.jsoup.**
+-dontwarn com.google.protobuf.**

@@ -119,4 +119,6 @@ dependencies {
     // Yolda: Android Auto için kendini Play Store kaynağıyla yeniden kuran gömülü kurulum (Shizuku)
     implementation 'dev.rikka.shizuku:api:13.1.5'
     implementation 'dev.rikka.shizuku:provider:13.1.5'
+    // Yolda Müzik: YouTube Music araması ve ses akışı (GPL-3, açık kaynak)
+    implementation 'com.github.teamnewpipe:NewPipeExtractor:v0.27.1'
 }

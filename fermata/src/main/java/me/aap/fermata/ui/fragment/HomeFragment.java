@@ -221,7 +221,7 @@ public class HomeFragment extends MainActivityFragment {
 						v -> a.showFragment(R.id.youtube_fragment));
 			case "music":
 				return appCard(ctx, "YouTube Music", YoldaStyle.appIcon(ctx, 0xFFFF2A2A, 0xFFE00000, 28), glyph(ctx, R.drawable.yi_brand_ytmusic, false), 70,
-						v -> openWeb(a, MUSIC_URL));
+						v -> a.showFragment(R.id.yolda_music));
 			case "phone":
 				return appCard(ctx, "Telefon", YoldaStyle.appIcon(ctx, 0xFF5EE07B, 0xFF1DB954, 28), glyph(ctx, R.drawable.yi_phone, true), 54,
 						v -> phone(ctx));

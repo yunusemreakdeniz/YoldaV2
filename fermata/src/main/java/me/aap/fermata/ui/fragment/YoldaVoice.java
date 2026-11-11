@@ -22,6 +22,8 @@ public final class YoldaVoice {
 	private static final Locale TR = new Locale("tr");
 	private static final Pattern ACTION_TAIL = Pattern.compile(
 			"\\s+(aç|ac|açar mısın|izle|izlet|dinle|oynat|koy|başlat|baslat|getir|göster|goster|lütfen)$");
+	private static final Pattern PLAY_SONG = Pattern.compile(
+			"^(.+?)\\s+(?:şarkısını |şarkılarını |parçasını )?(?:çal|çalar mısın|çalsana|çalabilir misin)$|^(.+?)\\s+(?:şarkısını|şarkılarını|parçasını)\\s+(?:aç|dinle|oynat)$");
 	private static final Pattern OBJ_SUFFIX = Pattern.compile("['’]?(yı|yi|yu|yü|ı|i|u|ü|nı|ni|nu|nü)$");
 
 	private static volatile List<MediaLib.PlayableItem> channels = new ArrayList<>();
@@ -48,15 +50,21 @@ public final class YoldaVoice {
 
 		if (NavFragment.handleVoice(a, c)) return true;
 
+		// "<şarkı/sanatçı> çal", "… şarkısını aç": Yolda Müzik'te ara, ilk şarkıyı çal
+		java.util.regex.Matcher mm = PLAY_SONG.matcher(c);
+		if (mm.matches()) {
+			String q = ((mm.group(1) != null) ? mm.group(1) : mm.group(2)).trim();
+			if (q.matches("(bir )?(müzik|muzik|şarkı|sarki|şarkılar)")) q = "Türkçe pop";
+			MusicFragment.playQuery(a, q);
+			return true;
+		}
+
 		AddonManager am = AddonManager.get();
 		String app = ACTION_TAIL.matcher(c).replaceAll("").trim();
 		switch (app) {
 			case "youtube music", "yutup müzik", "müzik", "muzik", "müzikler":
-				if (am.hasAddon(R.id.web_browser_fragment)) {
-					HomeFragment.openWeb(a, HomeFragment.MUSIC_URL);
-					return true;
-				}
-				break;
+				a.showFragment(R.id.yolda_music);
+				return true;
 			case "youtube", "yutup", "yutub":
 				if (am.hasAddon(R.id.youtube_fragment)) {
 					a.showFragment(R.id.youtube_fragment);

@@ -150,7 +150,7 @@ bouncycastlePkix                  = { group = "org.bouncycastle",               
 libvlc                            = { group = "org.videolan.android",               name = "libvlc-all",                    version.ref = "libvlc" }
 
 # Desugar
-desugarJdkLibs                    = { group = "com.android.tools",                  name = "desugar_jdk_libs",              version.ref = "desugarJdkLibs" }
+desugarJdkLibs                    = { group = "com.android.tools",                  name = "desugar_jdk_libs_nio",              version.ref = "desugarJdkLibs" }
 
 # Misc
 javaxInject                       = { group = "javax.inject",                       name = "javax.inject",                  version.ref = "javaxInject" }

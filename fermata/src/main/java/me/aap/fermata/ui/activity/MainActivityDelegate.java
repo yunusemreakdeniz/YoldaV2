@@ -816,6 +816,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
 		} else if (id == R.id.yolda_setup_fragment) {
 			return new me.aap.fermata.ui.fragment.YoldaSetupFragment();
+		} else if (id == R.id.yolda_music) {
+			return new me.aap.fermata.ui.fragment.MusicFragment();
 		} else if (id == R.id.folders_fragment) {
 			return new FoldersFragment();
 		} else if (id == R.id.favorites_fragment) {
