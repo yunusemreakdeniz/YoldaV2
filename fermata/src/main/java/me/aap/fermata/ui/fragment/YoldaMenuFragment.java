@@ -143,6 +143,33 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(-1, -2);
 		glp.topMargin = dp(22);
 		col.addView(groups, glp);
+
+		// Android Auto durumu: Yolda'nın kendi ekranı araçta yalnız "Play Store'dan kurulmuş" görünürse çıkar
+		String src = installer(ctx);
+		boolean ok = "com.android.vending".equals(src);
+		TextView st = text(ctx, ok
+				? "Android Auto: kurulum doğru ✓  Araç ekranında gün batımı renkli “Yolda” simgesini aç. "
+				+ "Mavi “Yolda Medya” Android Auto'nun sade liste ekranıdır, o değil."
+				: "Android Auto: kurulum kaynağı “" + (src == null ? "bilinmiyor" : src) + "” ✗  Bu yüzden araçta Yolda'nın "
+				+ "kendi ekranı çıkmaz, yalnız mavi “Yolda Medya” (sade liste) çıkar. Çözüm: Yolda'yı sil, KingInstaller'da "
+				+ "Shizuku seçeneği AÇIKKEN yeniden kur.", 14, false);
+		st.setTextColor(ok ? 0xFFB9F6CA : 0xFFFFD180);
+		st.setPadding(dp(18), dp(14), dp(18), dp(14));
+		st.setBackground(YoldaStyle.glass(ctx, t, 22));
+		LinearLayout.LayoutParams stlp = new LinearLayout.LayoutParams(-1, -2);
+		stlp.topMargin = dp(16);
+		col.addView(st, stlp);
+	}
+
+	private static String installer(Context ctx) {
+		try {
+			android.content.pm.PackageManager pm = ctx.getPackageManager();
+			if (android.os.Build.VERSION.SDK_INT >= 30)
+				return pm.getInstallSourceInfo(ctx.getPackageName()).getInstallingPackageName();
+			return pm.getInstallerPackageName(ctx.getPackageName());
+		} catch (Exception ex) {
+			return null;
+		}
 	}
 
 	private LinearLayout group(Context ctx, String title) {
