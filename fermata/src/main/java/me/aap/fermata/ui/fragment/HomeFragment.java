@@ -159,6 +159,13 @@ public class HomeFragment extends MainActivityFragment {
 
 		col.addView(header(ctx, a));
 
+		if (prefs().getInt("layout", 0) == 1) {
+			renderFlow(ctx, a, col);
+			if (AddonManager.get().hasAddon(R.id.youtube_fragment)) ytShelf(ctx, a, col);
+			animateIn(col);
+			return;
+		}
+
 		// Büyük kart + 2x2 hızlı erişim
 		LinearLayout hero = new LinearLayout(ctx);
 		hero.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
@@ -189,6 +196,169 @@ public class HomeFragment extends MainActivityFragment {
 		col.addView(chs, clp);
 
 		if (AddonManager.get().hasAddon(R.id.youtube_fragment)) ytShelf(ctx, a, col);
+		animateIn(col);
+	}
+
+	// ---- akıcı görünüm (Mola tarzı: şimdi oynatılıyor paneli + büyük satırlar) ----
+
+	private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
+	private Runnable npTick;
+
+	private void renderFlow(Context ctx, MainActivityDelegate a, LinearLayout col) {
+		LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(-1, dp(150));
+		plp.topMargin = dp(16);
+		col.addView(nowPlaying(ctx, a), plp);
+
+		AddonManager am = AddonManager.get();
+		if (am.hasAddon(R.id.tv_fragment))
+			col.addView(row(ctx, "📺", "TV ve Radyo", "51 kanal · 22 radyo", 0xFFEF4444, v -> a.showFragment(R.id.tv_fragment)));
+		if (am.hasAddon(R.id.youtube_fragment))
+			col.addView(row(ctx, "▶️", "YouTube", "Videolar, canlı yayınlar, kanalların", 0xFFFF0033, v -> a.showFragment(R.id.youtube_fragment)));
+		col.addView(row(ctx, "📱", "Telefon", "Telefon ekranını araçtan kullan", 0xFF22C55E, v -> phone(ctx)));
+		if (am.hasAddon(R.id.web_browser_fragment))
+			col.addView(row(ctx, "🌐", "Tarayıcı", "İnternette gezin", 0xFF3B82F6, v -> a.showFragment(R.id.web_browser_fragment)));
+		col.addView(row(ctx, "⭐", "Favoriler", "Kaydettiğin kanallar ve videolar", 0xFFF59E0B, v -> a.showFragment(R.id.favorites_fragment)));
+		col.addView(row(ctx, "🎬", "Videolar", "Telefondaki dosyalar", 0xFF8B5CF6, v -> a.showFragment(R.id.folders_fragment)));
+		col.addView(row(ctx, "⚙️", "Ayarlar", "Eklentiler, görünüm, sesli komut", 0xFF64748B, v -> a.showFragment(R.id.settings_fragment)));
+	}
+
+	/** Çalan yayın: ikon, etiket, başlık ve ⏮ ⏯ ⏭ ★ düğmeleri; oynatma durumu saniyede bir yenilenir. */
+	private View nowPlaying(Context ctx, MainActivityDelegate a) {
+		GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+				new int[]{t.hero1, t.hero2});
+		bg.setCornerRadius(dp(26));
+		FrameLayout f = base(ctx, bg, v -> {
+			if (a.hasCurrent()) a.goToCurrent();
+			else a.startVoiceAssistant();
+		});
+		LinearLayout box = new LinearLayout(ctx);
+		box.setOrientation(LinearLayout.HORIZONTAL);
+		box.setGravity(Gravity.CENTER_VERTICAL);
+		box.setPadding(dp(18), dp(14), dp(14), dp(14));
+
+		TextView art = text(ctx, "📺", 34, false, Color.WHITE);
+		art.setGravity(Gravity.CENTER);
+		GradientDrawable ab = new GradientDrawable();
+		ab.setColor(0x33FFFFFF);
+		ab.setCornerRadius(dp(20));
+		art.setBackground(ab);
+		box.addView(art, new LinearLayout.LayoutParams(dp(96), dp(96)));
+
+		LinearLayout info = new LinearLayout(ctx);
+		info.setOrientation(LinearLayout.VERTICAL);
+		info.setPadding(dp(16), 0, dp(8), 0);
+		TextView eyebrow = text(ctx, "", 12, true, 0xCCFFFFFF);
+		eyebrow.setLetterSpacing(0.12f);
+		TextView title = text(ctx, "", 22, true, Color.WHITE);
+		title.setMaxLines(1);
+		title.setEllipsize(android.text.TextUtils.TruncateAt.END);
+		TextView sub = text(ctx, "", 14, false, 0xE6FFFFFF);
+		sub.setMaxLines(1);
+		info.addView(eyebrow);
+		info.addView(title);
+		info.addView(sub);
+		box.addView(info, new LinearLayout.LayoutParams(0, -2, 1f));
+
+		me.aap.fermata.media.service.FermataServiceUiBinder b = a.getMediaServiceBinder();
+		LinearLayout ctl = new LinearLayout(ctx);
+		ctl.setOrientation(LinearLayout.HORIZONTAL);
+		ctl.setGravity(Gravity.CENTER_VERTICAL);
+		View prev = roundButton(ctx, "⏮", 0x33FFFFFF, v -> b.onPrevNextButtonClick(false));
+		TextView play = (TextView) roundButton(ctx, "▶", Color.WHITE, v -> b.onPlayPauseButtonClick());
+		play.setTextColor(t.hero2);
+		View next = roundButton(ctx, "⏭", 0x33FFFFFF, v -> b.onPrevNextButtonClick(true));
+		TextView fav = (TextView) roundButton(ctx, "☆", 0x33FFFFFF, v -> {
+			MediaLib.PlayableItem pi = b.getCurrentItem();
+			if (pi == null) return;
+			MediaLib.Favorites fs = a.getLib().getFavorites();
+			if (fs.isFavoriteItem(pi)) fs.removeItem(pi);
+			else fs.addItem(pi);
+		});
+		for (View v : new View[]{prev, play, next, fav}) {
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(52), dp(52));
+			lp.leftMargin = dp(8);
+			ctl.addView(v, lp);
+		}
+		box.addView(ctl);
+		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
+
+		// Durumu canlı tut: çalıyor/duraklatıldı, başlık, favori yıldızı
+		if (npTick != null) ui.removeCallbacks(npTick);
+		npTick = new Runnable() {
+			@Override
+			public void run() {
+				if (!isAdded() || isHidden() || f.getParent() == null) return;
+				MediaLib.PlayableItem pi = b.getCurrentItem();
+				boolean playing = b.isPlaying();
+				boolean has = (pi != null) || a.hasCurrent();
+				eyebrow.setText(playing ? "ŞİMDİ OYNATILIYOR" : (has ? "DURAKLATILDI · DEVAM ET" : "HAZIR"));
+				title.setText(pi != null ? String.valueOf(pi.getName()) : (has ? "Kaldığın yerden devam" : "Sesli komut"));
+				sub.setText(pi != null ? "Dokun: yayına git" : (has ? "Son izlediğin yayın" : "“TRT Haber'i aç” · “YouTube'da Habertürk aç”"));
+				art.setText(pi != null ? "📺" : (has ? "▶" : "🎤"));
+				play.setText(playing ? "⏸" : "▶");
+				boolean isFav = false;
+				try {
+					isFav = (pi != null) && a.getLib().getFavorites().isFavoriteItem(pi);
+				} catch (Exception ignore) {
+				}
+				fav.setText(isFav ? "★" : "☆");
+				ctl.setVisibility(has ? View.VISIBLE : View.GONE);
+				ui.postDelayed(this, 1000);
+			}
+		};
+		ui.post(npTick);
+		return f;
+	}
+
+	private View row(Context ctx, String icon, String title, String sub, int color, View.OnClickListener click) {
+		GradientDrawable bg = new GradientDrawable();
+		bg.setColor(t.surface);
+		bg.setStroke(dp(1), t.stroke);
+		bg.setCornerRadius(dp(20));
+		FrameLayout f = base(ctx, bg, click);
+		LinearLayout box = new LinearLayout(ctx);
+		box.setOrientation(LinearLayout.HORIZONTAL);
+		box.setGravity(Gravity.CENTER_VERTICAL);
+		box.setPadding(dp(14), dp(10), dp(18), dp(10));
+		TextView ic = text(ctx, icon, 22, false, Color.WHITE);
+		ic.setGravity(Gravity.CENTER);
+		GradientDrawable ib = new GradientDrawable();
+		ib.setShape(GradientDrawable.OVAL);
+		ib.setColor(color);
+		ic.setBackground(ib);
+		box.addView(ic, new LinearLayout.LayoutParams(dp(50), dp(50)));
+		LinearLayout tx = new LinearLayout(ctx);
+		tx.setOrientation(LinearLayout.VERTICAL);
+		tx.setPadding(dp(16), 0, 0, 0);
+		tx.addView(text(ctx, title, 18, true, t.ink));
+		TextView s = text(ctx, sub, 13, false, t.muted);
+		s.setMaxLines(1);
+		tx.addView(s);
+		box.addView(tx, new LinearLayout.LayoutParams(0, -2, 1f));
+		box.addView(text(ctx, "›", 28, false, t.muted));
+		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, dp(78));
+		lp.topMargin = dp(10);
+		f.setLayoutParams(lp);
+		return f;
+	}
+
+	/** İçerik sırayla, hafifçe yukarı kayarak gelsin. */
+	private void animateIn(LinearLayout col) {
+		float dy = dp(22);
+		for (int i = 0; i < col.getChildCount(); i++) {
+			View v = col.getChildAt(i);
+			v.setAlpha(0f);
+			v.setTranslationY(dy);
+			v.animate().alpha(1f).translationY(0f).setStartDelay(i * 45L).setDuration(260)
+					.setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+		}
+	}
+
+	@Override
+	public void onDestroyView() {
+		if (npTick != null) ui.removeCallbacks(npTick);
+		super.onDestroyView();
 	}
 
 	private View header(Context ctx, MainActivityDelegate a) {
@@ -217,6 +387,15 @@ public class HomeFragment extends MainActivityFragment {
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
 
 		head.addView(roundButton(ctx, "🎤", t.accent, v -> a.startVoiceAssistant()));
+		boolean flow = prefs().getInt("layout", 0) == 1;
+		View layoutBtn = roundButton(ctx, flow ? "▦" : "☰", t.surface, v -> {
+			prefs().edit().putInt("layout", flow ? 0 : 1).apply();
+			render();
+			UiUtils.showInfo(ctx, flow ? "Kart görünümü" : "Akıcı görünüm");
+		});
+		LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(dp(52), dp(52));
+		llp.leftMargin = dp(10);
+		head.addView(layoutBtn, llp);
 		View themeBtn = roundButton(ctx, "🎨", t.surface, v -> {
 			int next = Math.floorMod(prefs().getInt("theme", 0) + 1, THEMES.length);
 			prefs().edit().putInt("theme", next).apply();
