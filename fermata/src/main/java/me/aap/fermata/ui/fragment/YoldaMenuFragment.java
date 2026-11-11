@@ -144,32 +144,27 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		glp.topMargin = dp(22);
 		col.addView(groups, glp);
 
-		// Android Auto durumu: Yolda'nın kendi ekranı araçta yalnız "Play Store'dan kurulmuş" görünürse çıkar
-		String src = installer(ctx);
-		boolean ok = "com.android.vending".equals(src);
-		TextView st = text(ctx, ok
-				? "Android Auto: kurulum doğru ✓  Araç ekranında gün batımı renkli “Yolda” simgesini aç. "
-				+ "Mavi “Yolda Medya” Android Auto'nun sade liste ekranıdır, o değil."
-				: "Android Auto: kurulum kaynağı “" + (src == null ? "bilinmiyor" : src) + "” ✗  Bu yüzden araçta Yolda'nın "
-				+ "kendi ekranı çıkmaz, yalnız mavi “Yolda Medya” (sade liste) çıkar. Çözüm: Yolda'yı sil, KingInstaller'da "
-				+ "Shizuku seçeneği AÇIKKEN yeniden kur.", 14, false);
-		st.setTextColor(ok ? 0xFFB9F6CA : 0xFFFFD180);
-		st.setPadding(dp(18), dp(14), dp(18), dp(14));
+		// Araç modu durumu: dokununca kurulum ekranı
+		boolean ok = YoldaInstaller.isCarReady(ctx);
+		LinearLayout st = new LinearLayout(ctx);
+		st.setOrientation(LinearLayout.HORIZONTAL);
+		st.setGravity(Gravity.CENTER_VERTICAL);
+		st.setPadding(dp(18), dp(16), dp(18), dp(16));
 		st.setBackground(YoldaStyle.glass(ctx, t, 22));
+		st.setClickable(true);
+		st.setOnClickListener(v -> a.showFragment(R.id.yolda_setup_fragment));
+		TextView stt = text(ctx, ok
+				? "Araç modu hazır ✓  Araçta Yolda kendi tasarımıyla açılır."
+				: "Araç modu kurulu değil — araçta düz liste çıkar. Dokun: araç modunu kur.", 15, true);
+		stt.setTextColor(ok ? 0xFFB9F6CA : 0xFFFFD180);
+		st.addView(stt, new LinearLayout.LayoutParams(0, -2, 1f));
+		ImageView chev = new ImageView(ctx);
+		chev.setImageResource(R.drawable.yi_chevron);
+		chev.setImageTintList(android.content.res.ColorStateList.valueOf(0x99FFFFFF));
+		st.addView(chev, new LinearLayout.LayoutParams(dp(22), dp(22)));
 		LinearLayout.LayoutParams stlp = new LinearLayout.LayoutParams(-1, -2);
 		stlp.topMargin = dp(16);
 		col.addView(st, stlp);
-	}
-
-	private static String installer(Context ctx) {
-		try {
-			android.content.pm.PackageManager pm = ctx.getPackageManager();
-			if (android.os.Build.VERSION.SDK_INT >= 30)
-				return pm.getInstallSourceInfo(ctx.getPackageName()).getInstallingPackageName();
-			return pm.getInstallerPackageName(ctx.getPackageName());
-		} catch (Exception ex) {
-			return null;
-		}
 	}
 
 	private LinearLayout group(Context ctx, String title) {

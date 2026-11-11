@@ -22,3 +22,8 @@
 -keepclassmembers class me.aap.fermata.addon.web.WebBrowserFragment {
     public void loadUrl(java.lang.String);
 }
+
+# Yolda: Shizuku (gömülü araç modu kurulumu) ve yansımayla çağrılan newProcess
+-keep class rikka.shizuku.** { *; }
+-keep class rikka.sui.** { *; }
+-dontwarn rikka.shizuku.**

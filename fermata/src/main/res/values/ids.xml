@@ -35,6 +35,7 @@
     <item name="yolda_music" type="id" />
     <item name="yolda_nav_fragment" type="id" />
     <item name="yolda_menu_fragment" type="id" />
+    <item name="yolda_setup_fragment" type="id" />
     <item name="tv_fragment" type="id" />
     <item name="youtube_fragment" type="id" />
     <item name="web_browser_fragment" type="id" />

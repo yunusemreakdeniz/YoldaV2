@@ -344,10 +344,18 @@ public class MainActivityDelegate extends ActivityDelegate
 			}
 		}
 
-		// Yolda: açılışta ana ekran (büyük kartlar); "kaldığın yerden devam" kartı oradadır
-		showFragment(R.id.home_fragment);
+		// Yolda: telefonda araç modu hazır değilse önce kurulum ekranı; araçta ve hazırsa ana ekran
+		if (!isCarActivity() && !skipSetupThisRun
+				&& !me.aap.fermata.ui.fragment.YoldaInstaller.isCarReady(getContext())) {
+			showFragment(R.id.yolda_setup_fragment);
+		} else {
+			showFragment(R.id.home_fragment);
+		}
 		checkUpdates();
 	}
+
+	/** Kurulum ekranı "Şimdi değil" ile atlandıysa bu açılışta bir daha gösterme. */
+	public static boolean skipSetupThisRun;
 
 	private void checkUpdates() {
 		if (!AUTO) return;
@@ -713,6 +721,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.NavFragment();
 		} else if (id == R.id.yolda_menu_fragment) {
 			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
+		} else if (id == R.id.yolda_setup_fragment) {
+			return new me.aap.fermata.ui.fragment.YoldaSetupFragment();
 		} else if (id == R.id.folders_fragment) {
 			return new FoldersFragment();
 		} else if (id == R.id.favorites_fragment) {
