@@ -68,6 +68,11 @@ public class ChannelsFragment extends MainActivityFragment {
 	}
 
 	@Override
+	public me.aap.utils.ui.view.ToolBarView.Mediator getToolBarMediator() {
+		return YoldaFullScreen.instance; // tam ekran: başlık çubuğu yok
+	}
+
+	@Override
 	public boolean isVideoModeSupported() {
 		return true;
 	}

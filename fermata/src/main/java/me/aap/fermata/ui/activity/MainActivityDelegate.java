@@ -990,6 +990,57 @@ public class MainActivityDelegate extends ActivityDelegate
 		return R.string.press_back_again;
 	}
 
+	private static boolean yoldaSplashShown;
+
+	/** Yolda açılışı (telefonda ve araçta): logo büyüyerek gelir, "Yolda" yazısı, sonra yumuşak geçiş. */
+	private void showYoldaSplash(ConstraintLayout host) {
+		if (yoldaSplashShown) return;
+		yoldaSplashShown = true;
+		Context ctx = host.getContext();
+		android.widget.FrameLayout s = new android.widget.FrameLayout(ctx);
+		s.setBackgroundColor(0xFF0B0E2A);
+		s.setClickable(true);
+		android.widget.LinearLayout box = new android.widget.LinearLayout(ctx);
+		box.setOrientation(android.widget.LinearLayout.VERTICAL);
+		box.setGravity(Gravity.CENTER);
+		android.widget.ImageView logo = new android.widget.ImageView(ctx);
+		logo.setImageResource(R.drawable.launcher);
+		int ls = toIntPx(ctx, 132);
+		logo.setOutlineProvider(new android.view.ViewOutlineProvider() {
+			@Override
+			public void getOutline(View v, android.graphics.Outline o) {
+				o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), v.getWidth() * 0.26f);
+			}
+		});
+		logo.setClipToOutline(true);
+		logo.setElevation(toIntPx(ctx, 12));
+		box.addView(logo, new android.widget.LinearLayout.LayoutParams(ls, ls));
+		android.widget.TextView name = new android.widget.TextView(ctx);
+		name.setText("Yolda");
+		name.setTextColor(0xFFFFFFFF);
+		name.setTextSize(36);
+		name.setLetterSpacing(-0.02f);
+		name.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
+		name.setPadding(0, toIntPx(ctx, 22), 0, 0);
+		box.addView(name);
+		s.addView(box, new android.widget.FrameLayout.LayoutParams(-1, -1));
+		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(0, 0);
+		lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+		lp.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID;
+		lp.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+		lp.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
+		s.setElevation(toIntPx(ctx, 50));
+		host.addView(s, lp);
+		logo.setScaleX(0.82f);
+		logo.setScaleY(0.82f);
+		logo.setAlpha(0f);
+		name.setAlpha(0f);
+		logo.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(520)
+				.setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();
+		name.animate().alpha(1f).setStartDelay(220).setDuration(420).start();
+		s.animate().alpha(0f).setStartDelay(1250).setDuration(380).withEndAction(() -> host.removeView(s)).start();
+	}
+
 	private void init() {
 		FermataActivity a = getAppActivity();
 		a.setContentView(getLayout());
@@ -1021,6 +1072,7 @@ public class MainActivityDelegate extends ActivityDelegate
 						me.aap.fermata.ui.view.YoldaStyle.current(getContext()), 28));
 				controlPanel.setClipToOutline(true);
 			}
+			if (root instanceof ConstraintLayout cl) showYoldaSplash(cl);
 		}
 
 		if (VERSION.SDK_INT >= VERSION_CODES.VANILLA_ICE_CREAM && !a.isCarActivity()) {

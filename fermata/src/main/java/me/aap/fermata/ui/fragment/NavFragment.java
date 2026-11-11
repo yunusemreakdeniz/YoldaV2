@@ -62,6 +62,11 @@ public class NavFragment extends MainActivityFragment {
 		return "Navigasyon";
 	}
 
+	@Override
+	public me.aap.utils.ui.view.ToolBarView.Mediator getToolBarMediator() {
+		return YoldaFullScreen.instance; // tam ekran: başlık çubuğu yok
+	}
+
 	@Nullable
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,

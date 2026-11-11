@@ -13,6 +13,10 @@
         <item name="android:isLightTheme" tools:targetApi="q">false</item>
         <item name="android:navigationBarColor">?attr/colorPrimary</item>
         <item name="android:windowBackground">@drawable/app_background</item>
+        <!-- Yolda açılış ekranı (Android 12+): koyu zemin, Yolda logosu -->
+        <item name="android:windowSplashScreenBackground" tools:targetApi="s">#0B0E2A</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="s">@drawable/launcher</item>
+        <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="s">600</item>
         <item name="appMediaItemStyle">@style/AppTheme.MediaItemStyle</item>
         <item name="appControlPanelStyle">@style/AppTheme.ControlPanelStyle</item>
         <item name="appSeekBarStyle">@style/AppTheme.SeekBarStyle</item>

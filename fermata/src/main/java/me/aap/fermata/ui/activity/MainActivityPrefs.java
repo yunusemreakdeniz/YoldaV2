@@ -39,7 +39,7 @@ public interface MainActivityPrefs
 
 	Pref<IntSupplier> THEME_MAIN = Pref.i("THEME_MAIN", THEME_YOLDA); // Yolda: cam tema
 	Pref<BooleanSupplier> HIDE_BARS = Pref.b("HIDE_BARS", false);
-	Pref<BooleanSupplier> FULLSCREEN = Pref.b("FULLSCREEN", false);
+	Pref<BooleanSupplier> FULLSCREEN = Pref.b("FULLSCREEN", true); // Yolda: tam ekran
 	Pref<BooleanSupplier> SHOW_PG_UP_DOWN = Pref.b("SHOW_PG_UP_DOWN", true);
 	Pref<BooleanSupplier> USE_DPAD_CURSOR = AUTO ? Pref.b("USE_DPAD_CURSOR", true) : null;
 	Pref<IntSupplier> NAV_BAR_POS = Pref.i("NAV_BAR_POS", NavBarView.POSITION_BOTTOM);
@@ -70,7 +70,7 @@ public interface MainActivityPrefs
 
 	Pref<IntSupplier> THEME_AA = Pref.i("THEME_AA", THEME_YOLDA); // Yolda: arabada da cam tema
 	Pref<BooleanSupplier> HIDE_BARS_AA = AUTO ? Pref.b("HIDE_BARS_AA", false) : null;
-	Pref<BooleanSupplier> FULLSCREEN_AA = AUTO ? Pref.b("FULLSCREEN_AA", false) : null;
+	Pref<BooleanSupplier> FULLSCREEN_AA = AUTO ? Pref.b("FULLSCREEN_AA", true) : null; // Yolda: aracta tam ekran
 	Pref<BooleanSupplier> SHOW_PG_UP_DOWN_AA = AUTO ? Pref.b("SHOW_PG_UP_DOWN_AA", true) : null;
 	Pref<IntSupplier> NAV_BAR_POS_AA =
 			AUTO ? Pref.i("NAV_BAR_POS_AA", NavBarView.POSITION_BOTTOM) : null;
