@@ -60,8 +60,7 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 		setClipToOutline(true);
 		// Yalnız simge; seçili sekme içeride parlayan cam hap
 		me.aap.utils.ui.view.NavButtonView.iconsOnly = true;
-		me.aap.utils.ui.view.NavButtonView.selectedBackground = c -> new android.graphics.drawable.InsetDrawable(
-				YoldaStyle.selected(c, 999), Math.round(6 * d), 0, Math.round(6 * d), 0);
+		me.aap.utils.ui.view.NavButtonView.selectedBackground = c -> YoldaStyle.centeredHighlight(c, 76, 52, 999);
 		for (int i = 0; i < getChildCount(); i++) {
 			android.view.View b = getChildAt(i);
 			b.setSelected(b.isSelected());
@@ -93,17 +92,19 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 	private void applyYoldaRail() {
 		if (!(getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams lp)) return;
 		float d = getResources().getDisplayMetrics().density;
+		YoldaStyle.railMode = true;
 		lp.width = railWidth();
-		lp.leftMargin = Math.round(10 * d);
-		lp.topMargin = Math.round(10 * d);
-		lp.bottomMargin = Math.round(10 * d);
+		lp.leftMargin = Math.round(8 * d);
+		lp.topMargin = Math.round(8 * d);
+		lp.bottomMargin = Math.round(8 * d);
 		setLayoutParams(lp);
 		setBackground(YoldaStyle.pill(getContext(), YoldaStyle.current(getContext())));
-		setPadding(Math.round(6 * d), Math.round(10 * d), Math.round(6 * d), Math.round(10 * d));
+		// altta sesli asistan düğmesine (48dp) yer
+		setPadding(Math.round(4 * d), Math.round(8 * d), Math.round(4 * d), Math.round(68 * d));
 		setClipToOutline(true);
 		me.aap.utils.ui.view.NavButtonView.iconsOnly = true;
-		me.aap.utils.ui.view.NavButtonView.selectedBackground = c -> new android.graphics.drawable.InsetDrawable(
-				YoldaStyle.selected(c, 999), 0, Math.round(4 * d), 0, Math.round(4 * d));
+		me.aap.utils.ui.view.NavButtonView.iconSizeDp = 26;
+		me.aap.utils.ui.view.NavButtonView.selectedBackground = c -> YoldaStyle.centeredHighlight(c, 48, 48, 16);
 		for (int i = 0; i < getChildCount(); i++) {
 			android.view.View b = getChildAt(i);
 			b.setSelected(b.isSelected());
@@ -111,7 +112,7 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 	}
 
 	private int railWidth() {
-		return Math.round(72 * getResources().getDisplayMetrics().density);
+		return Math.round(64 * getResources().getDisplayMetrics().density);
 	}
 
 	private int pillHeight() {

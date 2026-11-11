@@ -375,6 +375,7 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 
 		var fm = getSupportFragmentManager();
 		var tr = fm.beginTransaction();
+		if ((fragmentEnterAnim != 0) && (activeId != 0)) tr.setCustomAnimations(fragmentEnterAnim, fragmentExitAnim);
 		ActivityFragment switchingFrom = null;
 		ActivityFragment switchingTo = null;
 
@@ -419,6 +420,10 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		else if (id == R.id.generic_dialog_fragment) return new GenericDialogFragment();
 		else throw new IllegalArgumentException("Invalid fragment id: " + id);
 	}
+
+	/** Yolda: ekran geçiş efekti (0 = yok). */
+	public static int fragmentEnterAnim;
+	public static int fragmentExitAnim;
 
 	public int getActiveNavItemId() {
 		return activeNavItemId;

@@ -59,13 +59,22 @@ public final class YtMusic {
 		initialized = true;
 	}
 
+	/** YouTube video araması (Yolda'nın YouTube ekranı): kanal adı "artist" alanında. */
+	public static FutureSupplier<List<Track>> searchVideos(String query) {
+		return search(query, YoutubeSearchQueryHandlerFactory.VIDEOS);
+	}
+
 	public static FutureSupplier<List<Track>> search(String query) {
+		return search(query, YoutubeSearchQueryHandlerFactory.MUSIC_SONGS);
+	}
+
+	private static FutureSupplier<List<Track>> search(String query, String filter) {
 		Promise<List<Track>> p = new Promise<>();
 		App.get().getExecutor().submit(() -> {
 			try {
 				init();
 				SearchExtractor ex = ServiceList.YouTube.getSearchExtractor(query,
-						Collections.singletonList(YoutubeSearchQueryHandlerFactory.MUSIC_SONGS), "");
+						Collections.singletonList(filter), "");
 				ex.fetchPage();
 				List<Track> out = new ArrayList<>();
 				for (InfoItem i : ex.getInitialPage().getItems()) {

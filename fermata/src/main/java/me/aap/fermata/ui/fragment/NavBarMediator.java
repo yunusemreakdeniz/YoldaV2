@@ -86,7 +86,7 @@ public class NavBarMediator extends PrefNavBarMediator
 		// Yolda Cam: oval kapsülde sabit beş düğme — Ana sayfa · TV · YouTube · Müzik · Menü
 		if (me.aap.fermata.ui.view.YoldaStyle.glassActive) {
 			if (amgr.hasAddon(R.id.youtube_fragment))
-				items.add(create(ctx, R.id.youtube_fragment, R.drawable.yi_youtube, R.string.yolda_youtube, true));
+				items.add(create(ctx, R.id.yolda_youtube, R.drawable.yi_youtube, R.string.yolda_youtube, true));
 			items.add(create(ctx, R.id.yolda_music, R.drawable.yi_music, R.string.yolda_music, true));
 			// Menü artık ana sayfanın üstünde (ayarlar simgesi)
 			return items;

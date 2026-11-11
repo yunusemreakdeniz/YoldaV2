@@ -509,7 +509,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	protected void onActivityPause() {
 		super.onActivityPause();
-		me.aap.fermata.ui.fragment.YoldaWake.pause();
+		me.aap.fermata.ui.fragment.YoldaWake.pause(this); // yalnız bu ekran dinliyorsa durur
 		for (FermataAddon addon : AddonManager.get().getAddons()) {
 			if (addon instanceof FermataActivityAddon)
 				((FermataActivityAddon) addon).onActivityPause(this);
@@ -844,6 +844,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.YoldaSetupFragment();
 		} else if (id == R.id.yolda_music) {
 			return new me.aap.fermata.ui.fragment.MusicFragment();
+		} else if (id == R.id.yolda_youtube) {
+			return new me.aap.fermata.ui.fragment.YoutubeHomeFragment();
 		} else if (id == R.id.folders_fragment) {
 			return new FoldersFragment();
 		} else if (id == R.id.favorites_fragment) {
@@ -1149,17 +1151,21 @@ public class MainActivityDelegate extends ActivityDelegate
 					.withEndAction(() -> v.animate().scaleX(1f).scaleY(1f).setDuration(140).start()).start();
 			startVoiceAssistant();
 		});
-		int s = toIntPx(ctx, 56);
+		boolean rail = (navBar != null) && navBar.isLeft();
+		int s = toIntPx(ctx, rail ? 48 : 56);
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
-		if ((navBar != null) && navBar.isLeft()) {
-			lp.startToEnd = R.id.nav_bar; // araç: dikey menünün hemen sağında
-			lp.leftMargin = toIntPx(ctx, 12);
+		if (rail) { // araç: dikey menünün en altında, ortalı
+			lp.startToStart = R.id.nav_bar;
+			lp.endToEnd = R.id.nav_bar;
+			lp.bottomToBottom = R.id.nav_bar;
+			lp.bottomMargin = toIntPx(ctx, 10);
+			mic.getLayoutParams().width = mic.getLayoutParams().height = toIntPx(ctx, 24);
 		} else {
 			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
 			lp.leftMargin = toIntPx(ctx, 22);
+			lp.bottomToTop = R.id.control_panel; // oynatıcı kapalıyken menünün hemen üstü
+			lp.bottomMargin = toIntPx(ctx, 14);
 		}
-		lp.bottomToTop = R.id.control_panel; // oynatıcı kapalıyken menünün hemen üstü
-		lp.bottomMargin = toIntPx(ctx, 14);
 		b.setId(View.generateViewId());
 		host.addView(b, lp);
 		// Video tam ekrandayken alt menü gizlenir; düğme de onunla birlikte gizlensin
@@ -1241,6 +1247,9 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (me.aap.fermata.ui.view.YoldaStyle.glassActive) {
 			View root = a.findViewById(R.id.main_activity);
 			if (root != null) me.aap.fermata.ui.view.YoldaStyle.applyBackdrop(root);
+			// Ekranlar arasında yumuşak geçiş
+			me.aap.utils.ui.activity.ActivityDelegate.fragmentEnterAnim = R.anim.yolda_enter;
+			me.aap.utils.ui.activity.ActivityDelegate.fragmentExitAnim = R.anim.yolda_exit;
 			// Alt menü: havada duran oval cam kapsül
 			if (navBar instanceof me.aap.fermata.ui.view.FermataNavBarView fnb) {
 				fnb.applyYoldaPill();

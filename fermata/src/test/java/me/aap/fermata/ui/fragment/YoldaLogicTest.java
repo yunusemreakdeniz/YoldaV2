@@ -115,8 +115,12 @@ public class YoldaLogicTest {
 		assertTrue(YoldaWake.isWake("{\"partial\" : \"hey yolda\"}"));
 		assertTrue(YoldaWake.isWake("{\"text\" : \"hey yol da\"}"));
 		assertTrue(YoldaWake.isWake("{\"text\" : \"HEY YOLDA\"}"));
-		// konuşmada geçen "yolda" tek başına uyandırmaz
-		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"yolda\"}"));
+		// sözlükte "hey" yoksa: bilinmeyen sözcük + yolda, ya da yalnız "yolda"
+		assertTrue(YoldaWake.isWake("{\"text\" : \"[unk] yolda\"}"));
+		assertTrue(YoldaWake.isWake("{\"partial\" : \"yolda\"}"));
+		assertTrue(YoldaWake.isWake("{\"text\" : \"ey yolda\"}"));
+		// uzun cümle içinde geçen "yolda" uyandırmaz
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"[unk] [unk] yolda [unk]\"}"));
 		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"partial\" : \"\"}"));
 		org.junit.Assert.assertFalse(YoldaWake.isWake(null));
 	}

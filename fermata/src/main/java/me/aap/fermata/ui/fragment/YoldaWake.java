@@ -41,7 +41,7 @@ public final class YoldaWake {
 	private static final String PREF = "wake_enabled";
 	private static final String MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-tr-0.3.zip";
 	private static final String MODEL_DIR = "vosk-tr";
-	private static final String GRAMMAR = "[\"hey yolda\", \"hey yol da\", \"yolda\", \"[unk]\"]";
+	private static final String GRAMMAR = "[\"hey yolda\", \"ey yolda\", \"yolda\", \"[unk]\"]";
 
 	private static Model model;
 	@Nullable
@@ -98,6 +98,7 @@ public final class YoldaWake {
 					}
 					service = s;
 					s.startListening(listener);
+					YoldaLog.add("Hey Yolda: dinliyor (" + (a.isCarActivity() ? "araç" : "telefon") + ")");
 				});
 			} catch (Throwable ex) {
 				Log.e(ex, "Hey Yolda başlatılamadı");
@@ -106,10 +107,20 @@ public final class YoldaWake {
 		});
 	}
 
-	/** Uygulama arka plana geçince ya da sesli asistan mikrofonu kullanırken. */
+	/** Sesli asistan mikrofonu kullanırken. */
 	public static void pause() {
 		paused = true;
 		stopService();
+	}
+
+	/**
+	 * Bir ekran arka plana geçti. Araç bağlanınca telefondaki uygulama arka plana geçer; araç ekranı
+	 * dinlerken telefonun duraklaması dinlemeyi kapatmamalı (önceki hata buydu).
+	 */
+	public static void pause(MainActivityDelegate a) {
+		if ((owner != null) && (owner != a)) return;
+		YoldaLog.add("Hey Yolda: dinleme durdu (ekran arka planda)");
+		pause();
 	}
 
 	public static void stop() {
@@ -172,10 +183,23 @@ public final class YoldaWake {
 	static boolean isWake(String json) {
 		if (json == null) return false;
 		String s = json.toLowerCase(new Locale("tr"));
-		return s.contains("hey yolda") || s.contains("hey yol da");
+		if (s.contains("hey yolda") || s.contains("ey yolda") || s.contains("hey yol da")) return true;
+		// Vosk sonucu: {"text" : "[unk] yolda"} ya da {"partial" : "yolda"} — söylenen yalnız "(hey) yolda" ise
+		int q = s.lastIndexOf(':');
+		if (q < 0) return false;
+		String[] words = s.substring(q + 1).replaceAll("[\"{}]+", " ").trim().split("\\s+");
+		int unk = 0;
+		StringBuilder rest = new StringBuilder();
+		for (String w : words) {
+			if (w.equals("[unk]")) unk++;
+			else if (!w.isEmpty()) rest.append(rest.length() > 0 ? " " : "").append(w);
+		}
+		// "yolda" ya da "<bilinmeyen tek sözcük> yolda" (ör. modelde olmayan "hey")
+		return (unk <= 1) && rest.toString().equals("yolda");
 	}
 
 	private static void check(String json) {
+		if ((json != null) && json.contains("yolda")) YoldaLog.add("Hey Yolda: duyulan " + json.replaceAll("\\s+", " "));
 		if (!isWake(json)) return;
 		long now = System.currentTimeMillis();
 		if (now - lastWake < 3000) return;

@@ -96,6 +96,59 @@ public final class YoldaStyle {
 		return glass(ctx, 999, 0x47FFFFFF, 0x1AFFFFFF, 0x2EFFFFFF, 0x73FFFFFF);
 	}
 
+	/** Dikey menü kipinde mi (araç): arama kutuları sesli düğme için sola boşluk bırakmaz. */
+	public static volatile boolean railMode;
+
+	/** Arama kutusunun soldan boşluğu (dp): telefonda sesli asistan düğmesinin sağında başlar. */
+	public static int searchLeftDp() {
+		return railMode ? 18 : (22 + 56 + 12);
+	}
+
+	/** Menüde seçili düğme: düğmenin ortasında sabit boyutlu, yumuşak parlak cam (genişleyip uzamaz). */
+	public static Drawable centeredHighlight(Context ctx, float wDp, float hDp, float radiusDp) {
+		float d = ctx.getResources().getDisplayMetrics().density;
+		final float w = wDp * d, h = hDp * d, r = radiusDp * d;
+		return new Drawable() {
+			private final android.graphics.Paint fill = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+			private final android.graphics.Paint edge = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+			private final android.graphics.RectF rect = new android.graphics.RectF();
+
+			{
+				edge.setStyle(android.graphics.Paint.Style.STROKE);
+				edge.setStrokeWidth(Math.max(1f, d));
+				edge.setColor(0x8CFFFFFF);
+			}
+
+			@Override
+			public void draw(@androidx.annotation.NonNull android.graphics.Canvas c) {
+				android.graphics.Rect b = getBounds();
+				float cw = Math.min(w, b.width()), ch = Math.min(h, b.height());
+				rect.set(b.exactCenterX() - cw / 2, b.exactCenterY() - ch / 2, b.exactCenterX() + cw / 2,
+						b.exactCenterY() + ch / 2);
+				fill.setShader(new android.graphics.LinearGradient(0, rect.top, 0, rect.bottom,
+						0x66FFFFFF, 0x26FFFFFF, android.graphics.Shader.TileMode.CLAMP));
+				float rr = Math.min(r, ch / 2);
+				c.drawRoundRect(rect, rr, rr, fill);
+				c.drawRoundRect(rect, rr, rr, edge);
+			}
+
+			@Override
+			public void setAlpha(int alpha) {
+				fill.setAlpha(alpha);
+			}
+
+			@Override
+			public void setColorFilter(@androidx.annotation.Nullable android.graphics.ColorFilter cf) {
+				fill.setColorFilter(cf);
+			}
+
+			@Override
+			public int getOpacity() {
+				return android.graphics.PixelFormat.TRANSLUCENT;
+			}
+		};
+	}
+
 	/** Arama kutusu: fazla saydam olmasın; koyu tema rengi dolgu, üstte cam parlaması, belirgin kenar. */
 	public static Drawable searchField(Context ctx, Theme t) {
 		float r = dp(ctx, 999);
@@ -308,7 +361,7 @@ public final class YoldaStyle {
 
 	/** Yazı ölçeği: alçak geniş ekranda (araç, yatay telefon) yazılar daha küçük; yer kaplamasın. */
 	public static float textScale(android.content.Context c) {
-		if (shortScreen(c)) return 0.74f;
+		if (shortScreen(c)) return 0.68f;
 		return 1f;
 	}
 

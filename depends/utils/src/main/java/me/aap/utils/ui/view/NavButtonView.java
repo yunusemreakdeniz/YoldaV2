@@ -69,18 +69,28 @@ public class NavButtonView extends LinearLayoutCompat {
 
 	/** Yolda: yalnız simge (yazı yok); seçili düğmenin arkasında cam hap. */
 	public static boolean iconsOnly;
+	/** Yolda: simge boyu (dp); araçta dikey menüde biraz küçük. */
+	public static int iconSizeDp = 30;
 	public static java.util.function.Function<Context, android.graphics.drawable.Drawable> selectedBackground;
 
 	@Override
 	public void setSelected(boolean selected) {
+		boolean was = isSelected();
 		super.setSelected(selected);
 		ImageView i = getIcon();
 
 		if (iconsOnly) {
+			if (selected && !was && isAttachedToWindow()) {
+				// seçilen simge hafifçe büyüyüp yerine oturur
+				i.setScaleX(0.8f);
+				i.setScaleY(0.8f);
+				i.animate().scaleX(1f).scaleY(1f).setDuration(260)
+						.setInterpolator(new android.view.animation.OvershootInterpolator(2.2f)).start();
+			}
 			TextView t = getText();
 			if (t != null) t.setVisibility(GONE);
 			// Tüm simgeler aynı boyda (30dp), düğmenin tam ortasında; seçili olunca boyut değişmez
-			int s = toIntPx(getContext(), 30);
+			int s = toIntPx(getContext(), iconSizeDp);
 			LayoutParams lp = (LayoutParams) i.getLayoutParams();
 			if ((lp.width != s) || (lp.height != s)) {
 				lp.width = s;

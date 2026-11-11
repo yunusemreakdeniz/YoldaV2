@@ -205,7 +205,7 @@ public class MusicFragment extends MainActivityFragment {
 			return false;
 		});
 		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, dp(56), Gravity.BOTTOM);
-		slp.setMargins(dp(22 + 56 + 12), 0, dp(22), dp(14));
+		slp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(14));
 		root.addView(search, slp);
 
 		showChips();

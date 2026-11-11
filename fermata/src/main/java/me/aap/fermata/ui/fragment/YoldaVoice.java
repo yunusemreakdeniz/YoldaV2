@@ -67,7 +67,7 @@ public final class YoldaVoice {
 				return true;
 			case "youtube", "yutup", "yutub":
 				if (am.hasAddon(R.id.youtube_fragment)) {
-					a.showFragment(R.id.youtube_fragment);
+					a.showFragment(R.id.yolda_youtube);
 					return true;
 				}
 				break;

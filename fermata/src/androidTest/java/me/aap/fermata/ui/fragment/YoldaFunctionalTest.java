@@ -73,7 +73,7 @@ public class YoldaFunctionalTest {
 
 	@Test
 	public void tumYoldaEkranlariAcilir() {
-		int[] ids = {R.id.yolda_channels_fragment, R.id.yolda_music, R.id.yolda_nav_fragment,
+		int[] ids = {R.id.yolda_channels_fragment, R.id.yolda_music, R.id.yolda_youtube, R.id.yolda_nav_fragment,
 				R.id.yolda_menu_fragment, R.id.yolda_setup_fragment, R.id.home_fragment};
 		for (int id : ids) {
 			onMain(a -> a.showFragment(id));
