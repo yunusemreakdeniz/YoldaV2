@@ -345,8 +345,11 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 
 		// Yolda: telefonda araç modu hazır değilse önce kurulum ekranı; araçta ve hazırsa ana ekran
+		// Yolda araç ekranında bir kez açıldıysa Android Auto tarafı tamam demektir
+		if (isCarActivityNotMirror()) me.aap.fermata.ui.fragment.YoldaInstaller.markSeenInCar(getContext());
 		if (!isCarActivity() && !skipSetupThisRun
-				&& !me.aap.fermata.ui.fragment.YoldaInstaller.isCarReady(getContext())) {
+				&& (!me.aap.fermata.ui.fragment.YoldaInstaller.isCarReady(getContext())
+				|| !me.aap.fermata.ui.fragment.YoldaInstaller.seenInCar(getContext()))) {
 			showFragment(R.id.yolda_setup_fragment);
 		} else {
 			// İlk açılışta alt menüde Ana sayfa etkin görünsün: menü düğmeleri sayfadan sonra

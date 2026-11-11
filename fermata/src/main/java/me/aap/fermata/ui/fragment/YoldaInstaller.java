@@ -31,6 +31,35 @@ public final class YoldaInstaller {
 		return PLAY.equals(installer(ctx));
 	}
 
+	private static final String SEEN_KEY = "aa_seen_in_car";
+
+	/** Yolda'nın kendi tasarımı araç ekranında en az bir kez açıldı mı. */
+	public static boolean seenInCar(Context ctx) {
+		return prefs(ctx).getBoolean(SEEN_KEY, false);
+	}
+
+	public static void markSeenInCar(Context ctx) {
+		prefs(ctx).edit().putBoolean(SEEN_KEY, true).apply();
+	}
+
+	private static android.content.SharedPreferences prefs(Context ctx) {
+		return ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
+				Context.MODE_PRIVATE);
+	}
+
+	/** Kurulumu yapan uygulamanın okunur adı (KingInstaller Play Store gibi görünür). */
+	public static String installerLabel(Context ctx) {
+		String i = installer(ctx);
+		if (i == null) return "bilinmiyor";
+		if (PLAY.equals(i)) return "Play Store";
+		try {
+			PackageManager pm = ctx.getPackageManager();
+			return String.valueOf(pm.getApplicationLabel(pm.getApplicationInfo(i, 0)));
+		} catch (Throwable ex) {
+			return i;
+		}
+	}
+
 	public static String installer(Context ctx) {
 		try {
 			PackageManager pm = ctx.getPackageManager();

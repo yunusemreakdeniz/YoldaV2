@@ -44,6 +44,8 @@
         <!-- Yolda: navigasyon (Google Haritalar, Waze) -->
         <package android:name="com.google.android.apps.maps" />
         <package android:name="com.waze" />
+        <!-- Yolda: kurulum ekranından Android Auto ayarlarını açmak için -->
+        <package android:name="com.google.android.projection.gearhead" />
         <intent>
             <action android:name="android.intent.action.OPEN_DOCUMENT_TREE" />
         </intent>

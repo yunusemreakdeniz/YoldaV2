@@ -152,7 +152,7 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		col.addView(groups, glp);
 
 		// Araç modu durumu: dokununca kurulum ekranı
-		boolean ok = YoldaInstaller.isCarReady(ctx);
+		boolean ok = YoldaInstaller.isCarReady(ctx) && YoldaInstaller.seenInCar(ctx);
 		LinearLayout st = new LinearLayout(ctx);
 		st.setOrientation(LinearLayout.HORIZONTAL);
 		st.setGravity(Gravity.CENTER_VERTICAL);
@@ -162,7 +162,9 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		st.setOnClickListener(v -> a.showFragment(R.id.yolda_setup_fragment));
 		TextView stt = text(ctx, ok
 				? "Araç modu hazır ✓  Araçta Yolda kendi tasarımıyla açılır."
-				: "Araç modu kurulu değil — araçta düz liste çıkar. Dokun: araç modunu kur.", 15, true);
+				: (YoldaInstaller.isCarReady(ctx)
+				? "Kurulum tamam; Android Auto adımları kaldı. Dokun: kontrol listesi."
+				: "Araç modu kurulu değil — araçta düz liste çıkar. Dokun: araç modunu kur."), 15, true);
 		stt.setTextColor(ok ? 0xFFB9F6CA : 0xFFFFD180);
 		st.addView(stt, new LinearLayout.LayoutParams(0, -2, 1f));
 		ImageView chev = new ImageView(ctx);

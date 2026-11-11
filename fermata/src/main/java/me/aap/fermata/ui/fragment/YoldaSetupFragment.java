@@ -130,59 +130,74 @@ public class YoldaSetupFragment extends MainActivityFragment {
 		root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
 
 		boolean ready = YoldaInstaller.isCarReady(ctx);
-		col.addView(text(ctx, ready ? "Araç modu hazır ✓" : "Araç modu kurulumu", 34, true));
-		TextView intro = text(ctx, ready
-				? "Her şey tamam. Telefonu arabaya bağla; Yolda kendi tasarımıyla açılır."
-				: "Araçta Yolda'nın bu tasarımının açılması için bir kez hazırlık gerekiyor. "
-				+ "Hazırlık olmadan Android Auto kendi düz liste ekranını gösterir.", 15, false);
+		boolean seen = YoldaInstaller.seenInCar(ctx);
+		col.addView(text(ctx, (ready && seen) ? "Araç modu hazır ✓" : "Android Auto kurulumu", 34, true));
+		TextView intro = text(ctx, (ready && seen)
+				? "Her şey tamam. Telefonu arabaya bağla; araç ekranında “Yolda”ya dokun, bu tasarım açılır."
+				: "Araç ekranında Yolda'nın bu tasarımının açılması için aşağıdaki adımlar bir kez gerekiyor. "
+				+ "Yolda araçta ilk açıldığında bu liste kendiliğinden kapanır.", 15, false);
 		intro.setTextColor(0xD9FFFFFF);
 		intro.setPadding(0, dp(8), 0, dp(20));
 		col.addView(intro);
 
-		if (ready) {
+		if (ready && seen) {
 			col.addView(bigButton(ctx, "Ana ekrana geç", true, v -> a.showFragment(R.id.home_fragment)));
 			return;
 		}
 
-		// 1) Android Auto bilinmeyen kaynaklar
-		col.addView(step(ctx, "1", "Android Auto'da bilinmeyen kaynaklar",
-				"Android Auto → en alttaki “Sürüm”e 10 kez dokun → ⋮ → Geliştirici ayarları → “Bilinmeyen kaynaklar”ı aç. "
-				+ "Bazı telefonlarda bu tek başına yeter.",
-				"Android Auto'yu aç", v -> openAndroidAuto(ctx)));
-
-		// 2) Shizuku durumu
-		boolean installed = YoldaInstaller.shizukuInstalled(ctx);
-		boolean running = YoldaInstaller.shizukuRunning();
-		boolean granted = YoldaInstaller.shizukuGranted();
-		String desc;
-		String btn;
-		View.OnClickListener act;
-		if (!installed) {
-			desc = "Shizuku, Yolda'ya kurulum yetkisi veren küçük bir uygulama. Önce onu kur.";
-			btn = "Shizuku'yu indir";
-			act = v -> openUrl(ctx, "https://shizuku.rikka.app/download/");
-		} else if (!running) {
-			desc = "Shizuku kurulu ama çalışmıyor. Shizuku'yu aç ve “kablosuz hata ayıklama” ile başlat "
-					+ "(uygulama sana adımları gösterir). Sonra buraya dön.";
-			btn = "Shizuku'yu aç";
-			act = v -> openApp(ctx, "moe.shizuku.privileged.api");
-		} else if (!granted) {
-			desc = "Shizuku çalışıyor. Yolda'ya izin ver.";
-			btn = "Shizuku iznini ver";
-			act = v -> YoldaInstaller.requestShizuku();
+		// 1) Kurulum kaynağı: KingInstaller / Play Store olarak görünmeli
+		if (ready) {
+			col.addView(step(ctx, "✓", "Kurulum tamam",
+					"Yolda “" + YoldaInstaller.installerLabel(ctx) + "” kaynağından kurulmuş görünüyor "
+							+ "(KingInstaller böyle kurar). Android Auto bunu kabul eder.", null, null, true));
 		} else {
-			desc = "Shizuku hazır ✓";
-			btn = null;
-			act = null;
+			boolean installed = YoldaInstaller.shizukuInstalled(ctx);
+			boolean running = YoldaInstaller.shizukuRunning();
+			boolean granted = YoldaInstaller.shizukuGranted();
+			String desc = "Şu an “" + YoldaInstaller.installerLabel(ctx) + "” ile kurulu; Android Auto bunu gizler. "
+					+ "En kolayı: APK'yı KingInstaller ile yeniden kur. KingInstaller yoksa Shizuku ile Yolda kendini hazırlar:\n";
+			String btn;
+			View.OnClickListener act;
+			if (!installed) {
+				desc += "Önce Shizuku'yu kur.";
+				btn = "Shizuku'yu indir";
+				act = v -> openUrl(ctx, "https://shizuku.rikka.app/download/");
+			} else if (!running) {
+				desc += "Shizuku'yu aç ve “kablosuz hata ayıklama” ile başlat, sonra buraya dön.";
+				btn = "Shizuku'yu aç";
+				act = v -> openApp(ctx, "moe.shizuku.privileged.api");
+			} else if (!granted) {
+				desc += "Shizuku çalışıyor; Yolda'ya izin ver.";
+				btn = "Shizuku iznini ver";
+				act = v -> YoldaInstaller.requestShizuku();
+			} else {
+				desc += "Shizuku hazır. Yolda kendini yeniden kurup yeniden başlar.";
+				btn = "Aracı hazırla";
+				act = v -> prepare(ctx, a);
+			}
+			col.addView(step(ctx, "1", "Kurulum kaynağı", desc, btn, act, false));
 		}
-		col.addView(step(ctx, "2", "Shizuku", desc, btn, act));
 
-		// 3) Aracı hazırla
-		View prep = step(ctx, "3", "Aracı hazırla",
-				"Yolda kendini araç moduna uygun şekilde yeniden kurar. İşlem bitince uygulama yeniden başlar.",
-				granted ? "Aracı hazırla" : "Önce 2. adım", granted ? v -> prepare(ctx, a) : null);
-		if (!granted) prep.setAlpha(0.5f);
-		col.addView(prep);
+		// 2) Android Auto: bilinmeyen kaynaklar
+		col.addView(step(ctx, "2", "Bilinmeyen kaynakları aç",
+				"Android Auto ayarları → en alttaki “Sürüm” satırına 10 kez dokun → sağ üst ⋮ → "
+						+ "Geliştirici ayarları → “Bilinmeyen kaynaklar”ı aç.",
+				"Android Auto ayarlarını aç", v -> openAndroidAuto(ctx), false));
+
+		// 3) Başlatıcı
+		col.addView(step(ctx, "3", "Başlatıcıda Yolda açık olsun",
+				"Android Auto ayarları → “Başlatıcıyı özelleştir” → “Yolda” işaretli olsun. "
+						+ "Yeni kurulan uygulamalar bazen kapalı gelir.",
+				"Android Auto ayarlarını aç", v -> openAndroidAuto(ctx), false));
+
+		// 4) Araçta aç
+		col.addView(step(ctx, "4", "Araçta “Yolda”ya dokun",
+				"Telefonu arabaya bağla (bağlıysa çıkarıp yeniden tak). Araç ekranında “Yolda” simgesine dokun; "
+						+ "“Yolda Liste” Android Auto'nun düz listesidir, o değil. Yolda açılınca bu liste kendiliğinden kapanır.",
+				"Araçta gördüm ✓", v -> {
+					YoldaInstaller.markSeenInCar(ctx);
+					a.showFragment(R.id.home_fragment);
+				}, false));
 
 		TextView skip = text(ctx, "Şimdi değil — telefonda kullan", 15, true);
 		skip.setGravity(Gravity.CENTER);
@@ -209,7 +224,7 @@ public class YoldaSetupFragment extends MainActivityFragment {
 	// ---- parçalar ----
 
 	private View step(Context ctx, String no, String title, String desc, @Nullable String btn,
-										@Nullable View.OnClickListener click) {
+										@Nullable View.OnClickListener click, boolean done) {
 		LinearLayout card = new LinearLayout(ctx);
 		card.setOrientation(LinearLayout.VERTICAL);
 		card.setPadding(dp(20), dp(18), dp(20), dp(18));
@@ -235,6 +250,7 @@ public class YoldaSetupFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
 		lp.bottomMargin = dp(16);
 		card.setLayoutParams(lp);
+		if (done) card.setAlpha(0.7f);
 		return card;
 	}
 
@@ -258,11 +274,39 @@ public class YoldaSetupFragment extends MainActivityFragment {
 		return b;
 	}
 
+	/**
+	 * Android Auto'nun ayar ekranı: yeni telefonlarda Android Auto'nun simgesi yok; ayar ekranını
+	 * paketin dışa açık etkinlikleri arasından bulur, bulamazsa uygulama bilgisine gider.
+	 */
 	private void openAndroidAuto(Context ctx) {
-		Intent i = ctx.getPackageManager().getLaunchIntentForPackage("com.google.android.projection.gearhead");
-		if (i == null) i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-				Uri.parse("package:com.google.android.projection.gearhead"));
-		start(ctx, i);
+		String aa = "com.google.android.projection.gearhead";
+		android.content.pm.PackageManager pm = ctx.getPackageManager();
+		Intent i = pm.getLaunchIntentForPackage(aa);
+		if (i == null) {
+			Intent pref = new Intent(Intent.ACTION_APPLICATION_PREFERENCES).setPackage(aa);
+			if (!pm.queryIntentActivities(pref, 0).isEmpty()) i = pref;
+		}
+		if (i == null) {
+			try {
+				android.content.pm.PackageInfo pi = pm.getPackageInfo(aa, android.content.pm.PackageManager.GET_ACTIVITIES);
+				android.content.pm.ActivityInfo best = null;
+				if (pi.activities != null) {
+					for (android.content.pm.ActivityInfo ai : pi.activities) {
+						if (!ai.exported) continue;
+						String n = ai.name.toLowerCase(java.util.Locale.ROOT);
+						if (n.contains("settings") && (best == null || n.contains("companion"))) best = ai;
+					}
+				}
+				if (best != null) i = new Intent().setClassName(aa, best.name);
+			} catch (Exception ignore) {
+			}
+		}
+		if (i == null) i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + aa));
+		try {
+			ctx.getApplicationContext().startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+		} catch (Exception ex) {
+			start(ctx, new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + aa)));
+		}
 	}
 
 	private void openApp(Context ctx, String pkg) {
