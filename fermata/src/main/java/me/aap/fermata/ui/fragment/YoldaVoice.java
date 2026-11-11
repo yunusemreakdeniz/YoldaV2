@@ -24,6 +24,8 @@ public final class YoldaVoice {
 			"\\s+(aç|ac|açar mısın|izle|izlet|dinle|oynat|koy|başlat|baslat|getir|göster|goster|lütfen)$");
 	private static final Pattern PLAY_SONG = Pattern.compile(
 			"^(.+?)\\s+(?:şarkısını |şarkılarını |parçasını )?(?:çal|çalar mısın|çalsana|çalabilir misin)$|^(.+?)\\s+(?:şarkısını|şarkılarını|parçasını)\\s+(?:aç|dinle|oynat)$");
+	private static final Pattern MUSIC_TAIL = Pattern.compile(
+			"\\s+(şarkısı|şarkısını|şarkıları|şarkılarını|parçası|parçasını|albümü|albümünü)$");
 	private static final Pattern OBJ_SUFFIX = Pattern.compile("['’]?(yı|yi|yu|yü|ı|i|u|ü|nı|ni|nu|nü)$");
 
 	private static volatile List<MediaLib.PlayableItem> channels = new ArrayList<>();
@@ -86,6 +88,15 @@ public final class YoldaVoice {
 			case "menü", "menu":
 				a.showFragment(R.id.yolda_menu_fragment);
 				return true;
+		}
+
+		// Müzik ekranındayken söylenen her şey şarkı / sanatçı araması: "Tarkan", "Sezen Aksu dinle"
+		if (a.getActiveFragment() instanceof MusicFragment) {
+			String song = MUSIC_TAIL.matcher(app).replaceAll("").trim();
+			if (!song.isEmpty()) {
+				MusicFragment.playQuery(a, song);
+				return true;
+			}
 		}
 
 		// Kanal ya da radyo adı
