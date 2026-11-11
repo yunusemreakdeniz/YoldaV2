@@ -144,8 +144,7 @@ public class MusicFragment extends MainActivityFragment {
 				new int[]{(t.base & 0x00FFFFFF) | 0xCC000000, (t.base & 0x00FFFFFF) | 0xE6000000});
 		sbg.setCornerRadius(dp(999));
 		sbg.setStroke(Math.max(1, dp(1)), t.edge);
-		search.setBackground(new android.graphics.drawable.LayerDrawable(
-				new android.graphics.drawable.Drawable[]{sbg, YoldaStyle.glass(ctx, t, 999)}));
+		search.setBackground(YoldaStyle.pill(ctx, t)); // Navigasyon aramasıyla aynı cam
 		search.setElevation(dp(8));
 		search.setOnEditorActionListener((v, id, ev) -> {
 			boolean enter = (ev != null) && (ev.getKeyCode() == KeyEvent.KEYCODE_ENTER)

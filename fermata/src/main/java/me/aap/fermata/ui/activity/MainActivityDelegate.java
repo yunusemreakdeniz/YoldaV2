@@ -1231,9 +1231,12 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 
 		if (VERSION.SDK_INT >= VERSION_CODES.VANILLA_ICE_CREAM && !a.isCarActivity()) {
-			ViewCompat.setOnApplyWindowInsetsListener(toolBar, (v, insets) -> {
+			// Yolda: dinleyici kök görünümde; üst çubuk gizli (tam ekran sayfalar) olsa da boşluk uygulanır
+			ViewCompat.setOnApplyWindowInsetsListener(a.findViewById(R.id.main_activity), (v, insets) -> {
+				// Yolda: tam ekranda sistem çubukları gizli olsa da kamera çentiği yerinde durur;
+				// geri düğmesi, başlıklar çentiğin altında kalmasın
 				var bars = insets.getInsets(
-						WindowInsetsCompat.Type.systemBars()
+						WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
 				);
 				a.findViewById(R.id.main_activity).setPadding(bars.left, bars.top, bars.right,
 						bars.bottom);
