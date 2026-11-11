@@ -55,6 +55,18 @@ public class ChannelsFragment extends MainActivityFragment {
 	private LinearLayout chips;
 	private TextView status;
 	private String group = ALL;
+	/** TV | Radyo segmenti (şartname 3.2). */
+	private static boolean radio;
+	private static final String RADIO_GROUP = "Radyo";
+
+	/** Ana sayfadaki "Radyo" kutusu: kanal ekranını radyo segmentinde aç. */
+	public static void openSegment(MainActivityDelegate a, boolean radioSegment) {
+		radio = radioSegment;
+		if (a.showFragment(R.id.yolda_channels_fragment) instanceof ChannelsFragment f && (f.grid != null)) {
+			f.group = ALL;
+			f.rebuildView();
+		}
+	}
 	private String query = "";
 
 	@Override
@@ -103,9 +115,36 @@ public class ChannelsFragment extends MainActivityFragment {
 		head.setGravity(Gravity.CENTER_VERTICAL);
 		LinearLayout titles = new LinearLayout(ctx);
 		titles.setOrientation(LinearLayout.VERTICAL);
-		TextView big = text(ctx, "TV ve Radyo", 40, true, t.ink);
+		LinearLayout titleRow = new LinearLayout(ctx);
+		titleRow.setOrientation(LinearLayout.HORIZONTAL);
+		titleRow.setGravity(Gravity.CENTER_VERTICAL);
+		TextView big = text(ctx, "Canlı yayın", 34, true, t.ink);
 		big.setLetterSpacing(-0.025f);
-		titles.addView(big);
+		titleRow.addView(big);
+		LinearLayout seg = new LinearLayout(ctx);
+		seg.setOrientation(LinearLayout.HORIZONTAL);
+		seg.setBackground(YoldaStyle.glass(ctx, t, 999));
+		seg.setPadding(dp(4), dp(4), dp(4), dp(4));
+		for (int i = 0; i < 2; i++) {
+			boolean isRadio = (i == 1);
+			boolean on = (radio == isRadio);
+			TextView s = text(ctx, isRadio ? "Radyo" : "TV", 15, true, on ? YoldaStyle.ON_ACCENT : t.ink);
+			s.setGravity(Gravity.CENTER);
+			s.setPadding(dp(18), dp(8), dp(18), dp(8));
+			s.setMinHeight(dp(40));
+			if (on) s.setBackground(YoldaStyle.accentFill(ctx, 999));
+			s.setOnClickListener(v -> {
+				if (radio == isRadio) return;
+				radio = isRadio;
+				group = ALL;
+				rebuildView();
+			});
+			seg.addView(s);
+		}
+		LinearLayout.LayoutParams sglp = new LinearLayout.LayoutParams(-2, -2);
+		sglp.leftMargin = dp(16);
+		titleRow.addView(seg, sglp);
+		titles.addView(titleRow);
 		status = text(ctx, "Kanallar yükleniyor…", 14, false, t.muted);
 		titles.addView(status);
 		head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -121,6 +160,18 @@ public class ChannelsFragment extends MainActivityFragment {
 			bypassOnce();
 			a.showFragment(R.id.tv_fragment);
 		});
+		boolean car = a.isCarActivity();
+		if (car) {
+			TextView ara = text(ctx, "Kanal ara", 15, true, t.ink);
+			ara.setGravity(Gravity.CENTER);
+			ara.setPadding(dp(18), dp(12), dp(18), dp(12));
+			ara.setMinHeight(dp(48));
+			ara.setBackground(YoldaStyle.glass(ctx, t, 999));
+			ara.setOnClickListener(v -> toggleSearch());
+			LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(-2, -2);
+			alp.rightMargin = dp(10);
+			head.addView(ara, alp);
+		}
 		head.addView(adv, new LinearLayout.LayoutParams(dp(48), dp(48)));
 		TextView edit = text(ctx, editing ? "Bitti" : "Düzenle", 15, true, t.ink);
 		edit.setGravity(Gravity.CENTER);
@@ -194,11 +245,19 @@ public class ChannelsFragment extends MainActivityFragment {
 		scroll.setClipToPadding(false);
 		grid = new LinearLayout(ctx);
 		grid.setOrientation(LinearLayout.VERTICAL);
-		grid.setPadding(0, dp(14), 0, dp(96)); // altta arama + sesli asistan düğmesi
+		grid.setPadding(0, dp(14), 0, car ? dp(20) : dp(96)); // telefonda altta arama + sesli asistan
 		scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
+		if (car) { // araç: arama başlığın altında, "Kanal ara" ile açılır
+			search.setVisibility(View.GONE);
+			search.setElevation(0);
+			LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(-1, dp(52));
+			sl.topMargin = dp(10);
+			col.addView(search, 1, sl);
+			searchView = search;
+		}
 		col.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-		root.addView(search, slp);
+		if (!car) root.addView(search, slp);
 		load(a);
 		return root;
 	}
@@ -243,6 +302,34 @@ public class ChannelsFragment extends MainActivityFragment {
 		}
 	}
 
+	private EditText searchView;
+
+	/** Ekrana dönünce "Oynatılıyor" işareti çalan kanala göre yenilensin. */
+	@Override
+	public void onHiddenChanged(boolean hidden) {
+		super.onHiddenChanged(hidden);
+		if (!hidden) showGrid();
+	}
+
+	/** "Kanal ara": arama satırını aç/kapat; kapanınca filtre temizlenir. */
+	private void toggleSearch() {
+		EditText s = searchView;
+		if (s == null) return;
+		android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager)
+				s.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+		if (s.getVisibility() == View.VISIBLE) {
+			s.setText("");
+			s.setVisibility(View.GONE);
+			if (imm != null) imm.hideSoftInputFromWindow(s.getWindowToken(), 0);
+		} else {
+			s.setVisibility(View.VISIBLE);
+			s.setAlpha(0f);
+			s.animate().alpha(1f).setDuration(160).start();
+			s.requestFocus();
+			if (imm != null) imm.showSoftInput(s, 0);
+		}
+	}
+
 	// ---- veri ----
 
 	private void load(MainActivityDelegate a) {
@@ -281,6 +368,8 @@ public class ChannelsFragment extends MainActivityFragment {
 		Context ctx = requireContext();
 		chips.removeAllViews();
 		for (String g : groups) {
+			if (RADIO_GROUP.equals(g)) continue; // Radyo ayrı segmentte
+			if (radio && !ALL.equals(g) && !FAV.equals(g)) continue;
 			boolean on = g.equals(group);
 			TextView c = text(ctx, g, 15, true, 0xFFFFFFFF);
 			c.setPadding(dp(18), dp(10), dp(18), dp(10));
@@ -304,6 +393,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		MediaLib.Favorites favs = a.getLib().getFavorites();
 		List<MediaLib.PlayableItem> shown = new ArrayList<>();
 		for (MediaLib.PlayableItem pi : items) {
+			if (radio != RADIO_GROUP.equals(groupOf(pi))) continue; // TV | Radyo segmenti
 			if (FAV.equals(group)) {
 				if (!favs.isFavoriteItem(pi)) continue;
 			} else if (!ALL.equals(group) && !group.equals(groupOf(pi))) continue;
@@ -316,19 +406,23 @@ public class ChannelsFragment extends MainActivityFragment {
 				: (shown.size() + " yayın · hepsi resmi yayın adresleri"));
 		grid.removeAllViews();
 
-		int cols = Math.max(2, Math.min(6, ctx.getResources().getConfiguration().screenWidthDp / 170));
+		boolean car = a.isCarActivity();
+		int cols = car ? Math.max(3, Math.min(5, YoldaStyle.widthDp(ctx) / 190))
+				: Math.max(2, Math.min(6, ctx.getResources().getConfiguration().screenWidthDp / 170));
+		MediaLib.PlayableItem cur = a.getCurrentPlayable();
+		playingId = (cur != null) ? cur.getId() : null;
 		LinearLayout row = null;
 		for (int i = 0; i < shown.size(); i++) {
 			if (i % cols == 0) {
 				row = new LinearLayout(ctx);
 				row.setOrientation(LinearLayout.HORIZONTAL);
-				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, dp(168));
+				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, dp(car ? 150 : 168));
 				rlp.bottomMargin = dp(12);
 				grid.addView(row, rlp);
 			}
 			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
 			if (i % cols != 0) lp.leftMargin = dp(12);
-			row.addView(card(ctx, a, shown.get(i)), lp);
+			row.addView(card(ctx, a, shown.get(i), i + 1), lp);
 		}
 		// Son satırı boşlukla doldur ki kartlar eşit genişlikte kalsın
 		if (row != null) {
@@ -341,7 +435,9 @@ public class ChannelsFragment extends MainActivityFragment {
 	}
 
 	@SuppressLint("ClickableViewAccessibility")
-	private View card(Context ctx, MainActivityDelegate a, MediaLib.PlayableItem pi) {
+	private String playingId;
+
+	private View card(Context ctx, MainActivityDelegate a, MediaLib.PlayableItem pi, int no) {
 		// Taslaktaki gibi: beyaz plaka üzerinde logo, altında kanal adı ve grubu
 		LinearLayout f = new LinearLayout(ctx);
 		f.setOrientation(LinearLayout.VERTICAL);
@@ -361,7 +457,8 @@ public class ChannelsFragment extends MainActivityFragment {
 		GradientDrawable pb = new GradientDrawable();
 		pb.setColor(0xEBFFFFFF);
 		pb.setCornerRadius(dp(22));
-		pb.setStroke(Math.max(1, dp(1)), 0xFFFFFFFF);
+		boolean playing = pi.getId().equals(playingId);
+		pb.setStroke(playing ? dp(3) : Math.max(1, dp(1)), playing ? 0xFF4FD1C5 : 0xFFFFFFFF);
 		plate.setBackground(pb);
 		plate.setElevation(dp(4));
 		TextView initials = text(ctx, initials(pi.getName()), 22, true, color(pi.getName()));
@@ -373,6 +470,23 @@ public class ChannelsFragment extends MainActivityFragment {
 		logo.setPadding(dp(14), dp(12), dp(14), dp(12));
 		logo.setVisibility(View.GONE);
 		plate.addView(logo, new FrameLayout.LayoutParams(-1, -1));
+		TextView num = text(ctx, String.valueOf(no), 12, true, 0x99000000);
+		num.setShadowLayer(0, 0, 0, 0);
+		FrameLayout.LayoutParams nlp = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.START);
+		nlp.setMargins(dp(10), dp(6), 0, 0);
+		plate.addView(num, nlp);
+		if (playing) {
+			TextView on = text(ctx, "Oynatılıyor", 11, true, 0xFFFFFFFF);
+			on.setShadowLayer(0, 0, 0, 0);
+			on.setPadding(dp(8), dp(3), dp(8), dp(3));
+			GradientDrawable ob = new GradientDrawable();
+			ob.setColor(0xE60A0D18);
+			ob.setCornerRadius(dp(999));
+			on.setBackground(ob);
+			FrameLayout.LayoutParams olp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START);
+			olp.setMargins(dp(8), 0, 0, dp(8));
+			plate.addView(on, olp);
+		}
 		f.addView(plate, new LinearLayout.LayoutParams(-1, 0, 1f));
 		if (editing) {
 			boolean hidden = isHidden(ctx, pi.getName());

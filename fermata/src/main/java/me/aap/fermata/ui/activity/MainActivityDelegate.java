@@ -1161,6 +1161,11 @@ public class MainActivityDelegate extends ActivityDelegate
 			lp.bottomToBottom = R.id.nav_bar;
 			lp.bottomMargin = toIntPx(ctx, 10);
 			mic.getLayoutParams().width = mic.getLayoutParams().height = toIntPx(ctx, 24);
+			android.graphics.drawable.GradientDrawable acc = new android.graphics.drawable.GradientDrawable();
+			acc.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+			acc.setColor(me.aap.fermata.ui.view.YoldaStyle.ACCENT);
+			b.setBackground(acc);
+			mic.setImageTintList(ColorStateList.valueOf(me.aap.fermata.ui.view.YoldaStyle.ON_ACCENT));
 		} else {
 			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
 			lp.leftMargin = toIntPx(ctx, 22);

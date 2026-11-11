@@ -32,7 +32,7 @@ public final class YoldaStyle {
 		public final String name;
 		public final boolean light = false;
 		public final int base, accent, hero1, hero2;
-		public final int ink = 0xFFFFFFFF, muted = 0xC7FFFFFF;
+		public final int ink = 0xFFF2F4F7, muted = 0xFFCBD1DC;
 		/** Dört duvar kâğıdı ışığı. */
 		public final int[] blobs;
 		public final int glassTop = 0x38FFFFFF, glassBottom = 0x14FFFFFF, edge = 0x59FFFFFF;
@@ -52,7 +52,8 @@ public final class YoldaStyle {
 	}
 
 	public static final Theme[] THEMES = {
-			new Theme("Gece", 0xFF0B0E2A, new int[]{0xFF6D5BFF, 0xFF00B8FF, 0xFFFF4FA0, 0xFF2E1A78}, 0xFFFFFFFF),
+			new Theme("Gece", 0xFF0A0D18, new int[]{0xFF5B21B6, 0xFF9D174D, 0xFF0369A1, 0xFF0A0D18}, 0xFFF5F7FF),
+			new Theme("Gece mavi", 0xFF0B0E2A, new int[]{0xFF6D5BFF, 0xFF00B8FF, 0xFFFF4FA0, 0xFF2E1A78}, 0xFF7AA2FF),
 			new Theme("Gün batımı", 0xFF24110C, new int[]{0xFFFF8A3D, 0xFFFF4F6D, 0xFFFFC857, 0xFF6B1E3F}, 0xFFFFC857),
 			new Theme("Okyanus", 0xFF061A24, new int[]{0xFF00C9A7, 0xFF1E90FF, 0xFF7BDFF2, 0xFF0B3B5C}, 0xFF7BDFF2),
 			new Theme("Gül", 0xFF220C1F, new int[]{0xFFFF6FB5, 0xFFB26BFF, 0xFFFFB38A, 0xFF5A1446}, 0xFFFFB38A),
@@ -88,12 +89,29 @@ public final class YoldaStyle {
 
 	/** Liquid Glass yüzey: berrak dolgu + üst ışık yansıması + ince parlak kenar. */
 	public static Drawable glass(Context ctx, Theme t, float radiusDp) {
-		return glass(ctx, radiusDp, 0x38FFFFFF, 0x12FFFFFF, 0x24FFFFFF, 0x59FFFFFF);
+		return glass(ctx, radiusDp, 0x24FFFFFF, 0x12FFFFFF, 0x17FFFFFF, 0x33FFFFFF);
 	}
+
+	/** Vurgulu kutu (şartname: beyaz %12). */
+	public static Drawable glassStrong(Context ctx, float radiusDp) {
+		return glass(ctx, radiusDp, 0x2EFFFFFF, 0x1AFFFFFF, 0x1FFFFFFF, 0x40FFFFFF);
+	}
+
+	/** Birincil düğme: açık vurgu dolgu (#F5F7FF), üzerindeki ikon koyu (#0A0D18). */
+	public static Drawable accentFill(Context ctx, float radiusDp) {
+		GradientDrawable g = new GradientDrawable();
+		g.setColor(ACCENT);
+		g.setCornerRadius(dp(ctx, radiusDp));
+		return g;
+	}
+
+	public static final int ACCENT = 0xFFF5F7FF;
+	public static final int ON_ACCENT = 0xFF0A0D18;
+	public static final int LIVE = 0xFFD93A3F;
 
 	/** Alt menü ve mini oynatıcı için biraz daha belirgin cam. */
 	public static Drawable pill(Context ctx, Theme t) {
-		return glass(ctx, 999, 0x47FFFFFF, 0x1AFFFFFF, 0x2EFFFFFF, 0x73FFFFFF);
+		return glass(ctx, 999, 0x2EFFFFFF, 0x14FFFFFF, 0x1CFFFFFF, 0x40FFFFFF);
 	}
 
 	/** Dikey menü kipinde mi (araç): arama kutuları sesli düğme için sola boşluk bırakmaz. */
@@ -126,7 +144,9 @@ public final class YoldaStyle {
 				rect.set(b.exactCenterX() - cw / 2, b.exactCenterY() - ch / 2, b.exactCenterX() + cw / 2,
 						b.exactCenterY() + ch / 2);
 				fill.setShader(new android.graphics.LinearGradient(0, rect.top, 0, rect.bottom,
-						0x66FFFFFF, 0x26FFFFFF, android.graphics.Shader.TileMode.CLAMP));
+						0x40FFFFFF, 0x30FFFFFF, android.graphics.Shader.TileMode.CLAMP));
+				edge.setShader(new android.graphics.LinearGradient(0, rect.top, 0, rect.bottom,
+						0x80FFFFFF, 0x0FFFFFFF, android.graphics.Shader.TileMode.CLAMP));
 				float rr = Math.min(r, ch / 2);
 				c.drawRoundRect(rect, rr, rr, fill);
 				c.drawRoundRect(rect, rr, rr, edge);
@@ -361,7 +381,7 @@ public final class YoldaStyle {
 
 	/** Yazı ölçeği: alçak geniş ekranda (araç, yatay telefon) yazılar daha küçük; yer kaplamasın. */
 	public static float textScale(android.content.Context c) {
-		if (shortScreen(c)) return 0.68f;
+		if (shortScreen(c)) return 0.82f; // şartname: araçta yazı en az ~15 sp
 		return 1f;
 	}
 

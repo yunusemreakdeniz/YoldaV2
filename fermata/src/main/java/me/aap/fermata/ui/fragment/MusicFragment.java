@@ -147,6 +147,18 @@ public class MusicFragment extends MainActivityFragment {
 		status.setMaxLines(1);
 		status.setEllipsize(TextUtils.TruncateAt.END);
 		top.addView(status, new LinearLayout.LayoutParams(0, -2, 1f));
+		boolean car = a.isCarActivity();
+		if (car) {
+			TextView ara = text(ctx, "Şarkı, sanatçı ara", 15, true, t.ink);
+			ara.setGravity(Gravity.CENTER);
+			ara.setMinHeight(dp(48));
+			ara.setPadding(dp(18), 0, dp(18), 0);
+			ara.setBackground(YoldaStyle.glass(ctx, t, 999));
+			ara.setOnClickListener(v -> toggleSearch());
+			LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(-2, dp(48));
+			alp.leftMargin = dp(10);
+			top.addView(ara, alp);
+		}
 		col.addView(top);
 
 		// Ruh hâli çipleri (YouTube Music'teki gibi kaydırılabilir)
@@ -206,7 +218,16 @@ public class MusicFragment extends MainActivityFragment {
 		});
 		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, dp(56), Gravity.BOTTOM);
 		slp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(14));
-		root.addView(search, slp);
+		if (car) { // araç: arama başlığın altında, sağ üstteki düğmeyle açılır
+			search.setVisibility(View.GONE);
+			search.setElevation(0);
+			LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(-1, dp(52));
+			sl.setMargins(dp(side), dp(10), dp(side), 0);
+			col.addView(search, 1, sl);
+			content.setPadding(0, dp(6), 0, dp(20));
+		} else {
+			root.addView(search, slp);
+		}
 
 		showChips();
 		if (pendingPlay == null) showHome();
@@ -296,7 +317,116 @@ public class MusicFragment extends MainActivityFragment {
 
 	// ---- ana sayfa: raflar ----
 
+	private void toggleSearch() {
+		if (search == null) return;
+		InputMethodManager imm = (InputMethodManager) search.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+		if (search.getVisibility() == View.VISIBLE) {
+			search.setVisibility(View.GONE);
+			if (imm != null) imm.hideSoftInputFromWindow(search.getWindowToken(), 0);
+		} else {
+			search.setVisibility(View.VISIBLE);
+			search.requestFocus();
+			if (imm != null) imm.showSoftInput(search, 0);
+		}
+	}
+
+	/**
+	 * Araç ana sayfası (tasarım şartnamesi 3.3): solda "Son dinlediklerin" satırları ve "Tümünü çal",
+	 * sağda "Karışık listeler" 2×2 kutu.
+	 */
+	private void showHomeCar() {
+		Context ctx = requireContext();
+		int seq = ++requestSeq;
+		content.removeAllViews();
+		status.setText("");
+		int side = 18;
+		LinearLayout cols = new LinearLayout(ctx);
+		cols.setOrientation(LinearLayout.HORIZONTAL);
+		cols.setPadding(dp(side), dp(8), dp(side), 0);
+		content.addView(cols, new LinearLayout.LayoutParams(-1, -2));
+
+		LinearLayout left = new LinearLayout(ctx);
+		left.setOrientation(LinearLayout.VERTICAL);
+		cols.addView(left, new LinearLayout.LayoutParams(0, -2, 1.2f));
+		LinearLayout lh = new LinearLayout(ctx);
+		lh.setOrientation(LinearLayout.HORIZONTAL);
+		lh.setGravity(Gravity.CENTER_VERTICAL);
+		TextView lt = text(ctx, "Son dinlediklerin", 20, true, t.ink);
+		lh.addView(lt, new LinearLayout.LayoutParams(0, -2, 1f));
+		TextView playAll = text(ctx, "Tümünü çal", 14, true, YoldaStyle.ON_ACCENT);
+		playAll.setGravity(Gravity.CENTER);
+		playAll.setMinHeight(dp(44));
+		playAll.setPadding(dp(16), 0, dp(16), 0);
+		playAll.setBackground(YoldaStyle.accentFill(ctx, 999));
+		lh.addView(playAll, new LinearLayout.LayoutParams(-2, dp(44)));
+		left.addView(lh);
+		LinearLayout list = new LinearLayout(ctx);
+		list.setOrientation(LinearLayout.VERTICAL);
+		LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, -2);
+		llp.topMargin = dp(8);
+		left.addView(list, llp);
+
+		List<YtMusic.Track> recent = recent(ctx);
+		java.util.function.Consumer<List<YtMusic.Track>> fill = l -> {
+			list.removeAllViews();
+			List<YtMusic.Track> q = new ArrayList<>(l.subList(0, Math.min(8, l.size())));
+			for (int i = 0; i < q.size(); i++) list.addView(row(ctx, q, i, 52), new LinearLayout.LayoutParams(-1, -2));
+			playAll.setOnClickListener(v -> play(q, 0));
+		};
+		if (!recent.isEmpty()) {
+			fill.accept(recent);
+		} else {
+			lt.setText("Senin için");
+			YtMusic.search("türkçe pop hit").main().onCompletion((l, err) -> {
+				if (!isAdded() || (seq != requestSeq)) return;
+				if (l != null) fill.accept(l);
+				else list.addView(errorText(ctx, err));
+			});
+		}
+
+		LinearLayout right = new LinearLayout(ctx);
+		right.setOrientation(LinearLayout.VERTICAL);
+		LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(0, -2, 1f);
+		rlp.leftMargin = dp(16);
+		cols.addView(right, rlp);
+		right.addView(text(ctx, "Karışık listeler", 20, true, t.ink));
+		String[][] mixes = {{"Yolculuk", "yolculuk şarkıları", "#0369A1", "#4FD1C5"},
+				{"Enerji", "enerjik türkçe şarkılar", "#9D174D", "#FFB547"},
+				{"Dinlendirici", "sakin türkçe şarkılar", "#5B21B6", "#7AA2FF"},
+				{"Romantik", "romantik türkçe şarkılar", "#BE185D", "#F472B6"}};
+		for (int r = 0; r < 2; r++) {
+			LinearLayout row = new LinearLayout(ctx);
+			row.setOrientation(LinearLayout.HORIZONTAL);
+			LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(96));
+			rl.topMargin = dp(10);
+			right.addView(row, rl);
+			for (int c = 0; c < 2; c++) {
+				String[] m = mixes[r * 2 + c];
+				TextView tile = text(ctx, m[0], 18, true, 0xFFFFFFFF);
+				tile.setGravity(Gravity.BOTTOM | Gravity.START);
+				tile.setPadding(dp(14), dp(10), dp(10), dp(12));
+				GradientDrawable gb = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+						new int[]{android.graphics.Color.parseColor(m[2]), android.graphics.Color.parseColor(m[3])});
+				gb.setCornerRadius(dp(20));
+				tile.setBackground(gb);
+				tile.setContentDescription(m[0] + " listesini çal");
+				tile.setOnClickListener(v -> {
+					chip = null;
+					showChips();
+					showList(m[0], m[1], true);
+				});
+				LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -1, 1f);
+				if (c > 0) tl.leftMargin = dp(10);
+				row.addView(tile, tl);
+			}
+		}
+	}
+
 	private void showHome() {
+		if (getActivityDelegate().isCarActivity()) {
+			showHomeCar();
+			return;
+		}
 		Context ctx = requireContext();
 		int seq = ++requestSeq;
 		content.removeAllViews();

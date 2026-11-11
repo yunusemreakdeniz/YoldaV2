@@ -141,6 +141,10 @@ public class HomeFragment extends MainActivityFragment {
 		root.removeAllViews();
 		root.setBackground(null);
 		YoldaStyle.applyScreenBackground(root, t);
+		if (getActivityDelegate().isCarActivity() && !editing && !picking) {
+			renderCar(ctx, getActivityDelegate()); // araç: kaydırmadan tek ekran (tasarım şartnamesi 3.1)
+			return;
+		}
 
 		ScrollView scroll = new ScrollView(ctx);
 		scroll.setFillViewport(true);
@@ -171,6 +175,261 @@ public class HomeFragment extends MainActivityFragment {
 			if (AddonManager.get().hasAddon(R.id.youtube_fragment)) ytShelf(ctx, a, col);
 		}
 		animateIn(col);
+	}
+
+	// ---- araç ana sayfası: tek ekran, kaydırma yok ----
+
+	/**
+	 * Üst satır: tarih + selamlama, sağda "Ara" ve ayarlar. Orta: solda büyük "Kaldığın yerden devam et",
+	 * sağda 2×2 hızlı kutu (TV, Radyo, YouTube, Navigasyon). Alt: "Favoriler" ve 5 kanal kutusu.
+	 */
+	private void renderCar(Context ctx, MainActivityDelegate a) {
+		YoldaVoice.preload(a);
+		LinearLayout col = new LinearLayout(ctx);
+		col.setOrientation(LinearLayout.VERTICAL);
+		col.setPadding(dp(18), dp(14), dp(18), dp(14));
+		root.addView(col, new FrameLayout.LayoutParams(-1, -1));
+
+		// Üst satır
+		LinearLayout head = new LinearLayout(ctx);
+		head.setOrientation(LinearLayout.HORIZONTAL);
+		head.setGravity(Gravity.CENTER_VERTICAL);
+		LinearLayout hello = new LinearLayout(ctx);
+		hello.setOrientation(LinearLayout.VERTICAL);
+		TextClock date = new TextClock(ctx);
+		date.setFormat24Hour("EEEE, d MMMM");
+		date.setFormat12Hour("EEEE, d MMMM");
+		date.setTextSize(15);
+		date.setTextColor(t.muted);
+		hello.addView(date);
+		TextView g = text(ctx, greeting(), 30, true);
+		g.setTextColor(t.ink);
+		g.setLetterSpacing(-0.02f);
+		hello.addView(g);
+		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
+		TextView ara = text(ctx, "Ara", 16, true);
+		ara.setGravity(Gravity.CENTER);
+		ara.setMinHeight(dp(52));
+		ara.setPadding(dp(22), 0, dp(22), 0);
+		ara.setBackground(YoldaStyle.glass(ctx, t, 999));
+		ara.setOnClickListener(v -> a.startVoiceAssistant());
+		ara.setContentDescription("Ara (sesli)");
+		head.addView(ara, new LinearLayout.LayoutParams(-2, dp(52)));
+		head.addView(roundGlass(ctx, R.drawable.yi_settings, v -> a.showFragment(R.id.yolda_menu_fragment)),
+				leftMargin(sq(52), 10));
+		col.addView(head);
+
+		// Orta satır
+		LinearLayout mid = new LinearLayout(ctx);
+		mid.setOrientation(LinearLayout.HORIZONTAL);
+		LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(-1, 0, 1f);
+		mlp.topMargin = dp(12);
+		col.addView(mid, mlp);
+		mid.addView(carResume(ctx, a), new LinearLayout.LayoutParams(0, -1, 1.25f));
+		LinearLayout quick = new LinearLayout(ctx);
+		quick.setOrientation(LinearLayout.VERTICAL);
+		LinearLayout.LayoutParams qlp = new LinearLayout.LayoutParams(0, -1, 1f);
+		qlp.leftMargin = dp(12);
+		mid.addView(quick, qlp);
+		LinearLayout q1 = new LinearLayout(ctx), q2 = new LinearLayout(ctx);
+		q1.setOrientation(LinearLayout.HORIZONTAL);
+		q2.setOrientation(LinearLayout.HORIZONTAL);
+		quick.addView(q1, new LinearLayout.LayoutParams(-1, 0, 1f));
+		LinearLayout.LayoutParams q2lp = new LinearLayout.LayoutParams(-1, 0, 1f);
+		q2lp.topMargin = dp(12);
+		quick.addView(q2, q2lp);
+		q1.addView(quickTile(ctx, R.drawable.yi_tv, "TV", 0xFFFF8A65,
+				v -> ChannelsFragment.openSegment(a, false)), new LinearLayout.LayoutParams(0, -1, 1f));
+		q1.addView(quickTile(ctx, R.drawable.yi_live, "Radyo", 0xFFFFB547,
+				v -> ChannelsFragment.openSegment(a, true)), leftWeight(12));
+		q2.addView(quickTile(ctx, R.drawable.yi_youtube, "YouTube", 0xFFFF4D4D,
+				v -> a.showFragment(R.id.yolda_youtube)), new LinearLayout.LayoutParams(0, -1, 1f));
+		q2.addView(quickTile(ctx, R.drawable.yi_nav, "Navigasyon", 0xFF4FD1C5,
+				v -> a.showFragment(R.id.yolda_nav_fragment)), leftWeight(12));
+
+		// Alt satır: Favoriler
+		LinearLayout fh = new LinearLayout(ctx);
+		fh.setOrientation(LinearLayout.HORIZONTAL);
+		fh.setGravity(Gravity.CENTER_VERTICAL);
+		TextView ft = text(ctx, "Favoriler", 18, true);
+		ft.setTextColor(t.ink);
+		fh.addView(ft, new LinearLayout.LayoutParams(0, -2, 1f));
+		TextView all = text(ctx, "Tümünü gör", 14, true);
+		all.setTextColor(t.muted);
+		all.setGravity(Gravity.CENTER);
+		all.setMinHeight(dp(40));
+		all.setPadding(dp(12), 0, dp(4), 0);
+		all.setOnClickListener(v -> a.showFragment(R.id.yolda_channels_fragment));
+		fh.addView(all);
+		LinearLayout.LayoutParams fhl = new LinearLayout.LayoutParams(-1, -2);
+		fhl.topMargin = dp(10);
+		col.addView(fh, fhl);
+		LinearLayout favs = new LinearLayout(ctx);
+		favs.setOrientation(LinearLayout.HORIZONTAL);
+		col.addView(favs, new LinearLayout.LayoutParams(-1, dp(72)));
+		fillFavorites(ctx, a, favs);
+		animateIn(col);
+	}
+
+	private LinearLayout.LayoutParams leftWeight(int marginDp) {
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
+		lp.leftMargin = dp(marginDp);
+		return lp;
+	}
+
+	/** Hızlı kutu: cam zemin, renkli yuvarlak ikon, ad. */
+	private View quickTile(Context ctx, @DrawableRes int icon, String label, int color, View.OnClickListener click) {
+		FrameLayout f = pressable(ctx, YoldaStyle.glassStrong(ctx, 22), click);
+		f.setContentDescription(label);
+		LinearLayout box = new LinearLayout(ctx);
+		box.setOrientation(LinearLayout.HORIZONTAL);
+		box.setGravity(Gravity.CENTER_VERTICAL);
+		box.setPadding(dp(14), 0, dp(10), 0);
+		FrameLayout ic = new FrameLayout(ctx);
+		GradientDrawable c = new GradientDrawable();
+		c.setShape(GradientDrawable.OVAL);
+		c.setColor(color);
+		ic.setBackground(c);
+		ImageView iv = new ImageView(ctx);
+		iv.setImageResource(icon);
+		iv.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		ic.addView(iv, new FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER));
+		box.addView(ic, sq(44));
+		TextView l = text(ctx, label, 17, true);
+		l.setTextColor(t.ink);
+		l.setMaxLines(1);
+		l.setEllipsize(TextUtils.TruncateAt.END);
+		l.setPadding(dp(12), 0, 0, 0);
+		box.addView(l, new LinearLayout.LayoutParams(0, -2, 1f));
+		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
+		return f;
+	}
+
+	/** Büyük devam kartı: kapak zemini, CANLI rozeti, büyük ad, sağ altta vurgu renginde oynat. */
+	private View carResume(Context ctx, MainActivityDelegate a) {
+		FrameLayout f = pressable(ctx, YoldaStyle.glassStrong(ctx, 28), v -> resumePlayback(a));
+		f.setClipToOutline(true);
+		ImageView art = new ImageView(ctx);
+		art.setScaleType(ImageView.ScaleType.CENTER_CROP);
+		art.setAlpha(0f);
+		f.addView(art, new FrameLayout.LayoutParams(-1, -1));
+		View shade = new View(ctx);
+		shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+				new int[]{0x330A0D18, 0x990A0D18, 0xE60A0D18}));
+		f.addView(shade, new FrameLayout.LayoutParams(-1, -1));
+
+		LinearLayout txt = new LinearLayout(ctx);
+		txt.setOrientation(LinearLayout.VERTICAL);
+		txt.setPadding(dp(20), dp(16), dp(110), dp(18));
+		TextView liveB = text(ctx, "CANLI", 12, true);
+		liveB.setTextColor(0xFFFFFFFF);
+		liveB.setLetterSpacing(0.06f);
+		liveB.setPadding(dp(8), dp(3), dp(8), dp(3));
+		GradientDrawable lb = new GradientDrawable();
+		lb.setColor(YoldaStyle.LIVE);
+		lb.setCornerRadius(dp(6));
+		liveB.setBackground(lb);
+		liveB.setVisibility(View.GONE);
+		txt.addView(liveB, new LinearLayout.LayoutParams(-2, -2));
+		View sp = new View(ctx);
+		txt.addView(sp, new LinearLayout.LayoutParams(1, 0, 1f));
+		TextView cap = text(ctx, "Kaldığın yerden devam et", 14, false);
+		cap.setTextColor(t.muted);
+		txt.addView(cap);
+		TextView name = text(ctx, "Henüz bir şey açılmadı", 34, true);
+		name.setTextColor(t.ink);
+		name.setMaxLines(1);
+		name.setEllipsize(TextUtils.TruncateAt.END);
+		txt.addView(name);
+		TextView sub = text(ctx, "", 15, false);
+		sub.setTextColor(t.muted);
+		sub.setMaxLines(1);
+		sub.setEllipsize(TextUtils.TruncateAt.END);
+		txt.addView(sub);
+		f.addView(txt, new FrameLayout.LayoutParams(-1, -1));
+
+		FrameLayout play = new FrameLayout(ctx);
+		play.setBackground(YoldaStyle.accentFill(ctx, 999));
+		play.setElevation(dp(6));
+		play.setContentDescription("Oynat");
+		play.setOnClickListener(v -> resumePlayback(a));
+		ImageView pi = new ImageView(ctx);
+		pi.setImageResource(R.drawable.yi_play);
+		pi.setImageTintList(ColorStateList.valueOf(YoldaStyle.ON_ACCENT));
+		play.addView(pi, new FrameLayout.LayoutParams(dp(34), dp(34), Gravity.CENTER));
+		FrameLayout.LayoutParams plp = new FrameLayout.LayoutParams(dp(76), dp(76), Gravity.BOTTOM | Gravity.END);
+		plp.setMargins(0, 0, dp(18), dp(18));
+		f.addView(play, plp);
+
+		currentOrLast(a).onCompletion((item, err) -> {
+			if (!isAdded()) return;
+			if ((item == null) || item.isExternal()) {
+				List<me.aap.fermata.media.yt.YtMusic.Track> rec = MusicFragment.recent(ctx);
+				if (rec.isEmpty()) return;
+				me.aap.fermata.media.yt.YtMusic.Track tr = rec.get(0);
+				name.setText(tr.title());
+				sub.setText((tr.artist() != null) ? tr.artist() : "");
+				loadArt(a, tr.thumb(), art);
+				return;
+			}
+			name.setText(item.getName());
+			MediaLib.BrowsableItem p = item.getParent();
+			sub.setText(((p != null) ? p.getName() + " · " : "") + (item.isVideo() ? "TV" : "Ses"));
+			if (item.isStream()) liveB.setVisibility(View.VISIBLE);
+			item.getIconUri().main().onCompletion((u, e2) -> {
+				if (isAdded() && (u != null)) loadArt(a, u.toString(), art);
+			});
+		});
+		return f;
+	}
+
+	private void loadArt(MainActivityDelegate a, @Nullable String uri, ImageView art) {
+		if (uri == null) return;
+		a.getLib().getBitmap(uri, true, true).main().onCompletion((bmp, e) -> {
+			if (!isAdded() || (bmp == null)) return;
+			art.setImageBitmap(bmp);
+			art.animate().alpha(0.55f).setDuration(260).start();
+		});
+	}
+
+	/** Favoriler: TV favorileri, yoksa ilk kanallar; ad + tür, dokununca çalar. */
+	private void fillFavorites(Context ctx, MainActivityDelegate a, LinearLayout row) {
+		a.getLib().getItem("TV").main().onCompletion((r, err) -> {
+			if (!isAdded() || !(r instanceof MediaLib.BrowsableItem)) return;
+			((MediaLib.BrowsableItem) r).getPlayableChildren(true).main().onCompletion((list, e2) -> {
+				if (!isAdded() || (list == null)) return;
+				MediaLib.Favorites fav = a.getLib().getFavorites();
+				List<MediaLib.PlayableItem> picks = new ArrayList<>();
+				for (MediaLib.PlayableItem pi : list) if (fav.isFavoriteItem(pi)) picks.add(pi);
+				for (MediaLib.PlayableItem pi : list) {
+					if (picks.size() >= 5) break;
+					if (!picks.contains(pi) && !ChannelsFragment.isHidden(ctx, pi.getName())) picks.add(pi);
+				}
+				for (int i = 0; i < Math.min(5, picks.size()); i++) {
+					MediaLib.PlayableItem pi = picks.get(i);
+					FrameLayout tile = pressable(ctx, YoldaStyle.glass(ctx, t, 20), v -> a.getBody().playItem(pi));
+					tile.setContentDescription(pi.getName());
+					LinearLayout box = new LinearLayout(ctx);
+					box.setOrientation(LinearLayout.VERTICAL);
+					box.setGravity(Gravity.CENTER_VERTICAL);
+					box.setPadding(dp(14), 0, dp(10), 0);
+					TextView n = text(ctx, pi.getName(), 17, true);
+					n.setTextColor(t.ink);
+					n.setMaxLines(1);
+					n.setEllipsize(TextUtils.TruncateAt.END);
+					box.addView(n);
+					MediaLib.BrowsableItem p = pi.getParent();
+					TextView k = text(ctx, (p != null) ? p.getName() : "", 13, false);
+					k.setTextColor(t.muted);
+					k.setMaxLines(1);
+					box.addView(k);
+					tile.addView(box, new FrameLayout.LayoutParams(-1, -1));
+					LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
+					if (i > 0) lp.leftMargin = dp(10);
+					row.addView(tile, lp);
+				}
+			});
+		});
 	}
 
 	// ---- düzenlenebilir uygulama kartları ----

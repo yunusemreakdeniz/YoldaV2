@@ -117,6 +117,20 @@ public class YoutubeHomeFragment extends MainActivityFragment {
 		full.setPadding(dp(14), dp(8), dp(14), dp(8));
 		full.setBackground(YoldaStyle.glass(ctx, t, 999));
 		full.setOnClickListener(v -> a.showFragment(R.id.youtube_fragment));
+		boolean car = a.isCarActivity();
+		if (car) { // araç: arama sağ üstte (içeriğin üstüne binen yüzen kutu yok)
+			TextView ara = text(ctx, "Ara", 15, true, t.ink);
+			ara.setGravity(Gravity.CENTER);
+			ara.setMinHeight(dp(48));
+			ara.setPadding(dp(20), 0, dp(20), 0);
+			ara.setBackground(YoldaStyle.glass(ctx, t, 999));
+			ara.setOnClickListener(v -> toggleSearch());
+			LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(-2, dp(48));
+			alp.rightMargin = dp(10);
+			top.addView(ara, alp);
+		}
+		full.setMinHeight(dp(48));
+		full.setGravity(Gravity.CENTER);
 		top.addView(full);
 		col.addView(top);
 
@@ -175,7 +189,16 @@ public class YoutubeHomeFragment extends MainActivityFragment {
 		});
 		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, dp(52), Gravity.BOTTOM);
 		slp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(14));
-		root.addView(search, slp);
+		if (car) {
+			search.setVisibility(View.GONE);
+			search.setElevation(0);
+			LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(-1, dp(52));
+			sl.setMargins(dp(side), dp(10), dp(side), 0);
+			col.addView(search, 1, sl);
+			grid.setPadding(dp(side), dp(12), dp(side), dp(20));
+		} else {
+			root.addView(search, slp);
+		}
 
 		showChips();
 		if (pendingQuery == null) load(CATS[0][0], CATS[0][1]);
@@ -203,6 +226,19 @@ public class YoutubeHomeFragment extends MainActivityFragment {
 			fm.beginTransaction().detach(this).commitNow();
 			fm.beginTransaction().attach(this).commitNow();
 		});
+	}
+
+	private void toggleSearch() {
+		if (search == null) return;
+		InputMethodManager imm = (InputMethodManager) search.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+		if (search.getVisibility() == View.VISIBLE) {
+			search.setVisibility(View.GONE);
+			if (imm != null) imm.hideSoftInputFromWindow(search.getWindowToken(), 0);
+		} else {
+			search.setVisibility(View.VISIBLE);
+			search.requestFocus();
+			if (imm != null) imm.showSoftInput(search, 0);
+		}
 	}
 
 	private void consume() {
