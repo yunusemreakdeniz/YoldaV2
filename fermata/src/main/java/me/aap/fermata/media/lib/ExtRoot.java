@@ -34,6 +34,17 @@ public class ExtRoot extends ExtBrowsable {
 		throw new UnsupportedOperationException();
 	}
 
+	/** Yolda: video bilgisinde sınıf adı ("ExtRoot") yerine kaynağın adı görünsün. */
+	@NonNull
+	@Override
+	public String getName() {
+		return switch (getId()) {
+			case "youtube" -> "YouTube";
+			case "ytm_root" -> "YouTube Music";
+			default -> "";
+		};
+	}
+
 	@NonNull
 	@Override
 	public MediaLib.BrowsableItem getRoot() {

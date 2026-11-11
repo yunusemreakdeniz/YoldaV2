@@ -396,7 +396,20 @@ public class MainActivityDelegate extends ActivityDelegate
 			if (v instanceof android.widget.TextView tv) tv.setTextColor(0xE6FFFFFF);
 		}
 		int p = Math.round(8 * d);
+		int oldV = cp.getPaddingTop() + cp.getPaddingBottom();
 		cp.setPadding(Math.round(10 * d), p, Math.round(10 * d), p);
+		android.view.ViewGroup.LayoutParams clp = cp.getLayoutParams();
+		if ((clp != null) && (clp.height > 0)) {
+			clp.height += 2 * p - oldV; // oynat dairesi alttan kesilmesin
+			cp.setLayoutParams(clp);
+		}
+		// Yüzen geri düğmesi: soluk halka yerine cam daire, beyaz ok
+		if (floatingButton != null) {
+			floatingButton.setBorderWidth(0);
+			floatingButton.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0x40FFFFFF));
+			floatingButton.setImageTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
+			floatingButton.setAlpha(0.95f);
+		}
 	}
 
 	/** Görünümün kısa kenarı kadar, ortalanmış daire (geniş düğmede yayvan hap olmasın). */
