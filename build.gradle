@@ -163,7 +163,7 @@ gradle.projectsEvaluated {
         def name = it['name']
         addonInfo.append("  new me.aap.fermata.addon.AddonInfo(" +
                 "\"${it.get('module', name)}\", \"${it['class']}\", " +
-                "R.string.addon_name_${name}, R.drawable.${it['icon']}, " +
+                "me.aap.fermata.R.string.addon_name_${name}, me.aap.fermata.R.drawable.${it['icon']}, " +
                 "${it['order']}, ${it['hasSettings']}, ${it['enabled']}, " +
                 "${it.get('auto', false)}, \"${it.get('depends', "")}\"),\n")
     }
