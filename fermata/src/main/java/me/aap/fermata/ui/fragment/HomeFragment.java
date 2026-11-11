@@ -289,6 +289,8 @@ public class HomeFragment extends MainActivityFragment {
 			render();
 			UiUtils.showInfo(ctx, "Tema: " + YoldaStyle.current(ctx).name);
 		}), leftMargin(sq(btnDp(ctx)), 12));
+		head.addView(roundGlass(ctx, R.drawable.yi_settings, v -> a.showFragment(R.id.yolda_menu_fragment)),
+				leftMargin(sq(btnDp(ctx)), 12));
 		return head;
 	}
 
@@ -486,19 +488,20 @@ public class HomeFragment extends MainActivityFragment {
 	 */
 	private View appCard(Context ctx, String label, @Nullable android.graphics.drawable.Drawable iconBg, ImageView g,
 											 int glyphDp, View.OnClickListener click) {
-		FrameLayout f = pressable(ctx, YoldaStyle.glass(ctx, t, 34), click);
+		// Çerçevesiz: simge hücreyi kaplayan büyük yuvarlatılmış kare, altında ad
+		FrameLayout f = pressable(ctx, null, click);
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.VERTICAL);
-		box.setGravity(Gravity.CENTER);
-		FrameLayout ic = new FrameLayout(ctx);
+		box.setGravity(Gravity.CENTER_HORIZONTAL);
+		SquareIcon ic = new SquareIcon(ctx, (iconBg == null) ? 1f : (glyphDp / 104f));
 		if (iconBg != null) {
 			ic.setBackground(iconBg);
 			ic.setElevation(dp(6));
 		}
-		int icon = iconDp(ctx);
-		int glyph = Math.round(glyphDp * icon / 104f);
-		ic.addView(g, new FrameLayout.LayoutParams(dp(glyph), dp(glyph), Gravity.CENTER));
-		box.addView(ic, sq(icon));
+		ic.addView(g, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
+		FrameLayout holder = new FrameLayout(ctx);
+		holder.addView(ic, new FrameLayout.LayoutParams(-1, -1, Gravity.CENTER));
+		box.addView(holder, new LinearLayout.LayoutParams(-1, 0, 1f));
 		TextView l = text(ctx, label, YoldaStyle.compact(ctx) ? 13 : 17, true);
 		l.setGravity(Gravity.CENTER);
 		l.setMaxLines(1);
@@ -882,6 +885,29 @@ public class HomeFragment extends MainActivityFragment {
 
 	private static int btnDp(Context ctx) {
 		return YoldaStyle.compact(ctx) ? 48 : 58;
+	}
+
+	/** Kendine verilen alanın kısa kenarı kadar kare; içindeki simge kenarın {@code frac} oranında. */
+	private static final class SquareIcon extends FrameLayout {
+		private final float frac;
+
+		SquareIcon(Context ctx, float frac) {
+			super(ctx);
+			this.frac = frac;
+		}
+
+		@Override
+		protected void onMeasure(int wSpec, int hSpec) {
+			int s = Math.min(MeasureSpec.getSize(wSpec), MeasureSpec.getSize(hSpec));
+			int g = Math.round(s * frac);
+			for (int i = 0; i < getChildCount(); i++) {
+				android.view.ViewGroup.LayoutParams lp = getChildAt(i).getLayoutParams();
+				lp.width = g;
+				lp.height = g;
+			}
+			int e = MeasureSpec.makeMeasureSpec(s, MeasureSpec.EXACTLY);
+			super.onMeasure(e, e);
+		}
 	}
 
 	private LinearLayout.LayoutParams sq(int sizeDp) {

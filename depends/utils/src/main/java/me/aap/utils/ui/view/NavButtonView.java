@@ -79,8 +79,19 @@ public class NavButtonView extends LinearLayoutCompat {
 		if (iconsOnly) {
 			TextView t = getText();
 			if (t != null) t.setVisibility(GONE);
-			int p = toIntPx(getContext(), 12); // 72dp kapsülde simge ~40dp
-			i.setPadding(0, p, 0, p);
+			// Tüm simgeler aynı boyda (30dp), düğmenin tam ortasında; seçili olunca boyut değişmez
+			int s = toIntPx(getContext(), 30);
+			LayoutParams lp = (LayoutParams) i.getLayoutParams();
+			if ((lp.width != s) || (lp.height != s)) {
+				lp.width = s;
+				lp.height = s;
+				lp.weight = 0;
+				lp.gravity = Gravity.CENTER;
+				i.setLayoutParams(lp);
+			}
+			i.setScaleType(ImageView.ScaleType.FIT_CENTER);
+			i.setPadding(0, 0, 0, 0);
+			setGravity(Gravity.CENTER);
 			i.setAlpha(selected ? 1f : 0.62f);
 			setBackground((selected && (selectedBackground != null)) ? selectedBackground.apply(getContext()) : null);
 			return;

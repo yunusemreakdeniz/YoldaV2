@@ -1072,7 +1072,11 @@ public class MainActivityDelegate extends ActivityDelegate
 		name.setLetterSpacing(-0.02f);
 		name.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
 		name.setPadding(0, toIntPx(ctx, 22), 0, 0);
-		box.addView(name);
+		name.setGravity(Gravity.CENTER);
+		// Dikey LinearLayout varsayılanı tam genişlik verip yazıyı sola yaslıyordu; ortala
+		android.widget.LinearLayout.LayoutParams nlp = new android.widget.LinearLayout.LayoutParams(-2, -2);
+		nlp.gravity = Gravity.CENTER_HORIZONTAL;
+		box.addView(name, nlp);
 		s.addView(box, new android.widget.FrameLayout.LayoutParams(-1, -1));
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(0, 0);
 		lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;

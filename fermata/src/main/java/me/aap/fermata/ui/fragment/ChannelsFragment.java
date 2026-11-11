@@ -104,16 +104,19 @@ public class ChannelsFragment extends MainActivityFragment {
 		status = text(ctx, "Kanallar yükleniyor…", 14, false, t.muted);
 		titles.addView(status);
 		head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1f));
-		TextView adv = text(ctx, "+  Liste ekle", 15, true, t.ink);
-		adv.setGravity(Gravity.CENTER);
-		adv.setPadding(dp(18), dp(12), dp(18), dp(12));
+		ImageView adv = new ImageView(ctx);
+		adv.setImageResource(R.drawable.yi_add);
+		adv.setColorFilter(t.ink);
+		adv.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+		adv.setPadding(dp(12), dp(12), dp(12), dp(12));
+		adv.setContentDescription("Kanal listesi ekle");
 		adv.setBackground(YoldaStyle.glass(ctx, t, 999));
 		adv.setClickable(true);
 		adv.setOnClickListener(v -> {
 			bypassOnce();
 			a.showFragment(R.id.tv_fragment);
 		});
-		head.addView(adv);
+		head.addView(adv, new LinearLayout.LayoutParams(dp(48), dp(48)));
 		TextView edit = text(ctx, editing ? "Bitti" : "Düzenle", 15, true, t.ink);
 		edit.setGravity(Gravity.CENTER);
 		edit.setPadding(dp(18), dp(12), dp(18), dp(12));
@@ -145,7 +148,8 @@ public class ChannelsFragment extends MainActivityFragment {
 		search.setTextSize(18);
 		search.setTextColor(t.ink);
 		search.setHintTextColor(t.muted);
-		search.setPadding(dp(22), dp(16), dp(22), dp(16));
+		search.setPadding(dp(20), 0, dp(20), 0);
+		search.setGravity(Gravity.CENTER_VERTICAL);
 		android.graphics.drawable.GradientDrawable sbg = new android.graphics.drawable.GradientDrawable(
 				android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
 				new int[]{(t.base & 0x00FFFFFF) | 0xCC000000, (t.base & 0x00FFFFFF) | 0xE6000000});
@@ -154,8 +158,9 @@ public class ChannelsFragment extends MainActivityFragment {
 		search.setBackground(new android.graphics.drawable.LayerDrawable(
 				new android.graphics.drawable.Drawable[]{sbg, YoldaStyle.glass(ctx, t, 999)}));
 		search.setElevation(dp(8));
-		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
-		slp.setMargins(dp(22), 0, dp(22), dp(80)); // sesli asistan düğmesinin üstünde
+		// Sesli asistan düğmesiyle aynı hizada, hemen sağında (düğme: solda 22dp, 56dp, alttan 14dp)
+		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, dp(56), Gravity.BOTTOM);
+		slp.setMargins(dp(22 + 56 + 12), 0, dp(22), dp(14));
 		search.addTextChangedListener(new TextWatcher() {
 			@Override
 			public void beforeTextChanged(CharSequence s, int st, int c, int a1) {
@@ -185,7 +190,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		scroll.setClipToPadding(false);
 		grid = new LinearLayout(ctx);
 		grid.setOrientation(LinearLayout.VERTICAL);
-		grid.setPadding(0, dp(14), 0, dp(168)); // altta arama + sesli asistan düğmesi
+		grid.setPadding(0, dp(14), 0, dp(96)); // altta arama + sesli asistan düğmesi
 		scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
 		col.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
