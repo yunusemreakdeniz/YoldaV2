@@ -55,6 +55,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
+      - name: Disk boşalt (emülatöre yer kalsın)
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost             /opt/hostedtoolcache/CodeQL /usr/local/share/powershell /usr/share/swift /usr/local/julia* || true
+          df -h /
       - uses: actions/checkout@v4
       - name: NDK sürümü
         run: echo "ANDROID_NDK_VERSION=$(grep -Po '(?<=ndkVersion).+' gradle/libs.versions.toml | sed -e 's/[= \"]//g')" >> $GITHUB_ENV
@@ -91,7 +95,7 @@ jobs:
           target: google_apis
           arch: x86_64
           ram-size: 4096M
-          disk-size: 6000M
+          disk-size: 3000M
           emulator-boot-timeout: 1200
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
