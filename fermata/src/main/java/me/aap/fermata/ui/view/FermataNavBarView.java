@@ -28,6 +28,33 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 		gestureDetector = new GestureDetectorCompat(context, this);
 	}
 
+	@Override
+	public void setSize(float scale) {
+		super.setSize(scale);
+		applyYoldaPill();
+	}
+
+	/**
+	 * Yolda Cam: alt menü ekranın kenarına yapışık blok değil, havada duran oval cam kapsül
+	 * (en çok 640dp genişlikte, ortalı, alttan 14dp yukarıda).
+	 */
+	public void applyYoldaPill() {
+		if (!YoldaStyle.glassActive || !isBottom()) return;
+		if (!(getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams lp)) return;
+		float d = getResources().getDisplayMetrics().density;
+		int screenW = Math.round(getResources().getConfiguration().screenWidthDp * d);
+		int maxW = Math.round(640 * d);
+		int side = Math.max(Math.round(16 * d), (screenW - maxW) / 2);
+		lp.width = 0; // ConstraintLayout: soldan sağa kısıtlara göre, kenar boşluklarıyla
+		lp.leftMargin = side;
+		lp.rightMargin = side;
+		lp.bottomMargin = Math.round(14 * d);
+		setLayoutParams(lp);
+		setBackground(YoldaStyle.pill(getContext(), YoldaStyle.current(getContext())));
+		setPadding(Math.round(8 * d), 0, Math.round(8 * d), 0);
+		setClipToOutline(true);
+	}
+
 	protected boolean interceptTouchEvent(MotionEvent e) {
 		gestureDetector.onTouchEvent(e);
 		return super.onTouchEvent(e);

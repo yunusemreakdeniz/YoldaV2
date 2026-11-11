@@ -709,6 +709,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.HomeFragment();
 		} else if (id == R.id.yolda_channels_fragment) {
 			return new me.aap.fermata.ui.fragment.ChannelsFragment();
+		} else if (id == R.id.yolda_nav_fragment) {
+			return new me.aap.fermata.ui.fragment.NavFragment();
 		} else if (id == R.id.folders_fragment) {
 			return new FoldersFragment();
 		} else if (id == R.id.favorites_fragment) {
@@ -1001,6 +1003,22 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (me.aap.fermata.ui.view.YoldaStyle.glassActive) {
 			View root = a.findViewById(R.id.main_activity);
 			if (root != null) me.aap.fermata.ui.view.YoldaStyle.applyBackdrop(root);
+			// Alt menü: havada duran oval cam kapsül
+			if (navBar instanceof me.aap.fermata.ui.view.FermataNavBarView fnb) {
+				fnb.applyYoldaPill();
+				fnb.post(fnb::applyYoldaPill);
+			}
+			// Mini oynatıcı: kenarlardan içeride, yuvarlak cam
+			if (controlPanel.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams cp) {
+				float d = getContext().getResources().getDisplayMetrics().density;
+				cp.width = 0;
+				cp.leftMargin = cp.rightMargin = Math.round(16 * d);
+				cp.bottomMargin = Math.round(10 * d);
+				controlPanel.setLayoutParams(cp);
+				controlPanel.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(getContext(),
+						me.aap.fermata.ui.view.YoldaStyle.current(getContext()), 28));
+				controlPanel.setClipToOutline(true);
+			}
 		}
 
 		if (VERSION.SDK_INT >= VERSION_CODES.VANILLA_ICE_CREAM && !a.isCarActivity()) {

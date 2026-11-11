@@ -6,7 +6,11 @@
     <string name="app_name_auto_debug" translatable="false">Debug Fermata Auto</string>
     <string name="yolda_home" translatable="false">Ana sayfa</string>
     <string name="theme_yolda" translatable="false">Yolda Cam</string>
-    <string name="yolda_channels" translatable="false">Kanallar</string>
+    <string name="yolda_channels" translatable="false">TV</string>
+    <string name="yolda_music" translatable="false">Müzik</string>
+    <string name="yolda_youtube" translatable="false">YouTube</string>
+    <string name="yolda_nav" translatable="false">Navigasyon</string>
+    <string name="yolda_nav_dest" translatable="false">Nereye gidelim? (adres ya da yer adı)</string>
     <string name="yolda_add_yt" translatable="false">YouTube kanalı ekle (@kanal ya da bağlantı)</string>
     <string name="mirror_service_name_release" translatable="false">Yolda Telefon</string>
     <string name="mirror_service_name_debug" translatable="false">Debug Fermata Mirror</string>

@@ -1,55 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Yolda Cam teması: Fermata'nın tüm ekranları (üst çubuk, alt menü, oynatıcı paneli, listeler,
-  TV/YouTube/klasör ekranları, menüler) Yolda ana ekranıyla aynı cam görünüme geçer.
-  Zemindeki süzülen pastel ışıklar MainActivityDelegate'te kök görünüme çizilir; buradaki yüzeyler
-  yarı saydam olduğu için o ışıklar her yerden hafifçe görünür.
+  Yolda Cam teması (Liquid Glass): Fermata'nın tüm ekranları Yolda ile aynı görünümde.
+  Zemindeki canlı ışıklar MainActivityDelegate'te kök görünüme çizilir. Alt menü ve mini oynatıcı
+  kodda havada duran oval cama çevrilir; burada çubuklar saydam, listeler berrak cam.
 -->
 <resources>
 
     <style name="AppTheme.YoldaGlass">
 
-        <!-- Zemin saydam: ışıklar kök görünümde -->
         <item name="android:colorBackground">#00000000</item>
         <item name="android:windowBackground">@color/yolda_base</item>
-        <item name="android:editTextColor">#F5F3F7</item>
+        <item name="android:editTextColor">#FFFFFF</item>
         <item name="android:statusBarColor">#00000000</item>
         <item name="android:navigationBarColor">#00000000</item>
 
-        <!-- Üst çubuk, alt menü, oynatıcı paneli: koyu buzlu cam -->
+        <!-- Üst çubuk saydam; alt menü/oynatıcı kodda cam kapsül -->
         <item name="colorPrimaryDark">#00000000</item>
-        <item name="colorPrimary">#D90E1424</item>
-        <item name="colorOnPrimary">#F5F3F7</item>
-        <item name="android:textColorPrimary">#F5F3F7</item>
+        <item name="colorPrimary">#00000000</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
 
-        <!-- Liste/kanal kartları: açık cam -->
-        <item name="colorSecondary">#24FFFFFF</item>
-        <item name="colorOnSecondary">#E6E1F0</item>
-        <item name="android:textColorSecondary">#F5F3F7</item>
-        <item name="boxStrokeColor">#2EFFFFFF</item>
+        <!-- Liste kartları: berrak cam -->
+        <item name="colorSecondary">#2EFFFFFF</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#FFFFFF</item>
+        <item name="boxStrokeColor">#47FFFFFF</item>
 
-        <!-- Seçili / çalan öğe: pastel lavanta cam -->
-        <item name="alpha">0.8</item>
-        <item name="colorSecondaryVariant">#5CB8A9F5</item>
+        <!-- Seçili / çalan öğe: dolgun cam -->
+        <item name="alpha">0.9</item>
+        <item name="colorSecondaryVariant">#5CFFFFFF</item>
         <item name="android:textColorTertiary">#FFFFFF</item>
 
-        <!-- Açılır menüler ve pencereler -->
-        <item name="colorSurface">#F2181D30</item>
-        <item name="colorOnSurface">#F5F3F7</item>
-        <item name="colorPrimarySurface">#F2181D30</item>
-        <item name="colorOnPrimarySurface">#F5F3F7</item>
+        <!-- Açılır menüler ve pencereler: koyu cam (okunurluk için) -->
+        <item name="colorSurface">#E61A1E3D</item>
+        <item name="colorOnSurface">#FFFFFF</item>
+        <item name="colorPrimarySurface">#E61A1E3D</item>
+        <item name="colorOnPrimarySurface">#FFFFFF</item>
 
-        <!-- Vurgu: pastel lavanta -->
-        <item name="colorAccent">#C9BCFF</item>
-        <item name="rippleColor">#33FFFFFF</item>
-        <item name="android:textColorHint">#B9B4C7</item>
-        <item name="colorControlNormal">#E6E1F0</item>
-        <item name="colorControlActivated">#C9BCFF</item>
+        <item name="colorAccent">#FFFFFF</item>
+        <item name="rippleColor">#40FFFFFF</item>
+        <item name="android:textColorHint">#B3FFFFFF</item>
+        <item name="colorControlNormal">#FFFFFF</item>
+        <item name="colorControlActivated">#FFFFFF</item>
 
-        <!-- Geniş, yumuşak köşeler -->
-        <item name="cornerRadius">18dp</item>
+        <item name="cornerRadius">20dp</item>
     </style>
 
-    <color name="yolda_base">#0E1424</color>
+    <color name="yolda_base">#0B0E2A</color>
 
 </resources>

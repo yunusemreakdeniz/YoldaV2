@@ -5,13 +5,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
@@ -45,32 +42,27 @@ import java.util.Locale;
 import me.aap.fermata.R;
 import me.aap.fermata.addon.AddonManager;
 import me.aap.fermata.media.lib.MediaLib;
-import me.aap.fermata.media.service.FermataServiceUiBinder;
 import me.aap.fermata.ui.activity.MainActivityDelegate;
-import me.aap.fermata.ui.view.BodyLayout;
 import me.aap.fermata.ui.view.YoldaStyle;
 import me.aap.utils.log.Log;
 import me.aap.utils.ui.UiUtils;
 
 /**
- * Yolda ana ekranı (cam tasarım).
+ * Yolda ana ekranı (Liquid Glass, onaylanan taslağa göre).
  * <pre>
- *  ┌ 21:45  İyi akşamlar · tarih ─────────────── (mic) (görünüm) (tema) ┐
- *  │ KART: ┌ Devam et / Sesli komut ┐ ┌ TV ┐ ┌ YouTube ┐                │
- *  │       │      (pastel kart)     │ ├────┤ ├─────────┤                │
- *  │       └────────────────────────┘ └Tel ┘ └ Music   ┘                │
- *  │ AKICI: [Şimdi oynatılıyor ⏮ ⏯ ⏭ ☆] + büyük satırlar                │
- *  │ (Favoriler) (Tarayıcı) (Videolar) (Ayarlar)                         │
- *  │ YouTube kanallarım  [kart] [kart] … [+]                             │
- *  └─────────────────────────────────────────────────────────────────────┘
+ *  ┌ Salı, 11 Kasım · 21:45                                   (mic) (tema) ┐
+ *  │ İyi akşamlar                                                          │
+ *  │ [Navigasyon] [TV ve Radyo] [YouTube] [YouTube Music] [Telefon] [Web]  │  ← uygulama kartları
+ *  │ Canlı kanallar                                         Tümünü gör    │
+ *  │ [TRT 1] [ATV] [Kanal D] …                                             │
+ *  │ YouTube kanallarım  [..] [..] [+]                                     │
+ *  └────────────── ( Ana sayfa · TV · YouTube · Müzik · Menü ) ────────────┘  ← Fermata alt menüsü, cam kapsül
  * </pre>
- * Simgeler vektör çizim (emoji yok). Tema 🎨, görünüm ☰/▦ düğmesiyle değişir; ikisi de hatırlanır.
  */
 public class HomeFragment extends MainActivityFragment {
 
 	private static final String PREFS = YoldaStyle.PREFS;
-	private static final int HERO_INK = 0xFF1C1A2B;
-	private static final String MUSIC_URL = "https://music.youtube.com";
+	static final String MUSIC_URL = "https://music.youtube.com";
 
 	private static final String[][] DEFAULT_YT = {
 			{"Habertürk", "https://m.youtube.com/channel/UCK3mI2lsk3LSo8PBUc8JTSw/live"},
@@ -81,12 +73,6 @@ public class HomeFragment extends MainActivityFragment {
 			{"tv100", "https://m.youtube.com/channel/UCndsdUW_oPLqpQJY9J8oIRg/live"},
 	};
 
-	/** Kart renkleri (yumuşatılarak pastel daireye dönüşür). */
-	private static final int C_TV = 0xFFF87171, C_YT = 0xFFFB7185, C_MUSIC = 0xFFE879F9, C_PHONE = 0xFF4ADE80,
-			C_WEB = 0xFF60A5FA, C_FAV = 0xFFFBBF24, C_VIDEO = 0xFFA78BFA, C_SET = 0xFF94A3B8;
-
-	private final Handler ui = new Handler(Looper.getMainLooper());
-	private Runnable npTick;
 	private FrameLayout root;
 	private YoldaStyle.Theme t;
 
@@ -123,21 +109,11 @@ public class HomeFragment extends MainActivityFragment {
 	@Override
 	public void onHiddenChanged(boolean hidden) {
 		super.onHiddenChanged(hidden);
-		if (!hidden && root != null) render(); // geri dönünce "devam et" güncel olsun
-	}
-
-	@Override
-	public void onDestroyView() {
-		if (npTick != null) ui.removeCallbacks(npTick);
-		super.onDestroyView();
+		if (!hidden && root != null) render();
 	}
 
 	private SharedPreferences prefs() {
 		return requireContext().getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-	}
-
-	private boolean flowLayout() {
-		return prefs().getInt("layout", 0) == 1;
 	}
 
 	// ---- çizim ----
@@ -145,7 +121,6 @@ public class HomeFragment extends MainActivityFragment {
 	private void render() {
 		Context ctx = requireContext();
 		t = YoldaStyle.current(ctx);
-		if (npTick != null) ui.removeCallbacks(npTick);
 		root.removeAllViews();
 		root.setBackground(null);
 		YoldaStyle.applyScreenBackground(root, t);
@@ -155,17 +130,14 @@ public class HomeFragment extends MainActivityFragment {
 		scroll.setVerticalScrollBarEnabled(false);
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
-		col.setPadding(dp(24), dp(16), dp(24), dp(24));
+		col.setPadding(dp(44), dp(28), dp(44), dp(28));
 		scroll.addView(col, new ScrollView.LayoutParams(-1, -2));
 		root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
 
 		MainActivityDelegate a = getActivityDelegate();
 		col.addView(header(ctx, a));
-
-		if (flowLayout()) flow(ctx, a, col);
-		else cards(ctx, a, col);
-
-		col.addView(shortcuts(ctx, a), topMargin(new LinearLayout.LayoutParams(-1, -2), 18));
+		col.addView(apps(ctx, a), topMargin(new LinearLayout.LayoutParams(-1, -2), 24));
+		if (AddonManager.get().hasAddon(R.id.tv_fragment)) liveShelf(ctx, a, col);
 		if (AddonManager.get().hasAddon(R.id.youtube_fragment)) ytShelf(ctx, a, col);
 		animateIn(col);
 	}
@@ -175,288 +147,174 @@ public class HomeFragment extends MainActivityFragment {
 		head.setOrientation(LinearLayout.HORIZONTAL);
 		head.setGravity(Gravity.CENTER_VERTICAL);
 
-		TextClock clock = new TextClock(ctx);
-		clock.setFormat24Hour("HH:mm");
-		clock.setFormat12Hour("HH:mm");
-		clock.setTextSize(46);
-		clock.setTypeface(Typeface.create("sans-serif-thin", Typeface.NORMAL));
-		clock.setTextColor(t.ink);
-		clock.setIncludeFontPadding(false);
-		head.addView(clock);
-
 		LinearLayout hello = new LinearLayout(ctx);
 		hello.setOrientation(LinearLayout.VERTICAL);
-		hello.setPadding(dp(18), 0, 0, 0);
-		hello.addView(text(ctx, greeting(), 20, true, t.ink));
 		TextClock date = new TextClock(ctx);
-		date.setFormat24Hour("d MMMM EEEE");
-		date.setFormat12Hour("d MMMM EEEE");
-		date.setTextSize(14);
-		date.setTextColor(t.muted);
+		date.setFormat24Hour("EEEE, d MMMM · HH:mm");
+		date.setFormat12Hour("EEEE, d MMMM · HH:mm");
+		date.setTextSize(15);
+		date.setTextColor(0xBFFFFFFF);
+		date.setShadowLayer(dp(6), 0, dp(1), 0x40000000);
 		hello.addView(date);
+		TextView g = text(ctx, greeting(), 40, true);
+		g.setLetterSpacing(-0.025f);
+		hello.addView(g);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
 
-		head.addView(accentButton(ctx, R.drawable.yi_mic, 56, v -> a.startVoiceAssistant()));
-		boolean flow = flowLayout();
-		head.addView(glassButton(ctx, flow ? R.drawable.yi_grid : R.drawable.yi_list, 56, v -> {
-			prefs().edit().putInt("layout", flow ? 0 : 1).apply();
-			render();
-		}), leftMargin(sq(56), 10));
-		head.addView(glassButton(ctx, R.drawable.yi_palette, 56, v -> {
+		head.addView(roundGlass(ctx, R.drawable.yi_mic, v -> a.startVoiceAssistant()), sq(58));
+		head.addView(roundGlass(ctx, R.drawable.yi_palette, v -> {
 			YoldaStyle.next(ctx);
 			YoldaStyle.refreshBackdrop(ctx);
 			render();
 			UiUtils.showInfo(ctx, "Tema: " + YoldaStyle.current(ctx).name);
-		}), leftMargin(sq(56), 10));
+		}), leftMargin(sq(58), 12));
 		return head;
 	}
 
-	// ---- kart görünümü ----
+	// ---- uygulama kartları (kendi simgeleriyle) ----
 
-	private void cards(Context ctx, MainActivityDelegate a, LinearLayout col) {
-		boolean wide = ctx.getResources().getConfiguration().screenWidthDp >= 600;
-		LinearLayout hero = new LinearLayout(ctx);
-		hero.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-		int h = wide ? dp(236) : dp(140);
-		hero.addView(heroCard(ctx, a), wide ? new LinearLayout.LayoutParams(0, h, 1.1f) : new LinearLayout.LayoutParams(-1, h));
-		LinearLayout.LayoutParams qlp = wide ? new LinearLayout.LayoutParams(0, h, 1f) : new LinearLayout.LayoutParams(-1, dp(236));
-		if (wide) qlp.leftMargin = dp(14);
-		else qlp.topMargin = dp(14);
-		hero.addView(quad(ctx, a), qlp);
-		col.addView(hero, topMargin(new LinearLayout.LayoutParams(-1, -2), 18));
-	}
-
-	/** Çalan/son yayın varsa "Devam et", yoksa "Sesli komut". */
-	private View heroCard(Context ctx, MainActivityDelegate a) {
-		boolean has = a.hasCurrent();
-		String sub = "Son izlediğin yayın";
-		MediaLib.PlayableItem pi = a.getMediaServiceBinder().getCurrentItem();
-		if (pi != null) sub = String.valueOf(pi.getName());
-		FrameLayout f = pressable(ctx, YoldaStyle.hero(ctx, t, 30), has ? v -> resume(a) : v -> a.startVoiceAssistant());
-		LinearLayout box = new LinearLayout(ctx);
-		box.setOrientation(LinearLayout.VERTICAL);
-		box.setGravity(Gravity.BOTTOM);
-		box.setPadding(dp(24), dp(20), dp(24), dp(22));
-		box.addView(glyphDisc(ctx, has ? R.drawable.yi_play : R.drawable.yi_mic, 0x40FFFFFF, HERO_INK, 52));
-		TextView title = text(ctx, has ? "Kaldığın yerden devam" : "Sesli komut", 25, true, HERO_INK);
-		title.setPadding(0, dp(14), 0, 0);
-		box.addView(title);
-		TextView s = text(ctx, has ? sub : "“TRT Haber'i aç” · “YouTube'da Habertürk aç”", 14, false, 0xB31C1A2B);
-		s.setMaxLines(2);
-		box.addView(s);
-		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
-		return f;
-	}
-
-	private LinearLayout quad(Context ctx, MainActivityDelegate a) {
+	private View apps(Context ctx, MainActivityDelegate a) {
 		AddonManager am = AddonManager.get();
-		List<View> tiles = new ArrayList<>();
+		List<View> cards = new ArrayList<>();
+		cards.add(appCard(ctx, "Navigasyon", YoldaStyle.appIcon(ctx, 0xFF4FD1C5, 0xFF0E9F8E, 28), R.drawable.yi_nav, true,
+				v -> a.showFragment(R.id.yolda_nav_fragment)));
 		if (am.hasAddon(R.id.tv_fragment))
-			tiles.add(tile(ctx, R.drawable.yi_tv, "TV ve Radyo", C_TV, v -> a.showFragment(R.id.yolda_channels_fragment)));
+			cards.add(appCard(ctx, "TV ve Radyo", YoldaStyle.appIcon(ctx, 0xFFFF8A65, 0xFFF4511E, 28), R.drawable.yi_tv, true,
+					v -> a.showFragment(R.id.yolda_channels_fragment)));
 		if (am.hasAddon(R.id.youtube_fragment))
-			tiles.add(tile(ctx, R.drawable.yi_youtube, "YouTube", C_YT, v -> a.showFragment(R.id.youtube_fragment)));
-		tiles.add(tile(ctx, R.drawable.yi_phone, "Telefon", C_PHONE, v -> phone(ctx)));
+			cards.add(appCard(ctx, "YouTube", YoldaStyle.appIcon(ctx, 0xFFFFFFFF, 0xFFF1F1F1, 28), R.drawable.yi_brand_youtube, false,
+					v -> a.showFragment(R.id.youtube_fragment)));
 		if (am.hasAddon(R.id.web_browser_fragment))
-			tiles.add(tile(ctx, R.drawable.yi_music, "YouTube Music", C_MUSIC, v -> openWeb(a, MUSIC_URL)));
-		else tiles.add(tile(ctx, R.drawable.yi_star, "Favoriler", C_FAV, v -> a.showFragment(R.id.favorites_fragment)));
+			cards.add(appCard(ctx, "YouTube Music", YoldaStyle.appIcon(ctx, 0xFFFF2A2A, 0xFFE00000, 28), R.drawable.yi_brand_ytmusic, false,
+					v -> openWeb(a, MUSIC_URL)));
+		cards.add(appCard(ctx, "Telefon", YoldaStyle.appIcon(ctx, 0xFF5EE07B, 0xFF1DB954, 28), R.drawable.yi_phone, true,
+				v -> phone(ctx)));
+		if (am.hasAddon(R.id.web_browser_fragment))
+			cards.add(appCard(ctx, "Tarayıcı", YoldaStyle.appIcon(ctx, 0xFF6BB8FF, 0xFF1E6FE6, 28), R.drawable.yi_globe, true,
+					v -> a.showFragment(R.id.web_browser_fragment)));
 
-		LinearLayout q = new LinearLayout(ctx);
-		q.setOrientation(LinearLayout.VERTICAL);
-		for (int r = 0; r < 2; r++) {
-			LinearLayout row = new LinearLayout(ctx);
-			row.setOrientation(LinearLayout.HORIZONTAL);
-			for (int c = 0; c < 2; c++) {
-				int i = r * 2 + c;
-				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
-				if (c == 1) lp.leftMargin = dp(14);
-				row.addView(i < tiles.size() ? tiles.get(i) : new View(ctx), lp);
+		// Geniş ekranda tek sıra, dar ekranda 3'lü iki sıra
+		int perRow = ctx.getResources().getConfiguration().screenWidthDp >= 900 ? cards.size() : 3;
+		LinearLayout grid = new LinearLayout(ctx);
+		grid.setOrientation(LinearLayout.VERTICAL);
+		LinearLayout row = null;
+		for (int i = 0; i < cards.size(); i++) {
+			if (i % perRow == 0) {
+				row = new LinearLayout(ctx);
+				row.setOrientation(LinearLayout.HORIZONTAL);
+				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, dp(224));
+				if (i > 0) rlp.topMargin = dp(18);
+				grid.addView(row, rlp);
 			}
-			LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, 0, 1f);
-			if (r == 1) rlp.topMargin = dp(14);
-			q.addView(row, rlp);
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
+			if (i % perRow != 0) lp.leftMargin = dp(18);
+			row.addView(cards.get(i), lp);
 		}
-		return q;
+		return grid;
 	}
 
-	private View tile(Context ctx, @DrawableRes int icon, String label, int color, View.OnClickListener click) {
-		FrameLayout f = pressable(ctx, YoldaStyle.glass(ctx, t, 26), click);
+	/** Büyük cam kart, ortada iOS uygulama simgesi gibi yuvarlatılmış kare. */
+	private View appCard(Context ctx, String label, android.graphics.drawable.Drawable iconBg, @DrawableRes int glyph,
+											 boolean tintWhite, View.OnClickListener click) {
+		FrameLayout f = pressable(ctx, YoldaStyle.glass(ctx, t, 34), click);
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.VERTICAL);
-		box.setGravity(Gravity.CENTER_VERTICAL);
-		box.setPadding(dp(18), dp(14), dp(14), dp(14));
-		box.addView(iconDisc(ctx, icon, color, 46));
-		TextView l = text(ctx, label, 16, true, t.ink);
+		box.setGravity(Gravity.CENTER);
+		FrameLayout ic = new FrameLayout(ctx);
+		ic.setBackground(iconBg);
+		ic.setElevation(dp(6));
+		ImageView g = new ImageView(ctx);
+		g.setImageResource(glyph);
+		if (tintWhite) g.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		g.setScaleType(ImageView.ScaleType.FIT_CENTER);
+		int gs = tintWhite ? 54 : 70;
+		ic.addView(g, new FrameLayout.LayoutParams(dp(gs), dp(gs), Gravity.CENTER));
+		box.addView(ic, sq(104));
+		TextView l = text(ctx, label, 17, true);
+		l.setGravity(Gravity.CENTER);
 		l.setMaxLines(1);
 		l.setEllipsize(TextUtils.TruncateAt.END);
-		l.setPadding(0, dp(10), 0, 0);
-		box.addView(l);
+		l.setPadding(dp(6), dp(16), dp(6), 0);
+		box.addView(l, new LinearLayout.LayoutParams(-1, -2));
 		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
 		return f;
 	}
 
-	// ---- akıcı görünüm ----
+	// ---- canlı kanallar rafı ----
 
-	private void flow(Context ctx, MainActivityDelegate a, LinearLayout col) {
-		col.addView(nowPlaying(ctx, a), topMargin(new LinearLayout.LayoutParams(-1, dp(148)), 18));
-		AddonManager am = AddonManager.get();
-		if (am.hasAddon(R.id.tv_fragment))
-			col.addView(row(ctx, R.drawable.yi_tv, "TV ve Radyo", "51 kanal · 22 radyo", C_TV, v -> a.showFragment(R.id.yolda_channels_fragment)));
-		if (am.hasAddon(R.id.youtube_fragment))
-			col.addView(row(ctx, R.drawable.yi_youtube, "YouTube", "Videolar, canlı yayınlar", C_YT, v -> a.showFragment(R.id.youtube_fragment)));
-		if (am.hasAddon(R.id.web_browser_fragment))
-			col.addView(row(ctx, R.drawable.yi_music, "YouTube Music", "Müzik, çalma listeleri, podcast", C_MUSIC, v -> openWeb(a, MUSIC_URL)));
-		col.addView(row(ctx, R.drawable.yi_phone, "Telefon", "Telefon ekranını araçtan kullan", C_PHONE, v -> phone(ctx)));
-	}
-
-	/** Apple "Şimdi Çalıyor" gibi cam kart: pastel kapak, başlık, ⏮ ⏯ ⏭ ☆; saniyede bir güncellenir. */
-	private View nowPlaying(Context ctx, MainActivityDelegate a) {
-		FrameLayout f = pressable(ctx, YoldaStyle.glass(ctx, t, 28), v -> {
-			if (a.hasCurrent()) resume(a);
-			else a.startVoiceAssistant();
-		});
-		LinearLayout box = new LinearLayout(ctx);
-		box.setOrientation(LinearLayout.HORIZONTAL);
-		box.setGravity(Gravity.CENTER_VERTICAL);
-		box.setPadding(dp(16), dp(14), dp(16), dp(14));
-
-		FrameLayout art = new FrameLayout(ctx);
-		art.setBackground(YoldaStyle.hero(ctx, t, 22));
-		ImageView artIcon = icon(ctx, R.drawable.yi_tv, HERO_INK);
-		art.addView(artIcon, new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER));
-		box.addView(art, new LinearLayout.LayoutParams(dp(104), dp(104)));
-
-		LinearLayout info = new LinearLayout(ctx);
-		info.setOrientation(LinearLayout.VERTICAL);
-		info.setPadding(dp(18), 0, dp(10), 0);
-		TextView eyebrow = text(ctx, "", 12, true, t.accent);
-		eyebrow.setLetterSpacing(0.14f);
-		TextView title = text(ctx, "", 23, true, t.ink);
-		title.setMaxLines(1);
-		title.setEllipsize(TextUtils.TruncateAt.END);
-		TextView sub = text(ctx, "", 14, false, t.muted);
-		sub.setMaxLines(1);
-		sub.setEllipsize(TextUtils.TruncateAt.END);
-		info.addView(eyebrow);
-		info.addView(title);
-		info.addView(sub);
-		box.addView(info, new LinearLayout.LayoutParams(0, -2, 1f));
-
-		FermataServiceUiBinder b = a.getMediaServiceBinder();
-		LinearLayout ctl = new LinearLayout(ctx);
-		ctl.setOrientation(LinearLayout.HORIZONTAL);
-		ctl.setGravity(Gravity.CENTER_VERTICAL);
-		View prev = glassButton(ctx, R.drawable.yi_prev, 52, v -> b.onPrevNextButtonClick(false));
-		FrameLayout play = (FrameLayout) accentButton(ctx, R.drawable.yi_play, 60, v -> b.onPlayPauseButtonClick());
-		View next = glassButton(ctx, R.drawable.yi_next, 52, v -> b.onPrevNextButtonClick(true));
-		FrameLayout fav = (FrameLayout) glassButton(ctx, R.drawable.yi_star_border, 52, v -> {
-			MediaLib.PlayableItem pi = b.getCurrentItem();
-			if (pi == null) return;
-			MediaLib.Favorites fs = a.getLib().getFavorites();
-			if (fs.isFavoriteItem(pi)) fs.removeItem(pi);
-			else fs.addItem(pi);
-		});
-		ctl.addView(prev, sq(52));
-		ctl.addView(play, leftMargin(sq(60), 10));
-		ctl.addView(next, leftMargin(sq(52), 10));
-		ctl.addView(fav, leftMargin(sq(52), 10));
-		box.addView(ctl);
-		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
-
-		ImageView playIcon = (ImageView) play.getChildAt(0);
-		ImageView favIcon = (ImageView) fav.getChildAt(0);
-		npTick = new Runnable() {
-			@Override
-			public void run() {
-				if (!isAdded() || isHidden() || f.getParent() == null) return;
-				MediaLib.PlayableItem pi = b.getCurrentItem();
-				boolean playing = b.isPlaying();
-				boolean has = (pi != null) || a.hasCurrent();
-				eyebrow.setText(playing ? "ŞİMDİ OYNATILIYOR" : (has ? "DURAKLATILDI" : "HAZIR"));
-				title.setText(pi != null ? String.valueOf(pi.getName()) : (has ? "Kaldığın yerden devam" : "Sesli komut"));
-				sub.setText(pi != null ? "Dokun: yayını aç" : (has ? "Son izlediğin yayın" : "“TRT Haber'i aç” · “YouTube'da Habertürk aç”"));
-				artIcon.setImageResource(pi != null ? R.drawable.yi_tv : (has ? R.drawable.yi_play : R.drawable.yi_mic));
-				playIcon.setImageResource(playing ? R.drawable.yi_pause : R.drawable.yi_play);
-				boolean isFav = false;
-				try {
-					isFav = (pi != null) && a.getLib().getFavorites().isFavoriteItem(pi);
-				} catch (Exception ignore) {
-				}
-				favIcon.setImageResource(isFav ? R.drawable.yi_star : R.drawable.yi_star_border);
-				ctl.setVisibility(has ? View.VISIBLE : View.GONE);
-				ui.postDelayed(this, 1000);
-			}
-		};
-		ui.post(npTick);
-		return f;
-	}
-
-	private View row(Context ctx, @DrawableRes int icon, String title, String sub, int color, View.OnClickListener click) {
-		FrameLayout f = pressable(ctx, YoldaStyle.glass(ctx, t, 24), click);
-		LinearLayout box = new LinearLayout(ctx);
-		box.setOrientation(LinearLayout.HORIZONTAL);
-		box.setGravity(Gravity.CENTER_VERTICAL);
-		box.setPadding(dp(16), dp(10), dp(16), dp(10));
-		box.addView(iconDisc(ctx, icon, color, 50));
-		LinearLayout tx = new LinearLayout(ctx);
-		tx.setOrientation(LinearLayout.VERTICAL);
-		tx.setPadding(dp(16), 0, 0, 0);
-		tx.addView(text(ctx, title, 18, true, t.ink));
-		TextView s = text(ctx, sub, 13, false, t.muted);
-		s.setMaxLines(1);
-		tx.addView(s);
-		box.addView(tx, new LinearLayout.LayoutParams(0, -2, 1f));
-		box.addView(icon(ctx, R.drawable.yi_chevron, t.muted), sq(26));
-		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
-		f.setLayoutParams(topMargin(new LinearLayout.LayoutParams(-1, dp(80)), 12));
-		return f;
-	}
-
-	// ---- kısayollar ve YouTube kanallarım ----
-
-	private View shortcuts(Context ctx, MainActivityDelegate a) {
-		LinearLayout chips = new LinearLayout(ctx);
-		chips.setOrientation(LinearLayout.HORIZONTAL);
-		chips.addView(chip(ctx, R.drawable.yi_star, "Favoriler", v -> a.showFragment(R.id.favorites_fragment)));
-		if (AddonManager.get().hasAddon(R.id.web_browser_fragment))
-			chips.addView(chip(ctx, R.drawable.yi_globe, "Tarayıcı", v -> a.showFragment(R.id.web_browser_fragment)));
-		chips.addView(chip(ctx, R.drawable.yi_movie, "Videolar", v -> a.showFragment(R.id.folders_fragment)));
-		chips.addView(chip(ctx, R.drawable.yi_settings, "Ayarlar", v -> a.showFragment(R.id.settings_fragment)));
+	private void liveShelf(Context ctx, MainActivityDelegate a, LinearLayout col) {
+		col.addView(shelfHead(ctx, "Canlı kanallar", "Tümünü gör", v -> a.showFragment(R.id.yolda_channels_fragment)));
+		LinearLayout row = new LinearLayout(ctx);
+		row.setOrientation(LinearLayout.HORIZONTAL);
 		HorizontalScrollView hs = new HorizontalScrollView(ctx);
 		hs.setHorizontalScrollBarEnabled(false);
-		hs.addView(chips);
-		return hs;
+		hs.addView(row);
+		col.addView(hs);
+
+		a.getLib().getItem("TV").main().onCompletion((r, err) -> {
+			if (!isAdded() || !(r instanceof MediaLib.BrowsableItem)) return;
+			((MediaLib.BrowsableItem) r).getPlayableChildren(true).main().onCompletion((list, e2) -> {
+				if (!isAdded() || (list == null)) return;
+				int n = 0;
+				for (MediaLib.PlayableItem pi : list) {
+					MediaLib.BrowsableItem p = pi.getParent();
+					if ((p != null) && "Radyo".equals(p.getName())) continue;
+					row.addView(channelCard(ctx, a, pi));
+					if (++n == 12) break;
+				}
+			});
+		});
 	}
 
-	private View chip(Context ctx, @DrawableRes int icon, String label, View.OnClickListener click) {
+	private View channelCard(Context ctx, MainActivityDelegate a, MediaLib.PlayableItem pi) {
 		LinearLayout c = new LinearLayout(ctx);
-		c.setOrientation(LinearLayout.HORIZONTAL);
-		c.setGravity(Gravity.CENTER_VERTICAL);
-		c.setPadding(dp(16), dp(11), dp(20), dp(11));
-		c.setBackground(YoldaStyle.glass(ctx, t, 999));
+		c.setOrientation(LinearLayout.VERTICAL);
+		c.setGravity(Gravity.CENTER_HORIZONTAL);
 		c.setClickable(true);
-		c.setOnClickListener(click);
-		c.addView(icon(ctx, icon, t.accent), sq(20));
-		TextView l = text(ctx, label, 15, true, t.ink);
-		l.setPadding(dp(10), 0, 0, 0);
-		c.addView(l);
+		c.setOnClickListener(v -> a.getBody().playItem(pi));
+		FrameLayout plate = new FrameLayout(ctx);
+		GradientDrawable pb = new GradientDrawable();
+		pb.setColor(0xEBFFFFFF);
+		pb.setCornerRadius(dp(22));
+		pb.setStroke(Math.max(1, dp(1)), 0xFFFFFFFF);
+		plate.setBackground(pb);
+		plate.setElevation(dp(4));
+		TextView initials = text(ctx, initials(pi.getName()), 20, true);
+		initials.setTextColor(0xFF1C1A2B);
+		initials.setShadowLayer(0, 0, 0, 0);
+		initials.setGravity(Gravity.CENTER);
+		plate.addView(initials, new FrameLayout.LayoutParams(-1, -1));
+		ImageView logo = new ImageView(ctx);
+		logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+		logo.setPadding(dp(12), dp(10), dp(12), dp(10));
+		logo.setVisibility(View.GONE);
+		plate.addView(logo, new FrameLayout.LayoutParams(-1, -1));
+		c.addView(plate, new LinearLayout.LayoutParams(dp(124), dp(86)));
+		pi.getIconUri().main().onCompletion((u, err) -> {
+			if (u == null) return;
+			a.getLib().getBitmap(u.toString(), true, true).main().onCompletion((bmp, e2) -> {
+				if (bmp == null) return;
+				logo.setImageBitmap(bmp);
+				logo.setVisibility(View.VISIBLE);
+				initials.setText("");
+			});
+		});
+		TextView n = text(ctx, pi.getName(), 14, true);
+		n.setGravity(Gravity.CENTER);
+		n.setMaxLines(1);
+		n.setEllipsize(TextUtils.TruncateAt.END);
+		n.setPadding(0, dp(8), 0, 0);
+		c.addView(n, new LinearLayout.LayoutParams(dp(124), -2));
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
-		lp.rightMargin = dp(10);
+		lp.rightMargin = dp(16);
 		c.setLayoutParams(lp);
 		return c;
 	}
 
-	private void ytShelf(Context ctx, MainActivityDelegate a, LinearLayout col) {
-		LinearLayout head = new LinearLayout(ctx);
-		head.setOrientation(LinearLayout.HORIZONTAL);
-		head.setGravity(Gravity.CENTER_VERTICAL);
-		head.setPadding(dp(4), dp(24), 0, dp(12));
-		head.addView(icon(ctx, R.drawable.yi_live, t.accent), sq(22));
-		TextView title = text(ctx, "YouTube kanallarım", 18, true, t.ink);
-		title.setPadding(dp(10), 0, 0, 0);
-		head.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
-		head.addView(text(ctx, "Uzun bas: kaldır", 12, false, t.muted));
-		col.addView(head);
+	// ---- YouTube kanallarım ----
 
+	private void ytShelf(Context ctx, MainActivityDelegate a, LinearLayout col) {
+		col.addView(shelfHead(ctx, "YouTube kanallarım", "Uzun bas: kaldır", null));
 		LinearLayout row = new LinearLayout(ctx);
 		row.setOrientation(LinearLayout.HORIZONTAL);
 		List<String[]> list = ytList();
@@ -477,30 +335,47 @@ public class HomeFragment extends MainActivityFragment {
 			row.addView(card, shelfLp());
 		}
 		row.addView(addCard(ctx), shelfLp());
-
 		HorizontalScrollView hs = new HorizontalScrollView(ctx);
 		hs.setHorizontalScrollBarEnabled(false);
 		hs.addView(row);
 		col.addView(hs);
 	}
 
+	private View shelfHead(Context ctx, String title, String action, @Nullable View.OnClickListener click) {
+		LinearLayout h = new LinearLayout(ctx);
+		h.setOrientation(LinearLayout.HORIZONTAL);
+		h.setGravity(Gravity.CENTER_VERTICAL);
+		h.setPadding(dp(2), dp(28), dp(2), dp(14));
+		h.addView(text(ctx, title, 22, true), new LinearLayout.LayoutParams(0, -2, 1f));
+		TextView act = text(ctx, action, 14, click != null);
+		act.setTextColor(0xD9FFFFFF);
+		if (click != null) {
+			act.setClickable(true);
+			act.setOnClickListener(click);
+		}
+		h.addView(act);
+		return h;
+	}
+
 	private LinearLayout.LayoutParams shelfLp() {
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(150), dp(124));
-		lp.rightMargin = dp(12);
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(150), dp(132));
+		lp.rightMargin = dp(14);
 		return lp;
 	}
 
 	private View ytCard(Context ctx, String name, View.OnClickListener click) {
-		FrameLayout f = pressable(ctx, YoldaStyle.glass(ctx, t, 24), click);
+		FrameLayout f = pressable(ctx, YoldaStyle.glass(ctx, t, 28), click);
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.VERTICAL);
 		box.setGravity(Gravity.CENTER);
 		box.setPadding(dp(10), dp(12), dp(10), dp(10));
-		TextView av = text(ctx, initials(name), 18, true, HERO_INK);
-		av.setGravity(Gravity.CENTER);
-		av.setBackground(discBg(avatarColor(name)));
-		box.addView(av, sq(54));
-		TextView n = text(ctx, name, 14, true, t.ink);
+		FrameLayout av = new FrameLayout(ctx);
+		av.setBackground(YoldaStyle.appIcon(ctx, 0xFFFFFFFF, 0xFFF1F1F1, 999));
+		ImageView yt = new ImageView(ctx);
+		yt.setImageResource(R.drawable.yi_brand_youtube);
+		av.addView(yt, new FrameLayout.LayoutParams(dp(30), dp(22), Gravity.CENTER));
+		box.addView(av, sq(56));
+		TextView n = text(ctx, name, 14, true);
 		n.setGravity(Gravity.CENTER);
 		n.setMaxLines(1);
 		n.setEllipsize(TextUtils.TruncateAt.END);
@@ -512,15 +387,18 @@ public class HomeFragment extends MainActivityFragment {
 
 	private View addCard(Context ctx) {
 		GradientDrawable bg = new GradientDrawable();
-		bg.setColor(0x0DFFFFFF);
-		bg.setStroke(dp(2), (t.accent & 0x00FFFFFF) | 0x99000000, dp(8), dp(6));
-		bg.setCornerRadius(dp(24));
+		bg.setColor(0x14FFFFFF);
+		bg.setStroke(dp(2), 0x8CFFFFFF, dp(8), dp(6));
+		bg.setCornerRadius(dp(28));
 		FrameLayout f = pressable(ctx, bg, v -> addYoutube(ctx));
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.VERTICAL);
 		box.setGravity(Gravity.CENTER);
-		box.addView(icon(ctx, R.drawable.yi_add, t.accent), sq(34));
-		TextView l = text(ctx, "Kanal ekle", 14, true, t.accent);
+		ImageView plus = new ImageView(ctx);
+		plus.setImageResource(R.drawable.yi_add);
+		plus.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		box.addView(plus, sq(34));
+		TextView l = text(ctx, "Kanal ekle", 14, true);
 		l.setPadding(0, dp(8), 0, 0);
 		box.addView(l);
 		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
@@ -594,26 +472,11 @@ public class HomeFragment extends MainActivityFragment {
 
 	// ---- işler ----
 
-	/** Kaldığın yerden devam: çalan varsa sürdür ve videoyu göster; yoksa son yayını başlat. */
-	private static void resume(MainActivityDelegate a) {
-		FermataServiceUiBinder b = a.getMediaServiceBinder();
-		MediaLib.PlayableItem cur = b.getCurrentItem();
-		if (cur != null) {
-			if (!b.isPlaying()) b.onPlayPauseButtonClick();
-			if (cur.isVideo()) a.getBody().setMode(BodyLayout.Mode.VIDEO);
-			return;
-		}
-		a.getLib().getLastPlayedItem().main().onSuccess(pi -> {
-			if (pi != null) a.getBody().playItem(pi);
-		});
-	}
-
-	/** Tarayıcı bölümünde bir site açar (YouTube Music gibi). */
-	private static void openWeb(MainActivityDelegate a, String url) {
+	/** Tarayıcı bölümünde bir site açar (YouTube Music gibi). Alt menüdeki "Müzik" de bunu kullanır. */
+	static void openWeb(MainActivityDelegate a, String url) {
 		invokeLoadUrl(a.showFragment(R.id.web_browser_fragment), url);
 	}
 
-	/** YouTube bölümünü açıp verilen adrese gider. */
 	private static void openYoutube(MainActivityDelegate a, String url) {
 		invokeLoadUrl(a.showFragment(R.id.youtube_fragment), url);
 	}
@@ -628,10 +491,7 @@ public class HomeFragment extends MainActivityFragment {
 		}
 	}
 
-	/**
-	 * Telefon ekranı ayrı bir Android Auto uygulaması ("Yolda Telefon") olarak açılır; araç ekranındaki
-	 * dokunuşların telefona geçmesi için Yolda'nın erişilebilirlik hizmeti açık olmalı.
-	 */
+	/** Telefon ekranı: Android Auto listesindeki "Yolda Telefon"; dokunmak için erişilebilirlik izni gerekir. */
 	private void phone(Context ctx) {
 		if (remoteTouchEnabled(ctx)) {
 			UiUtils.showInfo(ctx, "Araç ekranının uygulama listesinden “Yolda Telefon”u aç. "
@@ -657,7 +517,6 @@ public class HomeFragment extends MainActivityFragment {
 
 	// ---- yapı taşları ----
 
-	/** Basınca hafifçe küçülen yüzey. */
 	@SuppressLint("ClickableViewAccessibility")
 	private FrameLayout pressable(Context ctx, android.graphics.drawable.Drawable bg, View.OnClickListener click) {
 		FrameLayout f = new FrameLayout(ctx);
@@ -667,99 +526,42 @@ public class HomeFragment extends MainActivityFragment {
 		f.setOnClickListener(click);
 		f.setOnTouchListener((v, e) -> {
 			int act = e.getActionMasked();
-			if (act == MotionEvent.ACTION_DOWN) v.animate().scaleX(0.97f).scaleY(0.97f).setDuration(90).start();
+			if (act == MotionEvent.ACTION_DOWN) v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(90).start();
 			else if (act == MotionEvent.ACTION_UP || act == MotionEvent.ACTION_CANCEL)
-				v.animate().scaleX(1f).scaleY(1f).setDuration(160).start();
+				v.animate().scaleX(1f).scaleY(1f).setDuration(180).start();
 			return false;
 		});
 		return f;
 	}
 
-	private ImageView icon(Context ctx, @DrawableRes int res, int tint) {
+	/** Yuvarlak cam düğme (mikrofon, tema). */
+	private View roundGlass(Context ctx, @DrawableRes int res, View.OnClickListener click) {
+		FrameLayout b = pressable(ctx, YoldaStyle.pill(ctx, t), click);
 		ImageView iv = new ImageView(ctx);
 		iv.setImageResource(res);
-		iv.setImageTintList(ColorStateList.valueOf(tint));
-		iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-		return iv;
-	}
-
-	/** Pastel daire içinde koyu simge (kartlar ve satırlar). */
-	private View iconDisc(Context ctx, @DrawableRes int res, int color, int sizeDp) {
-		return glyphDisc(ctx, res, 0, HERO_INK, sizeDp, discBg(color));
-	}
-
-	private View glyphDisc(Context ctx, @DrawableRes int res, int bgColor, int tint, int sizeDp) {
-		GradientDrawable bg = new GradientDrawable();
-		bg.setShape(GradientDrawable.OVAL);
-		bg.setColor(bgColor);
-		return glyphDisc(ctx, res, bgColor, tint, sizeDp, bg);
-	}
-
-	private View glyphDisc(Context ctx, @DrawableRes int res, int bgColor, int tint, int sizeDp,
-												 android.graphics.drawable.Drawable bg) {
-		FrameLayout d = new FrameLayout(ctx);
-		d.setBackground(bg);
-		int g = Math.round(sizeDp * 0.52f);
-		d.addView(icon(ctx, res, tint), new FrameLayout.LayoutParams(dp(g), dp(g), Gravity.CENTER));
-		d.setLayoutParams(sq(sizeDp));
-		return d;
-	}
-
-	/** Yuvarlak cam düğme. */
-	private View glassButton(Context ctx, @DrawableRes int res, int sizeDp, View.OnClickListener click) {
-		View b = glyphDisc(ctx, res, 0, t.ink, sizeDp, YoldaStyle.glass(ctx, t, 999));
-		b.setClickable(true);
-		b.setOnClickListener(click);
+		iv.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		b.addView(iv, new FrameLayout.LayoutParams(dp(26), dp(26), Gravity.CENTER));
 		return b;
 	}
 
-	/** Vurgu renginde dolu yuvarlak düğme (mikrofon, oynat). */
-	private View accentButton(Context ctx, @DrawableRes int res, int sizeDp, View.OnClickListener click) {
-		GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-				new int[]{soften(t.accent, 0.15f), t.accent});
-		bg.setShape(GradientDrawable.OVAL);
-		bg.setStroke(Math.max(1, dp(1)), 0x66FFFFFF);
-		View b = glyphDisc(ctx, res, 0, HERO_INK, sizeDp, bg);
-		b.setClickable(true);
-		b.setOnClickListener(click);
-		return b;
-	}
-
-	/** Verilen rengin yumuşatılmış (pastel) hali, ince parlak kenarlı daire. */
-	private GradientDrawable discBg(int color) {
-		GradientDrawable ib = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-				new int[]{soften(color, 0.50f), soften(color, 0.25f)});
-		ib.setShape(GradientDrawable.OVAL);
-		ib.setStroke(Math.max(1, dp(1)), 0x55FFFFFF);
-		return ib;
-	}
-
-	private static int soften(int c, float white) {
-		int r = Math.round(Color.red(c) + (255 - Color.red(c)) * white);
-		int g = Math.round(Color.green(c) + (255 - Color.green(c)) * white);
-		int b = Math.round(Color.blue(c) + (255 - Color.blue(c)) * white);
-		return Color.rgb(r, g, b);
-	}
-
-	/** Apple tarzı yazı: başlıklar orta kalınlıkta, gövde normal. */
-	private static TextView text(Context ctx, String s, float size, boolean bold, int color) {
+	/** Beyaz yazı, hafif gölgeyle (canlı zeminde okunur). */
+	private TextView text(Context ctx, String s, float size, boolean bold) {
 		TextView tv = new TextView(ctx);
 		tv.setText(s);
 		tv.setTextSize(size);
-		tv.setTextColor(color);
+		tv.setTextColor(0xFFFFFFFF);
 		tv.setTypeface(bold ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
-		if (bold && size >= 20) tv.setLetterSpacing(-0.01f);
+		tv.setShadowLayer(dp(8), 0, dp(1), 0x4D000000);
 		return tv;
 	}
 
-	/** İçerik sırayla, hafifçe yukarı kayarak gelsin. */
 	private void animateIn(LinearLayout col) {
 		float dy = dp(20);
 		for (int i = 0; i < col.getChildCount(); i++) {
 			View v = col.getChildAt(i);
 			v.setAlpha(0f);
 			v.setTranslationY(dy);
-			v.animate().alpha(1f).translationY(0f).setStartDelay(i * 50L).setDuration(300)
+			v.animate().alpha(1f).translationY(0f).setStartDelay(i * 60L).setDuration(320)
 					.setInterpolator(new DecelerateInterpolator()).start();
 		}
 	}
@@ -768,27 +570,22 @@ public class HomeFragment extends MainActivityFragment {
 		return new LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp));
 	}
 
-	private LinearLayout.LayoutParams leftMargin(LinearLayout.LayoutParams lp, int dp) {
-		lp.leftMargin = dp(dp);
+	private LinearLayout.LayoutParams leftMargin(LinearLayout.LayoutParams lp, int v) {
+		lp.leftMargin = dp(v);
 		return lp;
 	}
 
-	private LinearLayout.LayoutParams topMargin(LinearLayout.LayoutParams lp, int dp) {
-		lp.topMargin = dp(dp);
+	private LinearLayout.LayoutParams topMargin(LinearLayout.LayoutParams lp, int v) {
+		lp.topMargin = dp(v);
 		return lp;
 	}
 
 	private static String initials(String name) {
 		StringBuilder b = new StringBuilder();
 		for (String w : name.trim().split("\\s+")) {
-			if (!w.isEmpty() && b.length() < 2) b.appendCodePoint(w.codePointAt(0));
+			if (!w.isEmpty() && b.length() < 3) b.appendCodePoint(w.codePointAt(0));
 		}
 		return b.toString().toUpperCase(new Locale("tr"));
-	}
-
-	private static int avatarColor(String name) {
-		int[] c = {C_TV, C_VIDEO, C_WEB, C_PHONE, C_FAV, C_MUSIC, 0xFF818CF8};
-		return c[Math.floorMod(name.hashCode(), c.length)];
 	}
 
 	private static String greeting() {
@@ -807,7 +604,6 @@ public class HomeFragment extends MainActivityFragment {
 
 	private static boolean greeted;
 
-	/** Araç ekranında ilk açılışta kısa sesli karşılama ("İyi akşamlar, Yolda hazır."). */
 	private void greetOnce() {
 		if (greeted) return;
 		MainActivityDelegate a = getActivityDelegate();

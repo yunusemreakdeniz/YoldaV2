@@ -82,6 +82,15 @@ public class NavBarMediator extends PrefNavBarMediator
 		// Yolda: ikinci düğme kart görünümlü kanallar (Fermata'nın klasör menüsü yerine)
 		if (amgr.hasAddon(R.id.tv_fragment))
 			items.add(create(ctx, R.id.yolda_channels_fragment, R.drawable.yolda_tv, R.string.yolda_channels, true));
+		// Yolda Cam: oval kapsülde sabit beş düğme — Ana sayfa · TV · YouTube · Müzik · Menü
+		if (me.aap.fermata.ui.view.YoldaStyle.glassActive) {
+			if (amgr.hasAddon(R.id.youtube_fragment))
+				items.add(create(ctx, R.id.youtube_fragment, R.drawable.yi_youtube, R.string.yolda_youtube, true));
+			if (amgr.hasAddon(R.id.web_browser_fragment))
+				items.add(create(ctx, R.id.yolda_music, R.drawable.yi_music, R.string.yolda_music, true));
+			items.add(create(ctx, R.id.menu, me.aap.utils.R.drawable.menu, R.string.menu, true));
+			return items;
+		}
 
 		for (String name : names) {
 			// Yolda: TV düğmesi zaten "Kanallar" olarak var; ikinci kez gösterme
@@ -181,6 +190,8 @@ public class NavBarMediator extends PrefNavBarMediator
 	public void itemSelected(View item, int id, ActivityDelegate a) {
 		if (id == R.id.menu) {
 			showMenu(MainActivityDelegate.get(item.getContext()));
+		} else if (id == R.id.yolda_music) {
+			HomeFragment.openWeb(MainActivityDelegate.get(item.getContext()), HomeFragment.MUSIC_URL);
 		} else {
 			super.itemSelected(item, id, a);
 		}

@@ -237,14 +237,9 @@ public class ChannelsFragment extends MainActivityFragment {
 		chips.removeAllViews();
 		for (String g : groups) {
 			boolean on = g.equals(group);
-			TextView c = text(ctx, g, 15, true, on ? 0xFF1C1A2B : t.ink);
+			TextView c = text(ctx, g, 15, true, 0xFFFFFFFF);
 			c.setPadding(dp(18), dp(10), dp(18), dp(10));
-			if (on) {
-				GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{t.hero1, t.hero2});
-				bg.setCornerRadius(dp(999));
-				bg.setStroke(Math.max(1, dp(1)), 0x66FFFFFF);
-				c.setBackground(bg);
-			} else c.setBackground(YoldaStyle.glass(ctx, t, 999));
+			c.setBackground(on ? YoldaStyle.selected(ctx, 999) : YoldaStyle.glass(ctx, t, 999));
 			c.setClickable(true);
 			c.setOnClickListener(v -> {
 				group = g;
