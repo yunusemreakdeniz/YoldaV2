@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Yolda Telefon: telefon + yayın dalgaları (108x108, güvenli alanın içinde) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFFFF" android:fillType="evenOdd"
+        android:pathData="M45,30h18a5,5 0,0 1,5 5v38a5,5 0,0 1,-5 5h-18a5,5 0,0 1,-5 -5v-38a5,5 0,0 1,5 -5zM45,36v32h18v-32z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M50,71h8v3h-8z" />
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M33,44a14,14 0,0 0,0 20M75,44a14,14 0,0 1,0 20" />
+</vector>

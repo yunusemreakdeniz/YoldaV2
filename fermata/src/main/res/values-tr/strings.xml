@@ -358,7 +358,7 @@
     <string name="open_log">Günlük dosyasını aç</string>
     <string name="unlock_phone_and_grant">Telefonun kilidini açın ve istenen izinleri verin.</string>
     <string name="screen_capture_rejected">Ekran yakalama isteği reddedildi.</string>
-    <string name="accessibility_dsc">Erişilebilirlik hizmeti, Fermata Mirror tarafından dokunmatik ekran olaylarını simüle etmek için kullanılır.</string>
+    <string name="accessibility_dsc">Erişilebilirlik hizmeti, Yolda Telefon tarafından dokunmatik ekran olaylarını simüle etmek için kullanılır.</string>
     <string name="media_projection_action_text">Şimdi başlat</string>
 
     <string name="about">Hakkında</string>
