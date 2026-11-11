@@ -287,6 +287,8 @@ public class MusicFragment extends MainActivityFragment {
 			boolean sel = g.equals(chip);
 			TextView c = text(ctx, g, 15, true, sel ? 0xFF0B0E2A : t.ink);
 			c.setPadding(dp(16), dp(9), dp(16), dp(9));
+			c.setMinHeight(dp(getActivityDelegate().isCarActivity() ? 52 : 44));
+			c.setGravity(Gravity.CENTER);
 			if (sel) { // YouTube Music'teki gibi seçili çip beyaz
 				GradientDrawable w = new GradientDrawable();
 				w.setColor(0xF2FFFFFF);

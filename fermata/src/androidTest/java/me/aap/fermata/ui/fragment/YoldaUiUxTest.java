@@ -159,6 +159,9 @@ public class YoldaUiUxTest {
 				for (int j = i + 1; j < clickables.size(); j++) {
 					View v1 = clickables.get(i), v2 = clickables.get(j);
 					if (isAncestor(v1, v2) || isAncestor(v2, v1)) continue;
+					// Kaydırılabilir içeriğin üstünde yüzen düğme (sesli asistan) sorun değil: içerik kaydırılınca
+					// altındaki öğe açığa çıkar ve sayfalar altta bunun için boşluk bırakır
+					if (inScrollable(v1) != inScrollable(v2)) continue;
 					Rect r1 = rect(v1), r2 = rect(v2);
 					Rect in = new Rect();
 					if (!in.setIntersect(r1, r2)) continue;

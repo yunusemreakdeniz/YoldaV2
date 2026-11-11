@@ -373,6 +373,8 @@ public class ChannelsFragment extends MainActivityFragment {
 			boolean on = g.equals(group);
 			TextView c = text(ctx, g, 15, true, 0xFFFFFFFF);
 			c.setPadding(dp(18), dp(10), dp(18), dp(10));
+			c.setMinHeight(dp(getActivityDelegate().isCarActivity() ? 52 : 44));
+			c.setGravity(Gravity.CENTER);
 			c.setBackground(on ? YoldaStyle.selected(ctx, 999) : YoldaStyle.glass(ctx, t, 999));
 			c.setClickable(true);
 			c.setOnClickListener(v -> {

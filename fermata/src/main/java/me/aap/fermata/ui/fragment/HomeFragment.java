@@ -257,7 +257,7 @@ public class HomeFragment extends MainActivityFragment {
 		TextView all = text(ctx, "Tümünü gör", 14, true);
 		all.setTextColor(t.muted);
 		all.setGravity(Gravity.CENTER);
-		all.setMinHeight(dp(40));
+		all.setMinHeight(dp(48));
 		all.setPadding(dp(12), 0, dp(4), 0);
 		all.setOnClickListener(v -> a.showFragment(R.id.yolda_channels_fragment));
 		fh.addView(all);
@@ -1064,6 +1064,8 @@ public class HomeFragment extends MainActivityFragment {
 		if (click != null) {
 			act.setClickable(true);
 			act.setOnClickListener(click);
+			act.setMinHeight(dp(44)); // "Tümünü gör": parmakla rahat basılsın
+			act.setGravity(Gravity.CENTER_VERTICAL);
 		}
 		h.addView(act);
 		return h;

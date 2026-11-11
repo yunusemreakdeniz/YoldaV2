@@ -258,6 +258,8 @@ public class YoutubeHomeFragment extends MainActivityFragment {
 			boolean sel = c[0].equals(chip);
 			TextView v = text(ctx, c[0], 15, true, sel ? 0xFF0B0E2A : t.ink);
 			v.setPadding(dp(15), dp(8), dp(15), dp(8));
+			v.setMinHeight(dp(getActivityDelegate().isCarActivity() ? 52 : 44));
+			v.setGravity(Gravity.CENTER);
 			if (sel) {
 				GradientDrawable w = new GradientDrawable();
 				w.setColor(0xF2FFFFFF);
