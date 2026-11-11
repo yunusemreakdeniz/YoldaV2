@@ -400,7 +400,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			View v = cp.findViewById(id);
 			if (v instanceof android.widget.TextView tv) tv.setTextColor(0xE6FFFFFF);
 		}
-		int p = Math.round(8 * d);
+		cp.useYoldaBar(); // Apple Music / Spotify tarzı tek satır oynatıcı
+		int p = Math.round(4 * d);
 		int oldV = cp.getPaddingTop() + cp.getPaddingBottom();
 		cp.setPadding(Math.round(10 * d), p, Math.round(10 * d), p);
 		android.view.ViewGroup.LayoutParams clp = cp.getLayoutParams();

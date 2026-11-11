@@ -181,6 +181,10 @@ public class ControlPanelView extends ConstraintLayout
 		setHeight(R.id.control_next, buttonSize);
 		// Yolda: cam panelin iç boşluğu yüksekliğe eklenir; eklenmezse düğmeler eziliyor, simgeler kayıyordu
 		getLayoutParams().height = panelSize + getPaddingTop() + getPaddingBottom();
+		if (yoldaBar != null) { // Yolda çubuğu: sabit yükseklik
+			getLayoutParams().height = toIntPx(getContext(), YoldaPlayerBar.HEIGHT_DP) + getPaddingTop()
+					+ getPaddingBottom();
+		}
 	}
 
 	private void seTextAppearance(TextView t, float size) {
@@ -206,6 +210,32 @@ public class ControlPanelView extends ConstraintLayout
 		ViewGroup.LayoutParams lp = v.getLayoutParams();
 		lp.height = h;
 		v.setLayoutParams(lp);
+	}
+
+	@Nullable
+	private YoldaPlayerBar yoldaBar;
+
+	/**
+	 * Yolda: Fermata'nın düğmeleri yerine tek satır cam oynatıcı çubuğu. Özgün düğmeler görünmez kalır
+	 * (⋯ menüsü onlar üzerinden açılır); panelin görünürlüğünü ve video kipini Fermata yönetmeye devam eder.
+	 */
+	public void useYoldaBar() {
+		if (yoldaBar != null) return;
+		for (int i = 0; i < getChildCount(); i++) getChildAt(i).setAlpha(0f);
+		yoldaBar = new YoldaPlayerBar(getContext());
+		LayoutParams lp = new LayoutParams(0, 0);
+		lp.startToStart = LayoutParams.PARENT_ID;
+		lp.endToEnd = LayoutParams.PARENT_ID;
+		lp.topToTop = LayoutParams.PARENT_ID;
+		lp.bottomToBottom = LayoutParams.PARENT_ID;
+		addView(yoldaBar, lp);
+		yoldaBar.setElevation(toIntPx(getContext(), 2));
+		computeSize();
+	}
+
+	@Nullable
+	public YoldaPlayerBar getYoldaBar() {
+		return yoldaBar;
 	}
 
 	/** Yolda: ✕ — çalmayı durdurur, oynatıcıyı ve video ekranını kapatır. */
