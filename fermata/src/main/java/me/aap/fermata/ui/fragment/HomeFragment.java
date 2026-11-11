@@ -439,7 +439,7 @@ public class HomeFragment extends MainActivityFragment {
 			name.setText(item.getName());
 			MediaLib.BrowsableItem p = item.getParent();
 			sub.setText((p != null) ? p.getName() : "");
-			item.getIconUri().main().onCompletion((u, err) -> {
+			item.getIconUri().main().onCompletion((u, uerr) -> {
 				if (!isAdded() || (u == null)) return;
 				a.getLib().getBitmap(u.toString(), true, true).main().onCompletion((bmp, e2) -> {
 					if (!isAdded() || (bmp == null)) return;
