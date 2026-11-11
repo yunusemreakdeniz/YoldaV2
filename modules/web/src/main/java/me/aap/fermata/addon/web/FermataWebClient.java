@@ -47,7 +47,24 @@ public class FermataWebClient extends WebViewClientCompat {
 			"pagead2.googlesyndication.com", "static.doubleclick.net", "ad.doubleclick.net",
 			"adnxs.com", "criteo.com", "taboola.com", "outbrain.com", "scorecardresearch.com",
 			"amazon-adsystem.com", "moatads.com", "pubmatic.com", "rubiconproject.com", "smartadserver.com",
-			"yandex.ru/ads", "an.yandex.ru", "mc.yandex.ru", "adform.net", "openx.net", "teads.tv"};
+			"yandex.ru/ads", "an.yandex.ru", "mc.yandex.ru", "adform.net", "openx.net", "teads.tv",
+			// ek reklam ağları ve izleyiciler
+			"adsrvr.org", "adroll.com", "advertising.com", "adcolony.com", "applovin.com", "appnexus.com",
+			"bidswitch.net", "casalemedia.com", "contextweb.com", "demdex.net", "doubleverify.com",
+			"everesttech.net", "exelator.com", "eyeota.net", "gumgum.com", "id5-sync.com", "indexww.com",
+			"inmobi.com", "ipredictive.com", "krxd.net", "lijit.com", "mathtag.com", "media.net",
+			"mgid.com", "mookie1.com", "nativeads.com", "omtrdc.net", "onetag-sys.com", "popads.net",
+			"propellerads.com", "quantserve.com", "revcontent.com", "rlcdn.com", "sharethrough.com",
+			"smaato.net", "spotxchange.com", "springserve.com", "tapad.com", "tremorhub.com",
+			"unrulymedia.com", "yieldmo.com", "zemanta.com", "33across.com", "adhigh.net",
+			"adtelligent.com", "admixer.net", "adocean.pl", "admatic.com.tr", "reklamstore.com",
+			"reklamaction.com", "adnet.com.tr", "ads.yahoo.com", "analytics.yahoo.com",
+			"app-measurement.com", "firebase-settings.crashlytics.com", "hotjar.com", "mixpanel.com",
+			"segment.io", "branch.io", "adjust.com", "appsflyer.com", "facebook.net/tr",
+			"connect.facebook.net", "ads.tiktok.com", "analytics.tiktok.com", "ads.linkedin.com"};
+
+	/** Menüden açılıp kapatılır (varsayılan açık). */
+	public static volatile boolean enabled = true;
 
 	/** YouTube içindeki reklam uçları (video akışına dokunmaz). */
 	private static final String[] YT_AD_PATHS = {
@@ -55,6 +72,7 @@ public class FermataWebClient extends WebViewClientCompat {
 			"/api/stats/qoe?adformat", "/pcs/activeview", "/ad_data_204", "/generate_204?ad"};
 
 	static boolean isAd(Uri u) {
+		if (!enabled) return false;
 		return isAd(u.getHost(), u.getEncodedPath(), u.getEncodedQuery());
 	}
 
@@ -83,6 +101,51 @@ public class FermataWebClient extends WebViewClientCompat {
 		}
 		return super.shouldInterceptRequest(view, request);
 	}
+
+	/**
+	 * Belge başlamadan çalışan betik (YouTube, YouTube Music): oynatıcı yanıtındaki reklam yerleşimleri
+	 * (adPlacements, playerAds, adSlots, adBreakHeartbeatParams) JSON.parse, fetch ve sayfaya gömülü
+	 * ytInitialPlayerResponse üzerinden silinir; reklam hiç başlamaz.
+	 */
+	static final String PRUNE_JS = """
+			(function() {
+			  if (window.__yoldaPrune) return; window.__yoldaPrune = 1;
+			  var KEYS = ['adPlacements', 'playerAds', 'adSlots', 'adBreakHeartbeatParams', 'adBreakParams'];
+			  function prune(o) {
+			    try {
+			      if (!o || typeof o !== 'object') return o;
+			      KEYS.forEach(function(k) { if (k in o) delete o[k]; });
+			      if (o.playerResponse) prune(o.playerResponse);
+			      if (o.response) prune(o.response);
+			      if (Array.isArray(o)) o.forEach(prune);
+			    } catch (e) {}
+			    return o;
+			  }
+			  var parse = JSON.parse;
+			  JSON.parse = function() { return prune(parse.apply(this, arguments)); };
+			  var f = window.fetch;
+			  if (f) window.fetch = function() {
+			    return f.apply(this, arguments).then(function(r) {
+			      try {
+			        var u = r.url || '';
+			        if (u.indexOf('/youtubei/v1/player') < 0 && u.indexOf('/youtubei/v1/next') < 0) return r;
+			        return r.clone().text().then(function(t) {
+			          try {
+			            var j = prune(parse(t));
+			            return new Response(JSON.stringify(j), {status: r.status, statusText: r.statusText, headers: r.headers});
+			          } catch (e) { return r; }
+			        });
+			      } catch (e) { return r; }
+			    });
+			  };
+			  ['ytInitialPlayerResponse', 'playerResponse'].forEach(function(n) {
+			    var v;
+			    try {
+			      Object.defineProperty(window, n, {configurable: true,
+			        get: function() { return v; }, set: function(x) { v = prune(x); }});
+			    } catch (e) {}
+			  });
+			})()""";
 
 	/**
 	 * YouTube / YouTube Music sayfasında: video reklamını sessize alıp sonuna atlar, "Reklamı atla"ya basar,
@@ -135,7 +198,7 @@ public class FermataWebClient extends WebViewClientCompat {
 	public void onPageFinished(WebView view, String url) {
 		try {
 			String h = Uri.parse(url).getHost();
-			if ((h != null) && h.endsWith("youtube.com")) view.evaluateJavascript(AD_JS, null);
+			if (enabled && (h != null) && h.endsWith("youtube.com")) view.evaluateJavascript(AD_JS, null);
 		} catch (Exception ignore) {
 		}
 		FermataWebView v = (FermataWebView) view;

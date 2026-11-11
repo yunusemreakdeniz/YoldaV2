@@ -45,7 +45,7 @@ import me.aap.utils.log.Log;
  * Şarkı önce doğrudan Yolda oynatıcısında açılır; YouTube akışı vermezse ya da çalmazsa YouTube oynatıcısına geçer.
  */
 public class MusicFragment extends MainActivityFragment {
-	private static final String HOME = "Ana sayfa";
+	private static final String HOME = "Senin için";
 	private static final String[][] MOODS = {
 			{"Enerji", "enerjik türkçe şarkılar"}, {"Yolculuk", "yolculuk şarkıları"},
 			{"Dinlendirici", "sakin türkçe şarkılar"}, {"Romantik", "romantik türkçe şarkılar"},
@@ -148,6 +148,15 @@ public class MusicFragment extends MainActivityFragment {
 		status.setEllipsize(TextUtils.TruncateAt.END);
 		top.addView(status, new LinearLayout.LayoutParams(0, -2, 1f));
 		boolean car = a.isCarActivity();
+		TextView full = text(ctx, "Tam site", 14, true, t.ink);
+		full.setGravity(Gravity.CENTER);
+		full.setMinHeight(dp(48));
+		full.setPadding(dp(14), 0, dp(14), 0);
+		full.setBackground(YoldaStyle.glass(ctx, t, 999));
+		full.setOnClickListener(v -> HomeFragment.openWeb(a, HomeFragment.MUSIC_URL));
+		LinearLayout.LayoutParams flp = new LinearLayout.LayoutParams(-2, dp(48));
+		flp.leftMargin = dp(10);
+		top.addView(full, flp);
 		if (car) {
 			TextView ara = text(ctx, "Şarkı, sanatçı ara", 15, true, t.ink);
 			ara.setGravity(Gravity.CENTER);
@@ -319,6 +328,36 @@ public class MusicFragment extends MainActivityFragment {
 
 	// ---- ana sayfa: raflar ----
 
+	/** "Senin için": son dinlediklerin + Türkçe pop önerileri, tek kart ızgarası. */
+	private void showHomeGrid() {
+		Context ctx = requireContext();
+		int seq = ++requestSeq;
+		content.removeAllViews();
+		status.setText("");
+		List<YtMusic.Track> recent = recent(ctx);
+		LinearLayout s = section(ctx, recent.isEmpty() ? "Senin için" : "Son dinlediklerin ve öneriler", null);
+		YtMusic.search("türkçe pop hit").main().onCompletion((list, err) -> {
+			if (!isAdded() || (seq != requestSeq)) return;
+			dropLoading(s);
+			List<YtMusic.Track> all = new ArrayList<>(recent.subList(0, Math.min(8, recent.size())));
+			if (list != null) {
+				for (YtMusic.Track tr : list) {
+					boolean dup = false;
+					for (YtMusic.Track x : all) dup |= x.id().equals(tr.id());
+					if (!dup) all.add(tr);
+				}
+			}
+			if (all.isEmpty()) {
+				s.addView(errorText(ctx, err));
+				return;
+			}
+			listTracks.clear();
+			listTracks.addAll(all);
+			listTitle = "Senin için";
+			s.addView(trackGrid(ctx, all));
+		});
+	}
+
 	private void toggleSearch() {
 		if (search == null) return;
 		InputMethodManager imm = (InputMethodManager) search.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -424,9 +463,39 @@ public class MusicFragment extends MainActivityFragment {
 		}
 	}
 
+	/** Kapaklı kart ızgarası: genişliğe göre 2–6 sütun (araçta 4–5, telefonda 2). */
+	private View trackGrid(Context ctx, List<YtMusic.Track> q) {
+		int side = YoldaStyle.compact(ctx) ? 16 : 22;
+		int cols = Math.max(2, Math.min(6, YoldaStyle.widthDp(ctx) / 190));
+		LinearLayout grid = new LinearLayout(ctx);
+		grid.setOrientation(LinearLayout.VERTICAL);
+		grid.setPadding(dp(side), 0, dp(side), 0);
+		LinearLayout row = null;
+		for (int i = 0; i < q.size(); i++) {
+			if (i % cols == 0) {
+				row = new LinearLayout(ctx);
+				row.setOrientation(LinearLayout.HORIZONTAL);
+				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
+				rlp.bottomMargin = dp(16);
+				grid.addView(row, rlp);
+			}
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
+			if (i % cols != 0) lp.leftMargin = dp(14);
+			row.addView(card(ctx, q, i), lp);
+		}
+		if (row != null) {
+			for (int i = q.size() % cols; (i > 0) && (i < cols); i++) {
+				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
+				lp.leftMargin = dp(14);
+				row.addView(new View(ctx), lp);
+			}
+		}
+		return grid;
+	}
+
 	private void showHome() {
-		if (getActivityDelegate().isCarActivity()) {
-			showHomeCar();
+		if (true) {
+			showHomeGrid();
 			return;
 		}
 		Context ctx = requireContext();
@@ -560,26 +629,8 @@ public class MusicFragment extends MainActivityFragment {
 				s.addView(errorText(ctx, err));
 				return;
 			}
-			int side = YoldaStyle.compact(ctx) ? 16 : 24;
-			// Geniş ekranda iki sütun
-			int cols = (YoldaStyle.widthDp(ctx) >= 900) ? 2 : 1;
-			LinearLayout grid = new LinearLayout(ctx);
-			grid.setOrientation(LinearLayout.HORIZONTAL);
-			grid.setPadding(dp(side), 0, dp(side), 0);
-			List<LinearLayout> colViews = new ArrayList<>();
-			for (int c = 0; c < cols; c++) {
-				LinearLayout cv = new LinearLayout(ctx);
-				cv.setOrientation(LinearLayout.VERTICAL);
-				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1f);
-				if (c > 0) lp.leftMargin = dp(18);
-				grid.addView(cv, lp);
-				colViews.add(cv);
-			}
 			List<YtMusic.Track> q = new ArrayList<>(listTracks);
-			for (int i = 0; i < q.size(); i++) {
-				colViews.get(i % cols).addView(row(ctx, q, i, 60), new LinearLayout.LayoutParams(-1, -2));
-			}
-			s.addView(grid);
+			s.addView(trackGrid(ctx, q));
 			if (playFirst) play(q, 0);
 		});
 	}
@@ -727,6 +778,8 @@ public class MusicFragment extends MainActivityFragment {
 		nowIndex = idx;
 		advanced = false;
 		everPlayed = false;
+		nowViaYoutube = directBroken;
+		hookSkip();
 		showNowPlaying();
 		if (directBroken) {
 			status.setText("Çalıyor: " + tr.title());
@@ -778,6 +831,7 @@ public class MusicFragment extends MainActivityFragment {
 
 	/** Yedek yol: şarkıyı YouTube sekmesinin oynatıcısında aç, sonra Müzik ekranına dön (ses sürer). */
 	private void playInYoutube(MainActivityDelegate a, YtMusic.Track tr) {
+		nowViaYoutube = true;
 		String url = "https://m.youtube.com/watch?v=" + tr.id();
 		Object existing = findFragment(R.id.youtube_fragment);
 		if (existing != null) { // sekme zaten açık: ekran değiştirmeden şarkıyı yükle
@@ -1015,6 +1069,7 @@ public class MusicFragment extends MainActivityFragment {
 	}
 
 	private void closeNow() {
+		me.aap.fermata.media.service.MediaSessionCallback.yoldaSkip = null;
 		stopTicker();
 		if ((nowView != null) && (rootView != null)) rootView.removeView(nowView);
 		nowView = null;
@@ -1090,6 +1145,27 @@ public class MusicFragment extends MainActivityFragment {
 			advanced = true;
 			skip(1);
 		}
+	}
+
+	/** YouTube oynatıcısı üzerinden mi çalıyor (doğrudan akış alınamadıysa). */
+	private boolean nowViaYoutube;
+
+	/**
+	 * Direksiyon ‹ TRACK › ve araç ekranındaki önceki/sonraki: çalan Yolda Müzik şarkısıysa listede ilerle.
+	 * TV ya da başka bir şey çalıyorsa karışmaz (Fermata'nın kendi davranışı sürer).
+	 */
+	private void hookSkip() {
+		me.aap.fermata.media.service.MediaSessionCallback.yoldaSkip = dir -> {
+			if (!isAdded() || (nowQueue == null)) return false;
+			MediaLib.PlayableItem cur = getActivityDelegate().getCurrentPlayable();
+			boolean ours = (cur instanceof YtMusicItem)
+					|| (nowViaYoutube && (cur != null) && cur.getClass().getName().contains("Youtube"));
+			if (!ours) return false;
+			int i = nowIndex + dir;
+			if ((i < 0) || (i >= nowQueue.size())) return false;
+			if (content != null) content.post(() -> play(nowQueue, i));
+			return true;
+		};
 	}
 
 	private void skip(int dir) {
@@ -1211,20 +1287,13 @@ public class MusicFragment extends MainActivityFragment {
 	}
 
 	private void refresh() {
-		if (HOME.equals(chip)) return; // raflar yeniden yüklenmesin
 		if (!listTracks.isEmpty() && (listTitle != null)) {
-			// yalnız işaretleri güncellemek için listeyi yeniden çiz (ağ isteği yok)
+			// yalnız "çalıyor" işaretini güncellemek için ızgarayı yeniden çiz (ağ isteği yok)
 			Context ctx = requireContext();
 			content.removeAllViews();
 			LinearLayout s = section(ctx, listTitle, null);
 			dropLoading(s);
-			int side = YoldaStyle.compact(ctx) ? 16 : 24;
-			LinearLayout l = new LinearLayout(ctx);
-			l.setOrientation(LinearLayout.VERTICAL);
-			l.setPadding(dp(side), 0, dp(side), 0);
-			List<YtMusic.Track> q = new ArrayList<>(listTracks);
-			for (int i = 0; i < q.size(); i++) l.addView(row(ctx, q, i, 60), new LinearLayout.LayoutParams(-1, -2));
-			s.addView(l);
+			s.addView(trackGrid(ctx, new ArrayList<>(listTracks)));
 		}
 	}
 

@@ -106,6 +106,19 @@ public class FermataWebView extends WebView
 		if (VERSION.SDK_INT >= VERSION_CODES.O)
 			setRendererPriorityPolicy(RENDERER_PRIORITY_IMPORTANT, false);
 		getSettings().setMediaPlaybackRequiresUserGesture(false);
+		// Yolda reklam engelleyici (Menü → Reklam engelleyici; varsayılan açık)
+		FermataWebClient.enabled = getContext().getApplicationContext()
+				.getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE)
+				.getBoolean("adblock", true);
+		// YouTube sayfaları açılmadan önce reklam ayıklayıcı betik
+		if (FermataWebClient.enabled && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+			try {
+				androidx.webkit.WebViewCompat.addDocumentStartJavaScript(this, FermataWebClient.PRUNE_JS,
+						java.util.Set.of("https://*.youtube.com", "https://youtube.com"));
+			} catch (Throwable ex) {
+				me.aap.utils.log.Log.e(ex, "Reklam ayıklayıcı eklenemedi");
+			}
+		}
 	}
 
 	@Override

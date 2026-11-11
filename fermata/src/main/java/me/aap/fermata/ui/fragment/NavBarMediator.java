@@ -192,7 +192,7 @@ public class NavBarMediator extends PrefNavBarMediator
 			MainActivityDelegate.get(item.getContext()).showFragment(R.id.yolda_menu_fragment);
 		} else if (id == R.id.menu) {
 			showMenu(MainActivityDelegate.get(item.getContext()));
-		} else if ((id == R.id.yolda_music) && MainActivityDelegate.get(item.getContext()).isCarActivity()) {
+		} else if (id == R.id.yolda_music) { // Müzik: Yolda'nın kendi ekranı (YouTube ekranı gibi kartlar)
 			super.itemSelected(item, id, a);
 		} else if (id == R.id.yolda_music) {
 			// Müzik: YouTube Music sitesi tarayıcı çubuğu olmadan; menüde etkin öğe güncellenir

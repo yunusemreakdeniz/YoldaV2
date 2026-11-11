@@ -138,6 +138,16 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			render();
 		}));
 		set.addView(item(ctx, R.drawable.yi_mic, "Sesli komut", 0xFFA7F3D0, 0xFF059669, v -> a.startVoiceAssistant()));
+		android.content.SharedPreferences yp = ctx.getApplicationContext()
+				.getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
+		boolean ads = yp.getBoolean("adblock", true);
+		set.addView(item(ctx, R.drawable.yi_close, "Reklam engelleyici: " + (ads ? "Açık" : "Kapalı"),
+				0xFFFDE68A, 0xFFD97706, v -> {
+					yp.edit().putBoolean("adblock", !ads).apply();
+					me.aap.utils.ui.UiUtils.showInfo(ctx, ads ? "Reklam engelleyici kapatıldı"
+							: "Reklam engelleyici açıldı; açık sayfalar yenilenince etkili olur");
+					render();
+				}));
 		boolean wake = YoldaWake.isEnabled(ctx);
 		set.addView(item(ctx, R.drawable.yi_mic, "“Hey Yolda” ile uyandır: " + (wake ? "Açık" : "Kapalı"),
 				0xFFBBF7D0, 0xFF16A34A, v -> {

@@ -688,8 +688,16 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 		});
 	}
 
+	/**
+	 * Yolda Müzik listesi çalıyorken direksiyon / araç ekranı ‹ › tuşları: true dönerse Yolda kendi sırasında
+	 * önceki/sonraki şarkıya geçmiştir (YouTube oynatıcısının kendi önerisine gidilmez).
+	 */
+	public static volatile java.util.function.IntPredicate yoldaSkip;
+
 	@Override
 	public void onSkipToPrevious() {
+		java.util.function.IntPredicate y = yoldaSkip;
+		if ((y != null) && y.test(-1)) return;
 		playerTask.cancel();
 		playerTask = skipTo(false, false);
 	}
@@ -701,6 +709,8 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 
 	@Override
 	public void onSkipToNext() {
+		java.util.function.IntPredicate y = yoldaSkip;
+		if ((y != null) && y.test(1)) return;
 		playerTask.cancel();
 		playerTask = skipTo(true, false);
 	}
