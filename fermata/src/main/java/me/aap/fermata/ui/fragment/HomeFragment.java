@@ -306,12 +306,22 @@ public class HomeFragment extends MainActivityFragment {
 	private View apps(Context ctx, MainActivityDelegate a) {
 		List<String> keys = order(ctx);
 		List<View> cards = new ArrayList<>();
+		List<Integer> spans = new ArrayList<>();
+		// "Kaldığın yerden devam et": ilk sırada 2 hücre genişliğinde
+		if (!editing && a.hasCurrent()) {
+			cards.add(resumeCard(ctx, a));
+			spans.add(2);
+		}
 		for (int i = 0; i < keys.size(); i++) {
 			View c = cardFor(ctx, a, keys.get(i));
 			if (editing) c = withEditControls(ctx, c, keys, i);
 			cards.add(c);
+			spans.add(1);
 		}
-		if (editing) cards.add(addAppCard(ctx));
+		if (editing) {
+			cards.add(addAppCard(ctx));
+			spans.add(1);
+		}
 
 		// Geniş ekranda 6'lı, dar ekranda 3'lü sıralar
 		int w = YoldaStyle.widthDp(ctx);
@@ -320,27 +330,122 @@ public class HomeFragment extends MainActivityFragment {
 		LinearLayout grid = new LinearLayout(ctx);
 		grid.setOrientation(LinearLayout.VERTICAL);
 		LinearLayout row = null;
+		int used = perRow; // geçerli sırada dolu hücre sayısı
 		for (int i = 0; i < cards.size(); i++) {
-			if (i % perRow == 0) {
+			int span = Math.min(spans.get(i), perRow);
+			if (used + span > perRow) {
+				if (row != null) fillRow(ctx, row, perRow - used, gap);
 				row = new LinearLayout(ctx);
 				row.setOrientation(LinearLayout.HORIZONTAL);
 				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, dp(cardH(ctx)));
-				if (i > 0) rlp.topMargin = dp(gap);
+				if (grid.getChildCount() > 0) rlp.topMargin = dp(gap);
 				grid.addView(row, rlp);
+				used = 0;
 			}
-			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
-			if (i % perRow != 0) lp.leftMargin = dp(gap);
+			// Çok hücreli kart aradaki boşlukları da kaplar: ağırlık = hücre, ek genişlik = boşluk
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, span);
+			if (used > 0) lp.leftMargin = dp(gap);
+			if (span > 1) lp.width = dp(gap) * (span - 1);
 			row.addView(cards.get(i), lp);
+			used += span;
 		}
 		// Son sırayı boşlukla doldur: kartlar her sırada aynı boyda kalsın
-		if (row != null) {
-			for (int i = cards.size() % perRow; (i > 0) && (i < perRow); i++) {
-				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
-				lp.leftMargin = dp(gap);
-				row.addView(new View(ctx), lp);
-			}
-		}
+		if (row != null) fillRow(ctx, row, perRow - used, gap);
 		return grid;
+	}
+
+	private void fillRow(Context ctx, LinearLayout row, int empty, int gap) {
+		for (int i = 0; i < empty; i++) {
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
+			lp.leftMargin = dp(gap);
+			row.addView(new View(ctx), lp);
+		}
+	}
+
+	/** Son çalınan/izlenen: kapak görseli zemin, altta ad; dokununca kaldığı yerden sürer. */
+	private View resumeCard(Context ctx, MainActivityDelegate a) {
+		FrameLayout f = pressable(ctx, YoldaStyle.appIcon(ctx, 0xFF8B5CF6, 0xFF4C1D95, 28), v -> resumePlayback(a));
+		f.setClipToOutline(true);
+		f.setElevation(dp(6));
+		ImageView art = new ImageView(ctx);
+		art.setScaleType(ImageView.ScaleType.CENTER_CROP);
+		art.setVisibility(View.GONE);
+		f.addView(art, new FrameLayout.LayoutParams(-1, -1));
+		// Yazı okunsun diye alttan koyulaşan perde
+		View shade = new View(ctx);
+		shade.setBackground(new android.graphics.drawable.GradientDrawable(
+				android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+				new int[]{0x10000000, 0x40000000, 0xC0000000}));
+		f.addView(shade, new FrameLayout.LayoutParams(-1, -1));
+
+		boolean small = YoldaStyle.compact(ctx);
+		LinearLayout txt = new LinearLayout(ctx);
+		txt.setOrientation(LinearLayout.VERTICAL);
+		txt.setPadding(dp(small ? 14 : 20), 0, dp(small ? 60 : 84), dp(small ? 12 : 18));
+		TextView cap = text(ctx, "Kaldığın yerden devam et", small ? 12 : 14, false);
+		cap.setAlpha(0.85f);
+		cap.setMaxLines(1);
+		cap.setEllipsize(TextUtils.TruncateAt.END);
+		txt.addView(cap);
+		TextView name = text(ctx, "…", small ? 16 : 22, true);
+		name.setMaxLines(2);
+		name.setEllipsize(TextUtils.TruncateAt.END);
+		txt.addView(name);
+		TextView sub = text(ctx, "", small ? 12 : 14, false);
+		sub.setAlpha(0.75f);
+		sub.setMaxLines(1);
+		sub.setEllipsize(TextUtils.TruncateAt.END);
+		txt.addView(sub);
+		f.addView(txt, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM | Gravity.START));
+
+		// Sağ altta oynat düğmesi
+		FrameLayout play = new FrameLayout(ctx);
+		play.setBackground(YoldaStyle.selected(ctx, 999));
+		ImageView pi = new ImageView(ctx);
+		pi.setImageResource(R.drawable.yi_play);
+		pi.setColorFilter(0xFFFFFFFF);
+		int ps = small ? 40 : 56;
+		play.addView(pi, new FrameLayout.LayoutParams(dp(ps / 2), dp(ps / 2), Gravity.CENTER));
+		FrameLayout.LayoutParams plp = new FrameLayout.LayoutParams(dp(ps), dp(ps), Gravity.BOTTOM | Gravity.END);
+		plp.setMargins(0, 0, dp(small ? 12 : 16), dp(small ? 12 : 16));
+		f.addView(play, plp);
+
+		currentOrLast(a).onSuccess(item -> {
+			if (!isAdded() || (item == null)) return;
+			name.setText(item.getName());
+			MediaLib.BrowsableItem p = item.getParent();
+			sub.setText((p != null) ? p.getName() : "");
+			item.getIconUri().main().onCompletion((u, err) -> {
+				if (!isAdded() || (u == null)) return;
+				a.getLib().getBitmap(u.toString(), true, true).main().onCompletion((bmp, e2) -> {
+					if (!isAdded() || (bmp == null)) return;
+					art.setImageBitmap(bmp);
+					art.setVisibility(View.VISIBLE);
+				});
+			});
+		});
+		return f;
+	}
+
+	private static me.aap.utils.async.FutureSupplier<MediaLib.PlayableItem> currentOrLast(MainActivityDelegate a) {
+		MediaLib.PlayableItem pi = a.getCurrentPlayable();
+		if ((pi != null) && !pi.isExternal()) return me.aap.utils.async.Completed.completed(pi);
+		return a.getLib().getLastPlayedItem().main();
+	}
+
+	/** Duraklatılmışsa kaldığı saniyeden sürdür; çalıyorsa oynatıcıya git. */
+	private void resumePlayback(MainActivityDelegate a) {
+		MediaLib.PlayableItem cur = a.getCurrentPlayable();
+		me.aap.fermata.media.service.MediaSessionCallback cb = a.getMediaSessionCallback();
+		if ((cur != null) && !cur.isExternal()) {
+			if (!cb.isPlaying()) cb.onPlay();
+			a.goToCurrent();
+			return;
+		}
+		a.getLib().getLastPlayedItem().main().onSuccess(item -> {
+			if (item != null) a.getBody().playItem(item);
+			else UiUtils.showInfo(requireContext(), "Henüz bir şey izlemedin");
+		});
 	}
 
 	/** Düzenleme modunda kartın üstünde ◀ ✕ ▶ düğmeleri. */
