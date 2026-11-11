@@ -83,11 +83,13 @@ jobs:
           mkdir -p dist
           cp fermata/build/outputs/apk_from_bundle/autoRelease/*.apk dist/Yolda-${{ github.run_number }}.apk
 
+      # Yedek kopya; depolama dolarsa derleme yine release'e eklenir
       - uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: Yolda-${{ github.run_number }}
           path: dist/*.apk
-          retention-days: 30
+          retention-days: 3
 
       - name: Release'e ekle (telefondan indirme)
         uses: softprops/action-gh-release@v2
