@@ -1166,11 +1166,11 @@ public class MainActivityDelegate extends ActivityDelegate
 			acc.setColor(me.aap.fermata.ui.view.YoldaStyle.ACCENT);
 			b.setBackground(acc);
 			mic.setImageTintList(ColorStateList.valueOf(me.aap.fermata.ui.view.YoldaStyle.ON_ACCENT));
-		} else {
+		} else { // telefon: alt menü kapsülünün solunda, aynı hizada
 			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
-			lp.leftMargin = toIntPx(ctx, 22);
-			lp.bottomToTop = R.id.control_panel; // oynatıcı kapalıyken menünün hemen üstü
-			lp.bottomMargin = toIntPx(ctx, 14);
+			lp.leftMargin = toIntPx(ctx, 16);
+			lp.topToTop = R.id.nav_bar;
+			lp.bottomToBottom = R.id.nav_bar;
 		}
 		b.setId(View.generateViewId());
 		host.addView(b, lp);

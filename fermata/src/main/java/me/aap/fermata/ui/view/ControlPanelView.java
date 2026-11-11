@@ -222,6 +222,7 @@ public class ControlPanelView extends ConstraintLayout
 	public void useYoldaBar() {
 		if (yoldaBar != null) return;
 		for (int i = 0; i < getChildCount(); i++) getChildAt(i).setAlpha(0f);
+		setBackground(null); // zemini çubuk kendisi çiziyor (çift cam katmanı olmasın)
 		yoldaBar = new YoldaPlayerBar(getContext());
 		LayoutParams lp = new LayoutParams(0, 0);
 		lp.startToStart = LayoutParams.PARENT_ID;

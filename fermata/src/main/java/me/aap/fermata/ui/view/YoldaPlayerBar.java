@@ -48,6 +48,13 @@ public class YoldaPlayerBar extends FrameLayout {
 		super(ctx);
 		setClipChildren(false);
 		YoldaStyle.Theme t = YoldaStyle.current(ctx);
+		GradientDrawable bg = new GradientDrawable();
+		bg.setColor((t.base & 0x00FFFFFF) | 0xF2000000);
+		bg.setCornerRadius(dp(22));
+		setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{bg,
+				YoldaStyle.glass(ctx, t, 22)}));
+		setClickable(true); // boş alana dokunuş alttaki eski düğmelere gitmesin
+		boolean compact = YoldaStyle.compact(ctx);
 
 		LinearLayout row = new LinearLayout(ctx);
 		row.setOrientation(LinearLayout.HORIZONTAL);
@@ -77,7 +84,7 @@ public class YoldaPlayerBar extends FrameLayout {
 		cover.setAlpha(0f);
 		art.addView(cover, new LayoutParams(-1, -1));
 		art.setOnClickListener(v -> openCurrent());
-		row.addView(art, new LinearLayout.LayoutParams(dp(52), dp(52)));
+		row.addView(art, new LinearLayout.LayoutParams(dp(compact ? 46 : 52), dp(compact ? 46 : 52)));
 
 		// Ad + alt bilgi
 		LinearLayout txt = new LinearLayout(ctx);
@@ -88,7 +95,7 @@ public class YoldaPlayerBar extends FrameLayout {
 		title.setTextColor(0xFFFFFFFF);
 		title.setTypeface(Typeface.DEFAULT_BOLD);
 		title.setTextSize(15 * YoldaStyle.textScale(ctx));
-		title.setMaxLines(1);
+		title.setSingleLine(true);
 		title.setEllipsize(TextUtils.TruncateAt.END);
 		txt.addView(title);
 		LinearLayout subRow = new LinearLayout(ctx);
@@ -106,20 +113,21 @@ public class YoldaPlayerBar extends FrameLayout {
 		lb.setCornerRadius(dp(4));
 		live.setBackground(lb);
 		live.setVisibility(GONE);
+		live.setSingleLine(true);
 		LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-2, -2);
 		llp.rightMargin = dp(6);
 		subRow.addView(live, llp);
 		sub = new TextView(ctx);
 		sub.setTextColor(0xB3FFFFFF);
 		sub.setTextSize(13 * YoldaStyle.textScale(ctx));
-		sub.setMaxLines(1);
+		sub.setSingleLine(true);
 		sub.setEllipsize(TextUtils.TruncateAt.END);
 		subRow.addView(sub);
 		txt.addView(subRow);
 		row.addView(txt, new LinearLayout.LayoutParams(0, -2, 1f));
 
 		// Düğmeler (her biri en az 44dp dokunma alanı)
-		row.addView(button(ctx, R.drawable.yi_prev, "Önceki", v -> cb().onSkipToPrevious()), btnLp(44));
+		if (!compact) row.addView(button(ctx, R.drawable.yi_prev, "Önceki", v -> cb().onSkipToPrevious()), btnLp(44));
 		play = button(ctx, R.drawable.yi_pause, "Oynat / duraklat", v -> togglePlay());
 		play.setColorFilter(0xFF0B0E2A);
 		GradientDrawable pc = new GradientDrawable();
@@ -132,7 +140,7 @@ public class YoldaPlayerBar extends FrameLayout {
 		plp.rightMargin = dp(4);
 		row.addView(play, plp);
 		row.addView(button(ctx, R.drawable.yi_next, "Sonraki", v -> cb().onSkipToNext()), btnLp(44));
-		row.addView(button(ctx, R.drawable.more, "Diğer", v -> clickOriginal(R.id.control_menu_button)),
+		if (!compact) row.addView(button(ctx, R.drawable.more, "Diğer", v -> clickOriginal(R.id.control_menu_button)),
 				btnLp(40));
 		row.addView(button(ctx, R.drawable.yi_close, "Kapat", v -> {
 			if (getParent() instanceof ControlPanelView cp) cp.closePlayer();
@@ -169,7 +177,18 @@ public class YoldaPlayerBar extends FrameLayout {
 		postDelayed(ticker, (getVisibility() == VISIBLE) ? 500 : 1500);
 	}
 
+	private void hideOriginals() {
+		if (!(getParent() instanceof android.view.ViewGroup p)) return;
+		for (int i = 0; i < p.getChildCount(); i++) {
+			View c = p.getChildAt(i);
+			if (c == this) continue;
+			if (c.getAlpha() != 0f) c.setAlpha(0f);
+			if (c.getVisibility() == VISIBLE) c.setVisibility(INVISIBLE);
+		}
+	}
+
 	private void update() {
+		hideOriginals();
 		MainActivityDelegate a = MainActivityDelegate.get(getContext());
 		MediaSessionCallback cb = a.getMediaSessionCallback();
 		boolean playing = cb.isPlaying();

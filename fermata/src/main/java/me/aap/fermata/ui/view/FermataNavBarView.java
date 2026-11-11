@@ -51,7 +51,8 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 		int side = Math.max(Math.round(16 * d), (screenW - maxW) / 2);
 		lp.width = 0; // ConstraintLayout: soldan sağa kısıtlara göre, kenar boşluklarıyla
 		lp.height = pillHeight(); // kalın kapsül
-		lp.leftMargin = side;
+		// solda sesli asistan düğmesine (56 dp) yer: düğme kapsülle aynı hizada durur, içeriğe binmez
+		lp.leftMargin = Math.max(side, Math.round((16 + 56 + 10) * d));
 		lp.rightMargin = side;
 		lp.bottomMargin = Math.round(14 * d);
 		setLayoutParams(lp);

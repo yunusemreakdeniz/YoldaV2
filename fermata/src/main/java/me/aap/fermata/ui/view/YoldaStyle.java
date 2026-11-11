@@ -119,7 +119,7 @@ public final class YoldaStyle {
 
 	/** Arama kutusunun soldan boşluğu (dp): telefonda sesli asistan düğmesinin sağında başlar. */
 	public static int searchLeftDp() {
-		return railMode ? 18 : (22 + 56 + 12);
+		return railMode ? 18 : 22; // sesli asistan artık alt menünün yanında
 	}
 
 	/** Menüde seçili düğme: düğmenin ortasında sabit boyutlu, yumuşak parlak cam (genişleyip uzamaz). */
