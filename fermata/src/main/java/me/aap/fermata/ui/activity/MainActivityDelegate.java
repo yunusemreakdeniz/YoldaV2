@@ -1319,11 +1319,45 @@ public class MainActivityDelegate extends ActivityDelegate
 			playbackState = null;
 			recognizer.destroy();
 			promise.cancel();
+			removeGlow();
 			if (speechListener == this) speechListener = null;
+		}
+
+		// Yolda: pencere yerine uygulamanın üstünde ışık efekti
+		private me.aap.fermata.ui.view.VoiceGlowView glow;
+
+		private boolean showGlow() {
+			if (glow != null) return true;
+			View host = findViewById(R.id.main_activity);
+			if (!(host instanceof ConstraintLayout cl)) return false;
+			Context ctx = getContext();
+			glow = new me.aap.fermata.ui.view.VoiceGlowView(ctx, me.aap.fermata.ui.view.YoldaStyle.current(ctx), text);
+			statusText = glow.status;
+			statusText.setText(onDevice ? "DİNLİYORUM · İNTERNETSİZ" : "DİNLİYORUM");
+			text.setText("“TRT Haber'i aç” · “eve git” · “müzik aç”");
+			glow.setOnClickListener(v -> destroy()); // dokununca vazgeç
+			ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(0, 0);
+			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
+			glow.setElevation(toIntPx(ctx, 40));
+			cl.addView(glow, lp);
+			return true;
+		}
+
+		private void removeGlow() {
+			View v = glow;
+			glow = null;
+			if (v == null) return;
+			v.animate().alpha(0f).setDuration(220).withEndAction(() -> {
+				if (v.getParent() instanceof android.view.ViewGroup p) p.removeView(v);
+			}).start();
 		}
 
 		@Override
 		public void onReadyForSpeech(Bundle params) {
+			if (!textInput && me.aap.fermata.ui.view.YoldaStyle.glassActive && showGlow()) return;
 			getContextMenu().show(b -> {
 				// Yolda: koyu kart, animasyonlu küre, "Dinliyorum…", canlı yazı ve örnek komutlar
 				Context ctx = getContext();
@@ -1403,7 +1437,10 @@ public class MainActivityDelegate extends ActivityDelegate
 		public void onResults(Bundle b) {
 			List<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
 			if ((r != null) && !r.isEmpty()) text.setText(r.get(0));
-			postDelayed(MainActivityDelegate.this::hideActiveMenu, 1000);
+			if (glow != null) {
+				if (statusText != null) statusText.setText("ANLAŞILDI");
+				postDelayed(this::removeGlow, 700);
+			} else postDelayed(MainActivityDelegate.this::hideActiveMenu, 1000);
 			promise.complete(r);
 		}
 
@@ -1433,6 +1470,7 @@ public class MainActivityDelegate extends ActivityDelegate
 				recognizer.startListening(intent);
 				return;
 			}
+			removeGlow();
 			String msg = "Speech recognition failed with error code " + error;
 			Log.e(msg);
 			promise.completeExceptionally(new IOException(msg));
@@ -1451,6 +1489,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		@Override
 		public void onRmsChanged(float rmsdB) {
 			if (orb != null) orb.setLevel((rmsdB + 2f) / 12f);
+			if (glow != null) glow.setLevel((rmsdB + 2f) / 12f);
 		}
 
 		@Override
@@ -1461,6 +1500,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		public void onEndOfSpeech() {
 			if (statusText != null) statusText.setText("Anlıyorum…");
 			if (orb != null) orb.setThinking(true);
+			if (glow != null) glow.setThinking(true);
 		}
 
 		@Override

@@ -119,8 +119,9 @@ class VoiceCommandHandler {
 	public boolean handle(String cmd) {
 		init();
 		cmd = subst(cmd);
-		// Yolda: "eve git", "Taksim'e git", "Ankara'ya yol tarifi" → navigasyon
-		if (me.aap.fermata.ui.fragment.NavFragment.handleVoice(activity, cmd)) return true;
+		// Yolda: kanal adı, uygulamalar ve navigasyon önce; tanıma büyük harf döndürse de eşleşsin
+		if (me.aap.fermata.ui.fragment.YoldaVoice.handle(activity, cmd)) return true;
+		cmd = cmd.toLowerCase(new java.util.Locale("tr")).trim();
 
 		AddonManager amgr = AddonManager.get();
 

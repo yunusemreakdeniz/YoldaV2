@@ -135,11 +135,122 @@ public class HomeFragment extends MainActivityFragment {
 		root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
 
 		MainActivityDelegate a = getActivityDelegate();
+		YoldaVoice.preload(a); // sesli komutta kanal adları hazır olsun
 		col.addView(header(ctx, a));
+		if (picking) {
+			col.addView(picker(ctx), topMargin(new LinearLayout.LayoutParams(-1, -2), 20));
+			animateIn(col);
+			return;
+		}
 		col.addView(apps(ctx, a), topMargin(new LinearLayout.LayoutParams(-1, -2), 24));
-		if (AddonManager.get().hasAddon(R.id.tv_fragment)) liveShelf(ctx, a, col);
-		if (AddonManager.get().hasAddon(R.id.youtube_fragment)) ytShelf(ctx, a, col);
+		if (!editing) {
+			if (AddonManager.get().hasAddon(R.id.tv_fragment)) liveShelf(ctx, a, col);
+			if (AddonManager.get().hasAddon(R.id.youtube_fragment)) ytShelf(ctx, a, col);
+		} else {
+			TextView hint = text(ctx, "Kartları ok tuşlarıyla taşı, ✕ ile kaldır, + ile telefonundaki uygulamaları ekle. Bitince ✓.", 14, false);
+			hint.setTextColor(0xCCFFFFFF);
+			hint.setPadding(dp(4), dp(20), 0, 0);
+			col.addView(hint);
+		}
 		animateIn(col);
+	}
+
+	// ---- düzenlenebilir uygulama kartları ----
+
+	private boolean editing, picking;
+	private static final String[] BUILTIN = {"nav", "tv", "yt", "music", "phone", "web"};
+
+	private List<String> order(Context ctx) {
+		String s = prefs().getString("apps", null);
+		List<String> l = new ArrayList<>();
+		if (s == null) {
+			for (String k : BUILTIN) if (available(k)) l.add(k);
+		} else {
+			for (String k : s.split(",")) if (!k.isEmpty() && available(k)) l.add(k);
+		}
+		return l;
+	}
+
+	private void saveOrder(List<String> l) {
+		prefs().edit().putString("apps", TextUtils.join(",", l)).apply();
+	}
+
+	private boolean available(String k) {
+		AddonManager am = AddonManager.get();
+		return switch (k) {
+			case "tv" -> am.hasAddon(R.id.tv_fragment);
+			case "yt" -> am.hasAddon(R.id.youtube_fragment);
+			case "music", "web" -> am.hasAddon(R.id.web_browser_fragment);
+			case "nav", "phone" -> true;
+			default -> k.startsWith("pkg:") && (launchIntent(k.substring(4)) != null);
+		};
+	}
+
+	private Intent launchIntent(String pkg) {
+		try {
+			return requireContext().getPackageManager().getLaunchIntentForPackage(pkg);
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+
+	/** Kartın görünümü ve işi. */
+	private View cardFor(Context ctx, MainActivityDelegate a, String k) {
+		switch (k) {
+			case "nav":
+				return appCard(ctx, "Navigasyon", YoldaStyle.appIcon(ctx, 0xFF4FD1C5, 0xFF0E9F8E, 28), glyph(ctx, R.drawable.yi_nav, true), 54,
+						v -> a.showFragment(R.id.yolda_nav_fragment));
+			case "tv":
+				return appCard(ctx, "TV ve Radyo", YoldaStyle.appIcon(ctx, 0xFFFF8A65, 0xFFF4511E, 28), glyph(ctx, R.drawable.yi_tv, true), 54,
+						v -> a.showFragment(R.id.yolda_channels_fragment));
+			case "yt":
+				return appCard(ctx, "YouTube", YoldaStyle.appIcon(ctx, 0xFFFFFFFF, 0xFFF1F1F1, 28), glyph(ctx, R.drawable.yi_brand_youtube, false), 70,
+						v -> a.showFragment(R.id.youtube_fragment));
+			case "music":
+				return appCard(ctx, "YouTube Music", YoldaStyle.appIcon(ctx, 0xFFFF2A2A, 0xFFE00000, 28), glyph(ctx, R.drawable.yi_brand_ytmusic, false), 70,
+						v -> openWeb(a, MUSIC_URL));
+			case "phone":
+				return appCard(ctx, "Telefon", YoldaStyle.appIcon(ctx, 0xFF5EE07B, 0xFF1DB954, 28), glyph(ctx, R.drawable.yi_phone, true), 54,
+						v -> phone(ctx));
+			case "web":
+				return appCard(ctx, "Tarayıcı", YoldaStyle.appIcon(ctx, 0xFF6BB8FF, 0xFF1E6FE6, 28), glyph(ctx, R.drawable.yi_globe, true), 54,
+						v -> a.showFragment(R.id.web_browser_fragment));
+		}
+		// Telefondaki uygulama: kendi simgesi ve adı
+		String pkg = k.substring(4);
+		android.content.pm.PackageManager pm = ctx.getPackageManager();
+		String label = pkg;
+		android.graphics.drawable.Drawable icon = null;
+		try {
+			android.content.pm.ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
+			label = String.valueOf(pm.getApplicationLabel(ai));
+			icon = pm.getApplicationIcon(ai);
+		} catch (Exception ignore) {
+		}
+		ImageView iv = new ImageView(ctx);
+		if (icon != null) iv.setImageDrawable(icon);
+		iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+		return appCard(ctx, label, null, iv, 104, v -> launchApp(a, pkg));
+	}
+
+	private void launchApp(MainActivityDelegate a, String pkg) {
+		Intent i = launchIntent(pkg);
+		if (i == null) return;
+		try {
+			a.getContext().getApplicationContext().startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+			if (a.isCarActivity()) UiUtils.showInfo(a.getContext(),
+					"Telefonda açıldı. Araç ekranında kullanmak için uygulama listesinden “Yolda Telefon”u aç.");
+		} catch (Exception ex) {
+			Log.e(ex, "Uygulama açılamadı: ", pkg);
+		}
+	}
+
+	private ImageView glyph(Context ctx, @DrawableRes int res, boolean tintWhite) {
+		ImageView g = new ImageView(ctx);
+		g.setImageResource(res);
+		if (tintWhite) g.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		g.setScaleType(ImageView.ScaleType.FIT_CENTER);
+		return g;
 	}
 
 	private View header(Context ctx, MainActivityDelegate a) {
@@ -162,6 +273,11 @@ public class HomeFragment extends MainActivityFragment {
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
 
 		head.addView(roundGlass(ctx, R.drawable.yi_mic, v -> a.startVoiceAssistant()), sq(58));
+		head.addView(roundGlass(ctx, (editing || picking) ? R.drawable.yi_check : R.drawable.yi_edit, v -> {
+			if (picking) picking = false;
+			else editing = !editing;
+			render();
+		}), leftMargin(sq(58), 12));
 		head.addView(roundGlass(ctx, R.drawable.yi_palette, v -> {
 			YoldaStyle.next(ctx);
 			YoldaStyle.refreshBackdrop(ctx);
@@ -174,27 +290,17 @@ public class HomeFragment extends MainActivityFragment {
 	// ---- uygulama kartları (kendi simgeleriyle) ----
 
 	private View apps(Context ctx, MainActivityDelegate a) {
-		AddonManager am = AddonManager.get();
+		List<String> keys = order(ctx);
 		List<View> cards = new ArrayList<>();
-		cards.add(appCard(ctx, "Navigasyon", YoldaStyle.appIcon(ctx, 0xFF4FD1C5, 0xFF0E9F8E, 28), R.drawable.yi_nav, true,
-				v -> a.showFragment(R.id.yolda_nav_fragment)));
-		if (am.hasAddon(R.id.tv_fragment))
-			cards.add(appCard(ctx, "TV ve Radyo", YoldaStyle.appIcon(ctx, 0xFFFF8A65, 0xFFF4511E, 28), R.drawable.yi_tv, true,
-					v -> a.showFragment(R.id.yolda_channels_fragment)));
-		if (am.hasAddon(R.id.youtube_fragment))
-			cards.add(appCard(ctx, "YouTube", YoldaStyle.appIcon(ctx, 0xFFFFFFFF, 0xFFF1F1F1, 28), R.drawable.yi_brand_youtube, false,
-					v -> a.showFragment(R.id.youtube_fragment)));
-		if (am.hasAddon(R.id.web_browser_fragment))
-			cards.add(appCard(ctx, "YouTube Music", YoldaStyle.appIcon(ctx, 0xFFFF2A2A, 0xFFE00000, 28), R.drawable.yi_brand_ytmusic, false,
-					v -> openWeb(a, MUSIC_URL)));
-		cards.add(appCard(ctx, "Telefon", YoldaStyle.appIcon(ctx, 0xFF5EE07B, 0xFF1DB954, 28), R.drawable.yi_phone, true,
-				v -> phone(ctx)));
-		if (am.hasAddon(R.id.web_browser_fragment))
-			cards.add(appCard(ctx, "Tarayıcı", YoldaStyle.appIcon(ctx, 0xFF6BB8FF, 0xFF1E6FE6, 28), R.drawable.yi_globe, true,
-					v -> a.showFragment(R.id.web_browser_fragment)));
+		for (int i = 0; i < keys.size(); i++) {
+			View c = cardFor(ctx, a, keys.get(i));
+			if (editing) c = withEditControls(ctx, c, keys, i);
+			cards.add(c);
+		}
+		if (editing) cards.add(addAppCard(ctx));
 
-		// Geniş ekranda tek sıra, dar ekranda 3'lü iki sıra
-		int perRow = ctx.getResources().getConfiguration().screenWidthDp >= 900 ? cards.size() : 3;
+		// Geniş ekranda 6'lı, dar ekranda 3'lü sıralar
+		int perRow = ctx.getResources().getConfiguration().screenWidthDp >= 900 ? 6 : 3;
 		LinearLayout grid = new LinearLayout(ctx);
 		grid.setOrientation(LinearLayout.VERTICAL);
 		LinearLayout row = null;
@@ -210,25 +316,179 @@ public class HomeFragment extends MainActivityFragment {
 			if (i % perRow != 0) lp.leftMargin = dp(18);
 			row.addView(cards.get(i), lp);
 		}
+		// Son sırayı boşlukla doldur: kartlar her sırada aynı boyda kalsın
+		if (row != null) {
+			for (int i = cards.size() % perRow; (i > 0) && (i < perRow); i++) {
+				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
+				lp.leftMargin = dp(18);
+				row.addView(new View(ctx), lp);
+			}
+		}
 		return grid;
 	}
 
-	/** Büyük cam kart, ortada iOS uygulama simgesi gibi yuvarlatılmış kare. */
-	private View appCard(Context ctx, String label, android.graphics.drawable.Drawable iconBg, @DrawableRes int glyph,
-											 boolean tintWhite, View.OnClickListener click) {
+	/** Düzenleme modunda kartın üstünde ◀ ✕ ▶ düğmeleri. */
+	private View withEditControls(Context ctx, View card, List<String> keys, int idx) {
+		FrameLayout f = new FrameLayout(ctx);
+		f.addView(card, new FrameLayout.LayoutParams(-1, -1));
+		card.setAlpha(0.85f);
+		LinearLayout bar = new LinearLayout(ctx);
+		bar.setOrientation(LinearLayout.HORIZONTAL);
+		bar.setGravity(Gravity.CENTER);
+		if (idx > 0) bar.addView(miniButton(ctx, R.drawable.yi_left, v -> {
+			List<String> l = new ArrayList<>(keys);
+			l.add(idx - 1, l.remove(idx));
+			saveOrder(l);
+			render();
+		}));
+		bar.addView(miniButton(ctx, R.drawable.yi_close, v -> {
+			List<String> l = new ArrayList<>(keys);
+			l.remove(idx);
+			saveOrder(l);
+			render();
+		}));
+		if (idx < keys.size() - 1) bar.addView(miniButton(ctx, R.drawable.yi_right, v -> {
+			List<String> l = new ArrayList<>(keys);
+			l.add(idx + 1, l.remove(idx));
+			saveOrder(l);
+			render();
+		}));
+		FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+		blp.topMargin = dp(10);
+		f.addView(bar, blp);
+		return f;
+	}
+
+	private View miniButton(Context ctx, @DrawableRes int res, View.OnClickListener click) {
+		FrameLayout b = pressable(ctx, YoldaStyle.selected(ctx, 999), click);
+		ImageView iv = glyph(ctx, res, true);
+		b.addView(iv, new FrameLayout.LayoutParams(dp(20), dp(20), Gravity.CENTER));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(40), dp(40));
+		lp.leftMargin = lp.rightMargin = dp(4);
+		b.setLayoutParams(lp);
+		return b;
+	}
+
+	private View addAppCard(Context ctx) {
+		GradientDrawable bg = new GradientDrawable();
+		bg.setColor(0x14FFFFFF);
+		bg.setStroke(dp(2), 0x8CFFFFFF, dp(10), dp(8));
+		bg.setCornerRadius(dp(34));
+		FrameLayout f = pressable(ctx, bg, v -> {
+			picking = true;
+			render();
+		});
+		LinearLayout box = new LinearLayout(ctx);
+		box.setOrientation(LinearLayout.VERTICAL);
+		box.setGravity(Gravity.CENTER);
+		box.addView(glyph(ctx, R.drawable.yi_add, true), sq(48));
+		TextView l = text(ctx, "Ekle", 17, true);
+		l.setPadding(0, dp(12), 0, 0);
+		box.addView(l);
+		f.addView(box, new FrameLayout.LayoutParams(-1, -1));
+		return f;
+	}
+
+	/** Ana ekrana ekle: gizlenmiş Yolda kartları + telefondaki uygulamalar. */
+	private View picker(Context ctx) {
+		LinearLayout col = new LinearLayout(ctx);
+		col.setOrientation(LinearLayout.VERTICAL);
+		col.addView(text(ctx, "Ana ekrana ekle", 26, true));
+		List<String> cur = order(ctx);
+
+		List<String> hidden = new ArrayList<>();
+		for (String k : BUILTIN) if (available(k) && !cur.contains(k)) hidden.add(k);
+		if (!hidden.isEmpty()) {
+			TextView h = text(ctx, "YOLDA", 12, true);
+			h.setTextColor(0xBFFFFFFF);
+			h.setLetterSpacing(0.1f);
+			h.setPadding(dp(4), dp(18), 0, dp(10));
+			col.addView(h);
+			LinearLayout row = new LinearLayout(ctx);
+			row.setOrientation(LinearLayout.HORIZONTAL);
+			for (String k : hidden) {
+				View c = cardFor(ctx, getActivityDelegate(), k);
+				c.setOnClickListener(v -> addKey(k));
+				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(170), dp(200));
+				lp.rightMargin = dp(14);
+				row.addView(c, lp);
+			}
+			HorizontalScrollView hs = new HorizontalScrollView(ctx);
+			hs.setHorizontalScrollBarEnabled(false);
+			hs.addView(row);
+			col.addView(hs);
+		}
+
+		TextView h2 = text(ctx, "TELEFONUNDAKİ UYGULAMALAR", 12, true);
+		h2.setTextColor(0xBFFFFFFF);
+		h2.setLetterSpacing(0.1f);
+		h2.setPadding(dp(4), dp(22), 0, dp(10));
+		col.addView(h2);
+
+		android.content.pm.PackageManager pm = ctx.getPackageManager();
+		Intent main = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+		List<android.content.pm.ResolveInfo> apps = new ArrayList<>(pm.queryIntentActivities(main, 0));
+		apps.sort((x, y) -> String.valueOf(x.loadLabel(pm)).compareToIgnoreCase(String.valueOf(y.loadLabel(pm))));
+		int perRow = ctx.getResources().getConfiguration().screenWidthDp >= 900 ? 8 : 4;
+		LinearLayout row = null;
+		int n = 0;
+		for (android.content.pm.ResolveInfo ri : apps) {
+			String pkg = ri.activityInfo.packageName;
+			if (pkg.equals(ctx.getPackageName()) || cur.contains("pkg:" + pkg)) continue;
+			if (n % perRow == 0) {
+				row = new LinearLayout(ctx);
+				row.setOrientation(LinearLayout.HORIZONTAL);
+				col.addView(row, new LinearLayout.LayoutParams(-1, -2));
+			}
+			LinearLayout cell = new LinearLayout(ctx);
+			cell.setOrientation(LinearLayout.VERTICAL);
+			cell.setGravity(Gravity.CENTER_HORIZONTAL);
+			cell.setPadding(dp(6), dp(10), dp(6), dp(10));
+			cell.setClickable(true);
+			cell.setOnClickListener(v -> addKey("pkg:" + pkg));
+			ImageView iv = new ImageView(ctx);
+			iv.setImageDrawable(ri.loadIcon(pm));
+			cell.addView(iv, sq(64));
+			TextView l = text(ctx, String.valueOf(ri.loadLabel(pm)), 13, false);
+			l.setGravity(Gravity.CENTER);
+			l.setMaxLines(1);
+			l.setEllipsize(TextUtils.TruncateAt.END);
+			l.setPadding(0, dp(6), 0, 0);
+			cell.addView(l, new LinearLayout.LayoutParams(-1, -2));
+			row.addView(cell, new LinearLayout.LayoutParams(0, -2, 1f));
+			n++;
+		}
+		if ((row != null) && (n % perRow != 0)) {
+			for (int i = n % perRow; i < perRow; i++) row.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
+		}
+		return col;
+	}
+
+	private void addKey(String k) {
+		List<String> l = order(requireContext());
+		if (!l.contains(k)) l.add(k);
+		saveOrder(l);
+		picking = false;
+		render();
+		UiUtils.showInfo(requireContext(), "Ana ekrana eklendi");
+	}
+
+	/**
+	 * Büyük cam kart, ortada iOS uygulama simgesi gibi yuvarlatılmış kare.
+	 * @param iconBg simge zemini; null ise simge (telefondaki uygulamanın kendi simgesi) tam boy çizilir
+	 */
+	private View appCard(Context ctx, String label, @Nullable android.graphics.drawable.Drawable iconBg, ImageView g,
+											 int glyphDp, View.OnClickListener click) {
 		FrameLayout f = pressable(ctx, YoldaStyle.glass(ctx, t, 34), click);
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.VERTICAL);
 		box.setGravity(Gravity.CENTER);
 		FrameLayout ic = new FrameLayout(ctx);
-		ic.setBackground(iconBg);
-		ic.setElevation(dp(6));
-		ImageView g = new ImageView(ctx);
-		g.setImageResource(glyph);
-		if (tintWhite) g.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		g.setScaleType(ImageView.ScaleType.FIT_CENTER);
-		int gs = tintWhite ? 54 : 70;
-		ic.addView(g, new FrameLayout.LayoutParams(dp(gs), dp(gs), Gravity.CENTER));
+		if (iconBg != null) {
+			ic.setBackground(iconBg);
+			ic.setElevation(dp(6));
+		}
+		ic.addView(g, new FrameLayout.LayoutParams(dp(glyphDp), dp(glyphDp), Gravity.CENTER));
 		box.addView(ic, sq(104));
 		TextView l = text(ctx, label, 17, true);
 		l.setGravity(Gravity.CENTER);

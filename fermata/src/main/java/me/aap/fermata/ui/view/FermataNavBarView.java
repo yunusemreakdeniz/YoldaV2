@@ -46,13 +46,22 @@ public class FermataNavBarView extends NavBarView implements GestureListener {
 		int maxW = Math.round(640 * d);
 		int side = Math.max(Math.round(16 * d), (screenW - maxW) / 2);
 		lp.width = 0; // ConstraintLayout: soldan sağa kısıtlara göre, kenar boşluklarıyla
+		lp.height = Math.round(84 * d); // daha yüksek kapsül
 		lp.leftMargin = side;
 		lp.rightMargin = side;
 		lp.bottomMargin = Math.round(14 * d);
 		setLayoutParams(lp);
 		setBackground(YoldaStyle.pill(getContext(), YoldaStyle.current(getContext())));
-		setPadding(Math.round(8 * d), 0, Math.round(8 * d), 0);
+		setPadding(Math.round(12 * d), Math.round(8 * d), Math.round(12 * d), Math.round(8 * d));
 		setClipToOutline(true);
+		// Yalnız simge; seçili sekme içeride parlayan cam hap
+		me.aap.utils.ui.view.NavButtonView.iconsOnly = true;
+		me.aap.utils.ui.view.NavButtonView.selectedBackground = c -> new android.graphics.drawable.InsetDrawable(
+				YoldaStyle.selected(c, 999), Math.round(6 * d), 0, Math.round(6 * d), 0);
+		for (int i = 0; i < getChildCount(); i++) {
+			android.view.View b = getChildAt(i);
+			b.setSelected(b.isSelected());
+		}
 	}
 
 	protected boolean interceptTouchEvent(MotionEvent e) {

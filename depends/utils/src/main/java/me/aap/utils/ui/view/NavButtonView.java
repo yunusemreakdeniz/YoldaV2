@@ -67,10 +67,24 @@ public class NavButtonView extends LinearLayoutCompat {
 		}
 	}
 
+	/** Yolda: yalnız simge (yazı yok); seçili düğmenin arkasında cam hap. */
+	public static boolean iconsOnly;
+	public static java.util.function.Function<Context, android.graphics.drawable.Drawable> selectedBackground;
+
 	@Override
 	public void setSelected(boolean selected) {
 		super.setSelected(selected);
 		ImageView i = getIcon();
+
+		if (iconsOnly) {
+			TextView t = getText();
+			if (t != null) t.setVisibility(GONE);
+			int p = toIntPx(getContext(), 15);
+			i.setPadding(0, p, 0, p);
+			i.setAlpha(selected ? 1f : 0.62f);
+			setBackground((selected && (selectedBackground != null)) ? selectedBackground.apply(getContext()) : null);
+			return;
+		}
 
 		if (selected) {
 			i.setAlpha(1f);

@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TV ekranı + oynat üçgeni + altında yol çizgisi -->
+<!--
+  Yolda logosu: yuvarlatılmış "oynat" üçgeninin içinden ufka kıvrılan kesik şeritli yol.
+  108x108 adaptif simge; çizim 66dp güvenli alanın içinde.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M32,36h44a5,5 0,0 1,5 5v24a5,5 0,0 1,-5 5h-44a5,5 0,0 1,-5 -5v-24a5,5 0,0 1,5 -5zM33,41v23h42v-23z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M48,45l12,7.5l-12,7.5z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M42,74h24v3h-24z" />
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- cam parıltısı -->
+    <path android:fillColor="#26FFFFFF" android:pathData="M54,22a32,32 0,1 0,0.01 0z" />
+    <!-- oynat üçgeni (yuvarlak köşeli) -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M45,33.5Q38.5,30 38.5,37.5L38.5,70.5Q38.5,78 45,74.5L77,57.5Q83.5,54 77,50.5Z" />
+    <!-- içinden geçen yol -->
+    <path android:fillColor="#B35B21B6"
+        android:pathData="M38.5,61.5Q56,59 76.5,55.2L77.4,56.9Q57,64.5 38.5,74Z" />
+    <!-- yol şeridi -->
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round"
+        android:pathData="M42,68.2L46.5,66.6M52,64.6L56.5,63.1M61.5,61.5L65.5,60.3M69.5,59.1L72.5,58.3" />
 </vector>

@@ -33,6 +33,14 @@
         android:required="false" />
 
     <queries>
+        <!-- Yolda: ana ekrana telefondaki uygulamaları eklemek için başlatıcı listesi -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <!-- Yolda: navigasyon (Google Haritalar, Waze) -->
+        <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.waze" />
         <intent>
             <action android:name="android.intent.action.OPEN_DOCUMENT_TREE" />
         </intent>

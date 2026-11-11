@@ -193,11 +193,23 @@ public final class YoldaStyle {
 		}
 	}
 
+	/**
+	 * Zemini bir kez yarım çözünürlükte bitmap'e çizer, sonra yalnız onu kopyalar. Işıklar zaten yumuşak
+	 * geçişli olduğu için yarım çözünürlük fark edilmez; her karede gradyan hesaplanmaz → kasma yok.
+	 */
+	private static android.graphics.Bitmap render(Theme t, int w, int h) {
+		int bw = Math.max(1, w / 2), bh = Math.max(1, h / 2);
+		android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(bw, bh, android.graphics.Bitmap.Config.ARGB_8888);
+		drawLights(new Canvas(bmp), t, new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG), bw, bh, 0f);
+		return bmp;
+	}
+
 	/** Zemin (View olarak): Fermata teması Yolda Cam değilse Yolda ekranları bunu kendi arkasına koyar. */
 	public static final class Backdrop extends View {
 		private final Theme t;
-		private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-		private final long start = SystemClock.uptimeMillis();
+		private final Paint fp = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+		private android.graphics.Bitmap cache;
+		private final Rect dst = new Rect();
 
 		public Backdrop(Context ctx, Theme t) {
 			super(ctx);
@@ -206,16 +218,20 @@ public final class YoldaStyle {
 
 		@Override
 		protected void onDraw(Canvas c) {
-			drawLights(c, t, p, getWidth(), getHeight(), (SystemClock.uptimeMillis() - start) / 1000f);
-			postInvalidateDelayed(66);
+			int w = getWidth(), h = getHeight();
+			if (w <= 0 || h <= 0) return;
+			if ((cache == null) || (cache.getWidth() != Math.max(1, w / 2)) || (cache.getHeight() != Math.max(1, h / 2)))
+				cache = render(t, w, h);
+			dst.set(0, 0, w, h);
+			c.drawBitmap(cache, null, dst, fp);
 		}
 	}
 
-	/** Zemin (arka plan olarak): kendini ~15 fps yeniden çizer; pil dostu. */
+	/** Zemin (arka plan olarak): boyut değişmedikçe yeniden çizilmez. */
 	public static final class BackdropDrawable extends Drawable implements Runnable {
 		private final Theme t;
-		private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-		private final long start = SystemClock.uptimeMillis();
+		private final Paint fp = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+		private android.graphics.Bitmap cache;
 
 		BackdropDrawable(Theme t) {
 			this.t = t;
@@ -224,8 +240,11 @@ public final class YoldaStyle {
 		@Override
 		public void draw(Canvas c) {
 			Rect b = getBounds();
-			drawLights(c, t, p, b.width(), b.height(), (SystemClock.uptimeMillis() - start) / 1000f);
-			scheduleSelf(this, SystemClock.uptimeMillis() + 66);
+			int w = b.width(), h = b.height();
+			if (w <= 0 || h <= 0) return;
+			if ((cache == null) || (cache.getWidth() != Math.max(1, w / 2)) || (cache.getHeight() != Math.max(1, h / 2)))
+				cache = render(t, w, h);
+			c.drawBitmap(cache, null, b, fp);
 		}
 
 		@Override
