@@ -325,13 +325,18 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		progress.setProgress(f);
 	}
 
-	private static long durationOf(MediaLib.PlayableItem pi) {
+	/** Süre: öğe bilgisinden; henüz yüklenmediyse (şarkıda) şarkının kendi süresi. Bilgi yüklemesi tetiklenir. */
+	static long durationOf(MediaLib.PlayableItem pi) {
+		long d = 0;
 		try {
-			MediaMetadataCompat md = pi.getMediaData().peek();
-			if (md != null) return md.getLong(MediaMetadataCompat.METADATA_KEY_DURATION);
+			var f = pi.getMediaData();
+			MediaMetadataCompat md = f.peek();
+			if (md != null) d = md.getLong(MediaMetadataCompat.METADATA_KEY_DURATION);
 		} catch (Throwable ignore) {
 		}
-		return 0;
+		if ((d <= 0) && (pi instanceof me.aap.fermata.media.yt.YtMusicItem m))
+			d = Math.max(0, m.getTrack().durationSec()) * 1000;
+		return d;
 	}
 
 	@Nullable

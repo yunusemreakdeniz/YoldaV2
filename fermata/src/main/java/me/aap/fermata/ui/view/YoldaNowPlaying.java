@@ -855,12 +855,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	private long duration() {
 		MediaLib.PlayableItem pi = MainActivityDelegate.get(getContext()).getCurrentPlayable();
 		if (pi == null) return 0;
-		try {
-			MediaMetadataCompat md = pi.getMediaData().peek();
-			if (md != null) return md.getLong(MediaMetadataCompat.METADATA_KEY_DURATION);
-		} catch (Throwable ignore) {
-		}
-		return 0;
+		return YoldaPlayerBar.durationOf(pi);
 	}
 
 	static long position(MediaSessionCallback cb) {
