@@ -149,6 +149,7 @@ public class FermataWebView extends WebView
 	public void onActivityEvent(MainActivityDelegate a, long e) {
 		if (handleActivityDestroyEvent(a, e)) {
 			getAddon().getPreferenceStore().removeBroadcastListener(this);
+			retire(a);
 		}
 	}
 
@@ -236,6 +237,31 @@ public class FermataWebView extends WebView
 	@Override
 	public FermataChromeClient getWebChromeClient() {
 		return chrome;
+	}
+
+	/**
+	 * Yolda: ekranı (etkinliği) kapanan sayfa emekliye ayrılır. WebView kapandıktan sonra da adres / sayfa
+	 * bildirimi göndermeye devam ediyordu; bunlar kapanmış ekrana ulaşınca uygulama çöküyordu ("Yolda
+	 * durduruldu", araç bağlantısı kesilince ya da ekran dönünce). Artık bildirimler boş işleyicilere gider.
+	 */
+	private void retire(MainActivityDelegate a) {
+		try {
+			onRetire(a);
+		} catch (Throwable ex) {
+			Log.e(ex, "Sayfa kapatılırken");
+		}
+		try {
+			setWebViewClient(new android.webkit.WebViewClient());
+			setWebChromeClient(new android.webkit.WebChromeClient());
+			removeJavascriptInterface(FermataJsInterface.NAME);
+			stopLoading();
+		} catch (Throwable ex) {
+			Log.e(ex, "Sayfa kapatılamadı");
+		}
+	}
+
+	/** Alt sınıflar için: sayfa kapanmadan önce (ör. bu sayfada çalan YouTube'u durdur). */
+	protected void onRetire(MainActivityDelegate a) {
 	}
 
 	protected void urlChanged(String url) {

@@ -212,15 +212,25 @@ public class FermataWebClient extends WebViewClientCompat {
 		}
 
 		super.onPageFinished(view, url);
-		((FermataWebView) view).hideKeyboard();
-		v.pageLoaded(url);
+		try { // ekranı kapanmış sayfadan geç gelen bildirim uygulamayı çökertmesin
+			((FermataWebView) view).hideKeyboard();
+			v.pageLoaded(url);
+		} catch (RuntimeException ex) {
+			Log.e(ex, "Sayfa yüklenmesi işlenemedi");
+			me.aap.fermata.ui.fragment.YoldaLog.add("Web: sayfa bildirimi yok sayıldı (" + ex + ")");
+		}
 		f.onSuccess(a -> a.fireBroadcastEvent(FRAGMENT_CONTENT_CHANGED));
 	}
 
 	@Override
 	public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
 		super.doUpdateVisitedHistory(view, url, isReload);
-		((FermataWebView) view).urlChanged(url);
+		try { // ekranı kapanmış sayfadan geç gelen bildirim uygulamayı çökertmesin
+			((FermataWebView) view).urlChanged(url);
+		} catch (RuntimeException ex) {
+			Log.e(ex, "Sayfa adresi işlenemedi");
+			me.aap.fermata.ui.fragment.YoldaLog.add("Web: adres bildirimi yok sayıldı (" + ex + ")");
+		}
 	}
 
 	@Override

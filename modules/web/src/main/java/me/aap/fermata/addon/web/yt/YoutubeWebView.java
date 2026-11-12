@@ -225,6 +225,12 @@ public class YoutubeWebView extends FermataWebView {
 	}
 
 	@Override
+	protected void onRetire(MainActivityDelegate a) {
+		MediaSessionCallback cb = a.getMediaSessionCallback();
+		if ((cb.getEngine() instanceof YoutubeMediaEngine eng) && (eng.getWebView() == this)) cb.onStop();
+	}
+
+	@Override
 	protected void urlChanged(String url) {
 		if (isVideoUrl(url)) {
 			// Another video opened before the reopened one started
