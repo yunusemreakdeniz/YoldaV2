@@ -91,14 +91,15 @@ jobs:
           if [ ! -s fermata/src/main/assets/vosk-tr.zip ]; then
             curl -fsSL --retry 3 -o fermata/src/main/assets/vosk-tr.zip https://alphacephei.com/vosk/models/vosk-model-small-tr-0.3.zip
           fi
-          sudo apt-get install -y -q espeak-ng >/dev/null 2>&1 || true
-          if command -v espeak-ng >/dev/null; then
-            A=fermata/src/androidTest/assets
-            espeak-ng -v tr -s 140 -w /tmp/a.wav "hey yolda" && ffmpeg -loglevel error -y -i /tmp/a.wav -ar 16000 -ac 1 -c:a pcm_s16le $A/hey_yolda.wav
-            espeak-ng -v tr -s 120 -p 40 -w /tmp/b.wav "hey, yolda" && ffmpeg -loglevel error -y -i /tmp/b.wav -ar 16000 -ac 1 -c:a pcm_s16le $A/hey_yolda_2.wav
-            espeak-ng -v tr -s 140 -w /tmp/c.wav "yolda" && ffmpeg -loglevel error -y -i /tmp/c.wav -ar 16000 -ac 1 -c:a pcm_s16le $A/yolda.wav
-            ls -la $A
+          sudo apt-get install -y -q espeak-ng sox >/dev/null 2>&1 || true
+          A=fermata/src/androidTest/assets
+          synth() { espeak-ng -v tr $2 -w /tmp/s.wav "$1" && sox /tmp/s.wav -r 16000 -c 1 -b 16 -e signed-integer "$A/$3" || echo "ses üretilemedi: $3"; }
+          if command -v espeak-ng >/dev/null && command -v sox >/dev/null; then
+            synth "hey yolda" "-s 140" hey_yolda.wav
+            synth "hey, yolda" "-s 120 -p 40" hey_yolda_2.wav
+            synth "yolda" "-s 140" yolda.wav
           fi
+          ls -la $A || true
       - name: Test APK'larını derle
         env:
           NO_GS: true
