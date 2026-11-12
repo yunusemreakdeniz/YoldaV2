@@ -697,6 +697,16 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	// ---- Yolda: açılış süresi (tanı günlüğü ve oynatıcı çubuğundaki "Bağlanıyor…") ----
 	private static volatile long yoldaOpenStart;
 	private static volatile String yoldaOpenName;
+	@Nullable
+	private static volatile PlayableItem yoldaOpenItem;
+
+	/** Açılmakta olan (dokunulmuş ama henüz çalmayan) öğe; yoksa null. */
+	@Nullable
+	public static PlayableItem yoldaOpeningItem() {
+		PlayableItem i = yoldaOpenItem;
+		if ((i != null) && (android.os.SystemClock.elapsedRealtime() - yoldaOpenStart > 30_000)) return null;
+		return i;
+	}
 
 	/** Oturumun güncel bilgisi (bildirimde ve araç ekranında görünen ad / resim). */
 	@Nullable
@@ -1012,6 +1022,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	@Override
 	public void onEngineStarted(MediaEngine engine) {
 		long t0 = yoldaOpenStart;
+		yoldaOpenItem = null;
 		if (t0 > 0) {
 			yoldaOpenStart = 0;
 			long ms = android.os.SystemClock.elapsedRealtime() - t0;
@@ -1172,6 +1183,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 		String msg;
 		PlayableItem i = engine.getSource();
 		yoldaOpenStart = 0;
+		yoldaOpenItem = null;
 		me.aap.fermata.ui.fragment.YoldaLog.add("Oynatma hatası: " + ((i != null) ? i.getName() : "?") + " · "
 				+ engine.getClass().getSimpleName() + " · " + ex);
 
@@ -1283,6 +1295,8 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 
 	public void playItem(PlayableItem i, long pos) {
 		playerTask.cancel();
+		yoldaOpenItem = i; // oynatıcı çubuğu yeni kanalın adını hemen göstersin (çalmaya başlamayı beklemeden)
+		yoldaOpenStart = android.os.SystemClock.elapsedRealtime();
 		setLastPlayed(i, pos);
 		PlaybackStateCompat state = new PlaybackStateCompat.Builder().setActions(SUPPORTED_ACTIONS)
 				.setState(STATE_CONNECTING, 0, 1.0f).build();
@@ -1318,6 +1332,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 
 		if (eng == null) {
 			yoldaOpenStart = 0;
+			yoldaOpenItem = null;
 			if (current != null) setLastPlayed(current, currentPos);
 			String msg =
 					lib.getContext().getResources().getString(R.string.err_unsupported_source_type, i);

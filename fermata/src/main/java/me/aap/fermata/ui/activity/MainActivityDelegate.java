@@ -520,6 +520,11 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	public void onActivityDestroy() {
 		super.onActivityDestroy();
+		if (themeListener != null) {
+			getContext().getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
+					Context.MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(themeListener);
+			themeListener = null;
+		}
 		if (memCallbacks != null) {
 			try {
 				getContext().unregisterComponentCallbacks(memCallbacks);
@@ -1270,20 +1275,117 @@ public class MainActivityDelegate extends ActivityDelegate
 		return R.string.press_back_again;
 	}
 
+	@Nullable
+	private android.widget.FrameLayout voiceButton;
+	@Nullable
+	private android.content.SharedPreferences.OnSharedPreferenceChangeListener themeListener;
+
+	@Nullable
+	public View getYoldaVoiceButton() {
+		return voiceButton;
+	}
+
+	/**
+	 * Sesli asistan düğmesi: temanın renkleriyle ışıklı "küre" — ortadan yayılan renk, üstte cam parıltısı,
+	 * ince parlak kenar ve dışta yumuşak hale; gölgesi de temanın renginde.
+	 */
+	private void styleVoiceButton(android.widget.FrameLayout b) {
+		Context ctx = b.getContext();
+		me.aap.fermata.ui.view.YoldaStyle.Theme t = me.aap.fermata.ui.view.YoldaStyle.current(ctx);
+		int size = (b.getLayoutParams() != null) ? b.getLayoutParams().width : toIntPx(ctx, 56);
+		int in = toIntPx(ctx, 4);
+		android.graphics.drawable.GradientDrawable halo = new android.graphics.drawable.GradientDrawable();
+		halo.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+		halo.setColor((t.blobs[1] & 0x00FFFFFF) | 0x33000000);
+		android.graphics.drawable.GradientDrawable core = new android.graphics.drawable.GradientDrawable();
+		core.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+		core.setGradientType(android.graphics.drawable.GradientDrawable.RADIAL_GRADIENT);
+		core.setGradientCenter(0.32f, 0.28f);
+		core.setGradientRadius(size * 0.85f);
+		core.setColors(new int[]{lighten(t.blobs[2]), t.blobs[0], t.blobs[1]});
+		android.graphics.drawable.GradientDrawable sheen = new android.graphics.drawable.GradientDrawable(
+				android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x66FFFFFF, 0x00FFFFFF});
+		sheen.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+		android.graphics.drawable.GradientDrawable rim = new android.graphics.drawable.GradientDrawable();
+		rim.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+		rim.setStroke(Math.max(1, toIntPx(ctx, 1)), 0xB3FFFFFF);
+		android.graphics.drawable.LayerDrawable ld = new android.graphics.drawable.LayerDrawable(
+				new android.graphics.drawable.Drawable[]{halo, core, sheen, rim});
+		ld.setLayerInset(1, in, in, in, in);
+		ld.setLayerInset(2, in + toIntPx(ctx, 3), in + toIntPx(ctx, 2), in + toIntPx(ctx, 3), size / 2);
+		ld.setLayerInset(3, in, in, in, in);
+		b.setBackground(ld);
+		b.setOutlineProvider(new android.view.ViewOutlineProvider() {
+			@Override
+			public void getOutline(View v, android.graphics.Outline o) {
+				o.setOval(in, in, v.getWidth() - in, v.getHeight() - in);
+			}
+		});
+		if (VERSION.SDK_INT >= 28) {
+			b.setOutlineSpotShadowColor(t.blobs[0]);
+			b.setOutlineAmbientShadowColor(t.blobs[1]);
+		}
+	}
+
+	private static int lighten(int c) {
+		int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, bl = c & 0xFF;
+		r += (255 - r) * 2 / 5;
+		g += (255 - g) * 2 / 5;
+		bl += (255 - bl) * 2 / 5;
+		return 0xFF000000 | (r << 16) | (g << 8) | bl;
+	}
+
+	/**
+	 * Tema değişti (telefonda ya da araçta): bu ekranın zemini, menüsü, oynatıcısı, sesli düğmesi ve sayfaları
+	 * yeni renklerle yeniden kurulur. Önceden yalnız açık sayfa yenileniyor, gerisi eski renkte kalıyordu.
+	 */
+	private void yoldaRefreshTheme() {
+		Context ctx = getContext();
+		me.aap.fermata.ui.view.YoldaStyle.refreshBackdrop(ctx);
+		try {
+			if (navBar instanceof me.aap.fermata.ui.view.FermataNavBarView nb) nb.applyYoldaPill();
+		} catch (Throwable ignore) {
+		}
+		if (voiceButton != null) styleVoiceButton(voiceButton);
+		if (yoldaBack != null) {
+			yoldaBack.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
+					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
+		}
+		ControlPanelView cp = getControlPanel();
+		if (cp != null) cp.rebuildYoldaBar();
+		// Sayfalar: gizlileri bırak (açılınca yeni renklerle kurulur), açık olanı yeniden kur.
+		// Web sayfaları (YouTube, tarayıcı) bırakılmaz: içerik yeniden yüklenmesin.
+		int active = getActiveFragmentId();
+		Fragment activeF = null;
+		var tr = getSupportFragmentManager().beginTransaction();
+		int n = 0;
+		for (Fragment f : new ArrayList<>(getSupportFragmentManager().getFragments())) {
+			if (!(f instanceof me.aap.utils.ui.fragment.ActivityFragment af)) continue;
+			View fv = f.getView();
+			if ((fv != null) && hasWebView(fv)) continue;
+			if (af.getFragmentId() == active) {
+				activeF = f;
+				continue;
+			}
+			tr.remove(f);
+			n++;
+		}
+		try {
+			if (n > 0) tr.commitNowAllowingStateLoss();
+		} catch (Exception ex) {
+			Log.e(ex, "Tema: sayfalar yenilenemedi");
+		}
+		if (activeF != null) recreateFragment(activeF);
+		me.aap.fermata.ui.fragment.YoldaLog.add("Tema: " + me.aap.fermata.ui.view.YoldaStyle.current(ctx).name
+				+ " (" + (isCarActivity() ? "araç" : "telefon") + ")");
+	}
+
 	/** Her sayfada sol altta, menünün hemen üstünde sesli asistan düğmesi (video tam ekranda gizlenir). */
 	private void addVoiceButton(ConstraintLayout host) {
 		Context ctx = host.getContext();
-		me.aap.fermata.ui.view.YoldaStyle.Theme t = me.aap.fermata.ui.view.YoldaStyle.current(ctx);
 		android.widget.FrameLayout b = new android.widget.FrameLayout(ctx);
-		android.graphics.drawable.GradientDrawable glow = new android.graphics.drawable.GradientDrawable(
-				android.graphics.drawable.GradientDrawable.Orientation.TL_BR, new int[]{t.blobs[0], t.blobs[1], t.blobs[2]});
-		glow.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-		glow.setStroke(Math.max(1, toIntPx(ctx, 1)), 0x99FFFFFF);
-		android.graphics.drawable.GradientDrawable sheen = new android.graphics.drawable.GradientDrawable(
-				android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0x59FFFFFF, 0x00FFFFFF, 0x00FFFFFF});
-		sheen.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-		b.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{glow, sheen}));
-		b.setElevation(toIntPx(ctx, 10));
+		voiceButton = b;
+		b.setElevation(toIntPx(ctx, 12));
 		b.setClickable(true);
 		b.setFocusable(true);
 		b.setContentDescription("Sesli komut");
@@ -1298,19 +1400,14 @@ public class MainActivityDelegate extends ActivityDelegate
 			startVoiceAssistant();
 		});
 		boolean rail = (navBar != null) && navBar.isLeft();
-		int s = toIntPx(ctx, rail ? 48 : 56);
+		int s = toIntPx(ctx, rail ? 56 : 60);
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
 		if (rail) { // araç: dikey menünün en altında, ortalı
 			lp.startToStart = R.id.nav_bar;
 			lp.endToEnd = R.id.nav_bar;
 			lp.bottomToBottom = R.id.nav_bar;
-			lp.bottomMargin = toIntPx(ctx, 10);
+			lp.bottomMargin = toIntPx(ctx, 6);
 			mic.getLayoutParams().width = mic.getLayoutParams().height = toIntPx(ctx, 24);
-			android.graphics.drawable.GradientDrawable acc = new android.graphics.drawable.GradientDrawable();
-			acc.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-			acc.setColor(me.aap.fermata.ui.view.YoldaStyle.ACCENT);
-			b.setBackground(acc);
-			mic.setImageTintList(ColorStateList.valueOf(me.aap.fermata.ui.view.YoldaStyle.ON_ACCENT));
 		} else { // telefon: alt menü kapsülünün solunda, aynı hizada
 			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
 			lp.leftMargin = toIntPx(ctx, 16);
@@ -1319,6 +1416,15 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 		b.setId(View.generateViewId());
 		host.addView(b, lp);
+		styleVoiceButton(b);
+		// Tema değişince (bu ya da diğer ekrandan) bu ekran da yenilensin. Dinleyici zayıf tutulduğu için alanda saklanır.
+		if (themeListener == null) {
+			themeListener = (sp, key) -> {
+				if ("theme".equals(key)) App.get().getHandler().post(this::yoldaRefreshTheme);
+			};
+			ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
+					Context.MODE_PRIVATE).registerOnSharedPreferenceChangeListener(themeListener);
+		}
 		// Video tam ekrandayken alt menü gizlenir; düğme de onunla birlikte gizlensin
 		navBar.getViewTreeObserver().addOnGlobalLayoutListener(() ->
 				b.setVisibility(navBar.getVisibility() == View.VISIBLE ? View.VISIBLE : View.GONE));

@@ -234,6 +234,14 @@ public class ControlPanelView extends ConstraintLayout
 		computeSize();
 	}
 
+	/** Tema değişince: çubuğu yeni renklerle yeniden kur. */
+	public void rebuildYoldaBar() {
+		if (yoldaBar == null) return;
+		removeView(yoldaBar);
+		yoldaBar = null;
+		useYoldaBar();
+	}
+
 	@Nullable
 	public YoldaPlayerBar getYoldaBar() {
 		return yoldaBar;

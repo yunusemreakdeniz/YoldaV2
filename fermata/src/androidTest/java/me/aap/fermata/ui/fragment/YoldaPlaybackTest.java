@@ -137,6 +137,37 @@ public class YoldaPlaybackTest {
 		assertEquals("Aynı kanal açılmalı", ch.getId(), onMain(a -> a.getCurrentPlayable().getId()));
 	}
 
+	/** Kanal değişince oynatıcı çubuğunda yeni kanalın adı hemen görünür (çalmaya başlamasını beklemeden). */
+	@Test
+	public void kanalDegisinceAdHemenGuncellenir() {
+		MediaLib.PlayableItem a1 = channel("TRT 1");
+		MediaLib.PlayableItem a2 = channel("TRT Haber");
+		onMain(a -> {
+			a.getBody().playItem(a1);
+			return null;
+		});
+		assertTrue("TRT 1 çalmalı", waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying())));
+		assertTrue("Çubukta TRT 1 yazmalı", waitFor(2000, () -> "TRT 1".contentEquals(barTitle())));
+		long t0 = SystemClock.elapsedRealtime();
+		onMain(a -> {
+			a.getBody().playItem(a2);
+			return null;
+		});
+		assertTrue("Yeni kanalın adı 1,5 sn içinde görünmeli", waitFor(1500, () -> "TRT Haber".contentEquals(barTitle())));
+		Log.i(TAG, "Ad güncellenme süresi: " + (SystemClock.elapsedRealtime() - t0) + " ms");
+		assertTrue("TRT Haber çalmalı", waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()
+				&& a2.getId().equals(a.getCurrentPlayable().getId()))));
+		waitIdle(1500);
+		assertTrue("Çalarken de ad doğru kalmalı", barTitle().toString().contains("TRT Haber"));
+	}
+
+	private CharSequence barTitle() {
+		return onMain(a -> {
+			var b = a.getControlPanel().getYoldaBar();
+			return (b != null) ? b.getTitleText() : "";
+		});
+	}
+
 	/** Radyo (ses akışı): "Şimdi çalıyor" açılır, geri tuşu önce onu kapatır. */
 	@Test
 	public void radyoVeSimdiCaliyorEkrani() {

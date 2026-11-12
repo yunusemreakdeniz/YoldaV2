@@ -62,7 +62,8 @@ public final class YoldaStyle {
 	/** Fermata "Yolda Cam" teması etkinse true: Yolda ekranları kendi zeminini çizmez, kökteki ortak zemin görünür. */
 	public static volatile boolean glassActive;
 
-	private static WeakReference<View> backdropHost;
+	/** Ortak zemin çizilen kökler (telefon ve araç ekranı ayrı ayrı): tema değişince hepsi yenilenir. */
+	private static final java.util.List<WeakReference<View>> backdropHosts = new java.util.ArrayList<>();
 
 	private YoldaStyle() {
 	}
@@ -239,15 +240,19 @@ public final class YoldaStyle {
 	// ---- zemin ----
 
 	/** Kök görünüme süzülen ışıklı zemini çizer (tüm uygulamanın arkası). */
-	public static void applyBackdrop(View root) {
-		backdropHost = new WeakReference<>(root);
+	public static synchronized void applyBackdrop(View root) {
+		backdropHosts.removeIf(r -> (r.get() == null) || (r.get() == root));
+		backdropHosts.add(new WeakReference<>(root));
 		root.setBackground(new BackdropDrawable(current(root.getContext())));
 	}
 
-	/** Tema değişince ortak zemini yenile. */
-	public static void refreshBackdrop(Context ctx) {
-		View v = (backdropHost != null) ? backdropHost.get() : null;
-		if (v != null) v.setBackground(new BackdropDrawable(current(ctx)));
+	/** Tema değişince ortak zemini yenile (önceden yalnız en son açılan ekranınki yenileniyordu). */
+	public static synchronized void refreshBackdrop(Context ctx) {
+		backdropHosts.removeIf(r -> r.get() == null);
+		for (WeakReference<View> r : backdropHosts) {
+			View v = r.get();
+			if (v != null) v.setBackground(new BackdropDrawable(current(ctx)));
+		}
 	}
 
 	/** Yolda ekranının zemini: ortak zemin varsa saydam, yoksa kendi ışıklı zemini. */

@@ -199,24 +199,24 @@ public class HomeFragment extends MainActivityFragment {
 		TextClock date = new TextClock(ctx);
 		date.setFormat24Hour("EEEE, d MMMM");
 		date.setFormat12Hour("EEEE, d MMMM");
-		date.setTextSize(15);
+		date.setTextSize(14);
 		date.setTextColor(t.muted);
 		hello.addView(date);
-		TextView g = text(ctx, greeting(), 30, true);
+		TextView g = text(ctx, greeting(), 26, true);
 		g.setTextColor(t.ink);
 		g.setLetterSpacing(-0.02f);
 		hello.addView(g);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
-		TextView ara = text(ctx, "Ara", 16, true);
+		TextView ara = text(ctx, "Ara", 15, true);
 		ara.setGravity(Gravity.CENTER);
-		ara.setMinHeight(dp(52));
-		ara.setPadding(dp(22), 0, dp(22), 0);
+		ara.setMinHeight(dp(44));
+		ara.setPadding(dp(18), 0, dp(18), 0);
 		ara.setBackground(YoldaStyle.glass(ctx, t, 999));
 		ara.setOnClickListener(v -> a.startVoiceAssistant());
 		ara.setContentDescription("Ara (sesli)");
-		head.addView(ara, new LinearLayout.LayoutParams(-2, dp(52)));
+		head.addView(ara, new LinearLayout.LayoutParams(-2, dp(44)));
 		head.addView(roundGlass(ctx, R.drawable.yi_settings, v -> a.showFragment(R.id.yolda_menu_fragment)),
-				leftMargin(sq(52), 10));
+				leftMargin(sq(44), 10));
 		col.addView(head);
 
 		// Orta satır
@@ -557,15 +557,13 @@ public class HomeFragment extends MainActivityFragment {
 			if (picking) picking = false;
 			else editing = !editing;
 			render();
-		}), leftMargin(sq(btnDp(ctx)), 12));
+		}), leftMargin(sq(btnDp(ctx)), 10));
 		head.addView(roundGlass(ctx, R.drawable.yi_palette, v -> {
-			YoldaStyle.next(ctx);
-			YoldaStyle.refreshBackdrop(ctx);
-			render();
+			YoldaStyle.next(ctx); // tüm ekranlar (telefon + araç) dinleyiciyle yenilenir
 			UiUtils.showInfo(ctx, "Tema: " + YoldaStyle.current(ctx).name);
-		}), leftMargin(sq(btnDp(ctx)), 12));
+		}), leftMargin(sq(btnDp(ctx)), 10));
 		head.addView(roundGlass(ctx, R.drawable.yi_settings, v -> a.showFragment(R.id.yolda_menu_fragment)),
-				leftMargin(sq(btnDp(ctx)), 12));
+				leftMargin(sq(btnDp(ctx)), 10));
 		return head;
 	}
 
@@ -1286,7 +1284,7 @@ public class HomeFragment extends MainActivityFragment {
 		ImageView iv = new ImageView(ctx);
 		iv.setImageResource(res);
 		iv.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		b.addView(iv, new FrameLayout.LayoutParams(dp(26), dp(26), Gravity.CENTER));
+		b.addView(iv, new FrameLayout.LayoutParams(dp(21), dp(21), Gravity.CENTER));
 		return b;
 	}
 
@@ -1326,7 +1324,7 @@ public class HomeFragment extends MainActivityFragment {
 	}
 
 	private static int btnDp(Context ctx) {
-		return YoldaStyle.compact(ctx) ? 48 : 58;
+		return YoldaStyle.compact(ctx) ? 42 : 48;
 	}
 
 	/** Kendine verilen alanın kısa kenarı kadar kare; içindeki simge kenarın {@code frac} oranında. */

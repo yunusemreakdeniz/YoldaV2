@@ -552,7 +552,8 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		play.setImageResource(cb.isPlaying() ? R.drawable.yi_pause : R.drawable.yi_play);
 
 		Pending pd = pending(cb);
-		MediaLib.PlayableItem pi = a.getCurrentPlayable();
+		MediaLib.PlayableItem opening = MediaSessionCallback.yoldaOpeningItem();
+		MediaLib.PlayableItem pi = (opening != null) ? opening : a.getCurrentPlayable();
 		if (pd != null) {
 			String key = "pending:" + pd.title + pd.at;
 			if (!key.equals(itemKey)) {
@@ -572,9 +573,10 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		String key = pi.getId();
 		if (!key.equals(itemKey)) {
 			itemKey = key;
+			metaKey = metaSig(cb.getYoldaMetadata());
 			loadItem(a, pi, key);
 		}
-		applyMeta(a, cb.getYoldaMetadata(), pi, key);
+		if (opening == null) applyMeta(a, cb.getYoldaMetadata(), pi, key);
 		long d = duration();
 		boolean isLive = (d <= 0) && pi.isStream();
 		live.setVisibility(isLive ? VISIBLE : GONE);

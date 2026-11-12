@@ -159,6 +159,47 @@ public class YoldaFunctionalTest {
 		Log.i(TAG, "Akış çözümü: " + res.get());
 	}
 
+	/** Tema değişince açık sayfa, oynatıcı çubuğu ve sesli düğme yeni renklerle yeniden kurulur. */
+	@Test
+	public void temaDegisinceHerSeyYenilenir() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1000);
+		int start = me.aap.fermata.ui.view.YoldaStyle.index(ctx());
+		Object bar = onMain(a -> a.getControlPanel().getYoldaBar());
+		Object voiceBg = onMain(a -> a.getYoldaVoiceButton().getBackground());
+		Object page = onMain(a -> a.getActiveFragment().getView());
+		me.aap.fermata.ui.view.YoldaStyle.next(ctx());
+		waitIdle(1500);
+		try {
+			assertTrue("Tema değişmeli", me.aap.fermata.ui.view.YoldaStyle.index(ctx()) != start);
+			assertTrue("Oynatıcı çubuğu yenilenmeli", onMain(a -> a.getControlPanel().getYoldaBar()) != bar);
+			assertTrue("Sesli düğme yenilenmeli", onMain(a -> a.getYoldaVoiceButton().getBackground()) != voiceBg);
+			assertTrue("Açık sayfa yenilenmeli", onMain(a -> a.getActiveFragment().getView()) != page);
+			assertEquals("Ana sayfada kalmalı", R.id.home_fragment, onMain(MainActivityDelegate::getActiveFragmentId).intValue());
+		} finally {
+			for (int i = 0; (i < 10) && (me.aap.fermata.ui.view.YoldaStyle.index(ctx()) != start); i++) {
+				me.aap.fermata.ui.view.YoldaStyle.next(ctx());
+			}
+			waitIdle(800);
+		}
+	}
+
+	/** Sesli asistan düğmesi her sayfada görünür ve rahat basılacak kadar büyük. */
+	@Test
+	public void sesliDugmeGorunurVeBuyuk() {
+		for (int id : new int[]{R.id.home_fragment, R.id.yolda_channels_fragment, R.id.yolda_music}) {
+			onMain(a -> a.showFragment(id));
+			waitIdle(800);
+			assertTrue("Sesli düğme görünmeli: " + id, onMain(a -> {
+				View v = a.getYoldaVoiceButton();
+				return (v != null) && (v.getVisibility() == View.VISIBLE) && v.isClickable() && v.isShown();
+			}));
+			float d = ctx().getResources().getDisplayMetrics().density;
+			int w = onMain(a -> a.getYoldaVoiceButton().getWidth());
+			assertTrue("Sesli düğme en az 48 dp olmalı: " + (w / d), w / d >= 48);
+		}
+	}
+
 	// ---- yardımcılar ----
 
 	private void voice(String cmd, int expected) {

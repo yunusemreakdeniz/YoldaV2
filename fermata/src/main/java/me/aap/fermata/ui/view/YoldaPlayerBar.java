@@ -33,6 +33,11 @@ import me.aap.fermata.ui.activity.MainActivityDelegate;
 public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.Listener {
 	public static final int HEIGHT_DP = 68;
 
+	/** Çubukta görünen ad (testler için). */
+	public CharSequence getTitleText() {
+		return title.getText();
+	}
+
 	private final ImageView cover;
 	private final ImageView coverPh;
 	private final TextView title;
@@ -155,8 +160,8 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 
 		// Üstte ilerleme çizgisi
 		progress = new ProgressLine(ctx);
-		LayoutParams plp2 = new LayoutParams(-1, dp(18), Gravity.TOP);
-		plp2.topMargin = -dp(8);
+		LayoutParams plp2 = new LayoutParams(-1, dp(30), Gravity.TOP);
+		plp2.topMargin = -dp(15);
 		addView(progress, plp2);
 	}
 
@@ -195,7 +200,8 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			update();
 		} catch (Throwable ignore) {
 		}
-		postDelayed(ticker, (getVisibility() == VISIBLE) ? 500 : 1500);
+		boolean fast = (MediaSessionCallback.yoldaOpeningSince() > 0) || dragging;
+		postDelayed(ticker, (getVisibility() != VISIBLE) ? 1500 : fast ? 200 : 400);
 	}
 
 	private void hideOriginals() {
@@ -240,14 +246,17 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			return;
 		}
 
-		MediaLib.PlayableItem pi = a.getCurrentPlayable();
+		// Dokunulan kanal / şarkı: çalmaya başlamasını beklemeden adı ve resmi hemen (önceden eski ad kalıyordu)
+		MediaLib.PlayableItem opening = MediaSessionCallback.yoldaOpeningItem();
+		MediaLib.PlayableItem pi = (opening != null) ? opening : a.getCurrentPlayable();
 		if (pi == null) return;
 		String id = pi.getId();
 		if (!id.equals(itemId)) {
 			itemId = id;
+			metaKey = YoldaNowPlaying.metaSig(cb.getYoldaMetadata()); // eski öğenin bilgisi üstüne yazmasın
 			loadInfo(a, pi);
 		}
-		applyMeta(a, cb.getYoldaMetadata());
+		if (opening == null) applyMeta(a, cb.getYoldaMetadata());
 		if (YoldaNowPlaying.isError(cb)) {
 			sub.setText("Açılamadı · ▶ ile tekrar dene");
 			subOverride = true;
@@ -433,14 +442,14 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 
 		@Override
 		protected void onDraw(@NonNull android.graphics.Canvas c) {
-			float h = dragging ? dp(5) : dp(3);
+			float h = dragging ? dp(7) : dp(5);
 			float y = getHeight() / 2f;
 			float l = dp(22), r = getWidth() - dp(22);
 			if (r <= l) return;
 			c.drawRoundRect(l, y - h / 2, r, y + h / 2, h, h, bg);
 			float x = l + (r - l) * frac;
 			c.drawRoundRect(l, y - h / 2, x, y + h / 2, h, h, fg);
-			if (dragging) c.drawCircle(x, y, dp(7), fg);
+			if (seekable) c.drawCircle(x, y, dragging ? dp(11) : dp(7), fg); // tutamak: sürüklenebildiği belli olsun
 		}
 
 		@Override

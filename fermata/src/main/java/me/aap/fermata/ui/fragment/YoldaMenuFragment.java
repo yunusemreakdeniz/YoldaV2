@@ -133,9 +133,7 @@ public class YoldaMenuFragment extends MainActivityFragment {
 
 		LinearLayout set = group(ctx, "AYARLAR");
 		set.addView(item(ctx, R.drawable.yi_palette, "Tema: " + t.name, 0xFFDDD6FE, 0xFF7C3AED, v -> {
-			YoldaStyle.next(ctx);
-			YoldaStyle.refreshBackdrop(ctx);
-			render();
+			YoldaStyle.next(ctx); // tüm ekranlar (telefon + araç) dinleyiciyle yenilenir
 		}));
 		set.addView(item(ctx, R.drawable.yi_mic, "Sesli komut", 0xFFA7F3D0, 0xFF059669, v -> a.startVoiceAssistant()));
 		android.content.SharedPreferences yp = ctx.getApplicationContext()
