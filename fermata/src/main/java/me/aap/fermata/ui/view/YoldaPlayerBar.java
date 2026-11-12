@@ -317,7 +317,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		String key = pi.getId();
 		pi.getMediaDescription().main().onSuccess(md -> {
 			if ((md == null) || !key.equals(itemId)) return;
-			if (!TextUtils.isEmpty(md.getTitle())) title.setText(md.getTitle());
+			title.setText(pi.getName()); // açıklama başlığı sıra numarası içerebiliyor ("1. TRT 1")
 			CharSequence s = md.getSubtitle();
 			if (TextUtils.isEmpty(s)) {
 				MediaLib.BrowsableItem p = pi.getParent();
@@ -390,7 +390,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		cover.animate().alpha(0f).setDuration(120).start();
 		pi.getMediaDescription().main().onSuccess(md -> {
 			if (!pi.getId().equals(itemId) || (md == null)) return;
-			if (!TextUtils.isEmpty(md.getTitle())) title.setText(md.getTitle());
+			title.setText(pi.getName()); // açıklama başlığı sıra numarası içerebiliyor ("1. TRT 1")
 			CharSequence s = md.getSubtitle();
 			if (TextUtils.isEmpty(s)) {
 				MediaLib.BrowsableItem p = pi.getParent();

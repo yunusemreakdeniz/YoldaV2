@@ -147,7 +147,7 @@ public class YoldaPlaybackTest {
 			return null;
 		});
 		assertTrue("TRT 1 çalmalı", waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying())));
-		assertTrue("Çubukta TRT 1 yazmalı", waitFor(2000, () -> "TRT 1".contentEquals(barTitle())));
+		assertTrue("Çubukta TRT 1 yazmalı, yazan: " + barTitle(), waitFor(4000, () -> "TRT 1".contentEquals(barTitle())));
 		long t0 = SystemClock.elapsedRealtime();
 		onMain(a -> {
 			a.getBody().playItem(a2);

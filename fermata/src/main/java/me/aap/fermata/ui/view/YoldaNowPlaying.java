@@ -653,7 +653,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		showInfo(pi.getName(), "", logo);
 		pi.getMediaDescription().main().onSuccess(md -> {
 			if (!key.equals(itemKey) || (md == null)) return;
-			if (!TextUtils.isEmpty(md.getTitle())) title.setText(md.getTitle());
+			title.setText(pi.getName()); // açıklama başlığı sıra numarası içerebiliyor ("1. TRT 1")
 			CharSequence s = md.getSubtitle();
 			if (TextUtils.isEmpty(s)) {
 				MediaLib.BrowsableItem p = pi.getParent();

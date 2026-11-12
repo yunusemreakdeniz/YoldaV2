@@ -136,6 +136,7 @@ public class HomeFragment extends MainActivityFragment {
 	}
 
 	private void render() {
+		if (!isAdded() || (getContext() == null) || (root == null)) return; // geç gelen çizim: sayfa kapanmışsa çökmesin
 		Context ctx = requireContext();
 		t = YoldaStyle.current(ctx);
 		root.removeAllViews();
