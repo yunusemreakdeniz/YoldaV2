@@ -1225,14 +1225,13 @@ public class HomeFragment extends MainActivityFragment {
 		try {
 			MainActivityDelegate a = MainActivityDelegate.get(ctx);
 			if (a.isCarActivityNotMirror()) {
-				Object act = a.getAppActivity();
-				Intent i = new Intent().setComponent(new android.content.ComponentName(ctx.getPackageName(),
-						"me.aap.fermata.auto.MirrorService"));
-				act.getClass().getMethod("startCarActivity", Intent.class).invoke(act, i);
-				YoldaLog.add("Telefon ekranı araçta açıldı");
-				if (!touch) UiUtils.showInfo(ctx, "Telefon ekranı açılıyor. Araç ekranından dokunabilmek için telefonda "
-						+ "Ayarlar → Erişilebilirlik → Yolda'yı bir kez aç.");
-				return;
+				// Telefon ekranı Yolda'nın içinde (ayrı Android Auto uygulaması açtırmak bazı araçlarda çalışmıyordu)
+				if (a.getAppActivity().yoldaShowMirror()) {
+					UiUtils.showInfo(ctx, touch ? "Telefon ekranı açılıyor. Telefonda “Şimdi başlat” çıkarsa onayla."
+							: "Telefon ekranı açılıyor. Dokunabilmek için telefonda Ayarlar → Erişilebilirlik → Yolda'yı aç.");
+					return;
+				}
+				YoldaLog.add("Telefon ekranı Yolda içinde açılamadı");
 			}
 		} catch (Throwable ex) {
 			Log.e(ex, "Telefon ekranı açılamadı");

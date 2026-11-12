@@ -32,4 +32,19 @@ public interface FermataActivity extends AppActivity {
 	default boolean setTextInput(String text) {
 		return false;
 	}
+
+	/** Yolda: telefonun ekranını araç ekranında, Yolda'nın içinde göster (yalnız araçta). */
+	default boolean yoldaShowMirror() {
+		return false;
+	}
+
+	/** Yolda: telefon ekranı paneli açık mı. */
+	default boolean yoldaMirrorShown() {
+		return false;
+	}
+
+	/** Yolda: telefon ekranı panelini kapat; açık değilse false. */
+	default boolean yoldaCloseMirror() {
+		return false;
+	}
 }

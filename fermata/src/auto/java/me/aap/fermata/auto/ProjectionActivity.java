@@ -141,7 +141,17 @@ public class ProjectionActivity extends ActivityBase {
 		AccessibilityEventDispatcherService.autoClickOnButton(
 				getString(R.string.media_projection_action_text));
 		var mm = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-		return startActivityForResult(mm::createScreenCaptureIntent);
+		return startActivityForResult(() -> {
+			if (Build.VERSION.SDK_INT >= 34) { // tek uygulama seçeneği gelmesin: tüm ekran
+				try {
+					return mm.createScreenCaptureIntent(
+							android.media.projection.MediaProjectionConfig.createConfigForDefaultDisplay());
+				} catch (Throwable ex) {
+					Log.e(ex, "MediaProjectionConfig kullanılamadı");
+				}
+			}
+			return mm.createScreenCaptureIntent();
+		});
 	}
 
 	@Override

@@ -80,6 +80,25 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Hey Yolda ses modeli önbelleği
+        uses: actions/cache@v4
+        with:
+          path: fermata/src/main/assets/vosk-tr.zip
+          key: vosk-model-small-tr-0.3
+      - name: Hey Yolda ses modeli ve sentetik "hey yolda" sesleri
+        run: |
+          mkdir -p fermata/src/main/assets fermata/src/androidTest/assets
+          if [ ! -s fermata/src/main/assets/vosk-tr.zip ]; then
+            curl -fsSL --retry 3 -o fermata/src/main/assets/vosk-tr.zip https://alphacephei.com/vosk/models/vosk-model-small-tr-0.3.zip
+          fi
+          sudo apt-get install -y -q espeak-ng >/dev/null 2>&1 || true
+          if command -v espeak-ng >/dev/null; then
+            A=fermata/src/androidTest/assets
+            espeak-ng -v tr -s 140 -w /tmp/a.wav "hey yolda" && ffmpeg -loglevel error -y -i /tmp/a.wav -ar 16000 -ac 1 -c:a pcm_s16le $A/hey_yolda.wav
+            espeak-ng -v tr -s 120 -p 40 -w /tmp/b.wav "hey, yolda" && ffmpeg -loglevel error -y -i /tmp/b.wav -ar 16000 -ac 1 -c:a pcm_s16le $A/hey_yolda_2.wav
+            espeak-ng -v tr -s 140 -w /tmp/c.wav "yolda" && ffmpeg -loglevel error -y -i /tmp/c.wav -ar 16000 -ac 1 -c:a pcm_s16le $A/yolda.wav
+            ls -la $A
+          fi
       - name: Test APK'larını derle
         env:
           NO_GS: true

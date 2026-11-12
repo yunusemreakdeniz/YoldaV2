@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Build;
 
 import androidx.annotation.Nullable;
 
@@ -41,7 +42,7 @@ public final class YoldaWake {
 	private static final String PREF = "wake_enabled";
 	private static final String MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-tr-0.3.zip";
 	private static final String MODEL_DIR = "vosk-tr";
-	private static final String GRAMMAR =
+	static final String GRAMMAR =
 			"[\"hey yolda\", \"ey yolda\", \"yolda\", \"hey yola\", \"ey yola\", \"yola\", \"[unk]\"]";
 
 	/** Model yükleme / mikrofon açma tek bir arka plan iş parçacığında, sırayla (iki dinleyici açılmasın). */
@@ -64,7 +65,8 @@ public final class YoldaWake {
 	}
 
 	public static boolean isEnabled(Context ctx) {
-		return prefs(ctx).getBoolean(PREF, false);
+		// Varsayılan açık: mikrofon izni verilmişse "Hey Yolda" kurulumsuz çalışsın
+		return prefs(ctx).getBoolean(PREF, true);
 	}
 
 	public static boolean isModelReady(Context ctx) {
@@ -95,12 +97,13 @@ public final class YoldaWake {
 		owner = a;
 		paused = false;
 		if (!isEnabled(ctx) || (service != null) || starting) return;
-		// Telefonda uygulama açıkken mikrofon hizmetini başlat: araçtayken (telefonda arka planda) de duyulsun
-		if (!a.isCarActivity()) YoldaWakeService.start(ctx);
 		if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
 			YoldaLog.add("Hey Yolda: mikrofon izni yok");
 			return;
 		}
+		// Telefonda uygulama açıkken mikrofon hizmetini başlat: araçtayken (telefonda arka planda) de duyulsun.
+		// İzin yokken başlatılmaz (mikrofon türündeki hizmet izinsiz açılınca Android uygulamayı kapatıyor).
+		if (!a.isCarActivity()) YoldaWakeService.start(ctx);
 		if (!isModelReady(ctx)) {
 			if (hasBundledModel(ctx)) extractBundled(a); // APK'nın içindeki model: internetsiz açılır
 			else download(a);
@@ -143,8 +146,38 @@ public final class YoldaWake {
 				service = fs;
 				fs.startListening(listener);
 				YoldaLog.add("Hey Yolda: dinliyor (" + (a.isCarActivity() ? "araç" : "telefon") + ")");
+				App.get().getHandler().postDelayed(() -> checkSilenced(a, fs), 3000);
 			});
 		});
+	}
+
+	/** Son denetimde Android mikrofonu susturuyor muydu (test ve tanı için). */
+	static volatile boolean silenced;
+	private static boolean silencedNoticeShown;
+
+	/**
+	 * Android arka plandaki uygulamaya mikrofonu sessiz verir (hata da vermez): araç bağlıyken telefonda Yolda
+	 * açılmadıysa "Hey Yolda" hiçbir şey duymaz. Bunu algılayıp nedenini söyler.
+	 */
+	private static void checkSilenced(MainActivityDelegate a, SpeechService s) {
+		if ((service != s) || (Build.VERSION.SDK_INT < 29)) return;
+		try {
+			android.media.AudioManager am = a.getContext().getSystemService(android.media.AudioManager.class);
+			boolean sil = false;
+			for (android.media.AudioRecordingConfiguration c : am.getActiveRecordingConfigurations()) {
+				if (c.isClientSilenced()) sil = true;
+			}
+			silenced = sil;
+			if (!sil) return;
+			YoldaLog.add("Hey Yolda: Android mikrofonu susturuyor (Yolda telefonda arka planda, hizmet başlamamış)");
+			if (!silencedNoticeShown) {
+				silencedNoticeShown = true;
+				UiUtils.showInfo(a.getContext(), "“Hey Yolda” şu an duyamıyor: Android mikrofonu kapattı. Arabaya "
+						+ "bağlanmadan önce telefonda Yolda'yı bir kez aç; bildirimde “Hey Yolda dinliyor” görünür.");
+			}
+		} catch (Throwable ex) {
+			Log.d(ex);
+		}
 	}
 
 	/** Sesli asistan mikrofonu kullanırken. */
@@ -324,6 +357,17 @@ public final class YoldaWake {
 
 	/** Zip'teki tek üst klasörü atlayarak hedefe açar (vosk-model-small-tr-0.3/… → vosk-tr/…). */
 	private static final String BUNDLED = "vosk-tr.zip";
+
+	/** Test: modeli (gerekirse gömülüden açarak) hazırlar; bu iş parçacığında, eşzamanlı. */
+	static File prepareModelSync(Context ctx) throws Exception {
+		File d = modelDir(ctx);
+		if (!isModelReady(ctx)) {
+			try (InputStream in = ctx.getAssets().open(BUNDLED)) {
+				unzip(in, d);
+			}
+		}
+		return d;
+	}
 
 	/** APK'nın içinde ses modeli var mı (GitHub derlemesi gömer). */
 	static boolean hasBundledModel(Context ctx) {

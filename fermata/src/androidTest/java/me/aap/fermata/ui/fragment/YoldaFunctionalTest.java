@@ -56,6 +56,9 @@ public class YoldaFunctionalTest {
 			} catch (Exception ignore) {
 			}
 		}
+		// "Hey Yolda" varsayılan açık; emülatörde ses aygıtı yok, dinleyici testleri yavaşlatmasın (ayrı testi var)
+		InstrumentationRegistry.getInstrumentation().getTargetContext().getSharedPreferences(
+				me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE).edit().putBoolean("wake_enabled", false).commit();
 		scenario = ActivityScenario.launch(MainActivity.class);
 		waitIdle(2500);
 	}
@@ -240,6 +243,44 @@ public class YoldaFunctionalTest {
 			}
 		}
 		return null;
+	}
+
+	/** Telefon / ekran yansıtma kartı telefonda izin eksikse kurulum ekranını açar; çökmez. */
+	@Test
+	public void telefonKartiIzinEksikseKurulumaGider() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1500);
+		boolean missing = !YoldaPhonePerms.missing(ctx()).isEmpty();
+		Log.i(TAG, "Telefon izinleri eksik: " + YoldaPhonePerms.missing(ctx()));
+		for (String k : new String[]{YoldaDeck.PHONE, YoldaDeck.MIRROR}) {
+			onMain(a -> {
+				((YoldaDeckFragment) a.getActiveFragment()).openCard(k);
+				return null;
+			});
+			waitIdle(1500);
+			if (missing) {
+				assertEquals("İzin eksikken kurulum açılmalı: " + k, R.id.yolda_setup_fragment,
+						onMain(MainActivityDelegate::getActiveFragmentId).intValue());
+			}
+			assertFalse("Telefonda yansıtma paneli açılmamalı", onMain(a -> a.getAppActivity().yoldaMirrorShown()));
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			waitIdle(1200);
+		}
+	}
+
+	/** Harita isteği araçta Yolda'nın içindeki Google Haritalar adresine çevrilir. */
+	@Test
+	public void haritaAdresiDogru() {
+		String nav = NavFragment.webMapUrl(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+				android.net.Uri.parse("google.navigation:q=Taksim+Meydan%C4%B1")));
+		assertNotNull(nav);
+		assertTrue(nav, nav.startsWith("https://www.google.com/maps/dir/?api=1") && nav.contains("destination=Taksim"));
+		String geo = NavFragment.webMapUrl(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+				android.net.Uri.parse("geo:0,0?q=Ankara")));
+		assertNotNull(geo);
+		assertTrue(geo, geo.contains("query=Ankara"));
+		assertEquals(null, NavFragment.webMapUrl(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+				android.net.Uri.parse("https://example.com"))));
 	}
 
 	/** Kartın boyu bir karta girip çıkınca değişmez (araçta küçülüyordu). */

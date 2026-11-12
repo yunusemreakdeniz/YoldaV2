@@ -260,7 +260,14 @@ public class AccessibilityEventDispatcherService extends AccessibilityService {
 		var root = getRootInActiveWindow();
 		if (root == null) return;
 		Log.i("Finding button by text: ", clickOnButton);
-		var btn = root.findAccessibilityNodeInfosByText(clickOnButton);
+		java.util.List<AccessibilityNodeInfo> btn = new ArrayList<>(root.findAccessibilityNodeInfosByText(clickOnButton));
+		// Yolda: telefon üreticisine göre düğme yazısı değişiyor (Başlat, Şimdi başlat, Ekranı paylaş, Start now…)
+		for (String t : new String[]{"Şimdi başlat", "Başlat", "Ekranı paylaş", "Paylaş", "Start now", "Start",
+				"Share screen"}) {
+			if (!btn.isEmpty()) break;
+			var l = root.findAccessibilityNodeInfosByText(t);
+			for (var n : l) if (n.isClickable() || "android.widget.Button".contentEquals(n.getClassName())) btn.add(n);
+		}
 		if (btn.isEmpty()) {
 			Log.i("Button not found. Trying to find by id: android:id/button1.");
 			btn = root.findAccessibilityNodeInfosByViewId("android:id/button1");

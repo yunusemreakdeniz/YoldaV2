@@ -26,6 +26,8 @@ public class YoldaWakeService extends Service {
 	public static void start(Context ctx) {
 		try {
 			Context app = ctx.getApplicationContext();
+			if (app.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+					!= android.content.pm.PackageManager.PERMISSION_GRANTED) return; // izinsiz mikrofon hizmeti çöker
 			Intent i = new Intent(app, YoldaWakeService.class);
 			if (Build.VERSION.SDK_INT >= 26) app.startForegroundService(i);
 			else app.startService(i);
@@ -62,7 +64,8 @@ public class YoldaWakeService extends Service {
 			YoldaLog.add("Hey Yolda hizmeti ön plana alınamadı: " + ex);
 			stopSelf();
 		}
-		return START_STICKY;
+		// Sistem kendiliğinden yeniden başlatmasın: arka planda mikrofon hizmeti açmak Android 14'te çöker
+		return START_NOT_STICKY;
 	}
 
 	@Nullable

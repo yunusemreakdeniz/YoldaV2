@@ -124,6 +124,44 @@ public class MainCarActivity extends CarActivity implements FermataActivity {
 		}
 	}
 
+	private YoldaMirrorPanel mirror;
+
+	@Override
+	public boolean yoldaShowMirror() {
+		if (mirror != null) return true;
+		View root = findViewById(R.id.main_activity);
+		if (!(root instanceof android.view.ViewGroup g)) {
+			me.aap.fermata.ui.fragment.YoldaLog.add("Telefon ekranı: kök görünüm yok");
+			return false;
+		}
+		try {
+			mirror = new YoldaMirrorPanel(getContext(), () -> mirror = null);
+			mirror.setElevation(1000f);
+			g.addView(mirror, new androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+					android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
+			mirror.requestFocus();
+			return true;
+		} catch (Throwable ex) {
+			Log.e(ex, "Telefon ekranı açılamadı");
+			me.aap.fermata.ui.fragment.YoldaLog.add("Telefon ekranı açılamadı: " + ex);
+			if (mirror != null) mirror.close();
+			mirror = null;
+			return false;
+		}
+	}
+
+	@Override
+	public boolean yoldaMirrorShown() {
+		return mirror != null;
+	}
+
+	@Override
+	public boolean yoldaCloseMirror() {
+		if (mirror == null) return false;
+		mirror.close();
+		return true;
+	}
+
 	/** Tema değişince (MainActivityDelegate yansımayla çağırır). */
 	public void yoldaBarColors() {
 		applyBarColors(this);
@@ -146,6 +184,7 @@ public class MainCarActivity extends CarActivity implements FermataActivity {
 	@Override
 	@SuppressWarnings("unchecked")
 	public void onDestroy() {
+		if (mirror != null) mirror.close();
 		super.onDestroy();
 		getActivityDelegate().onSuccess(MainActivityDelegate::onActivityDestroy)
 				.thenRun(() -> ActivityDelegate.setContextToDelegate(null));
@@ -267,6 +306,10 @@ public class MainCarActivity extends CarActivity implements FermataActivity {
 	@Override
 	public boolean onKeyUp(int keyCode, KeyEvent keyEvent) {
 		Log.i(keyEvent);
+		if ((mirror != null) && (keyCode == KEYCODE_BACK)) { // telefon ekranı açıkken geri telefona
+			MirrorActivity.onBackButtonClick();
+			return true;
+		}
 		MainActivityDelegate d = delegate.peek();
 		if (d == null) return super.onKeyUp(keyCode, keyEvent);
 
@@ -298,6 +341,7 @@ public class MainCarActivity extends CarActivity implements FermataActivity {
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent keyEvent) {
 		Log.i(keyEvent);
+		if ((mirror != null) && (keyCode == KEYCODE_BACK)) return true; // onKeyUp'da telefona gider
 		MainActivityDelegate d = delegate.peek();
 		if (d == null) return super.onKeyDown(keyCode, keyEvent);
 		if (!d.getPrefs().useDpadCursor(d)) return d.onKeyDown(keyCode, keyEvent, super::onKeyDown);
