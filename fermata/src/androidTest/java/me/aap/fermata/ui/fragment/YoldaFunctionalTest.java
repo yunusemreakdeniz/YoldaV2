@@ -283,6 +283,48 @@ public class YoldaFunctionalTest {
 				android.net.Uri.parse("https://example.com"))));
 	}
 
+	/**
+	 * Uzun kullanım: kartlara tekrar tekrar girip çıkılır; bellek sürekli büyümemeli (sızıntı), uygulama
+	 * yanıt vermeye devam etmeli.
+	 */
+	@Test
+	public void uzunKullanimdaBellekSismez() {
+		String[] keys = {YoldaDeck.YOUTUBE, YoldaDeck.MUSIC, YoldaDeck.TV, YoldaDeck.RADIO, YoldaDeck.NAV,
+				YoldaDeck.WEATHER, YoldaDeck.FAVS, YoldaDeck.SETTINGS};
+		long first = 0;
+		long last = 0;
+		for (int round = 0; round < 8; round++) {
+			for (String k : keys) {
+				onMain(a -> a.showFragment(R.id.home_fragment));
+				waitIdle(400);
+				onMain(a -> {
+					if (a.getActiveFragment() instanceof YoldaDeckFragment d) d.openCard(k);
+					return null;
+				});
+				waitIdle(500);
+			}
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			waitIdle(800);
+			long used = usedHeap();
+			Log.i(TAG, "Bellek tur " + round + ": " + (used / 1024 / 1024) + " MB");
+			if (round == 2) first = used;
+			last = used;
+		}
+		assertEquals("Desteye dönülmeli", R.id.home_fragment, onMain(MainActivityDelegate::getActiveFragmentId).intValue());
+		long growMb = (last - first) / 1024 / 1024;
+		assertTrue("5 turda bellek " + growMb + " MB büyüdü (sızıntı?)", growMb < 40);
+	}
+
+	private static long usedHeap() {
+		Runtime r = Runtime.getRuntime();
+		for (int i = 0; i < 3; i++) {
+			r.gc();
+			r.runFinalization();
+			android.os.SystemClock.sleep(300);
+		}
+		return r.totalMemory() - r.freeMemory();
+	}
+
 	/** Kartın boyu bir karta girip çıkınca değişmez (araçta küçülüyordu). */
 	@Test
 	public void kartBoyuGirCikSonrasiAyni() {
