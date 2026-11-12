@@ -66,6 +66,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private DeckAdapter adapter;
 	private PagerSnapHelper snap;
 	private boolean editing;
+	/** Araç ekranı: gölge ve sürekli animasyon yok. */
+	private boolean lowFx;
 	private int cardW;
 	private int cardH;
 	private final List<MediaLib.PlayableItem> tvChannels = new ArrayList<>();
@@ -143,6 +145,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		YoldaStyle.applyScreenBackground(root, t);
 		// Ortadaki kartın renginde arkada süzülen ışıklar (kaydırdıkça kartın rengine akar)
 		glow = new Glow(ctx);
+		glow.drift = !car; // araçta ışıklar sabit (sürekli çizim araca giden görüntüyü ağırlaştırıyor)
 		root.addView(glow, new FrameLayout.LayoutParams(-1, -1));
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
@@ -177,6 +180,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		list.setClipChildren(false);
 		list.setOverScrollMode(View.OVER_SCROLL_NEVER);
 		list.setLayoutManager(new LinearLayoutManager(ctx, LinearLayoutManager.HORIZONTAL, false));
+		list.setHasFixedSize(true);
+		list.setItemViewCacheSize(16); // kaydırırken kartlar yeniden kurulmasın
+		lowFx = car;
 		adapter = new DeckAdapter();
 		list.setAdapter(adapter);
 		snap = new PagerSnapHelper();
@@ -265,7 +271,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			c.setAlpha(1f - 0.45f * Math.min(ad, 1f));
 			c.setRotationY(-Math.max(-1f, Math.min(1f, d)) * 6f);
 			c.setCameraDistance(cardW * 12f);
-			c.setTranslationZ(dp(12) * (1f - Math.min(ad, 1f)));
+			if (!lowFx) c.setTranslationZ(dp(12) * (1f - Math.min(ad, 1f)));
 		}
 		list.invalidate();
 		updateGlow();
@@ -312,6 +318,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		private int c1 = 0xFF3B82F6, c2 = 0xFF7C3AED;
 		private int t1 = c1, t2 = c2;
 		private final long start = android.os.SystemClock.uptimeMillis();
+		boolean drift = true;
 
 		Glow(Context ctx) {
 			super(ctx);
@@ -340,16 +347,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		protected void onDraw(@NonNull android.graphics.Canvas c) {
 			float w = getWidth(), h = getHeight();
 			if ((w <= 0) || (h <= 0)) return;
-			boolean anim = motionOn();
+			boolean anim = drift && motionOn();
 			// renk geçişi: her karede hedefe biraz yaklaş (animasyon kapalıysa hemen)
-			c1 = anim ? towards(c1, t1, 0.12f) : t1;
-			c2 = anim ? towards(c2, t2, 0.12f) : t2;
+			boolean fade = motionOn(); // renk geçişi araçta da yumuşak (yalnız geçiş süresince çizilir)
+			c1 = fade ? towards(c1, t1, 0.12f) : t1;
+			c2 = fade ? towards(c2, t2, 0.12f) : t2;
 			float s = anim ? (android.os.SystemClock.uptimeMillis() - start) / 1000f : 0f;
 			float r = Math.max(w, h) * 0.62f;
 			blob(c, c1, w * (0.25f + 0.08f * (float) Math.sin(s * 0.21)), h * (0.30f + 0.10f * (float) Math.cos(s * 0.17)), r, 0x88);
 			blob(c, c2, w * (0.78f + 0.07f * (float) Math.cos(s * 0.19)), h * (0.72f + 0.09f * (float) Math.sin(s * 0.23)), r, 0x77);
 			blob(c, towards(c1, 0xFFFFFFFF, 0.25f), w * (0.55f + 0.12f * (float) Math.sin(s * 0.13)), h * 0.10f, r * 0.55f, 0x33);
-			boolean settling = (c1 != t1) || (c2 != t2);
+			boolean settling = fade && ((c1 != t1) || (c2 != t2));
 			if (anim || settling) postInvalidateOnAnimation();
 		}
 
@@ -593,7 +601,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), dp(30));
 			}
 		});
-		f.setElevation(dp(10));
+		f.setElevation(lowFx ? 0 : dp(10));
 		f.setClickable(true);
 		f.setContentDescription(c.title());
 		f.setOnClickListener(v -> {
@@ -1179,7 +1187,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					if (RADIO_GROUP.equals(groupOf(pi))) radioChannels.add(pi);
 					else tvChannels.add(pi);
 				}
-				if (adapter != null) adapter.notifyDataSetChanged();
+				if (adapter != null) {
+					for (String k : new String[]{YoldaDeck.TV, YoldaDeck.RADIO}) {
+						int i = deck.indexOf(k);
+						if (i >= 0) adapter.notifyItemChanged(i);
+					}
+				}
 				if (list != null) list.post(this::transform);
 			});
 		});

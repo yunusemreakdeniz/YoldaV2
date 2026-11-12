@@ -357,10 +357,16 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		backdrop = new ImageView(ctx);
 		backdrop.setScaleType(ImageView.ScaleType.CENTER_CROP);
 		backdrop.setAlpha(0f);
-		if (Build.VERSION.SDK_INT >= 31) {
+		boolean car = false;
+		try {
+			car = MainActivityDelegate.get(ctx).isCarActivity();
+		} catch (Throwable ignore) {
+		}
+		if ((Build.VERSION.SDK_INT >= 31) && !car) { // araçta bulanıklık yok: her karede pahalı
 			backdrop.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(dp(60), dp(60),
 					android.graphics.Shader.TileMode.CLAMP));
 		}
+		if (car || (Build.VERSION.SDK_INT < 31)) backdrop.setVisibility(GONE); // bulanıksız kapak arka planı çirkin
 		addView(backdrop, new LayoutParams(-1, -1));
 		View dim = new View(ctx);
 		dim.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,

@@ -1441,6 +1441,13 @@ public class MainActivityDelegate extends ActivityDelegate
 			Log.e(ex, "Tema: sayfalar yenilenemedi");
 		}
 		if (activeF != null) recreateFragment(activeF);
+		if (isCarActivityNotMirror()) { // Android Auto çubukları da yeni temanın renginde
+			try {
+				Object act = getAppActivity();
+				act.getClass().getMethod("yoldaBarColors").invoke(act);
+			} catch (Throwable ignore) {
+			}
+		}
 		me.aap.fermata.ui.fragment.YoldaLog.add("Tema: " + me.aap.fermata.ui.view.YoldaStyle.current(ctx).name
 				+ " (" + (isCarActivity() ? "araç" : "telefon") + ")");
 	}

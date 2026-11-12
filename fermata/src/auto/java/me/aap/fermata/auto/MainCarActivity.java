@@ -106,6 +106,27 @@ public class MainCarActivity extends CarActivity implements FermataActivity {
 		CarUiController ctrl = a.getCarUiController();
 		ctrl.getStatusBarController().hideAppHeader();
 		ctrl.getMenuController().hideMenuButton();
+		applyBarColors(a);
+	}
+
+	/**
+	 * Yolda: Android Auto'nun durum ve uygulama çubukları Yolda'nın koyu temasına uysun (gece stili sürekli,
+	 * çubuk rengi temanın zemini). Aracın kendi ana menüsü Android Auto'ya aittir, ona dokunulamaz.
+	 */
+	static void applyBarColors(CarActivity a) {
+		try {
+			com.google.android.apps.auto.sdk.StatusBarController sb = a.getCarUiController().getStatusBarController();
+			sb.setDayNightStyle(com.google.android.apps.auto.sdk.DayNightStyle.FORCE_NIGHT);
+			sb.setAppBarBackgroundColor(me.aap.fermata.ui.view.YoldaStyle.current(
+					me.aap.fermata.FermataApplication.get()).base);
+		} catch (Throwable ex) {
+			me.aap.fermata.ui.fragment.YoldaLog.add("Android Auto çubuk rengi ayarlanamadı: " + ex);
+		}
+	}
+
+	/** Tema değişince (MainActivityDelegate yansımayla çağırır). */
+	public void yoldaBarColors() {
+		applyBarColors(this);
 	}
 
 	private MainActivityDelegate onCreate(Bundle state, FermataMediaServiceConnection s) {

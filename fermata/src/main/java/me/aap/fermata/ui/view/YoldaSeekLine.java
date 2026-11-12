@@ -40,8 +40,7 @@ public class YoldaSeekLine extends View {
 		bg.setColor(0x47FFFFFF);
 		fg.setColor(0xFFFFFFFF);
 		knob.setColor(0xFFFFFFFF);
-		knob.setShadowLayer(4 * d, 0, d, 0x66000000);
-		setLayerType(LAYER_TYPE_SOFTWARE, knob);
+		// gölge yok: yazılımla çizim katmanı gerektiriyordu (akıcılık)
 		thin = 6 * d;
 		inset = 8 * d;
 		setContentDescription("İlerleme");
