@@ -270,17 +270,30 @@ public final class YoldaWake {
 
 	// ---- model indirme ----
 
+	private static boolean downloadNoticeShown;
+	private static long lastFail;
+
 	private static void download(MainActivityDelegate a) {
 		if (downloading) return;
+		// Başarısız olduysa her açılışta yeniden deneyip uyarı göstermesin: 10 dakika bekle
+		if ((lastFail > 0) && (System.currentTimeMillis() - lastFail < 10 * 60_000L)) return;
 		downloading = true;
 		Context ctx = a.getContext().getApplicationContext();
-		UiUtils.showInfo(a.getContext(), "“Hey Yolda” için Türkçe ses modeli indiriliyor (37 MB, bir kez)…");
+		if (!downloadNoticeShown) {
+			downloadNoticeShown = true;
+			UiUtils.showInfo(a.getContext(), "“Hey Yolda” için Türkçe ses modeli indiriliyor (37 MB, bir kez)…");
+		}
+		YoldaLog.add("Hey Yolda modeli indiriliyor");
 		App.get().getExecutor().submit(() -> {
 			File tmp = new File(ctx.getCacheDir(), "vosk-tr.zip");
 			try {
 				HttpURLConnection c = (HttpURLConnection) new URL(MODEL_URL).openConnection();
 				c.setConnectTimeout(20000);
-				c.setReadTimeout(30000);
+				c.setReadTimeout(60000);
+				c.setInstanceFollowRedirects(true);
+				c.setRequestProperty("User-Agent", "Yolda/2");
+				int code = c.getResponseCode();
+				if (code != 200) throw new java.io.IOException("Sunucu yanıtı " + code);
 				try (InputStream in = new BufferedInputStream(c.getInputStream());
 						 OutputStream out = new FileOutputStream(tmp)) {
 					byte[] buf = new byte[65536];
@@ -298,6 +311,7 @@ public final class YoldaWake {
 				YoldaLog.add("Hey Yolda modeli indirilemedi: " + ex);
 				App.get().getHandler().post(() -> {
 					downloading = false;
+					lastFail = System.currentTimeMillis();
 					UiUtils.showInfo(a.getContext(), "Ses modeli indirilemedi; internet bağlantısını kontrol et");
 				});
 			} finally {

@@ -34,7 +34,8 @@ public class VoiceGlowView extends FrameLayout {
 		super(ctx);
 		setWillNotDraw(false);
 		setClickable(true);
-		colors = new int[]{t.blobs[0], t.blobs[1], t.blobs[2], 0xFFFFFFFF, t.blobs[0]};
+		// Pastel: temanın renkleri beyaza doğru açılır (keskin beyaz şerit yok)
+		colors = new int[]{soft(t.blobs[0]), soft(t.blobs[1]), soft(t.blobs[2]), soft(t.blobs[1]), soft(t.blobs[0])};
 		p.setStyle(Paint.Style.STROKE);
 		float d = getResources().getDisplayMetrics().density;
 
@@ -68,8 +69,24 @@ public class VoiceGlowView extends FrameLayout {
 		lp.leftMargin = lp.rightMargin = Math.round(40 * d);
 		addView(pill, lp);
 		pill.setAlpha(0f);
-		pill.setTranslationY(24 * d);
-		pill.animate().alpha(1f).translationY(0f).setDuration(220).start();
+		pill.setTranslationY(18 * d);
+		pill.setScaleX(0.96f);
+		pill.setScaleY(0.96f);
+		pill.animate().alpha(1f).translationY(0f).scaleX(1f).scaleY(1f).setDuration(320)
+				.setInterpolator(new android.view.animation.DecelerateInterpolator(2f)).start();
+	}
+
+	private static int soft(int c) {
+		int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+		r += (255 - r) * 35 / 100;
+		g += (255 - g) * 35 / 100;
+		b += (255 - b) * 35 / 100;
+		return 0xFF000000 | (r << 16) | (g << 8) | b;
+	}
+
+	private static boolean motionOn() {
+		if (android.os.Build.VERSION.SDK_INT < 26) return true;
+		return android.animation.ValueAnimator.areAnimatorsEnabled();
 	}
 
 	public void setLevel(float l) {
@@ -95,21 +112,23 @@ public class VoiceGlowView extends FrameLayout {
 		if (shader == null || w <= 0) return;
 		float d = getResources().getDisplayMetrics().density;
 		float t = (SystemClock.uptimeMillis() - start) / 1000f;
-		shown += (level - shown) * 0.25f;
-		m.setRotate((t * (thinking ? 220 : 110)) % 360, w / 2f, h / 2f);
+		shown += (level - shown) * 0.12f; // sese yumuşak tepki
+		m.setRotate((t * (thinking ? 90 : 45)) % 360, w / 2f, h / 2f); // yavaş dönüş
 		shader.setLocalMatrix(m);
-		float rad = 26 * d;
-		// İçten dışa üç kat: geniş ve soluk (parıltı) → ince ve parlak (kenar)
-		float base = (thinking ? 5 : 4) * d + shown * 10 * d;
-		int[] alphas = {50, 95, 255};
-		float[] widths = {base * 3.2f, base * 1.8f, base * 0.8f};
-		for (int i = 0; i < 3; i++) {
-			p.setAlpha(alphas[i]);
+		float rad = 28 * d;
+		// nefes: konuşma yokken ışık hafifçe açılıp kapanır
+		float breath = 0.85f + 0.15f * (float) Math.sin(t * 2.2);
+		// İçten dışa dört kat: çok geniş ve çok soluk ışıma → ince, yumuşak kenar
+		float base = (thinking ? 4 : 3) * d + shown * 7 * d;
+		int[] alphas = {16, 34, 64, 140};
+		float[] widths = {base * 6f, base * 3.4f, base * 1.8f, base * 0.6f};
+		for (int i = 0; i < 4; i++) {
+			p.setAlpha(Math.round(alphas[i] * breath));
 			p.setStrokeWidth(widths[i]);
 			float in = widths[i] / 2f;
 			r.set(in, in, w - in, h - in);
 			c.drawRoundRect(r, rad, rad, p);
 		}
-		postInvalidateOnAnimation();
+		if (motionOn()) postInvalidateOnAnimation();
 	}
 }

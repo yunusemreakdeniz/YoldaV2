@@ -2025,7 +2025,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		private SpeechListener(Promise<List<String>> promise, boolean textInput) {
 			this.promise = promise;
 			this.textInput = textInput;
-			recognizer = createRecognizer(true);
+			recognizer = createRecognizer(!getContext().getApplicationContext().getSharedPreferences(
+					me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE).getBoolean("ondevice_tr_bad", false));
 			text = new MaterialTextView(getContext());
 		}
 
@@ -2240,13 +2241,21 @@ public class MainActivityDelegate extends ActivityDelegate
 					|| error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE || error == SpeechRecognizer.ERROR_CLIENT
 					|| error == SpeechRecognizer.ERROR_SERVER_DISCONNECTED)) {
 				fallbackTried = true;
-				if ((error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE) && (VERSION.SDK_INT >= 33)) {
+				android.content.SharedPreferences yp = getContext().getApplicationContext().getSharedPreferences(
+						me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE);
+				// Paket indirmesini yalnız bir kez iste; bundan sonra doğrudan normal (internetli) tanıma
+				// (önceden her seferinde "indiriliyor" penceresi çıkıyor, paket hiç gelmiyordu)
+				if ((error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE) && (VERSION.SDK_INT >= 33)
+						&& !yp.getBoolean("ondevice_tr_requested", false)) {
+					yp.edit().putBoolean("ondevice_tr_requested", true).apply();
 					try {
 						recognizer.triggerModelDownload(intent);
 					} catch (Exception ex) {
 						Log.e(ex, "Türkçe tanıma paketi indirilemedi");
 					}
 				}
+				yp.edit().putBoolean("ondevice_tr_bad", true).apply();
+				me.aap.fermata.ui.fragment.YoldaLog.add("Cihaz içi Türkçe tanıma yok (hata " + error + "): normal tanıma kullanılacak");
 				recognizer.destroy();
 				recognizer = createRecognizer(false);
 				if (statusText != null) statusText.setText("Dinliyorum…");
