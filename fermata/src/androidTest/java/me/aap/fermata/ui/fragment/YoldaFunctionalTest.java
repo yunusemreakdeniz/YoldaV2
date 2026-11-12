@@ -50,7 +50,7 @@ public class YoldaFunctionalTest {
 		String pkg = ctx().getPackageName();
 		for (String p : new String[]{"android.permission.READ_EXTERNAL_STORAGE", "android.permission.RECORD_AUDIO",
 				"android.permission.POST_NOTIFICATIONS", "android.permission.READ_MEDIA_AUDIO",
-				"android.permission.READ_MEDIA_VIDEO", "android.permission.ACCESS_FINE_LOCATION"}) {
+				"android.permission.READ_MEDIA_VIDEO", "android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"}) {
 			try {
 				InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(pkg, p);
 			} catch (Exception ignore) {

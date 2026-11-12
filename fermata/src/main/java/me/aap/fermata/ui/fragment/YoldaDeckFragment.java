@@ -1327,8 +1327,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			refreshCard(YoldaDeck.WEATHER);
 		});
 		// Telefonda ilk açılışta konum izni sorulur (araçta pencere açılamaz; son bilinen konum ya da İstanbul)
-		if (!car && (requireContext().checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
-				!= android.content.pm.PackageManager.PERMISSION_GRANTED)) {
+		Context pc = requireContext();
+		boolean hasLoc = (pc.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+				== android.content.pm.PackageManager.PERMISSION_GRANTED) || (pc.checkSelfPermission(
+				android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED);
+		// bir kez sorulur (reddedilirse her açılışta yeniden çıkmasın)
+		if (!car && !hasLoc && !prefs(pc).getBoolean("loc_asked", false)) {
+			prefs(pc).edit().putBoolean("loc_asked", true).apply();
 			a.getAppActivity().checkPermissions(android.Manifest.permission.ACCESS_COARSE_LOCATION,
 					android.Manifest.permission.ACCESS_FINE_LOCATION).onCompletion((r, err) -> {
 				if (isAdded()) wx.run();

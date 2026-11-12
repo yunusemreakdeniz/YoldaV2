@@ -68,7 +68,7 @@ public class YoldaUiUxTest {
 		MainActivityDelegate.skipSetupThisRun = true;
 		String pkg = ctx().getPackageName();
 		for (String p : new String[]{"android.permission.READ_EXTERNAL_STORAGE", "android.permission.RECORD_AUDIO",
-				"android.permission.POST_NOTIFICATIONS", "android.permission.ACCESS_FINE_LOCATION"}) {
+				"android.permission.POST_NOTIFICATIONS", "android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"}) {
 			try {
 				ui().grantRuntimePermission(pkg, p);
 			} catch (Exception ignore) {
