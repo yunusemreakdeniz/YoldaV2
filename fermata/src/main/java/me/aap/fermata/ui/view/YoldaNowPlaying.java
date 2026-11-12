@@ -242,6 +242,8 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			}
 			return;
 		}
+		// Çalan / bekleyen bir şey yokken ▶ "son çalınanı" (ör. radyo) kendiliğinden açmasın
+		if (isStopped(cb) && (pi == null)) return;
 		cb.onPlay();
 	}
 
@@ -649,7 +651,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		}
 		if ((opening == null) && YoldaPlayerBar.isYoutube(cb)) applyMeta(a, cb.getYoldaMetadata(), pi, key);
 		long d = duration();
-		boolean isLive = (d <= 0) && pi.isStream();
+		boolean isLive = (d <= 0) && pi.isStream() && !(pi instanceof YtMusicItem);
 		live.setVisibility(isLive ? VISIBLE : GONE);
 		label.setText(isError(cb) ? "AÇILAMADI · TEKRAR DENEMEK İÇİN ▶" : busy ? "BAĞLANIYOR…"
 				: isLive ? "CANLI YAYIN" : "ŞİMDİ ÇALIYOR");

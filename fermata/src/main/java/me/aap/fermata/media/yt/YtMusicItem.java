@@ -135,12 +135,6 @@ public class YtMusicItem extends PlayableItemBase {
 		return true;
 	}
 
-	/** Şarkı canlı yayın değildir (internet adresi olsa da): çubukta CANLI değil, ilerleme görünür. */
-	@Override
-	public boolean isStream() {
-		return false;
-	}
-
 	@Override
 	public String getOrigId() {
 		return getId();

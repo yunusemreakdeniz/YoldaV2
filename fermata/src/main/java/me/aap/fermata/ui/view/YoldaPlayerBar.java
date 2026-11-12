@@ -322,7 +322,8 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			if (dt > 0) pos += (long) (dt * Math.max(0.1f, st.getPlaybackSpeed()));
 		}
 		long dur = durationOf(pi);
-		boolean isLive = (dur <= 0) && pi.isStream();
+		// Şarkı hiçbir zaman canlı değildir (akış motoruyla çalsa da)
+		boolean isLive = (dur <= 0) && pi.isStream() && !(pi instanceof me.aap.fermata.media.yt.YtMusicItem);
 		live.setVisibility(isLive ? VISIBLE : GONE);
 		progress.setVisibility(isLive ? INVISIBLE : VISIBLE); // canlıda ilerleme yok: yerine CANLI nabzı
 		if (isLive && (live.getAnimation() == null) && ((android.os.Build.VERSION.SDK_INT < 26) || android.animation.ValueAnimator.areAnimatorsEnabled())) {
