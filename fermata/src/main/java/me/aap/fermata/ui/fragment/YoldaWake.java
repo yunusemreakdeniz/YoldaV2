@@ -70,7 +70,11 @@ public final class YoldaWake {
 	}
 
 	public static boolean isModelReady(Context ctx) {
-		return new File(modelDir(ctx), "conf").isDirectory() || new File(modelDir(ctx), "am").isDirectory();
+		// Türkçe küçük model eski düzende (final.mdl kökte; conf/ am/ yok): önceden hazır sayılmıyor, her
+		// açılışta yeniden açılıyor ve dinleme hiç başlamıyordu
+		File d = modelDir(ctx);
+		return new File(d, "final.mdl").isFile() || new File(d, "am/final.mdl").isFile()
+				|| new File(d, "conf").isDirectory() || new File(d, "am").isDirectory();
 	}
 
 	/** Menüden aç/kapat; açılırken model yoksa indirilir. */
@@ -390,7 +394,9 @@ public final class YoldaWake {
 				YoldaLog.add("Hey Yolda modeli hazır (gömülü)");
 				App.get().getHandler().post(() -> {
 					downloading = false;
-					start(a);
+					if (isModelReady(ctx)) start(a);
+					else YoldaLog.add("Hey Yolda: model açıldı ama tanınmadı; dosyalar: "
+							+ java.util.Arrays.toString(modelDir(ctx).list()));
 				});
 			} catch (Throwable ex) {
 				Log.e(ex, "Gömülü model açılamadı");

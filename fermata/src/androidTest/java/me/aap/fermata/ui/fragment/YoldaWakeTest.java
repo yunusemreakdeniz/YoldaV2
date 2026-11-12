@@ -38,7 +38,7 @@ public class YoldaWakeTest {
 		Assume.assumeTrue("APK'da ses modeli yok", YoldaWake.hasBundledModel(ctx()));
 		if (model == null) {
 			File dir = YoldaWake.prepareModelSync(ctx());
-			assertTrue("Model açılmalı", YoldaWake.isModelReady(ctx()));
+			assertTrue("Model açılmalı: " + java.util.Arrays.toString(dir.list()), YoldaWake.isModelReady(ctx()));
 			model = new Model(dir.getAbsolutePath());
 		}
 		return model;

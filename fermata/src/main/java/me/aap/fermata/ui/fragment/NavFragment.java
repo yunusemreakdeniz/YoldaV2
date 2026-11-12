@@ -400,13 +400,31 @@ public class NavFragment extends MainActivityFragment {
 			if (q.startsWith("q=")) q = q.substring(2);
 			return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + q;
 		}
-		if (s.startsWith("geo:")) {
-			String q = u.getQueryParameter("q");
+		if (s.startsWith("geo:")) { // geo:0,0?q=… opak adres: getQueryParameter çöker
+			String q = query(u.getEncodedSchemeSpecificPart(), "q");
+			if (q == null) {
+				String ll = u.getEncodedSchemeSpecificPart();
+				int k = ll.indexOf('?');
+				q = (k >= 0) ? ll.substring(0, k) : ll;
+			}
 			return "https://www.google.com/maps/search/?api=1&query=" + Uri.encode((q != null) ? q : "");
 		}
 		if (s.contains("waze.com")) {
-			String q = u.getQueryParameter("q");
+			String q = u.isHierarchical() ? u.getQueryParameter("q") : null;
 			return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + Uri.encode((q != null) ? q : "");
+		}
+		return null;
+	}
+
+	/** "a,b?q=Ankara&z=10" içinden bir parametre (çözülmüş). */
+	@androidx.annotation.Nullable
+	private static String query(String ssp, String key) {
+		if (ssp == null) return null;
+		int k = ssp.indexOf('?');
+		if (k < 0) return null;
+		for (String p : ssp.substring(k + 1).split("&")) {
+			int e = p.indexOf('=');
+			if ((e > 0) && p.substring(0, e).equals(key)) return Uri.decode(p.substring(e + 1).replace('+', ' '));
 		}
 		return null;
 	}
