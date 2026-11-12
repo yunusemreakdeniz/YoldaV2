@@ -1221,7 +1221,25 @@ public class HomeFragment extends MainActivityFragment {
 
 	/** Telefon ekranı: Android Auto listesindeki "Yolda Telefon"; dokunmak için erişilebilirlik izni gerekir. */
 	static void phone(Context ctx) {
-		if (remoteTouchEnabled(ctx)) {
+		boolean touch = remoteTouchEnabled(ctx);
+		// Araçta: telefon ekranını ("Yolda Telefon") doğrudan aç — önceden yalnız "listeden aç" uyarısı çıkıyordu
+		try {
+			MainActivityDelegate a = MainActivityDelegate.get(ctx);
+			if (a.isCarActivityNotMirror()) {
+				Object act = a.getAppActivity();
+				Intent i = new Intent().setComponent(new android.content.ComponentName(ctx.getPackageName(),
+						"me.aap.fermata.auto.MirrorService"));
+				act.getClass().getMethod("startCarActivity", Intent.class).invoke(act, i);
+				YoldaLog.add("Telefon ekranı araçta açıldı");
+				if (!touch) UiUtils.showInfo(ctx, "Telefon ekranı açılıyor. Araç ekranından dokunabilmek için telefonda "
+						+ "Ayarlar → Erişilebilirlik → Yolda'yı bir kez aç.");
+				return;
+			}
+		} catch (Throwable ex) {
+			Log.e(ex, "Telefon ekranı açılamadı");
+			YoldaLog.add("Telefon ekranı açılamadı: " + ex);
+		}
+		if (touch) {
 			UiUtils.showInfo(ctx, "Araç ekranının uygulama listesinden “Yolda Telefon”u aç. "
 					+ "Telefon ekranı burada görünür; dokunarak, kaydırarak kullanabilirsin.");
 		} else {
