@@ -226,8 +226,8 @@ public class MusicFragment extends MainActivityFragment {
 			}
 			return false;
 		});
-		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, dp(56), Gravity.BOTTOM);
-		slp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(14));
+		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, dp(YoldaStyle.DECK ? YoldaStyle.VOICE_DP : 56), Gravity.BOTTOM);
+		slp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(YoldaStyle.DECK ? YoldaStyle.VOICE_BOTTOM_DP : 14));
 		if (car) { // araç: arama başlığın altında, sağ üstteki düğmeyle açılır
 			search.setVisibility(View.GONE);
 			search.setElevation(0);

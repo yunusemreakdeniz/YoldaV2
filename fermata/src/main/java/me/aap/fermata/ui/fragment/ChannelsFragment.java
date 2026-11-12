@@ -216,8 +216,8 @@ public class ChannelsFragment extends MainActivityFragment {
 		search.setBackground(YoldaStyle.searchField(ctx, t)); // Navigasyon aramasıyla aynı cam
 		search.setElevation(dp(8));
 		// Sesli asistan düğmesiyle aynı hizada, hemen sağında (düğme: solda 22dp, 56dp, alttan 14dp)
-		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, dp(56), Gravity.BOTTOM);
-		slp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(14));
+		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, dp(YoldaStyle.DECK ? YoldaStyle.VOICE_DP : 56), Gravity.BOTTOM);
+		slp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(YoldaStyle.DECK ? YoldaStyle.VOICE_BOTTOM_DP : 14));
 		search.addTextChangedListener(new TextWatcher() {
 			@Override
 			public void beforeTextChanged(CharSequence s, int st, int c, int a1) {

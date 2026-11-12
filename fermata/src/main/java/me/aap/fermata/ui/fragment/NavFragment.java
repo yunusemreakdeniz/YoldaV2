@@ -171,8 +171,8 @@ public class NavFragment extends MainActivityFragment {
 		search.addView(goBtn);
 		if (YoldaStyle.DECK) { // V2: arama altta, sesli düğmenin sağında; içerik üstünde kayar
 			search.setElevation(dp(8));
-			FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(-1, dp(60), Gravity.BOTTOM);
-			flp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(14));
+			FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(-1, dp(YoldaStyle.VOICE_DP), Gravity.BOTTOM);
+			flp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(YoldaStyle.VOICE_BOTTOM_DP));
 			root.addView(search, flp);
 			col.setPadding(col.getPaddingLeft(), col.getPaddingTop(), col.getPaddingRight(), dp(100));
 			goBtn.setPadding(dp(18), dp(10), dp(18), dp(10));

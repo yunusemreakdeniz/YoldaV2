@@ -64,6 +64,9 @@ public final class YoldaStyle {
 
 	/** Yolda V2: alt / yan menü yok; ana ekran yığılmış kart destesi, sesli asistan ve geri düğmesi sol altta. */
 	public static final boolean DECK = true;
+	/** V2: sesli düğme ve yanındaki arama kutuları aynı boy ve aynı alt boşluk (tam aynı hizada). */
+	public static final int VOICE_DP = 56;
+	public static final int VOICE_BOTTOM_DP = 14;
 
 	/** Ortak zemin çizilen kökler (telefon ve araç ekranı ayrı ayrı): tema değişince hepsi yenilenir. */
 	private static final java.util.List<WeakReference<View>> backdropHosts = new java.util.ArrayList<>();
@@ -123,7 +126,7 @@ public final class YoldaStyle {
 
 	/** Arama kutusunun soldan boşluğu (dp): telefonda sesli asistan düğmesinin sağında başlar. */
 	public static int searchLeftDp() {
-		if (DECK) return 16 + 60 + 12; // V2: sesli düğmenin sağında, aynı hizada
+		if (DECK) return 16 + VOICE_DP + 12; // V2: sesli düğmenin sağında, aynı hizada
 		return railMode ? 18 : 22; // sesli asistan artık alt menünün yanında
 	}
 

@@ -1058,7 +1058,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			tl.bottomToBottom = unset;
 			tl.bottomToTop = R.id.control_panel;
 			tl.verticalBias = 1f;
-			tl.leftMargin = toIntPx(getContext(), 16 + 60 + 12); // solunda sesli düğme
+			tl.leftMargin = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.searchLeftDp()); // solunda sesli düğme
+			tl.bottomMargin = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP);
 			tl.topMargin = 0;
 			tb.setLayoutParams(tl);
 			bl.topToBottom = unset;
@@ -1541,13 +1542,13 @@ public class MainActivityDelegate extends ActivityDelegate
 			startVoiceAssistant();
 		});
 		boolean rail = (navBar != null) && navBar.isLeft();
-		int s = toIntPx(ctx, rail ? 56 : 60);
+		int s = toIntPx(ctx, me.aap.fermata.ui.view.YoldaStyle.DECK ? me.aap.fermata.ui.view.YoldaStyle.VOICE_DP : rail ? 56 : 60);
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
 		if (me.aap.fermata.ui.view.YoldaStyle.DECK) { // V2: şerit yok; içeriğin üstünde sol altta, oynatıcının üstünde
 			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
 			lp.bottomToTop = R.id.control_panel;
 			lp.leftMargin = toIntPx(ctx, 16);
-			lp.bottomMargin = toIntPx(ctx, 12);
+			lp.bottomMargin = toIntPx(ctx, me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP);
 		} else if (rail) { // araç: dikey menünün en altında, ortalı
 			lp.startToStart = R.id.nav_bar;
 			lp.endToEnd = R.id.nav_bar;
