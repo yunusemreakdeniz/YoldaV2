@@ -507,8 +507,14 @@ public class ChannelsFragment extends MainActivityFragment {
 			LinearLayout bar = new LinearLayout(ctx);
 			bar.setOrientation(LinearLayout.HORIZONTAL);
 			bar.addView(mini(ctx, fav ? R.drawable.yi_star : R.drawable.yi_star_border, v -> {
-				if (favs.isFavoriteItem(pi)) favs.removeItem(pi);
-				else favs.addItem(pi);
+				String[] e = YoldaFavs.entryOf(pi); // Yolda favorileri (Favoriler kartı) de güncellenir
+				if (favs.isFavoriteItem(pi)) {
+					favs.removeItem(pi);
+					if (e != null) YoldaFavs.remove(ctx, e[0], e[2]);
+				} else {
+					favs.addItem(pi);
+					if (e != null) YoldaFavs.add(ctx, e[0], e[1], e[2], e[3]);
+				}
 				grid.postDelayed(this::showGrid, 150);
 			}));
 			bar.addView(mini(ctx, hidden ? R.drawable.yi_add : R.drawable.yi_close, v -> {

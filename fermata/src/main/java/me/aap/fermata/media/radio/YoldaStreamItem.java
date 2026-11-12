@@ -24,6 +24,7 @@ import me.aap.utils.vfs.generic.GenericFileSystem;
  */
 public class YoldaStreamItem extends PlayableItemBase {
 	private final String name;
+	private final String url;
 	@Nullable
 	private final String logo;
 	@Nullable
@@ -33,6 +34,7 @@ public class YoldaStreamItem extends PlayableItemBase {
 		super("yolda-stream://" + Integer.toHexString(url.hashCode()), root(lib),
 				GenericFileSystem.getInstance().create(Rid.create(Uri.parse(url))));
 		this.name = name;
+		this.url = url;
 		this.logo = logo;
 		this.tags = tags;
 	}
@@ -53,6 +55,16 @@ public class YoldaStreamItem extends PlayableItemBase {
 	@Override
 	public String getName() {
 		return name;
+	}
+
+	/** Yayın adresi (favorilere kaydetmek için). */
+	public String getStreamUrl() {
+		return url;
+	}
+
+	@Nullable
+	public String getLogo() {
+		return logo;
 	}
 
 	@NonNull

@@ -105,7 +105,7 @@ jobs:
           NO_GS: true
         run: |
           chmod +x gradlew
-          ./gradlew fermata:assembleAutoDebug fermata:assembleAutoDebugAndroidTest $GRADLE_ARGS
+          ./gradlew fermata:assembleAutoDebug fermata:assembleAutoDebugAndroidTest fermata:packageAutoDebugUniversalApk $GRADLE_ARGS
       - name: Emülatörde fonksiyonel testler
         uses: reactivecircus/android-emulator-runner@v2
         env:

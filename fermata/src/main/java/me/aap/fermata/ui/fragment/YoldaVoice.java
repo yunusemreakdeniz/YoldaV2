@@ -201,6 +201,16 @@ public final class YoldaVoice {
 			cb.onSkipToPrevious();
 			return true;
 		}
+		if (c.matches("(bunu |bu şarkıyı |bu kanalı |bu radyoyu )?favori(lere|ye|lerime)? ekle|favorile")) {
+			String[] e = YoldaFavs.entryOf(a.getCurrentPlayable());
+			if (e == null) {
+				me.aap.utils.ui.UiUtils.showInfo(ctx, "Çalan bir şey yok ya da favorilere eklenemiyor");
+			} else {
+				YoldaFavs.add(ctx, e[0], e[1], e[2], e[3]);
+				me.aap.utils.ui.UiUtils.showInfo(ctx, "★ Favorilere eklendi: " + e[1]);
+			}
+			return true;
+		}
 		if (c.matches("(ne çalıyor|şimdi ne çalıyor|bu ne şarkı|bu şarkı ne)")) {
 			me.aap.fermata.ui.view.YoldaNowPlaying.show(a);
 			return true;

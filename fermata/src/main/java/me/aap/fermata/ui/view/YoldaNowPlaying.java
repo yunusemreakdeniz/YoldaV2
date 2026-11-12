@@ -343,6 +343,8 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	private final TextView pos;
 	private final TextView dur;
 	private final ImageView play;
+	/** ★ Favorilere ekle / çıkar (şarkı, radyo, kanal). */
+	private ImageView favBtn;
 	private final BusyRing ring;
 	private final LinearLayout body;
 	private final LinearLayout info;
@@ -512,6 +514,13 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			post(ticker);
 		});
 		pf.addView(play, new LayoutParams(dp(80), dp(80), Gravity.CENTER));
+		favBtn = iconButton(ctx, R.drawable.yi_star_border, "Favorilere ekle");
+		favBtn.setBackground(YoldaStyle.glass(ctx, t, 999));
+		favBtn.setPadding(dp(13), dp(13), dp(13), dp(13));
+		favBtn.setOnClickListener(v -> toggleFav());
+		LinearLayout.LayoutParams fl = new LinearLayout.LayoutParams(dp(48), dp(48));
+		fl.rightMargin = dp(12);
+		ctl.addView(favBtn, fl);
 		ctl.addView(prev, new LinearLayout.LayoutParams(dp(64), dp(64)));
 		LinearLayout.LayoutParams pfl = new LinearLayout.LayoutParams(dp(96), dp(96));
 		pfl.setMargins(dp(22), 0, dp(22), 0);
@@ -600,9 +609,52 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		postDelayed(ticker, 300);
 	}
 
+	/** Çalanın favori karşılığı: YouTube yedeğiyle çalan şarkı dahil. */
+	@androidx.annotation.Nullable
+	private String[] favEntry(MainActivityDelegate a, MediaSessionCallback cb) {
+		External ex = external(cb);
+		if (ex != null) {
+			YtMusic.Track tr = ex.track();
+			return new String[]{me.aap.fermata.ui.fragment.YoldaFavs.SONG,
+					tr.title() + ((tr.artist() != null) ? " · " + tr.artist() : ""),
+					me.aap.fermata.ui.fragment.YoldaFavs.songData(tr), tr.thumb()};
+		}
+		MediaLib.PlayableItem opening = MediaSessionCallback.yoldaOpeningItem();
+		return me.aap.fermata.ui.fragment.YoldaFavs.entryOf((opening != null) ? opening : a.getCurrentPlayable());
+	}
+
+	private void toggleFav() {
+		MainActivityDelegate a = MainActivityDelegate.get(getContext());
+		String[] e = favEntry(a, a.getMediaSessionCallback());
+		if (e == null) {
+			me.aap.utils.ui.UiUtils.showInfo(getContext(), "Bu içerik favorilere eklenemiyor");
+			return;
+		}
+		Context ctx = getContext();
+		if (me.aap.fermata.ui.fragment.YoldaFavs.contains(ctx, e[0], e[2])) {
+			me.aap.fermata.ui.fragment.YoldaFavs.remove(ctx, e[0], e[2]);
+			me.aap.utils.ui.UiUtils.showInfo(ctx, "Favorilerden çıkarıldı");
+		} else {
+			me.aap.fermata.ui.fragment.YoldaFavs.add(ctx, e[0], e[1], e[2], e[3]);
+			me.aap.utils.ui.UiUtils.showInfo(ctx, "★ Favorilere eklendi");
+		}
+		updateFav(a, a.getMediaSessionCallback());
+	}
+
+	private void updateFav(MainActivityDelegate a, MediaSessionCallback cb) {
+		if (favBtn == null) return;
+		String[] e = favEntry(a, cb);
+		boolean on = (e != null) && me.aap.fermata.ui.fragment.YoldaFavs.contains(getContext(), e[0], e[2]);
+		favBtn.setImageResource(on ? R.drawable.yi_star : R.drawable.yi_star_border);
+		favBtn.setImageTintList(ColorStateList.valueOf(on ? 0xFFFACC15 : 0xFFFFFFFF));
+		favBtn.setContentDescription(on ? "Favorilerden çıkar" : "Favorilere ekle");
+		favBtn.setAlpha((e != null) ? 1f : 0.35f);
+	}
+
 	private void update() {
 		MainActivityDelegate a = MainActivityDelegate.get(getContext());
 		MediaSessionCallback cb = a.getMediaSessionCallback();
+		updateFav(a, cb);
 		boolean busy = isBusy(cb);
 		ring.setBusy(busy);
 		play.setImageResource(cb.isPlaying() ? R.drawable.yi_pause : R.drawable.yi_play);

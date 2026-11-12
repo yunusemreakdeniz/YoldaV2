@@ -8,7 +8,7 @@ code=0
 adb logcat -c || true
 adb logcat -v time -s YoldaTest:I YoldaUiUx:I AndroidRuntime:E Yolda:I > "$OUT/canli-gunluk.txt" 2>&1 &
 LOGPID=$!
-for c in YoldaWakeTest YoldaFunctionalTest YoldaPlaybackTest YoldaUiUxTest; do
+for c in YoldaWakeTest YoldaFunctionalTest YoldaAtoZTest YoldaPlaybackTest YoldaUiUxTest; do
   echo "=== $c başlıyor $(date -u +%H:%M:%S)"
   timeout 18m ./gradlew fermata:connectedAutoDebugAndroidTest $GRADLE_ARGS \
     -Pandroid.testInstrumentationRunnerArguments.class=me.aap.fermata.ui.fragment.$c
@@ -27,10 +27,14 @@ for c in YoldaWakeTest YoldaFunctionalTest YoldaPlaybackTest YoldaUiUxTest; do
 done
 # ---- Dayanıklılık: binlerce rastgele dokunuş, kaydırma, tuş; çökme ya da donma (ANR) aranır ----
 PKG=me.aap.fermata.auto.yoldav2.debug
-APK=$(ls fermata/build/outputs/apk/auto/debug/*.apk 2>/dev/null | head -1)
+# Tüm eklentiler içinde tek APK (kullanıcıya verilenle aynı yapı); yalnız ana parça eklentisiz çöker
+APK=$(ls fermata/build/outputs/apk_from_bundle/autoDebug/*.apk 2>/dev/null | head -1)
+echo "Dayanıklılık APK: $APK"
 if [ -n "$APK" ]; then
   echo "=== Dayanıklılık testi başlıyor $(date -u +%H:%M:%S)"
-  adb install -r -g "$APK" >/dev/null 2>&1 || true
+  adb uninstall $PKG >/dev/null 2>&1 || true
+  adb install -r -g "$APK" || true
+  adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; sleep 6
   adb logcat -c || true
   for seed in 11 29 47; do
     timeout 10m adb shell monkey -p $PKG -s $seed --throttle 120 --pct-syskeys 2 --pct-appswitch 3 \
