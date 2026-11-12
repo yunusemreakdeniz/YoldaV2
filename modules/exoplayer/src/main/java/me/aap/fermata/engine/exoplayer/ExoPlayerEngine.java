@@ -99,6 +99,9 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 	private final Timeline.Period period = new Timeline.Period();
 	private final PendingLoadAudioProcessor audioProc = new PendingLoadAudioProcessor(accessor);
 	private final ExoPlayer player;
+	private androidx.media3.exoplayer.trackselection.DefaultTrackSelector trackSelector;
+	private final Context appCtx;
+	private boolean videoHidden;
 	private final AudioEffects audioEffects;
 	private volatile PlayableItem source;
 	private boolean preparing;
@@ -108,6 +111,7 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 
 	public ExoPlayerEngine(Context ctx, Listener listener) {
 		super(listener);
+		appCtx = ctx.getApplicationContext();
 		DefaultDataSource.Factory dsFactory = new DefaultDataSource.Factory(ctx, httpDsFactory);
 		MediaSource.Factory msFactory =
 				new DefaultMediaSourceFactory(ctx).setDataSourceFactory(dsFactory);
@@ -135,7 +139,7 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 				// araçta mobil bağlantıda TRT'nin 4–7 MB'lık 1080p parçasını beklemek yerine yayın hemen başlar,
 				// kalite birkaç saniyede (10 sn yerine 4 sn tampon yeterli) bağlantının izin verdiği en yükseğe çıkar.
 				.setBandwidthMeter(meter(ctx))
-				.setTrackSelector(new androidx.media3.exoplayer.trackselection.DefaultTrackSelector(ctx,
+				.setTrackSelector(trackSelector = new androidx.media3.exoplayer.trackselection.DefaultTrackSelector(ctx,
 						new androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection.Factory(4_000, 25_000,
 								25_000, 0.75f)))
 				// Oynatma 1 sn tampon dolunca başlar (varsayılan 2,5 sn); takılmadan sonra 2 sn
@@ -167,6 +171,47 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 	@Override
 	public int getId() {
 		return MediaPrefs.MEDIA_ENG_EXO;
+	}
+
+	// ---- Yolda: mobil veri ----
+
+	@Override
+	public void setVideoHidden(boolean hidden) {
+		if (videoHidden == hidden) return;
+		videoHidden = hidden;
+		applyDataLimits();
+	}
+
+	/**
+	 * Görüntü ekranda değilse en düşük kalite (yalnız ses dinlenirken HD indirmesin); mobil veride ve
+	 * "Veri tasarrufu" açıksa en çok 720p; Wi-Fi'de sınırsız.
+	 */
+	private void applyDataLimits() {
+		if (trackSelector == null) return;
+		try {
+			var b = trackSelector.buildUponParameters();
+			b.clearVideoSizeConstraints();
+			b.setMaxVideoBitrate(Integer.MAX_VALUE);
+			if (videoHidden) {
+				b.setMaxVideoBitrate(500_000);
+			} else if (metered() && appCtx.getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
+					Context.MODE_PRIVATE).getBoolean("data_saver", true)) {
+				b.setMaxVideoSize(1280, 720);
+				b.setMaxVideoBitrate(3_000_000);
+			}
+			trackSelector.setParameters(b.build());
+		} catch (Throwable ex) {
+			Log.w(ex);
+		}
+	}
+
+	private boolean metered() {
+		try {
+			android.net.ConnectivityManager cm = appCtx.getSystemService(android.net.ConnectivityManager.class);
+			return (cm != null) && cm.isActiveNetworkMetered();
+		} catch (Throwable ex) {
+			return true;
+		}
 	}
 
 	// ---- Yolda: bağlantı hızı tahmini (tüm oynatıcılarda ortak, uygulama kapansa da hatırlanır) ----
@@ -212,6 +257,7 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 		Uri uri = source.getLocation();
 		MediaItem m = MediaItem.fromUri(uri);
 		isHls = Util.inferContentType(uri) == C.CONTENT_TYPE_HLS;
+		applyDataLimits();
 		player.setMediaItem(m);
 		player.prepare();
 	}

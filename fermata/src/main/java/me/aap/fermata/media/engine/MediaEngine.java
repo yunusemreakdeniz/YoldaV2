@@ -77,6 +77,10 @@ public interface MediaEngine extends Closeable {
 
 	void setVideoView(@Nullable VideoView view);
 
+	/** Yolda: görüntü ekranda değilken (yalnız ses) en düşük görüntü kalitesine in (mobil veri). */
+	default void setVideoHidden(boolean hidden) {
+	}
+
 	float getVideoWidth();
 
 	float getVideoHeight();

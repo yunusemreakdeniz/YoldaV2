@@ -81,6 +81,19 @@ public class WebBrowserFragment extends MainActivityFragment
 		MainActivityDelegate.getActivityDelegate(ctx).onSuccess(this::registerListeners);
 	}
 
+	/**
+	 * Yolda: genel tarayıcı başka ekrana geçince duraklar (arkada video / önizleme indirip veri harcamasın).
+	 * YouTube Music sayfası ses çaldığı için duraklatılmaz.
+	 */
+	@Override
+	public void onHiddenChanged(boolean hidden) {
+		super.onHiddenChanged(hidden);
+		FermataWebView v = getWebView();
+		if (v == null) return;
+		if (hidden && !me.aap.fermata.ui.view.YoldaStyle.webNoToolbar) v.onPause();
+		else if (!hidden) v.onResume();
+	}
+
 	@Override
 	public void onDestroyView() {
 		MainActivityDelegate.getActivityDelegate(requireContext()).onSuccess(this::unregisterListeners);

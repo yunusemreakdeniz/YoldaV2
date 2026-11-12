@@ -126,6 +126,11 @@ public class BodyLayout extends SplitLayout
 		}
 
 		gl.setLayoutParams(lp);
+		try { // Yolda: görüntü görünmüyorsa en düşük kalite (mobil veri)
+			var eng = a.getMediaSessionCallback().getEngine();
+			if (eng != null) eng.setVideoHidden(mode == Mode.FRAME);
+		} catch (Throwable ignore) {
+		}
 		a.fireBroadcastEvent(MODE_CHANGED);
 	}
 

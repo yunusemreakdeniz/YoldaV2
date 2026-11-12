@@ -783,6 +783,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					YoldaWake.setEnabled(a, !wake);
 					adapter.notifyDataSetChanged();
 				}), chipLp());
+				boolean saver = prefs(ctx).getBoolean("data_saver", true);
+				row.addView(chipBtn(ctx, "Veri tasarrufu: " + (saver ? "Açık (720p)" : "Kapalı"), v -> {
+					prefs(ctx).edit().putBoolean("data_saver", !saver).apply();
+					adapter.notifyDataSetChanged();
+				}), chipLp());
 				boolean auto = prefs(ctx).getBoolean("car_autoplay", true);
 				row.addView(chipBtn(ctx, "Araçta otomatik çal: " + (auto ? "Açık" : "Kapalı"), v -> {
 					prefs(ctx).edit().putBoolean("car_autoplay", !auto).apply();
