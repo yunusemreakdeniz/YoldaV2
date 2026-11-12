@@ -985,9 +985,10 @@ public class MainActivityDelegate extends ActivityDelegate
 					|| !(cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl)) return;
 			int unset = ConstraintLayout.LayoutParams.UNSET;
 			tl.topToTop = unset;
-			tl.topToBottom = unset;
+			tl.topToBottom = R.id.body_layout; // dikey zincir: gövde → araç çubuğu → oynatıcı → (menü şeridi)
 			tl.bottomToBottom = unset;
 			tl.bottomToTop = R.id.control_panel;
+			tl.verticalBias = 1f;
 			tl.topMargin = 0;
 			tb.setLayoutParams(tl);
 			bl.topToBottom = unset;
