@@ -268,8 +268,7 @@ public class YoldaPlaybackTest {
 						? a.getCurrentPlayable().getName() : "yok");
 			});
 			Log.i(TAG, "TANI " + why + ": " + st);
-			for (String l : YoldaLog.read(ctx()).split("
-")) Log.i(TAG, "GÜNLÜK " + l);
+			for (String l : YoldaLog.read(ctx()).split("\n")) Log.i(TAG, "GÜNLÜK " + l);
 		} catch (Throwable ex) {
 			Log.i(TAG, "Tanı alınamadı: " + ex);
 		}
