@@ -298,6 +298,14 @@ public class TvM3uTrackItem extends M3uTrackItem implements StreamItem, StreamIt
 		return true;
 	}
 
+	/** Yolda: "Radyo" grubundaki kanallar yalnız sestir — video ekranı açılmaz, "Şimdi çalıyor" açılır. */
+	@Override
+	public boolean isVideo() {
+		var p = getParent();
+		if ((p != null) && "Radyo".equalsIgnoreCase(p.getName())) return false;
+		return super.isVideo();
+	}
+
 	@Override
 	public boolean isSeekable() {
 		if (!super.isStream()) return true;

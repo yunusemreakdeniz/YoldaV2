@@ -711,7 +711,11 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	/** Oturumun güncel bilgisi (bildirimde ve araç ekranında görünen ad / resim). */
 	@Nullable
 	public MediaMetadataCompat getYoldaMetadata() {
-		return metadata;
+		try {
+			return session.getController().getMetadata();
+		} catch (Throwable ex) {
+			return null;
+		}
 	}
 
 	/** Şu an açılmakta olan yayının başlama zamanı (elapsedRealtime), açılmıyorsa 0. */

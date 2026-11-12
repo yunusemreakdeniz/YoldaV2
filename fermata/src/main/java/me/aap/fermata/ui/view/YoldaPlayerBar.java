@@ -268,7 +268,8 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			metaKey = YoldaNowPlaying.metaSig(cb.getYoldaMetadata()); // eski öğenin bilgisi üstüne yazmasın
 			loadInfo(a, pi);
 		}
-		if (opening == null) applyMeta(a, cb.getYoldaMetadata());
+		if ((opening == null) && isYoutube(cb)) applyMeta(a, cb.getYoldaMetadata());
+		else if ((opening == null) && (SystemClock.elapsedRealtime() - descAt > 20_000)) refreshDesc(pi);
 		if (YoldaNowPlaying.isError(cb)) {
 			sub.setText("Açılamadı · ▶ ile tekrar dene");
 			subOverride = true;
@@ -303,6 +304,29 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 
 	@Nullable
 	private String metaKey;
+	private long descAt;
+
+	static boolean isYoutube(MediaSessionCallback cb) {
+		var eng = cb.getEngine();
+		return (eng != null) && eng.getClass().getName().contains("Youtube");
+	}
+
+	/** Ad ve alt bilgi öğenin kendi açıklamasından (TV'de güncel program). */
+	private void refreshDesc(MediaLib.PlayableItem pi) {
+		descAt = SystemClock.elapsedRealtime();
+		String key = pi.getId();
+		pi.getMediaDescription().main().onSuccess(md -> {
+			if ((md == null) || !key.equals(itemId)) return;
+			if (!TextUtils.isEmpty(md.getTitle())) title.setText(md.getTitle());
+			CharSequence s = md.getSubtitle();
+			if (TextUtils.isEmpty(s)) {
+				MediaLib.BrowsableItem p = pi.getParent();
+				s = (p != null) ? p.getName() : "";
+			}
+			subText = s;
+			if (!subOverride) sub.setText(s);
+		});
+	}
 
 	/** YouTube yedeğindeki şarkı değiştiyse adı, sanatçıyı ve kapağı yenile. */
 	private void showExternal(MainActivityDelegate a, YoldaNowPlaying.External ex) {
@@ -359,6 +383,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 	private boolean subOverride;
 
 	private void loadInfo(MainActivityDelegate a, MediaLib.PlayableItem pi) {
+		descAt = SystemClock.elapsedRealtime();
 		title.setText(pi.getName());
 		subText = "";
 		if (!subOverride) sub.setText("");

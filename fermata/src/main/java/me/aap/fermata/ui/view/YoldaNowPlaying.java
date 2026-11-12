@@ -244,8 +244,11 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	public static void open(MainActivityDelegate a) {
 		MediaLib.PlayableItem pi = a.getCurrentPlayable();
 		boolean pend = pending(a.getMediaSessionCallback()) != null;
-		if ((pi != null) && !pend && pi.isVideo()) {
-			var eng = a.getMediaSessionCallback().getEngine();
+		var eng0 = a.getMediaSessionCallback().getEngine();
+		boolean hasPicture = (eng0 != null) && ((eng0.getVideoWidth() > 0)
+				|| eng0.getClass().getName().contains("Youtube"));
+		if ((pi != null) && !pend && pi.isVideo() && (hasPicture || isBusy(a.getMediaSessionCallback()))) {
+			var eng = eng0;
 			if ((eng != null) && eng.getClass().getName().contains("Youtube")) {
 				a.showFragment(R.id.youtube_fragment);
 				return;
@@ -272,6 +275,8 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		lp.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
 		v.setElevation(v.dp(30));
 		cl.addView(v, lp);
+		View nb = a.getNavBar();
+		if (nb != null) nb.setVisibility(INVISIBLE); // sesli düğme menüyle birlikte gizlenir
 		v.setAlpha(0f);
 		v.setTranslationY(v.dp(48));
 		v.animate().alpha(1f).translationY(0).setInterpolator(new DecelerateInterpolator(2f)).setDuration(260).start();
@@ -285,6 +290,8 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		if (v == null) return false;
 		v.setTag(TAG_KEY, null);
 		v.animate().alpha(0f).translationY(v.dp(48)).setDuration(180).withEndAction(() -> g.removeView(v)).start();
+		View nb = a.getNavBar();
+		if ((nb != null) && !a.isBarsHidden()) nb.setVisibility(VISIBLE);
 		return true;
 	}
 
@@ -620,7 +627,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			metaKey = metaSig(cb.getYoldaMetadata());
 			loadItem(a, pi, key);
 		}
-		if (opening == null) applyMeta(a, cb.getYoldaMetadata(), pi, key);
+		if ((opening == null) && YoldaPlayerBar.isYoutube(cb)) applyMeta(a, cb.getYoldaMetadata(), pi, key);
 		long d = duration();
 		boolean isLive = (d <= 0) && pi.isStream();
 		live.setVisibility(isLive ? VISIBLE : GONE);
@@ -630,7 +637,8 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	}
 
 	private void setProgress(long p, long d, boolean show) {
-		int vis = (show && (d > 0)) ? VISIBLE : INVISIBLE;
+		int vis = (show && (d > 0)) ? VISIBLE : GONE;
+		if (seek.getVisibility() != vis) post(this::fitCover); // kapak kalan alana göre yeniden boyutlansın
 		seek.setVisibility(vis);
 		times.setVisibility(vis);
 		if ((d <= 0) || dragging) return;
