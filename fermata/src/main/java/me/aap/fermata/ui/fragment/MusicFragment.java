@@ -780,6 +780,7 @@ public class MusicFragment extends MainActivityFragment {
 		advanced = false;
 		everPlayed = false;
 		nowViaYoutube = directBroken;
+		if (!directBroken) YoldaNowPlaying.setExternal(null);
 		hookSkip();
 		stopTicker();
 		YoldaNowPlaying.expect(tr.title(), tr.artist(), tr.thumb()); // akış aranırken de şarkı görünsün
@@ -836,6 +837,8 @@ public class MusicFragment extends MainActivityFragment {
 	/** Yedek yol: şarkıyı YouTube sekmesinin oynatıcısında aç, sonra Müzik ekranına dön (ses sürer). */
 	private void playInYoutube(MainActivityDelegate a, YtMusic.Track tr) {
 		nowViaYoutube = true;
+		// çubuk ve Şimdi çalıyor bu şarkıyı göstersin (YouTube öğesi tüm şarkılarda aynı kalıyordu)
+		if (nowQueue != null) YoldaNowPlaying.setExternal(new YoldaNowPlaying.External(tr, nowQueue, nowIndex));
 		YoldaNowPlaying.clearExpected();
 		// YouTube oynatıcısı şarkı bitince kendi önerisine gitmesin: listede sıradakine geç
 		startTicker(() -> {
@@ -931,6 +934,7 @@ public class MusicFragment extends MainActivityFragment {
 
 	private void closeNow() {
 		me.aap.fermata.media.service.MediaSessionCallback.yoldaSkip = null;
+		YoldaNowPlaying.setExternal(null);
 		stopTicker();
 		if ((nowView != null) && (rootView != null)) rootView.removeView(nowView);
 		nowView = null;

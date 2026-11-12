@@ -246,6 +246,18 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			return;
 		}
 
+		// YouTube yedeğiyle çalan Yolda Müzik şarkısı: çalan şarkının kendi adı ve kapağı
+		YoldaNowPlaying.External ex = YoldaNowPlaying.external(cb);
+		if (ex != null) {
+			showExternal(a, ex);
+			long d = Math.max(0, ex.track().durationSec()) * 1000;
+			long p = YoldaNowPlaying.position(cb);
+			live.setVisibility(GONE);
+			sub.setText(busy ? "Bağlanıyor…" : subText);
+			if (!dragging) progress.set((d > 0) ? Math.min(1f, p / (float) d) : 0f, d > 0);
+			return;
+		}
+
 		// Dokunulan kanal / şarkı: çalmaya başlamasını beklemeden adı ve resmi hemen (önceden eski ad kalıyordu)
 		MediaLib.PlayableItem opening = MediaSessionCallback.yoldaOpeningItem();
 		MediaLib.PlayableItem pi = (opening != null) ? opening : a.getCurrentPlayable();
@@ -291,6 +303,25 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 
 	@Nullable
 	private String metaKey;
+
+	/** YouTube yedeğindeki şarkı değiştiyse adı, sanatçıyı ve kapağı yenile. */
+	private void showExternal(MainActivityDelegate a, YoldaNowPlaying.External ex) {
+		me.aap.fermata.media.yt.YtMusic.Track tr = ex.track();
+		String key = "ext:" + ex.index() + ":" + tr.id();
+		if (key.equals(itemId)) return;
+		itemId = key;
+		title.setText(tr.title());
+		subText = (tr.artist() != null) ? tr.artist() : "";
+		sub.setText(subText);
+		subOverride = false;
+		cover.animate().alpha(0f).setDuration(120).start();
+		if (tr.thumb() == null) return;
+		a.getLib().getBitmap(tr.thumb(), true, true).main().onCompletion((bmp, e2) -> {
+			if ((bmp == null) || !key.equals(itemId)) return;
+			cover.setImageBitmap(bmp);
+			cover.animate().alpha(1f).setDuration(220).start();
+		});
+	}
 
 	/**
 	 * Oturumun güncel bilgisiyle adı, alt bilgiyi ve resmi yenile: çalınan öğe aynı kalsa da (YouTube'da

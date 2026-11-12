@@ -110,6 +110,33 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		return (p != null) ? p.thumb : null;
 	}
 
+	// ---- YouTube oynatıcısı yedeğiyle çalan Yolda Müzik şarkısı ----
+
+	/**
+	 * Müzik doğrudan çalınamayınca şarkılar gizli YouTube oynatıcısında çalar; o zaman oynatıcı tüm şarkılar
+	 * için aynı "YouTube" öğesini görür ve ad / resim değişmiyordu. Müzik ekranı çalan şarkıyı buraya bildirir;
+	 * çubuk ve bu ekran YouTube motoru çalarken bu bilgiyi gösterir.
+	 */
+	public record External(YtMusic.Track track, List<YtMusic.Track> queue, int index) {
+	}
+
+	@Nullable
+	private static volatile External external;
+
+	public static void setExternal(@Nullable External e) {
+		external = e;
+	}
+
+	/** YouTube motoru çalıyorsa bildirilen şarkı; değilse null. */
+	@Nullable
+	static External external(MediaSessionCallback cb) {
+		External e = external;
+		if (e == null) return null;
+		var eng = cb.getEngine();
+		if ((eng == null) || !eng.getClass().getName().contains("Youtube")) return null;
+		return e;
+	}
+
 	// ---- oturumun güncel bilgisi: aynı öğede yayın / şarkı / program değişince de ad ve resim yenilenir ----
 
 	@Nullable
@@ -566,6 +593,23 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			setProgress(0, 0, false);
 			return;
 		}
+		External ex = external(cb);
+		if (ex != null) { // YouTube yedeğiyle çalan şarkı: kendi adı, kapağı, sıradakileri
+			String k = "ext:" + ex.index() + ":" + ex.track().id();
+			if (!k.equals(itemKey)) {
+				itemKey = k;
+				logo = false;
+				YtMusic.Track tr = ex.track();
+				showInfo(tr.title(), (tr.artist() != null) ? tr.artist() : "", false);
+				loadCover(a, MusicFragment.bigThumb(tr.thumb()), k, false);
+				fillQueue(a, ex.queue(), ex.index(), true);
+			}
+			live.setVisibility(GONE);
+			label.setText(busy ? "BAĞLANIYOR…" : "ŞİMDİ ÇALIYOR");
+			long d = Math.max(0, ex.track().durationSec()) * 1000;
+			setProgress(position(cb), d, true);
+			return;
+		}
 		if (pi == null) {
 			hide(a);
 			return;
@@ -612,7 +656,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		if (music) {
 			YtMusicItem m = (YtMusicItem) pi;
 			loadCover(a, MusicFragment.bigThumb(m.getTrack().thumb()), key, false);
-			fillQueue(a, m);
+			fillQueue(a, m.getQueue(), m.getIndex(), false);
 		} else {
 			queueBox.setVisibility(GONE);
 			pi.getIconUri().main().onCompletion((u, err) -> {
@@ -704,10 +748,9 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		cover.setPadding(cp, cp, cp, cp);
 	}
 
-	private void fillQueue(MainActivityDelegate a, YtMusicItem m) {
+	private void fillQueue(MainActivityDelegate a, List<YtMusic.Track> q, int current, boolean viaYoutube) {
 		queueRow.removeAllViews();
-		List<YtMusic.Track> q = m.getQueue();
-		int from = m.getIndex() + 1;
+		int from = current + 1;
 		int to = Math.min(q.size(), from + 12);
 		if (from >= to) {
 			queueBox.setVisibility(GONE);
@@ -724,6 +767,10 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			card.setBackground(YoldaStyle.glass(ctx, t, 16));
 			card.setClickable(true);
 			card.setOnClickListener(v -> {
+				if (viaYoutube) { // YouTube yedeği: Müzik ekranı çalar (aynı yoldan)
+					MusicFragment.playTracks(a, q, idx);
+					return;
+				}
 				expect(tr.title(), tr.artist(), tr.thumb());
 				post(ticker);
 				YtMusicItem.create(a.getLib(), q, idx).main().onCompletion((item, err) -> {
