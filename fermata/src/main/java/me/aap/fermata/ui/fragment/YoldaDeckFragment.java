@@ -403,7 +403,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		editBtn.setContentDescription(on ? "Bitti" : "Düzenle");
 		adapter.notifyDataSetChanged();
 		list.post(this::transform);
-		if (on) UiUtils.showInfo(requireContext(), "Düzenle: ◀ ▶ ile sırala, ✕ ile kaldır");
+		if (on) UiUtils.showInfo(requireContext(), "Düzenle: ◀ ▶ sırala, 🎨 renk seç, ✕ kaldır");
 	}
 
 	// ---- kart görünümü ----
@@ -448,7 +448,102 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private record Look(int c1, int c2, @DrawableRes int icon, boolean tint, String tag, String sub) {
 	}
 
+	/** Kartın görünümü: kullanıcı renk seçtiyse o renkler, yoksa türünün renkleri. */
 	private Look look(YoldaDeck.Card c) {
+		Look lk = baseLook(c);
+		int[] cc = customColors(c.key());
+		return (cc == null) ? lk : new Look(cc[0], cc[1], lk.icon(), lk.tint(), lk.tag(), lk.sub());
+	}
+
+	// ---- kart renkleri (kullanıcı seçer) ----
+
+	/** Hazır renk geçişleri: ad, üst renk, alt renk. */
+	private static final Object[][] PALETTE = {
+			{"Kırmızı", 0xFFFF4D4D, 0xFF9F0019}, {"Mercan", 0xFFFF7A59, 0xFFC2410C}, {"Turuncu", 0xFFFBBF24, 0xFFC2410C},
+			{"Altın", 0xFFFDE68A, 0xFFB45309}, {"Yeşil", 0xFF34D399, 0xFF047857}, {"Nane", 0xFF5EEAD4, 0xFF0F766E},
+			{"Turkuaz", 0xFF22D3EE, 0xFF0E7490}, {"Mavi", 0xFF3B82F6, 0xFF1E3A8A}, {"Gece", 0xFF6366F1, 0xFF1E1B4B},
+			{"Mor", 0xFFA78BFA, 0xFF5B21B6}, {"Pembe", 0xFFFF5F9E, 0xFF6D28D9}, {"Gül", 0xFFF472B6, 0xFF9D174D},
+			{"Gri", 0xFF94A3B8, 0xFF334155}, {"Grafit", 0xFF64748B, 0xFF0F172A}, {"Gün batımı", 0xFFFB923C, 0xFF7C3AED},
+			{"Okyanus", 0xFF38BDF8, 0xFF4338CA}};
+
+	@Nullable
+	private int[] customColors(String key) {
+		if (getContext() == null) return null;
+		String s = prefs(requireContext()).getString("card_color_" + key, null);
+		if (s == null) return null;
+		try {
+			String[] p = s.split(",");
+			return new int[]{(int) Long.parseLong(p[0], 16), (int) Long.parseLong(p[1], 16)};
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+
+	private void setCustomColors(String key, @Nullable int[] c) {
+		SharedPreferences.Editor e = prefs(requireContext()).edit();
+		if (c == null) e.remove("card_color_" + key);
+		else e.putString("card_color_" + key, Integer.toHexString(c[0]) + "," + Integer.toHexString(c[1]));
+		e.apply();
+	}
+
+	/** Renk seçici: hazır geçişler ve "Varsayılan". */
+	private void pickColor(YoldaDeck.Card c, int pos) {
+		Context ctx = requireContext();
+		FrameLayout panel = openOverlay(ctx, "Kart rengi: " + c.title());
+		LinearLayout box = (LinearLayout) panel.getChildAt(0);
+		ScrollView sv = new ScrollView(ctx);
+		LinearLayout grid = new LinearLayout(ctx);
+		grid.setOrientation(LinearLayout.VERTICAL);
+		grid.setPadding(0, dp(8), 0, dp(8));
+		sv.addView(grid);
+		box.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
+		int cols = Math.max(3, Math.min(6, (Math.min(root.getWidth() - dp(32), dp(560)) - dp(36)) / dp(84)));
+		LinearLayout row = null;
+		int[] cur = customColors(c.key());
+		for (int i = 0; i < PALETTE.length; i++) {
+			if (i % cols == 0) {
+				row = hrow(ctx);
+				row.setPadding(0, 0, 0, dp(14));
+				grid.addView(row, new LinearLayout.LayoutParams(-1, -2));
+			}
+			Object[] p = PALETTE[i];
+			int a = (int) p[1], b = (int) p[2];
+			LinearLayout cell = new LinearLayout(ctx);
+			cell.setOrientation(LinearLayout.VERTICAL);
+			cell.setGravity(Gravity.CENTER_HORIZONTAL);
+			View sw = new View(ctx);
+			GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{a, b});
+			g.setShape(GradientDrawable.OVAL);
+			boolean on = (cur != null) && (cur[0] == a) && (cur[1] == b);
+			g.setStroke(dp(on ? 4 : 1), on ? 0xFFFFFFFF : 0x66FFFFFF);
+			sw.setBackground(g);
+			sw.setContentDescription((String) p[0]);
+			sw.setClickable(true);
+			sw.setOnClickListener(v -> {
+				setCustomColors(c.key(), new int[]{a, b});
+				closeOverlay();
+				afterChange(pos);
+			});
+			pressEffect(sw);
+			cell.addView(sw, new LinearLayout.LayoutParams(dp(60), dp(60)));
+			TextView n = text(ctx, (String) p[0], 12, false, t.muted);
+			n.setPadding(0, dp(4), 0, 0);
+			cell.addView(n);
+			row.addView(cell, new LinearLayout.LayoutParams(0, -2, 1f));
+		}
+		if (row != null) for (int i = PALETTE.length % cols; (i > 0) && (i < cols); i++)
+			row.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
+		LinearLayout btns = hrow(ctx);
+		btns.setGravity(Gravity.END);
+		btns.addView(chipBtn(ctx, "Varsayılan renk", v -> {
+			setCustomColors(c.key(), null);
+			closeOverlay();
+			afterChange(pos);
+		}), chipLp());
+		box.addView(btns, new LinearLayout.LayoutParams(-1, -2));
+	}
+
+	private Look baseLook(YoldaDeck.Card c) {
 		return switch (c.type()) {
 			case YoldaDeck.YOUTUBE -> new Look(0xFFFF4D4D, 0xFF9F0019, R.drawable.yi_brand_youtube, false, "VİDEO",
 					"Videolar, canlı yayınlar ve kanallar — reklamsız");
@@ -709,11 +804,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			afterChange(j);
 		}), new LinearLayout.LayoutParams(dp(56), dp(56)));
 		LinearLayout.LayoutParams mid = new LinearLayout.LayoutParams(dp(56), dp(56));
-		mid.leftMargin = mid.rightMargin = dp(18);
+		mid.leftMargin = mid.rightMargin = dp(14);
 		row.addView(roundButton(ctx, R.drawable.yi_right, "Sağa taşı", v -> {
 			int j = deck.move(pos, 1);
 			afterChange(j);
 		}), mid);
+		LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(dp(56), dp(56));
+		clp.rightMargin = dp(14);
+		row.addView(roundButton(ctx, R.drawable.yi_palette, "Rengi değiştir", v -> pickColor(c, pos)), clp);
 		if (c.isRemovable()) {
 			row.addView(roundButton(ctx, R.drawable.yi_close, "Kaldır", v -> {
 				if (deck.remove(pos)) afterChange(Math.max(0, pos - 1));
