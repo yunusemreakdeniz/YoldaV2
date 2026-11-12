@@ -133,7 +133,8 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		External e = external;
 		if (e == null) return null;
 		var eng = cb.getEngine();
-		if ((eng == null) || !eng.getClass().getName().contains("Youtube")) return null;
+		// YouTube oynatıcısı henüz başlamadıysa (ilk şarkı) da göster; başka bir şey çalıyorsa gösterme
+		if ((eng != null) && !eng.getClass().getName().contains("Youtube")) return null;
 		return e;
 	}
 
@@ -338,6 +339,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	private final LinearLayout queueRow;
 	private final Runnable ticker = this::tick;
 	private String itemKey;
+	private final long shownAt = SystemClock.elapsedRealtime();
 	@Nullable
 	private String metaKey;
 	private boolean dragging;
@@ -624,7 +626,9 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			return;
 		}
 		if (pi == null) {
-			hide(a);
+			// Yeni açıldıysa hemen kapanma: çalma birkaç saniye içinde başlar (ilk şarkıda ekran kapanıyordu)
+			if (SystemClock.elapsedRealtime() - shownAt > 15_000) hide(a);
+			else label.setText("BAĞLANIYOR…");
 			return;
 		}
 		String key = pi.getId();

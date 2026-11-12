@@ -31,7 +31,8 @@ import me.aap.fermata.ui.activity.MainActivityDelegate;
  * durumundan güncellenir (TV, müzik, YouTube hangi motor çalıyorsa).
  */
 public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.Listener {
-	public static final int HEIGHT_DP = 68;
+	public static final int HEIGHT_DP = 72;
+	private final GradientDrawable tintBg;
 
 	/** Çubukta görünen ad (testler için). */
 	public CharSequence getTitleText() {
@@ -57,8 +58,13 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		GradientDrawable bg = new GradientDrawable();
 		bg.setColor((t.base & 0x00FFFFFF) | 0xF2000000);
 		bg.setCornerRadius(dp(22));
-		setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{bg,
-				YoldaStyle.glass(ctx, t, 22)}));
+		// Kapağın renginde ışıklı cam: soldan kapak renginde, sağa doğru koyu zemine erir
+		tintBg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0x00000000, 0x00000000});
+		tintBg.setCornerRadius(dp(26));
+		bg.setCornerRadius(dp(26));
+		setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{bg, tintBg,
+				YoldaStyle.glass(ctx, t, 26)}));
+		setElevation(dp(8));
 		setClickable(true); // boş alana dokunuş alttaki eski düğmelere gitmesin
 		boolean compact = YoldaStyle.compact(ctx);
 
@@ -71,13 +77,13 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		// Kapak
 		FrameLayout art = new FrameLayout(ctx);
 		GradientDrawable ab = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{t.blobs[0], t.blobs[2]});
-		ab.setCornerRadius(dp(12));
+		ab.setCornerRadius(dp(14));
 		art.setBackground(ab);
 		art.setClipToOutline(true);
 		art.setOutlineProvider(new android.view.ViewOutlineProvider() {
 			@Override
 			public void getOutline(View v, android.graphics.Outline o) {
-				o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), dp(12));
+				o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), dp(14));
 			}
 		});
 		coverPh = new ImageView(ctx);
@@ -90,7 +96,8 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		cover.setAlpha(0f);
 		art.addView(cover, new LayoutParams(-1, -1));
 		art.setOnClickListener(v -> openCurrent());
-		row.addView(art, new LinearLayout.LayoutParams(dp(compact ? 46 : 52), dp(compact ? 46 : 52)));
+		art.setElevation(dp(4));
+		row.addView(art, new LinearLayout.LayoutParams(dp(compact ? 50 : 56), dp(compact ? 50 : 56)));
 
 		// Ad + alt bilgi
 		LinearLayout txt = new LinearLayout(ctx);
@@ -109,7 +116,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		subRow.setOrientation(LinearLayout.HORIZONTAL);
 		subRow.setGravity(Gravity.CENTER_VERTICAL);
 		live = new TextView(ctx);
-		live.setText("CANLI");
+		live.setText("● CANLI");
 		live.setTextColor(0xFFFFFFFF);
 		live.setTextSize(10 * YoldaStyle.textScale(ctx));
 		live.setTypeface(Typeface.DEFAULT_BOLD);
@@ -235,7 +242,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 				if (th != null) {
 					a.getLib().getBitmap(th, true, true).main().onCompletion((bmp, e2) -> {
 						if ((bmp == null) || !key.equals(itemId)) return;
-						cover.setImageBitmap(bmp);
+						showCover(bmp);
 						cover.animate().alpha(1f).setDuration(220).start();
 					});
 				}
@@ -290,6 +297,14 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		long dur = durationOf(pi);
 		boolean isLive = (dur <= 0) && pi.isStream();
 		live.setVisibility(isLive ? VISIBLE : GONE);
+		progress.setVisibility(isLive ? INVISIBLE : VISIBLE); // canlıda ilerleme yok: yerine CANLI nabzı
+		if (isLive && (live.getAnimation() == null) && ((android.os.Build.VERSION.SDK_INT < 26) || android.animation.ValueAnimator.areAnimatorsEnabled())) {
+			android.view.animation.AlphaAnimation an = new android.view.animation.AlphaAnimation(1f, 0.55f);
+			an.setDuration(900);
+			an.setRepeatMode(android.view.animation.Animation.REVERSE);
+			an.setRepeatCount(android.view.animation.Animation.INFINITE);
+			live.startAnimation(an);
+		} else if (!isLive && (live.getAnimation() != null)) live.clearAnimation();
 		if (!dragging) progress.set((dur > 0) ? Math.min(1f, pos / (float) dur) : (isLive ? 1f : 0f), dur > 0);
 	}
 
@@ -342,7 +357,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		if (tr.thumb() == null) return;
 		a.getLib().getBitmap(tr.thumb(), true, true).main().onCompletion((bmp, e2) -> {
 			if ((bmp == null) || !key.equals(itemId)) return;
-			cover.setImageBitmap(bmp);
+			showCover(bmp);
 			cover.animate().alpha(1f).setDuration(220).start();
 		});
 	}
@@ -365,7 +380,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		String key = itemId;
 		android.graphics.Bitmap bm = YoldaNowPlaying.metaBitmap(md);
 		if (bm != null) {
-			cover.setImageBitmap(bm);
+			showCover(bm);
 			cover.animate().alpha(1f).setDuration(220).start();
 			return;
 		}
@@ -373,7 +388,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		if (u == null) return;
 		a.getLib().getBitmap(u, true, true).main().onCompletion((bmp, e2) -> {
 			if ((bmp == null) || !java.util.Objects.equals(key, itemId)) return;
-			cover.setImageBitmap(bmp);
+			showCover(bmp);
 			cover.animate().alpha(1f).setDuration(220).start();
 		});
 	}
@@ -382,8 +397,26 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 	private CharSequence subText = "";
 	private boolean subOverride;
 
+	/** Kapağı göster ve çubuğu kapağın rengine boya. */
+	private void showCover(android.graphics.Bitmap bmp) {
+		cover.setImageBitmap(bmp);
+		cover.animate().alpha(1f).setDuration(220).start();
+		try {
+			int c = android.graphics.Bitmap.createScaledBitmap(bmp, 1, 1, true).getPixel(0, 0);
+			float[] hsv = new float[3];
+			android.graphics.Color.colorToHSV(c, hsv);
+			hsv[1] = Math.min(1f, hsv[1] * 1.3f + 0.1f);
+			hsv[2] = Math.max(0.35f, Math.min(0.7f, hsv[2]));
+			int v = android.graphics.Color.HSVToColor(hsv);
+			tintBg.setColors(new int[]{(v & 0x00FFFFFF) | 0xCC000000, (v & 0x00FFFFFF) | 0x33000000});
+		} catch (Throwable ignore) {
+		}
+	}
+
 	private void loadInfo(MainActivityDelegate a, MediaLib.PlayableItem pi) {
 		descAt = SystemClock.elapsedRealtime();
+		tintBg.setColors(new int[]{0x00000000, 0x00000000});
+		coverPh.setImageResource(pi.isStream() ? (pi.isVideo() ? R.drawable.yi_tv : R.drawable.yi_live) : R.drawable.yi_music);
 		title.setText(pi.getName());
 		subText = "";
 		if (!subOverride) sub.setText("");
@@ -403,7 +436,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			if ((u == null) || !pi.getId().equals(itemId)) return;
 			a.getLib().getBitmap(u.toString(), true, true).main().onCompletion((bmp, e2) -> {
 				if ((bmp == null) || !pi.getId().equals(itemId)) return;
-				cover.setImageBitmap(bmp);
+				showCover(bmp);
 				cover.animate().alpha(1f).setDuration(220).start(); // kapak yumuşakça belirir
 			});
 		});

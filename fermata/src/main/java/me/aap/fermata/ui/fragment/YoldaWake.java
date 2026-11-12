@@ -41,7 +41,8 @@ public final class YoldaWake {
 	private static final String PREF = "wake_enabled";
 	private static final String MODEL_URL = "https://alphacephei.com/vosk/models/vosk-model-small-tr-0.3.zip";
 	private static final String MODEL_DIR = "vosk-tr";
-	private static final String GRAMMAR = "[\"hey yolda\", \"ey yolda\", \"yolda\", \"[unk]\"]";
+	private static final String GRAMMAR =
+			"[\"hey yolda\", \"ey yolda\", \"yolda\", \"hey yola\", \"ey yola\", \"yola\", \"[unk]\"]";
 
 	/** Model yükleme / mikrofon açma tek bir arka plan iş parçacığında, sırayla (iki dinleyici açılmasın). */
 	private static final java.util.concurrent.ExecutorService EXEC = java.util.concurrent.Executors.newSingleThreadExecutor();
@@ -74,8 +75,18 @@ public final class YoldaWake {
 	public static void setEnabled(MainActivityDelegate a, boolean on) {
 		Context ctx = a.getContext();
 		prefs(ctx).edit().putBoolean(PREF, on).apply();
-		if (on) start(a);
-		else stop();
+		if (on) {
+			YoldaWakeService.start(ctx);
+			start(a);
+		} else {
+			stop();
+			YoldaWakeService.stop(ctx);
+		}
+	}
+
+	/** Şu an dinliyor mu (sesli düğmedeki yeşil nokta). */
+	public static boolean isListening() {
+		return service != null;
 	}
 
 	/** Uygulama ekrana gelince (ve sesli asistan bitince) çağrılır. */
@@ -84,6 +95,8 @@ public final class YoldaWake {
 		owner = a;
 		paused = false;
 		if (!isEnabled(ctx) || (service != null) || starting) return;
+		// Telefonda uygulama açıkken mikrofon hizmetini başlat: araçtayken (telefonda arka planda) de duyulsun
+		if (!a.isCarActivity()) YoldaWakeService.start(ctx);
 		if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
 			YoldaLog.add("Hey Yolda: mikrofon izni yok");
 			return;
@@ -219,7 +232,8 @@ public final class YoldaWake {
 	static boolean isWake(String json) {
 		if (json == null) return false;
 		String s = json.toLowerCase(new Locale("tr"));
-		if (s.contains("hey yolda") || s.contains("ey yolda") || s.contains("hey yol da")) return true;
+		if (s.contains("hey yolda") || s.contains("ey yolda") || s.contains("hey yol da") || s.contains("hey yola")
+				|| s.contains("ey yola") || s.contains("heyolda") || s.contains("eyolda")) return true;
 		// Vosk sonucu: {"text" : "[unk] yolda"} ya da {"partial" : "yolda"} — söylenen yalnız "(hey) yolda" ise
 		int q = s.lastIndexOf(':');
 		if (q < 0) return false;
@@ -231,7 +245,7 @@ public final class YoldaWake {
 			else if (!w.isEmpty()) rest.append(rest.length() > 0 ? " " : "").append(w);
 		}
 		// "yolda" ya da "<bilinmeyen tek sözcük> yolda" (ör. modelde olmayan "hey")
-		return (unk <= 1) && rest.toString().equals("yolda");
+		return (unk <= 1) && (rest.toString().equals("yolda") || rest.toString().equals("yola"));
 	}
 
 	private static void check(String json) {

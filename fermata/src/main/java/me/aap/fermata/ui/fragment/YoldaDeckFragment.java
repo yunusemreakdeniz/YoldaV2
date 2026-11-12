@@ -131,6 +131,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		Context ctx = requireContext();
 		t = YoldaStyle.current(ctx);
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
+		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
+		if (!prefs(ctx).getBoolean("deck_has_nav", false)) {
+			deck.restore(YoldaDeck.NAV);
+			prefs(ctx).edit().putBoolean("deck_has_nav", true).putString(PREF_DECK, deck.encode()).apply();
+		}
 		boolean car = getActivityDelegate().isCarActivity();
 
 		root = new FrameLayout(ctx);
@@ -358,6 +363,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					tvChannels.isEmpty() ? "Ulusal, haber, spor kanalları" : tvChannels.size() + " kanal · HD");
 			case YoldaDeck.RADIO -> new Look(0xFFFBBF24, 0xFFC2410C, R.drawable.yi_live, true, "RADYO",
 					"Türkiye'nin radyoları ve dünyadan istasyonlar");
+			case YoldaDeck.NAV -> new Look(0xFF2DD4BF, 0xFF0F766E, R.drawable.yi_nav, true, "NAVİGASYON",
+					"Yol tarifi, ev, iş ve son gidilen yerler");
 			case YoldaDeck.PHONE -> new Look(0xFF34D399, 0xFF047857, R.drawable.yi_phone, true, "TELEFON",
 					"Telefonun ekranını araçta kullan");
 			case YoldaDeck.WEB -> new Look(0xFF60A5FA, 0xFF1D4ED8, R.drawable.yi_globe, true, "TARAYICI",
@@ -546,6 +553,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				}
 				return scroll(ctx, row);
 			}
+			case YoldaDeck.NAV -> {
+				LinearLayout row = hrow(ctx);
+				for (String d : NavFragment.recent(ctx)) {
+					if (row.getChildCount() >= 5) break;
+					row.addView(chipBtn(ctx, d, v -> NavFragment.navigateTo(ctx, d, true)), chipLp());
+				}
+				if (row.getChildCount() == 0) row.addView(chipBtn(ctx, "Nereye gidiyoruz?", v -> open(c)), chipLp());
+				return scroll(ctx, row);
+			}
 			case YoldaDeck.PHONE -> {
 				LinearLayout row = hrow(ctx);
 				row.addView(chipBtn(ctx, "Telefon ekranını aç", v -> HomeFragment.phone(ctx)), chipLp());
@@ -636,6 +652,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.MUSIC -> a.showFragment(R.id.yolda_music);
 			case YoldaDeck.TV -> ChannelsFragment.openSegment(a, false);
 			case YoldaDeck.RADIO -> ChannelsFragment.openSegment(a, true);
+			case YoldaDeck.NAV -> a.showFragment(R.id.yolda_nav_fragment);
 			case YoldaDeck.PHONE -> HomeFragment.phone(ctx);
 			case YoldaDeck.WEB -> {
 				YoldaStyle.webNoToolbar = false; // genel tarayıcı: adres çubuğu görünsün

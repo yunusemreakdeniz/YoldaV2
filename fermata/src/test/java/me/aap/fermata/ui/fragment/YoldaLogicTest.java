@@ -119,10 +119,24 @@ public class YoldaLogicTest {
 		assertTrue(YoldaWake.isWake("{\"text\" : \"[unk] yolda\"}"));
 		assertTrue(YoldaWake.isWake("{\"partial\" : \"yolda\"}"));
 		assertTrue(YoldaWake.isWake("{\"text\" : \"ey yolda\"}"));
+		assertTrue(YoldaWake.isWake("{\"text\" : \"hey yola\"}"));
+		assertTrue(YoldaWake.isWake("{\"partial\" : \"yola\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"[unk] [unk] yola [unk]\"}"));
 		// uzun cümle içinde geçen "yolda" uyandırmaz
 		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"[unk] [unk] yolda [unk]\"}"));
 		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"partial\" : \"\"}"));
 		org.junit.Assert.assertFalse(YoldaWake.isWake(null));
+	}
+
+	// ---- radyo sesli komutu ----
+
+	@Test
+	public void radyoKomutu() {
+		assertEquals("kral fm", YoldaVoice.radioQuery("kral fm aç"));
+		assertEquals("joy türk", YoldaVoice.radioQuery("joy türk radyosunu aç"));
+		assertEquals("metro fm", YoldaVoice.radioQuery("radyo metro fm"));
+		assertNull(YoldaVoice.radioQuery("trt 1 aç"));
+		assertNull(YoldaVoice.radioQuery("radyo aç"));
 	}
 
 	// ---- tanı günlüğü: önceki kapanış nedenleri ----

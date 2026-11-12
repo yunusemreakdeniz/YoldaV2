@@ -51,6 +51,7 @@ public final class YoldaVoice {
 		if (c.isEmpty()) return false;
 
 		if (NavFragment.handleVoice(a, c)) return true;
+		if (quick(a, c)) return true;
 
 		// "<şarkı/sanatçı> çal", "… şarkısını aç": Yolda Müzik'te ara, ilk şarkıyı çal
 		String song = songQuery(c);
@@ -117,6 +118,89 @@ public final class YoldaVoice {
 		}
 		if (best != null) {
 			a.getBody().playItem(best);
+			if (!best.isVideo()) me.aap.fermata.ui.view.YoldaNowPlaying.show(a);
+			return true;
+		}
+		// Listede olmayan radyo: internetteki radyo dizininde ara, ilkini çal ("Kral FM aç", "Joy Türk radyosu")
+		String radio = radioQuery(c);
+		if (radio != null) {
+			me.aap.utils.ui.UiUtils.showInfo(a.getContext(), "“" + radio + "” radyosu aranıyor…");
+			me.aap.fermata.media.radio.RadioBrowser.search(radio).main().onCompletion((l, err) -> {
+				if ((l == null) || l.isEmpty()) {
+					me.aap.utils.ui.UiUtils.showInfo(a.getContext(), "“" + radio + "” radyosu bulunamadı");
+					return;
+				}
+				var s = l.get(0);
+				a.getMediaServiceBinder().playItem(me.aap.fermata.media.radio.YoldaStreamItem.create(a.getLib(), s.url(),
+						s.name(), s.logo(), "Radyo"));
+				me.aap.fermata.ui.view.YoldaNowPlaying.show(a);
+			});
+			return true;
+		}
+		return false;
+	}
+
+	private static final Pattern RADIO_WORDS = Pattern.compile(
+			"\\b(radyosunu|radyosu|radyo|aç|ac|çal|cal|dinle|dinlet|açar mısın|lütfen|istasyonu)\\b", Pattern.UNICODE_CHARACTER_CLASS);
+
+	/** "Kral FM aç", "Joy Türk radyosu", "radyo Metro FM" → aranacak istasyon adı; radyo isteği değilse null. */
+	static String radioQuery(String c) {
+		if (c == null) return null;
+		boolean radio = c.contains("radyo") || c.matches(".*\\bfm\\b.*");
+		if (!radio) return null;
+		String q = RADIO_WORDS.matcher(c).replaceAll(" ").replaceAll("\\s+", " ").trim();
+		return (q.length() >= 2) ? q : null;
+	}
+
+	/** Kısa komutlar: ses, saat, tema, oynatma. */
+	private static boolean quick(MainActivityDelegate a, String c) {
+		android.content.Context ctx = a.getContext();
+		android.media.AudioManager am = (android.media.AudioManager) ctx.getSystemService(android.content.Context.AUDIO_SERVICE);
+		if (c.matches("(sesi |ses )?(aç|yükselt|artır|arttır|yükseltir misin)") || c.matches("ses(i)? (aç|yükselt|artır)")
+				|| c.equals("daha yüksek") || c.equals("sesi biraz aç")) {
+			for (int i = 0; i < 2; i++)
+				am.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_RAISE,
+						android.media.AudioManager.FLAG_SHOW_UI);
+			return true;
+		}
+		if (c.matches("ses(i)? (kıs|azalt|düşür)") || c.equals("daha kısık") || c.equals("sesi biraz kıs")) {
+			for (int i = 0; i < 2; i++)
+				am.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_LOWER,
+						android.media.AudioManager.FLAG_SHOW_UI);
+			return true;
+		}
+		if (c.matches("(sesi )?(kapat|sustur)|sessiz(e al)?")) {
+			am.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_TOGGLE_MUTE,
+					android.media.AudioManager.FLAG_SHOW_UI);
+			return true;
+		}
+		if (c.matches("saat kaç.*|saat ne.*")) {
+			me.aap.utils.ui.UiUtils.showInfo(ctx, "Saat " + new java.text.SimpleDateFormat("HH:mm", TR).format(new java.util.Date()));
+			return true;
+		}
+		if (c.matches("tema(yı)? değiştir|renkleri değiştir|başka tema")) {
+			me.aap.fermata.ui.view.YoldaStyle.next(ctx);
+			return true;
+		}
+		var cb = a.getMediaSessionCallback();
+		if (c.matches("(duraklat|durdur|bekle|dur)")) {
+			cb.onPause();
+			return true;
+		}
+		if (c.matches("(devam et|devam|oynat|başlat)")) {
+			cb.onPlay();
+			return true;
+		}
+		if (c.matches("(sonraki|ileri|sıradaki|geç|sonraki şarkı|sonraki kanal)")) {
+			cb.onSkipToNext();
+			return true;
+		}
+		if (c.matches("(önceki|geri|önceki şarkı|önceki kanal)")) {
+			cb.onSkipToPrevious();
+			return true;
+		}
+		if (c.matches("(ne çalıyor|şimdi ne çalıyor|bu ne şarkı|bu şarkı ne)")) {
+			me.aap.fermata.ui.view.YoldaNowPlaying.show(a);
 			return true;
 		}
 		return false;

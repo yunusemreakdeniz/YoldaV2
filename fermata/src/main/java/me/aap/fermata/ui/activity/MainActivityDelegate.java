@@ -1421,6 +1421,30 @@ public class MainActivityDelegate extends ActivityDelegate
 		b.setId(View.generateViewId());
 		host.addView(b, lp);
 		styleVoiceButton(b);
+		// "Hey Yolda" dinlerken sağ üstte yeşil nokta
+		View dot = new View(ctx);
+		android.graphics.drawable.GradientDrawable dd = new android.graphics.drawable.GradientDrawable();
+		dd.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+		dd.setColor(0xFF22C55E);
+		dd.setStroke(Math.max(1, toIntPx(ctx, 2)), 0xFFFFFFFF);
+		dot.setBackground(dd);
+		dot.setVisibility(View.GONE);
+		int ds = toIntPx(ctx, 14);
+		android.widget.FrameLayout.LayoutParams dlp = new android.widget.FrameLayout.LayoutParams(ds, ds,
+				Gravity.TOP | Gravity.END);
+		dlp.topMargin = dlp.rightMargin = toIntPx(ctx, 4);
+		b.addView(dot, dlp);
+		Runnable wakeDot = new Runnable() {
+			@Override
+			public void run() {
+				if (!b.isAttachedToWindow()) return;
+				boolean on = me.aap.fermata.ui.fragment.YoldaWake.isListening();
+				dot.setVisibility(on ? View.VISIBLE : View.GONE);
+				b.setContentDescription(on ? "Sesli komut (Hey Yolda dinliyor)" : "Sesli komut");
+				b.postDelayed(this, 1500);
+			}
+		};
+		b.post(wakeDot);
 		// Tema değişince (bu ya da diğer ekrandan) bu ekran da yenilensin. Dinleyici zayıf tutulduğu için alanda saklanır.
 		if (themeListener == null) {
 			themeListener = (sp, key) -> {

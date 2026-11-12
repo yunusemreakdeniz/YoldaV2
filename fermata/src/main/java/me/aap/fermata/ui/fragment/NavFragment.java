@@ -338,6 +338,30 @@ public class NavFragment extends MainActivityFragment {
 	}
 
 	private boolean start(Context ctx, Intent i) {
+		return launch(ctx, i);
+	}
+
+	/**
+	 * Araçtaysa yol tarifini Android Auto'nun kendi harita uygulamasında açar (telefonda açmaya çalışmak
+	 * araçta bir şey göstermiyordu: uygulama telefonda arka planda, Android engelliyor). Telefonda olağan yol.
+	 */
+	static boolean launch(Context ctx, Intent i) {
+		try {
+			MainActivityDelegate a = MainActivityDelegate.get(ctx);
+			if (a.isCarActivityNotMirror()) {
+				Object act = a.getAppActivity();
+				java.lang.reflect.Method m = act.getClass().getMethod("startCarActivity", Intent.class);
+				try {
+					m.invoke(act, new Intent(i));
+				} catch (Exception first) { // paket belirtilmeden (araçtaki varsayılan harita)
+					m.invoke(act, new Intent(i).setPackage(null));
+				}
+				YoldaLog.add("Navigasyon araçta açıldı: " + i.getData());
+				return true;
+			}
+		} catch (Throwable ex) {
+			YoldaLog.add("Navigasyon araçta açılamadı: " + ex);
+		}
 		try {
 			ctx.getApplicationContext().startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
 			return true;
@@ -345,6 +369,18 @@ public class NavFragment extends MainActivityFragment {
 			Log.d("Navigasyon açılamadı: ", i);
 			return false;
 		}
+	}
+
+	/** Son gidilen yerler (en yenisi başta). */
+	public static List<String> recent(Context ctx) {
+		List<String> l = new ArrayList<>();
+		try {
+			JSONArray arr = new JSONArray(ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+					.getString("nav_recent", "[]"));
+			for (int i = 0; i < arr.length(); i++) l.add(arr.getString(i));
+		} catch (Exception ignore) {
+		}
+		return l;
 	}
 
 	private List<String> recent() {
@@ -421,13 +457,7 @@ public class NavFragment extends MainActivityFragment {
 	}
 
 	private static boolean startStatic(Context ctx, Intent i) {
-		try {
-			ctx.getApplicationContext().startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-			return true;
-		} catch (Exception ex) {
-			Log.d("Navigasyon açılamadı: ", i);
-			return false;
-		}
+		return launch(ctx, i);
 	}
 
 	// ---- yardımcılar ----
