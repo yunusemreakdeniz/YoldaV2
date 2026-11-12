@@ -75,6 +75,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private final List<MediaLib.PlayableItem> radioChannels = new ArrayList<>();
 	@Nullable
 	private View overlay;
+	@Nullable
+	private MediaLib.PlayableItem lastItem;
+	private final List<MediaLib.PlayableItem> favItems = new ArrayList<>();
+	@Nullable
+	private YoldaWeather.Now weather;
 
 
 	@Override
@@ -136,6 +141,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		t = YoldaStyle.current(ctx);
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
+		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER}) {
+			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
+			deck.restore(nt);
+			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
+		}
 		if (!prefs(ctx).getBoolean("deck_has_mirror", false)) {
 			deck.restore(YoldaDeck.MIRROR);
 			prefs(ctx).edit().putBoolean("deck_has_mirror", true).putString(PREF_DECK, deck.encode()).apply();
@@ -221,6 +231,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		col.addView(dots, new LinearLayout.LayoutParams(-1, -2));
 
 		loadChannels();
+		loadExtras(car);
 		return root;
 	}
 
@@ -586,6 +597,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					tvChannels.isEmpty() ? "Ulusal, haber, spor kanalları" : tvChannels.size() + " kanal · HD");
 			case YoldaDeck.RADIO -> new Look(0xFFFBBF24, 0xFFC2410C, R.drawable.yi_live, true, "RADYO",
 					"Türkiye'nin radyoları ve dünyadan istasyonlar");
+			case YoldaDeck.RESUME -> new Look(0xFFFB923C, 0xFFBE123C, R.drawable.yi_history, true, "DEVAM ET",
+					resumeText());
+			case YoldaDeck.FAVS -> new Look(0xFFFACC15, 0xFFB45309, R.drawable.yi_star, true, "FAVORİLER",
+					favItems.isEmpty() ? "Kanallarda ★ ile favori ekle" : favItems.size() + " favori kanal ve radyo");
+			case YoldaDeck.WEATHER -> new Look(0xFF38BDF8, 0xFF1E40AF, R.drawable.yi_globe, true, "HAVA DURUMU",
+					(weather == null) ? "Hava durumu alınıyor…"
+							: weather.place() + " · " + YoldaWeather.text(weather.code()) + " · rüzgâr " + weather.wind() + " km/s");
 			case YoldaDeck.NAV -> new Look(0xFF2DD4BF, 0xFF0F766E, R.drawable.yi_nav, true, "NAVİGASYON",
 					"Yol tarifi, ev, iş ve son gidilen yerler");
 			case YoldaDeck.PHONE -> new Look(0xFF34D399, 0xFF047857, R.drawable.yi_phone, true, "TELEFON",
@@ -778,6 +796,46 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				}
 				return scroll(ctx, row);
 			}
+			case YoldaDeck.RESUME -> {
+				LinearLayout row = hrow(ctx);
+				if (lastItem != null) {
+					MediaLib.PlayableItem li = lastItem;
+					FrameLayout plate = (FrameLayout) imageTile(ctx, null, null, tile, true, li.getName(), v -> playItem(a, li));
+					loadItemIcon((ImageView) plate.getChildAt(1), (ImageView) plate.getChildAt(0), li);
+					row.addView(plate, tileLp(tile));
+				}
+				List<YtMusic.Track> rec = MusicFragment.recent(ctx);
+				if (!rec.isEmpty()) {
+					row.addView(imageTile(ctx, rec.get(0).thumb(), null, tile, false, rec.get(0).title(),
+							v -> MusicFragment.playTracks(a, rec, 0)), tileLp(tile));
+				}
+				return (row.getChildCount() == 0) ? null : row;
+			}
+			case YoldaDeck.FAVS -> {
+				if (favItems.isEmpty()) {
+					LinearLayout row = hrow(ctx);
+					row.addView(chipBtn(ctx, "★ Favori ekle", v -> ChannelsFragment.openSegment(a, false)), chipLp());
+					return row;
+				}
+				return channelRow(ctx, a, favItems, tile);
+			}
+			case YoldaDeck.WEATHER -> {
+				if (weather == null) return null;
+				LinearLayout row = hrow(ctx);
+				TextView big = text(ctx, weather.temp() + "°", small ? 40 : 52, true, 0xFFFFFFFF);
+				row.addView(big);
+				TextView em = text(ctx, YoldaWeather.emoji(weather.code()), small ? 30 : 38, false, 0xFFFFFFFF);
+				em.setPadding(dp(8), 0, dp(14), 0);
+				row.addView(em);
+				LinearLayout hours = hrow(ctx);
+				for (int i = 1; i < Math.min(weather.hours().size(), 7); i++) {
+					YoldaWeather.Hour h = weather.hours().get(i);
+					TextView c = chipBtn(ctx, h.time() + "  " + YoldaWeather.emoji(h.code()) + " " + h.temp() + "°", v -> open(deck.get(deck.indexOf(YoldaDeck.WEATHER))));
+					hours.addView(c, chipLp());
+				}
+				row.addView(scroll(ctx, hours), new LinearLayout.LayoutParams(0, -2, 1f));
+				return row;
+			}
 			case YoldaDeck.NAV -> {
 				LinearLayout row = hrow(ctx);
 				for (String d : NavFragment.recent(ctx)) {
@@ -896,6 +954,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.TV -> ChannelsFragment.openSegment(a, false);
 			case YoldaDeck.RADIO -> ChannelsFragment.openSegment(a, true);
 			case YoldaDeck.NAV -> a.showFragment(R.id.yolda_nav_fragment);
+			case YoldaDeck.RESUME -> {
+				if (lastItem != null) playItem(a, lastItem);
+				else {
+					List<YtMusic.Track> rec = MusicFragment.recent(ctx);
+					if (!rec.isEmpty()) MusicFragment.playTracks(a, rec, 0);
+					else UiUtils.showInfo(ctx, "Henüz bir şey dinlemedin");
+				}
+			}
+			case YoldaDeck.FAVS -> {
+				if (!favItems.isEmpty()) playItem(a, favItems.get(0));
+				else ChannelsFragment.openSegment(a, false);
+			}
+			case YoldaDeck.WEATHER -> HomeFragment.openWeb(a, "https://www.google.com/search?q=hava+durumu");
 			case YoldaDeck.PHONE, YoldaDeck.MIRROR -> openPhoneScreen(a, ctx);
 			case YoldaDeck.WEB -> {
 				YoldaStyle.webNoToolbar = false; // genel tarayıcı: adres çubuğu görünsün
@@ -1234,6 +1305,46 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (v != null) v.animate().alpha(0f).setDuration(140).withEndAction(() -> root.removeView(v)).start();
 	}
 
+	// ---- kaldığın yer, favoriler, hava ----
+
+	private void loadExtras(boolean car) {
+		MainActivityDelegate a = getActivityDelegate();
+		a.getLib().getLastPlayedItem().main().onSuccess(i -> {
+			lastItem = i;
+			refreshCard(YoldaDeck.RESUME);
+		});
+		try {
+			a.getLib().getFavorites().getChildren().main().onSuccess(l -> {
+				favItems.clear();
+				for (Object o : l) if (o instanceof MediaLib.PlayableItem pi) favItems.add(pi);
+				refreshCard(YoldaDeck.FAVS);
+			});
+		} catch (Throwable ex) {
+			Log.e(ex, "Favoriler okunamadı");
+		}
+		Runnable wx = () -> YoldaWeather.get(requireContext()).main().onSuccess(w -> {
+			weather = w;
+			refreshCard(YoldaDeck.WEATHER);
+		});
+		// Telefonda ilk açılışta konum izni sorulur (araçta pencere açılamaz; son bilinen konum ya da İstanbul)
+		if (!car && (requireContext().checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+				!= android.content.pm.PackageManager.PERMISSION_GRANTED)) {
+			a.getAppActivity().checkPermissions(android.Manifest.permission.ACCESS_COARSE_LOCATION,
+					android.Manifest.permission.ACCESS_FINE_LOCATION).onCompletion((r, err) -> {
+				if (isAdded()) wx.run();
+			});
+		} else {
+			wx.run();
+		}
+	}
+
+	private void refreshCard(String type) {
+		if ((adapter == null) || !isAdded()) return;
+		int i = deck.indexOf(type);
+		if (i >= 0) adapter.notifyItemChanged(i);
+		if (list != null) list.post(this::transform);
+	}
+
 	// ---- kanallar ----
 
 	private void loadChannels() {
@@ -1262,6 +1373,23 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private static String groupOf(MediaLib.PlayableItem pi) {
 		MediaLib.BrowsableItem p = pi.getParent();
 		return (p != null) ? p.getName() : "";
+	}
+
+	private void playItem(MainActivityDelegate a, MediaLib.PlayableItem pi) {
+		a.getBody().playItem(pi);
+		if (!pi.isVideo()) YoldaNowPlaying.show(a);
+	}
+
+	/** "Kaldığın yerden" kartının alt yazısı: son kanal / radyo ve son şarkı. */
+	private String resumeText() {
+		StringBuilder b = new StringBuilder();
+		if (lastItem != null) b.append(lastItem.getName());
+		List<YtMusic.Track> rec = (getContext() != null) ? MusicFragment.recent(requireContext()) : List.of();
+		if (!rec.isEmpty()) {
+			if (b.length() > 0) b.append(" · ");
+			b.append(rec.get(0).title());
+		}
+		return (b.length() == 0) ? "Dinlediğin son kanal ve şarkı burada" : b.toString();
 	}
 
 	/** Önce favoriler, sonra listedeki ilk kanallar (en çok 8). */
