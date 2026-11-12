@@ -141,7 +141,8 @@ public final class YoldaVoice {
 	}
 
 	private static final Pattern RADIO_WORDS = Pattern.compile(
-			"\\b(radyosunu|radyosu|radyo|aç|ac|çal|cal|dinle|dinlet|açar mısın|lütfen|istasyonu)\\b", Pattern.UNICODE_CHARACTER_CLASS);
+			// Android UNICODE_CHARACTER_CLASS'ı desteklemiyor (sınıf açılırken çöküyordu): harf sınırı elle
+			"(?<![\\p{L}\\p{N}])(radyosunu|radyosu|radyo|aç|ac|çal|cal|dinle|dinlet|açar mısın|lütfen|istasyonu)(?![\\p{L}\\p{N}])");
 
 	/** "Kral FM aç", "Joy Türk radyosu", "radyo Metro FM" → aranacak istasyon adı; radyo isteği değilse null. */
 	static String radioQuery(String c) {
