@@ -520,6 +520,13 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	public void onActivityDestroy() {
 		super.onActivityDestroy();
+		if (memCallbacks != null) {
+			try {
+				getContext().unregisterComponentCallbacks(memCallbacks);
+			} catch (Throwable ignore) {
+			}
+			memCallbacks = null;
+		}
 		handler.close();
 		getMediaServiceBinder().getMediaSessionCallback().removeAssistant(this);
 		getPrefs().removeBroadcastListener(this);
@@ -891,6 +898,84 @@ public class MainActivityDelegate extends ActivityDelegate
 		return (pi != null) || (getLib().getPrefs().getLastPlayedItemPref() != null);
 	}
 
+	@Override
+	public void onBackPressed() {
+		if (me.aap.fermata.ui.view.YoldaNowPlaying.hide(this)) return; // önce "Şimdi çalıyor" kapanır
+		super.onBackPressed();
+	}
+
+	/** Yolda: işlemi kapanan web sayfasını at, sahibi olan ekranı yeniden kur (uygulama kapanmaz). */
+	public void recoverDeadWebView(View dead) {
+		Fragment owner = null;
+		for (Fragment f : getSupportFragmentManager().getFragments()) {
+			View fv = f.getView();
+			if (fv == null) continue;
+			for (android.view.ViewParent p = dead.getParent(); p != null; p = p.getParent()) {
+				if (p == fv) {
+					owner = f;
+					break;
+				}
+			}
+			if (owner != null) break;
+		}
+		try { // bu sayfa üzerinden çalan YouTube varsa durdur
+			var eng = getMediaSessionCallback().getEngine();
+			if ((eng != null) && eng.getClass().getName().contains("Youtube")) getMediaSessionCallback().onStop();
+		} catch (Throwable ignore) {
+		}
+		if (dead.getParent() instanceof android.view.ViewGroup g) g.removeView(dead);
+		if (dead instanceof android.webkit.WebView w) {
+			try {
+				w.destroy();
+			} catch (Throwable ignore) {
+			}
+		}
+		Fragment o = owner;
+		if (o != null) me.aap.utils.app.App.get().getHandler().post(() -> recreateFragment(o));
+	}
+
+	/**
+	 * Yolda: bellek azalınca ekranda olmayan web sayfalarını bırak (YouTube çalmıyorsa). Gizli sayfalar
+	 * bellekte kaldıkça Android sayfa işlemini, sonra da uygulamayı kapatıyordu.
+	 */
+	private void trimHiddenWebPages(int level) {
+		int active = getActiveFragmentId();
+		boolean ytPlaying = false;
+		try {
+			var eng = getMediaSessionCallback().getEngine();
+			ytPlaying = (eng != null) && eng.getClass().getName().contains("Youtube");
+		} catch (Throwable ignore) {
+		}
+		var tr = getSupportFragmentManager().beginTransaction();
+		int n = 0;
+		for (Fragment f : new ArrayList<>(getSupportFragmentManager().getFragments())) {
+			if (!(f instanceof me.aap.utils.ui.fragment.ActivityFragment af) || (af.getFragmentId() == active)) continue;
+			View fv = f.getView();
+			if ((fv == null) || !hasWebView(fv)) continue;
+			if (ytPlaying && f.getClass().getName().contains("Youtube")) continue;
+			tr.remove(f);
+			n++;
+		}
+		if (n == 0) return;
+		try {
+			tr.commitNowAllowingStateLoss();
+			me.aap.fermata.ui.fragment.YoldaLog.add("Bellek azaldı (" + level + "): " + n + " gizli web sayfası bırakıldı");
+		} catch (Exception ex) {
+			Log.e(ex, "Gizli sayfalar bırakılamadı");
+		}
+	}
+
+	@Nullable
+	private android.content.ComponentCallbacks2 memCallbacks;
+
+	private static boolean hasWebView(View v) {
+		if (v instanceof android.webkit.WebView) return true;
+		if (v instanceof android.view.ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) if (hasWebView(g.getChildAt(i))) return true;
+		}
+		return false;
+	}
+
 	public FutureSupplier<Boolean> goToCurrent() {
 		PlayableItem pi = getMediaServiceBinder().getCurrentItem();
 		return ((pi == null) || (pi.isExternal())) ?
@@ -1241,6 +1326,28 @@ public class MainActivityDelegate extends ActivityDelegate
 		me.aap.fermata.ui.fragment.YoldaLog.add("Açılış: " + (isCarActivity() ? "ARAÇ" : "telefon")
 				+ " · " + me.aap.fermata.BuildConfig.VERSION_NAME);
 		a.setContentView(getLayout());
+		getContext().registerComponentCallbacks(memCallbacks = new android.content.ComponentCallbacks2() {
+			@Override
+			public void onTrimMemory(int level) {
+				if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) trimHiddenWebPages(level);
+			}
+
+			@Override
+			public void onConfigurationChanged(@NonNull Configuration c) {
+			}
+
+			@Override
+			public void onLowMemory() {
+				trimHiddenWebPages(80);
+			}
+		});
+		// Oynatıcının ağ motorunu (Cronet) arka planda hazırla: ilk yayın açılırken ekran donmasın, daha hızlı açılsın
+		me.aap.utils.app.App.get().getExecutor().submit(() -> {
+			try {
+				Class.forName("me.aap.fermata.engine.exoplayer.ExoPlayerEngine");
+			} catch (Throwable ignore) {
+			}
+		});
 		toolBar = a.findViewById(R.id.tool_bar);
 		progressBar = a.findViewById(R.id.content_loading_progress);
 		navBar = a.findViewById(R.id.nav_bar);

@@ -694,6 +694,15 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	 */
 	public static volatile java.util.function.IntPredicate yoldaSkip;
 
+	// ---- Yolda: açılış süresi (tanı günlüğü ve oynatıcı çubuğundaki "Bağlanıyor…") ----
+	private static volatile long yoldaOpenStart;
+	private static volatile String yoldaOpenName;
+
+	/** Şu an açılmakta olan yayının başlama zamanı (elapsedRealtime), açılmıyorsa 0. */
+	public static long yoldaOpeningSince() {
+		return yoldaOpenStart;
+	}
+
 	@Override
 	public void onSkipToPrevious() {
 		java.util.function.IntPredicate y = yoldaSkip;
@@ -996,6 +1005,13 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 
 	@Override
 	public void onEngineStarted(MediaEngine engine) {
+		long t0 = yoldaOpenStart;
+		if (t0 > 0) {
+			yoldaOpenStart = 0;
+			long ms = android.os.SystemClock.elapsedRealtime() - t0;
+			me.aap.fermata.ui.fragment.YoldaLog.add("Açıldı: " + yoldaOpenName + " · " + (ms / 100) / 10f + " sn · "
+					+ engine.getClass().getSimpleName());
+		}
 		engine.getPosition().and(engine.getSpeed()).main()
 				.onSuccess(h -> setPlayingState(engine, true, h.value1, h.value2));
 	}
@@ -1149,6 +1165,9 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	public void onEngineError(MediaEngine engine, Throwable ex) {
 		String msg;
 		PlayableItem i = engine.getSource();
+		yoldaOpenStart = 0;
+		me.aap.fermata.ui.fragment.YoldaLog.add("Oynatma hatası: " + ((i != null) ? i.getName() : "?") + " · "
+				+ engine.getClass().getSimpleName() + " · " + ex);
 
 		if (TextUtils.isEmpty(ex.getLocalizedMessage())) {
 			msg = lib.getContext().getResources().getString(R.string.err_failed_to_play, i);
@@ -1288,8 +1307,11 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	private void playPreparedItem(MediaEngine eng, PlayableItem i, long pos, PlayableItem current,
 																long currentPos) {
 		engine = eng = getEngineManager().createEngine(eng, i, this);
+		yoldaOpenStart = android.os.SystemClock.elapsedRealtime();
+		yoldaOpenName = i.getName();
 
 		if (eng == null) {
+			yoldaOpenStart = 0;
 			if (current != null) setLastPlayed(current, currentPos);
 			String msg =
 					lib.getContext().getResources().getString(R.string.err_unsupported_source_type, i);

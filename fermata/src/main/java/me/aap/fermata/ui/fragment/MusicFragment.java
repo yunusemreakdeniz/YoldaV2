@@ -36,6 +36,7 @@ import me.aap.fermata.media.lib.MediaLib;
 import me.aap.fermata.media.yt.YtMusic;
 import me.aap.fermata.media.yt.YtMusicItem;
 import me.aap.fermata.ui.activity.MainActivityDelegate;
+import me.aap.fermata.ui.view.YoldaNowPlaying;
 import me.aap.fermata.ui.view.YoldaStyle;
 import me.aap.utils.log.Log;
 
@@ -241,7 +242,7 @@ public class MusicFragment extends MainActivityFragment {
 		showChips();
 		if (pendingPlay == null) showHome();
 		rootView = root;
-		if (nowIndex >= 0) root.post(this::addMiniBar);
+		// çalan şarkı uygulamanın oynatıcı çubuğunda görünür (ayrı küçük çubuk yok)
 		return root;
 	}
 
@@ -780,6 +781,8 @@ public class MusicFragment extends MainActivityFragment {
 		everPlayed = false;
 		nowViaYoutube = directBroken;
 		hookSkip();
+		stopTicker();
+		YoldaNowPlaying.expect(tr.title(), tr.artist(), tr.thumb()); // akış aranırken de şarkı görünsün
 		showNowPlaying();
 		if (directBroken) {
 			status.setText("Çalıyor: " + tr.title());
@@ -790,6 +793,7 @@ public class MusicFragment extends MainActivityFragment {
 		YtMusicItem.create(a.getLib(), queue, idx).onCompletion((item, err) -> {
 			if (!isAdded()) return;
 			if ((err != null) || (item == null)) {
+				YoldaNowPlaying.clearExpected();
 				// YouTube doğrudan ses akışı vermedi (ör. "bot değilim" doğrulaması): YouTube oynatıcısında çal
 				Log.e(err, "Doğrudan çalınamadı, YouTube oynatıcısına geçiliyor");
 				directBroken = true;
@@ -832,6 +836,12 @@ public class MusicFragment extends MainActivityFragment {
 	/** Yedek yol: şarkıyı YouTube sekmesinin oynatıcısında aç, sonra Müzik ekranına dön (ses sürer). */
 	private void playInYoutube(MainActivityDelegate a, YtMusic.Track tr) {
 		nowViaYoutube = true;
+		YoldaNowPlaying.clearExpected();
+		// YouTube oynatıcısı şarkı bitince kendi önerisine gitmesin: listede sıradakine geç
+		startTicker(() -> {
+			YtMusic.Track cur = nowTrack();
+			if (nowViaYoutube && (cur != null)) autoAdvance(positionMs(a.getMediaSessionCallback()), durationMs(cur));
+		});
 		String url = "https://m.youtube.com/watch?v=" + tr.id();
 		Object existing = findFragment(R.id.youtube_fragment);
 		if (existing != null) { // sekme zaten açık: ekran değiştirmeden şarkıyı yükle
@@ -876,165 +886,16 @@ public class MusicFragment extends MainActivityFragment {
 
 	/** YouTube Music kapağını büyük boyutla iste (arama sonuçları küçük kapak verir). */
 	@Nullable
-	static String bigThumb(@Nullable String u) {
+	public static String bigThumb(@Nullable String u) {
 		if (u == null) return null;
 		if (u.contains("googleusercontent.com") || u.contains("ggpht.com"))
 			return u.replaceAll("=w\\d+-h\\d+[^&]*$", "=w720-h720-l90-rj").replaceAll("=s\\d+[^&]*$", "=s720");
 		return u.replace("/default.jpg", "/hqdefault.jpg").replace("/mqdefault.jpg", "/hqdefault.jpg");
 	}
 
-	/** Tam ekran "Şimdi çalıyor": büyük kapak, ad, sanatçı, ilerleme, önceki / oynat / sonraki. */
+	/** Uygulamanın tek "Şimdi çalıyor" ekranı (müzik, radyo, TV aynı ekranı kullanır). */
 	private void showNowPlaying() {
-		YtMusic.Track tr = nowTrack();
-		if ((tr == null) || (rootView == null)) return;
-		Context ctx = requireContext();
-		MainActivityDelegate a = getActivityDelegate();
-		removeMini();
-		if (nowView != null) rootView.removeView(nowView);
-
-		boolean wide = YoldaStyle.widthDp(ctx) > YoldaStyle.heightDp(ctx) * 1.15f;
-		FrameLayout ov = new FrameLayout(ctx);
-		GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-				new int[]{(t.base & 0x00FFFFFF) | 0xF2000000, (t.base & 0x00FFFFFF) | 0xFA000000});
-		ov.setBackground(bg);
-		ov.setClickable(true);
-		nowView = ov;
-
-		ImageView down = new ImageView(ctx);
-		down.setImageResource(R.drawable.yi_chevron);
-		down.setRotation(90);
-		down.setColorFilter(0xFFFFFFFF);
-		down.setPadding(dp(10), dp(10), dp(10), dp(10));
-		down.setBackground(YoldaStyle.glass(ctx, t, 999));
-		down.setOnClickListener(v -> hideNowPlaying());
-		int cut = me.aap.fermata.ui.view.YoldaStyle.cutoutTopPx; // kamera çentiği
-		FrameLayout.LayoutParams dlp = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.TOP | Gravity.START);
-		dlp.setMargins(dp(18), cut + dp(12), 0, 0);
-		TextView lbl = text(ctx, "ŞİMDİ ÇALIYOR", 12, true, t.muted);
-		lbl.setLetterSpacing(0.12f);
-		FrameLayout.LayoutParams llp = new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-		llp.topMargin = cut + dp(26);
-
-		LinearLayout body = new LinearLayout(ctx);
-		body.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
-		body.setGravity(Gravity.CENTER);
-		body.setPadding(dp(24), cut + dp(72), dp(24), dp(84)); // altta yalnız sesli asistan düğmesi
-
-		// Kapak önce küçük; ekran yerleşince gerçek yüksekliğe göre büyütülür (butonlara yer kalsın)
-		int cover = dp(160);
-		FrameLayout art = thumb(ctx, tr, 18, false);
-		art.setElevation(dp(12));
-		ImageView big = new ImageView(ctx);
-		big.setScaleType(ImageView.ScaleType.CENTER_CROP);
-		big.setVisibility(View.GONE);
-		art.addView(big, new FrameLayout.LayoutParams(-1, -1));
-		String bu = bigThumb(tr.thumb());
-		if (bu != null) {
-			a.getLib().getBitmap(bu, true, true).main().onCompletion((bmp, err) -> {
-				if (!isAdded() || (bmp == null)) return;
-				big.setImageBitmap(bmp);
-				big.setVisibility(View.VISIBLE);
-			});
-		}
-		body.addView(art, new LinearLayout.LayoutParams(cover, cover));
-
-		LinearLayout info = new LinearLayout(ctx);
-		info.setOrientation(LinearLayout.VERTICAL);
-		info.setGravity(wide ? Gravity.START : Gravity.CENTER_HORIZONTAL);
-		TextView name = text(ctx, tr.title(), 24, true, t.ink);
-		name.setMaxLines(2);
-		name.setEllipsize(TextUtils.TruncateAt.END);
-		name.setGravity(wide ? Gravity.START : Gravity.CENTER);
-		info.addView(name, new LinearLayout.LayoutParams(-1, -2));
-		TextView art2 = text(ctx, (tr.artist() != null) ? tr.artist() : "", 16, false, t.muted);
-		art2.setMaxLines(1);
-		art2.setEllipsize(TextUtils.TruncateAt.END);
-		art2.setGravity(wide ? Gravity.START : Gravity.CENTER);
-		art2.setPadding(0, dp(4), 0, dp(14));
-		info.addView(art2, new LinearLayout.LayoutParams(-1, -2));
-
-		android.widget.SeekBar seek = new android.widget.SeekBar(ctx);
-		seek.setMax(1000);
-		seek.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
-		seek.setThumbTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
-		seek.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(0x55FFFFFF));
-		info.addView(seek, new LinearLayout.LayoutParams(-1, dp(36)));
-		LinearLayout times = new LinearLayout(ctx);
-		times.setOrientation(LinearLayout.HORIZONTAL);
-		times.setPadding(dp(14), 0, dp(14), 0);
-		TextView pos = text(ctx, "0:00", 13, false, t.muted);
-		TextView dur = text(ctx, (tr.durationSec() > 0) ? fmt(tr.durationSec()) : "", 13, false, t.muted);
-		dur.setGravity(Gravity.END);
-		times.addView(pos, new LinearLayout.LayoutParams(0, -2, 1f));
-		times.addView(dur, new LinearLayout.LayoutParams(0, -2, 1f));
-		info.addView(times, new LinearLayout.LayoutParams(-1, -2));
-
-		LinearLayout ctl = new LinearLayout(ctx);
-		ctl.setOrientation(LinearLayout.HORIZONTAL);
-		ctl.setGravity(Gravity.CENTER);
-		ctl.setPadding(0, dp(10), 0, 0);
-		ImageView prev = ctlButton(ctx, R.drawable.yi_prev, false);
-		prev.setOnClickListener(v -> skip(-1));
-		ImageView pp = ctlButton(ctx, R.drawable.yi_pause, true);
-		pp.setOnClickListener(v -> togglePlay(a));
-		ImageView next = ctlButton(ctx, R.drawable.yi_next, false);
-		next.setOnClickListener(v -> skip(1));
-		ctl.addView(prev, new LinearLayout.LayoutParams(dp(64), dp(64)));
-		LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(dp(84), dp(84));
-		plp.setMargins(dp(28), 0, dp(28), 0);
-		ctl.addView(pp, plp);
-		ctl.addView(next, new LinearLayout.LayoutParams(dp(64), dp(64)));
-		info.addView(ctl, new LinearLayout.LayoutParams(-1, -2));
-
-		LinearLayout.LayoutParams ilp = wide ? new LinearLayout.LayoutParams(0, -2, 1f)
-				: new LinearLayout.LayoutParams(-1, -2);
-		if (wide) ilp.leftMargin = dp(32);
-		else ilp.topMargin = dp(22);
-		body.addView(info, ilp);
-
-		ov.addView(body, new FrameLayout.LayoutParams(-1, -1));
-		ov.addView(down, dlp);
-		ov.addView(lbl, llp);
-		rootView.addView(ov, new FrameLayout.LayoutParams(-1, -1));
-		if (search != null) search.setVisibility(View.GONE); // katmanın üstünde görünüyordu
-		ov.post(() -> fitCover(ov, body, info, art, wide));
-		ov.setAlpha(0f);
-		ov.setTranslationY(dp(40));
-		ov.animate().alpha(1f).translationY(0).setDuration(220).start();
-
-		final boolean[] dragging = {false};
-		seek.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
-			@Override
-			public void onProgressChanged(android.widget.SeekBar s, int p, boolean user) {
-				if (user) pos.setText(fmt(durationMs(tr) * p / 1000 / 1000));
-			}
-
-			@Override
-			public void onStartTrackingTouch(android.widget.SeekBar s) {
-				dragging[0] = true;
-			}
-
-			@Override
-			public void onStopTrackingTouch(android.widget.SeekBar s) {
-				dragging[0] = false;
-				long d = durationMs(tr);
-				if (d > 0) a.getMediaSessionCallback().onSeekTo(d * s.getProgress() / 1000);
-			}
-		});
-
-		startTicker(() -> {
-			me.aap.fermata.media.service.MediaSessionCallback cb = a.getMediaSessionCallback();
-			if (checkClosed(cb)) return;
-			boolean playing = cb.isPlaying();
-			pp.setImageResource(playing ? R.drawable.yi_pause : R.drawable.yi_play);
-			long p = positionMs(cb);
-			long d = durationMs(tr);
-			if (!dragging[0] && (d > 0)) {
-				seek.setProgress((int) Math.min(1000, p * 1000 / d));
-				pos.setText(fmt(p / 1000));
-			}
-			autoAdvance(p, d);
-		});
+		YoldaNowPlaying.show(getActivityDelegate());
 	}
 
 	private void togglePlay(MainActivityDelegate a) {
@@ -1158,8 +1019,10 @@ public class MusicFragment extends MainActivityFragment {
 		me.aap.fermata.media.service.MediaSessionCallback.yoldaSkip = dir -> {
 			if (!isAdded() || (nowQueue == null)) return false;
 			MediaLib.PlayableItem cur = getActivityDelegate().getCurrentPlayable();
-			boolean ours = (cur instanceof YtMusicItem)
-					|| (nowViaYoutube && (cur != null) && cur.getClass().getName().contains("Youtube"));
+			// Doğrudan çalan şarkıda (YtMusicItem) önceki/sonraki oynatıcının kendisinde: liste öğenin içinde,
+			// her ekranda ve direksiyonda çalışır. Burası yalnız YouTube oynatıcısı yedeği için.
+			boolean ours = nowViaYoutube && (cur != null) && !(cur instanceof YtMusicItem)
+					&& cur.getClass().getName().contains("Youtube");
 			if (!ours) return false;
 			int i = nowIndex + dir;
 			if ((i < 0) || (i >= nowQueue.size())) return false;
@@ -1198,70 +1061,7 @@ public class MusicFragment extends MainActivityFragment {
 	}
 
 	private void hideNowPlaying() {
-		if ((nowView == null) || (rootView == null)) return;
-		View v = nowView;
-		FrameLayout r = rootView;
-		nowView = null;
-		v.animate().alpha(0f).translationY(dp(40)).setDuration(180).withEndAction(() -> r.removeView(v)).start();
-		if (search != null) search.setVisibility(View.VISIBLE);
-		addMiniBar();
-	}
-
-	/** Küçük "şimdi çalıyor" çubuğu: arama kutusunun üstünde; dokununca büyük ekran açılır. */
-	private void addMiniBar() {
-		YtMusic.Track tr = nowTrack();
-		if ((tr == null) || (rootView == null) || !isAdded()) return;
-		removeMini();
-		Context ctx = requireContext();
-		MainActivityDelegate a = getActivityDelegate();
-		LinearLayout bar = new LinearLayout(ctx);
-		bar.setOrientation(LinearLayout.HORIZONTAL);
-		bar.setGravity(Gravity.CENTER_VERTICAL);
-		bar.setPadding(dp(8), dp(6), dp(6), dp(6));
-		GradientDrawable bbg = new GradientDrawable();
-		bbg.setColor((t.base & 0x00FFFFFF) | 0xF2000000);
-		bbg.setCornerRadius(dp(18));
-		bbg.setStroke(Math.max(1, dp(1)), 0x66FFFFFF);
-		bar.setBackground(bbg);
-		bar.setElevation(dp(10));
-		bar.setClickable(true);
-		bar.setOnClickListener(v -> showNowPlaying());
-		bar.addView(thumb(ctx, tr, 10, false), new LinearLayout.LayoutParams(dp(44), dp(44)));
-		LinearLayout txt = new LinearLayout(ctx);
-		txt.setOrientation(LinearLayout.VERTICAL);
-		txt.setPadding(dp(12), 0, dp(8), 0);
-		TextView n = text(ctx, tr.title(), 15, true, t.ink);
-		n.setMaxLines(1);
-		n.setEllipsize(TextUtils.TruncateAt.END);
-		txt.addView(n);
-		TextView s = text(ctx, (tr.artist() != null) ? tr.artist() : "", 12, false, t.muted);
-		s.setMaxLines(1);
-		s.setEllipsize(TextUtils.TruncateAt.END);
-		txt.addView(s);
-		bar.addView(txt, new LinearLayout.LayoutParams(0, -2, 1f));
-		ImageView pp = new ImageView(ctx);
-		pp.setColorFilter(0xFFFFFFFF);
-		pp.setPadding(dp(10), dp(10), dp(10), dp(10));
-		pp.setImageResource(a.getMediaSessionCallback().isPlaying() ? R.drawable.yi_pause : R.drawable.yi_play);
-		pp.setOnClickListener(v -> togglePlay(a));
-		bar.addView(pp, new LinearLayout.LayoutParams(dp(48), dp(48)));
-		ImageView nx = new ImageView(ctx);
-		nx.setImageResource(R.drawable.yi_next);
-		nx.setColorFilter(0xFFFFFFFF);
-		nx.setPadding(dp(12), dp(12), dp(12), dp(12));
-		nx.setOnClickListener(v -> skip(1));
-		bar.addView(nx, new LinearLayout.LayoutParams(dp(48), dp(48)));
-		FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
-		lp.setMargins(dp(16), 0, dp(16), dp(14 + 56 + 10));
-		rootView.addView(bar, lp);
-		miniBar = bar;
-		if (content != null) content.setPadding(0, dp(6), 0, dp(96 + 76));
-		startTicker(() -> {
-			me.aap.fermata.media.service.MediaSessionCallback cb = a.getMediaSessionCallback();
-			if (checkClosed(cb)) return;
-			pp.setImageResource(cb.isPlaying() ? R.drawable.yi_pause : R.drawable.yi_play);
-			autoAdvance(positionMs(cb), durationMs(tr));
-		});
+		YoldaNowPlaying.hide(getActivityDelegate());
 	}
 
 	private void removeMini() {
@@ -1367,7 +1167,7 @@ public class MusicFragment extends MainActivityFragment {
 
 	// ---- yardımcılar ----
 
-	static String fmt(long s) {
+	public static String fmt(long s) {
 		return (s / 60) + ":" + ((s % 60 < 10) ? "0" : "") + (s % 60);
 	}
 

@@ -125,6 +125,17 @@ public class YoldaLogicTest {
 		org.junit.Assert.assertFalse(YoldaWake.isWake(null));
 	}
 
+	// ---- tanı günlüğü: önceki kapanış nedenleri ----
+
+	@Test
+	public void kapanisNedenleri() {
+		assertEquals("BELLEK YETMEDİ (sistem kapattı)", YoldaLog.reasonName(3));
+		assertEquals("ÇÖKME (Java)", YoldaLog.reasonName(4));
+		assertEquals("YEREL ÇÖKME (native)", YoldaLog.reasonName(5));
+		assertEquals("YANIT VERMEDİ (ANR)", YoldaLog.reasonName(6));
+		assertEquals("bilinmiyor (99)", YoldaLog.reasonName(99));
+	}
+
 	private static YtMusic.Track track(String url) {
 		return new YtMusic.Track(url, "t", "a", null, 0);
 	}

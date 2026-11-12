@@ -37,6 +37,7 @@ import me.aap.fermata.R;
 import me.aap.fermata.ui.activity.MainActivity;
 import me.aap.fermata.ui.activity.MainActivityDelegate;
 import me.aap.fermata.ui.view.ControlPanelView;
+import me.aap.fermata.ui.view.YoldaNowPlaying;
 
 /**
  * Yolda UI/UX testleri: her ekran dikey, yatay ve araç boyutunda (800×400 dp) açılır, ekran görüntüsü
@@ -126,6 +127,32 @@ public class YoldaUiUxTest {
 		});
 		waitIdle(1000);
 		issues.addAll(audit("oynatici_arac"));
+		assertTrue(fmt(issues), issues.isEmpty());
+	}
+
+	/** Tek "Şimdi çalıyor" ekranı: dikey telefon ve araç boyutunda. */
+	@Test
+	public void simdiCaliyorEkrani() {
+		onMain(a -> {
+			YoldaNowPlaying.expect("Şımarık", "Tarkan", null);
+			YoldaNowPlaying.show(a);
+			return null;
+		});
+		waitIdle(1500);
+		assertTrue("Şimdi çalıyor açılmalı", onMain(YoldaNowPlaying::isShown));
+		List<String> issues = audit("simdi_caliyor_dikey");
+		shell("wm size 1600x800");
+		shell("wm density 320");
+		waitIdle(3000);
+		onMain(a -> {
+			YoldaNowPlaying.expect("Şımarık", "Tarkan", null);
+			YoldaNowPlaying.show(a);
+			return null;
+		});
+		waitIdle(1500);
+		issues.addAll(audit("simdi_caliyor_arac"));
+		onMain(YoldaNowPlaying::hide);
+		YoldaNowPlaying.clearExpected();
 		assertTrue(fmt(issues), issues.isEmpty());
 	}
 
@@ -243,6 +270,9 @@ public class YoldaUiUxTest {
 	// ---- ekran görüntüsü ve rapor ----
 
 	private void screenshot(String name) {
+		// Kabuk ile doğrudan /data/local/tmp'ye: test bitince uygulama kaldırılsa da CI dosyaları alır
+		shell("mkdir -p " + SHOT_DIR);
+		shell("screencap -p " + SHOT_DIR + "/" + name + ".png");
 		try {
 			Bitmap b = ui().takeScreenshot();
 			if (b == null) return;
@@ -260,7 +290,12 @@ public class YoldaUiUxTest {
 			for (String s : report) out.write((s + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
 		} catch (Exception ignore) {
 		}
+		shell("mkdir -p " + SHOT_DIR);
+		shell("cp " + new File(outDir(), "rapor.txt").getAbsolutePath() + " " + SHOT_DIR + "/rapor.txt");
+		for (String s : report) Log.i(TAG, "RAPOR " + s);
 	}
+
+	private static final String SHOT_DIR = "/data/local/tmp/yolda-ui";
 
 	private static File outDir() {
 		File d = new File(ctx().getExternalFilesDir(null), "ui");

@@ -251,6 +251,8 @@ public class ControlPanelView extends ConstraintLayout
 		if ((mask & MASK_VIDEO_MODE) != 0) disableVideoMode();
 		BodyLayout b = a.getBody();
 		if ((b != null) && b.isVideoMode()) b.setMode(BodyLayout.Mode.FRAME);
+		YoldaNowPlaying.clearExpected();
+		YoldaNowPlaying.hide(a);
 		setVisibility(GONE);
 	}
 
@@ -338,6 +340,9 @@ public class ControlPanelView extends ConstraintLayout
 			hideTimer = new HideTimer(a, delay, false, hideTimer.views);
 			a.postDelayed(hideTimer, delay);
 		}
+		// Yolda çubuğu dokunuşları kendisi işler: Fermata'nın kaydırma hareketleri (kaydırınca önceki/sonraki,
+		// sarma, klasör değiştirme) sürüşte yanlışlıkla kanal / şarkı değiştiriyordu
+		if (yoldaBar != null) return false;
 		return a.interceptTouchEvent(e, me -> {
 			gestureSource = this;
 			gestureDetector.onTouchEvent(me);

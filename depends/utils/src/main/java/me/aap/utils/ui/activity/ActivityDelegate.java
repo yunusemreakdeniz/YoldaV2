@@ -414,6 +414,26 @@ public abstract class ActivityDelegate implements EventBroadcaster<ActivityListe
 		}
 	}
 
+	/**
+	 * Yolda: görünümü kullanılamaz hâle gelen parçayı (ör. web sayfası işlemi kapandı) atar; ekrandaysa
+	 * aynı parça yeniden kurulup gösterilir, değilse bir dahaki açılışta sıfırdan kurulur.
+	 */
+	public void recreateFragment(@NonNull Fragment f) {
+		if (!(f instanceof ActivityFragment af)) return;
+		int id = af.getFragmentId();
+		boolean active = (activeFragmentId == id);
+		try {
+			getSupportFragmentManager().beginTransaction().remove(f).commitNowAllowingStateLoss();
+		} catch (Exception ex) {
+			Log.e(ex, "Parça atılamadı");
+			return;
+		}
+		if (active) {
+			activeFragmentId = ID_NULL;
+			showFragment(id);
+		}
+	}
+
 	protected ActivityFragment createFragment(int id) {
 		if (id == R.id.file_picker) return new FilePickerFragment();
 		else if (id == R.id.generic_fragment) return new GenericFragment();

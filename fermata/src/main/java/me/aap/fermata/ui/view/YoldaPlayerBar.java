@@ -30,7 +30,7 @@ import me.aap.fermata.ui.activity.MainActivityDelegate;
  * çizgisi (sürüklenerek ileri/geri sarılır); canlı yayında "CANLI" rozeti. Her yarım saniyede oynatıcı
  * durumundan güncellenir (TV, müzik, YouTube hangi motor çalıyorsa).
  */
-public class YoldaPlayerBar extends FrameLayout {
+public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.Listener {
 	public static final int HEIGHT_DP = 68;
 
 	private final ImageView cover;
@@ -40,6 +40,7 @@ public class YoldaPlayerBar extends FrameLayout {
 	private final ImageView play;
 	private final ProgressLine progress;
 	private final TextView live;
+	private final YoldaNowPlaying.BusyRing ring;
 	private final Runnable ticker = this::tick;
 	private String itemId;
 	private boolean dragging;
@@ -90,6 +91,7 @@ public class YoldaPlayerBar extends FrameLayout {
 		LinearLayout txt = new LinearLayout(ctx);
 		txt.setOrientation(LinearLayout.VERTICAL);
 		txt.setPadding(dp(12), 0, dp(6), 0);
+		txt.setGravity(Gravity.CENTER_VERTICAL);
 		txt.setOnClickListener(v -> openCurrent());
 		title = new TextView(ctx);
 		title.setTextColor(0xFFFFFFFF);
@@ -124,7 +126,7 @@ public class YoldaPlayerBar extends FrameLayout {
 		sub.setEllipsize(TextUtils.TruncateAt.END);
 		subRow.addView(sub);
 		txt.addView(subRow);
-		row.addView(txt, new LinearLayout.LayoutParams(0, -2, 1f));
+		row.addView(txt, new LinearLayout.LayoutParams(0, -1, 1f)); // tüm yükseklik dokunulabilir
 
 		// Düğmeler (her biri en az 44dp dokunma alanı)
 		if (!compact) row.addView(button(ctx, R.drawable.yi_prev, "Önceki", v -> cb().onSkipToPrevious()), btnLp(44));
@@ -135,10 +137,15 @@ public class YoldaPlayerBar extends FrameLayout {
 		pc.setColor(0xFFFFFFFF);
 		play.setBackground(pc);
 		play.setPadding(dp(12), dp(12), dp(12), dp(12));
-		LinearLayout.LayoutParams plp = btnLp(48);
-		plp.leftMargin = dp(4);
-		plp.rightMargin = dp(4);
-		row.addView(play, plp);
+		// bağlanırken / tamponlarken oynat düğmesinin çevresinde dönen halka
+		FrameLayout pf = new FrameLayout(ctx);
+		ring = new YoldaNowPlaying.BusyRing(ctx);
+		pf.addView(ring, new LayoutParams(-1, -1));
+		pf.addView(play, new LayoutParams(dp(46), dp(46), Gravity.CENTER));
+		LinearLayout.LayoutParams plp = btnLp(56);
+		plp.leftMargin = dp(2);
+		plp.rightMargin = dp(2);
+		row.addView(pf, plp);
 		row.addView(button(ctx, R.drawable.yi_next, "Sonraki", v -> cb().onSkipToNext()), btnLp(44));
 		if (!compact) row.addView(button(ctx, R.drawable.more, "Diğer", v -> clickOriginal(R.id.control_menu_button)),
 				btnLp(40));
@@ -158,13 +165,27 @@ public class YoldaPlayerBar extends FrameLayout {
 	@Override
 	protected void onAttachedToWindow() {
 		super.onAttachedToWindow();
+		try { // durum değişince hemen güncelle (yalnız yarım saniyelik tura bağlı kalma)
+			cb().addBroadcastListener(this);
+		} catch (Throwable ignore) {
+		}
 		post(ticker);
 	}
 
 	@Override
 	protected void onDetachedFromWindow() {
 		removeCallbacks(ticker);
+		ring.setBusy(false);
+		try {
+			cb().removeBroadcastListener(this);
+		} catch (Throwable ignore) {
+		}
 		super.onDetachedFromWindow();
+	}
+
+	@Override
+	public void onPlaybackStateChanged(MediaSessionCallback cb, PlaybackStateCompat state) {
+		post(ticker);
 	}
 
 	private void tick() {
@@ -193,6 +214,31 @@ public class YoldaPlayerBar extends FrameLayout {
 		MediaSessionCallback cb = a.getMediaSessionCallback();
 		boolean playing = cb.isPlaying();
 		play.setImageResource(playing ? R.drawable.yi_pause : R.drawable.yi_play);
+		boolean busy = YoldaNowPlaying.isBusy(cb);
+		ring.setBusy(busy);
+
+		// Dokunulan şarkı henüz aranıyor: hemen onun adını göster
+		String pt = YoldaNowPlaying.pendingTitle(cb);
+		if (pt != null) {
+			String key = "pending:" + pt;
+			if (!key.equals(itemId)) {
+				itemId = key;
+				title.setText(pt);
+				cover.animate().alpha(0f).setDuration(120).start();
+				String th = YoldaNowPlaying.pendingThumb(cb);
+				if (th != null) {
+					a.getLib().getBitmap(th, true, true).main().onCompletion((bmp, e2) -> {
+						if ((bmp == null) || !key.equals(itemId)) return;
+						cover.setImageBitmap(bmp);
+						cover.animate().alpha(1f).setDuration(220).start();
+					});
+				}
+			}
+			sub.setText("Bağlanıyor…");
+			live.setVisibility(GONE);
+			progress.set(0f, false);
+			return;
+		}
 
 		MediaLib.PlayableItem pi = a.getCurrentPlayable();
 		if (pi == null) return;
@@ -200,6 +246,16 @@ public class YoldaPlayerBar extends FrameLayout {
 		if (!id.equals(itemId)) {
 			itemId = id;
 			loadInfo(a, pi);
+		}
+		if (YoldaNowPlaying.isError(cb)) {
+			sub.setText("Açılamadı · ▶ ile tekrar dene");
+			subOverride = true;
+		} else if (busy) {
+			sub.setText("Bağlanıyor…");
+			subOverride = true;
+		} else if (subOverride) {
+			subOverride = false;
+			sub.setText(subText);
 		}
 
 		PlaybackStateCompat st = cb.getPlaybackState();
@@ -223,9 +279,14 @@ public class YoldaPlayerBar extends FrameLayout {
 		return 0;
 	}
 
+	/** Alt satır geçici olarak "Bağlanıyor…" / hata gösteriyorsa asıl metin burada bekler. */
+	private CharSequence subText = "";
+	private boolean subOverride;
+
 	private void loadInfo(MainActivityDelegate a, MediaLib.PlayableItem pi) {
 		title.setText(pi.getName());
-		sub.setText("");
+		subText = "";
+		if (!subOverride) sub.setText("");
 		cover.animate().alpha(0f).setDuration(120).start();
 		pi.getMediaDescription().main().onSuccess(md -> {
 			if (!pi.getId().equals(itemId) || (md == null)) return;
@@ -235,7 +296,8 @@ public class YoldaPlayerBar extends FrameLayout {
 				MediaLib.BrowsableItem p = pi.getParent();
 				s = (p != null) ? p.getName() : "";
 			}
-			sub.setText(s);
+			subText = s;
+			if (!subOverride) sub.setText(s);
 		});
 		pi.getIconUri().main().onCompletion((u, err) -> {
 			if ((u == null) || !pi.getId().equals(itemId)) return;
@@ -254,17 +316,17 @@ public class YoldaPlayerBar extends FrameLayout {
 	}
 
 	private void togglePlay() {
-		MediaSessionCallback cb = cb();
-		if (cb.isPlaying()) cb.onPause();
-		else cb.onPlay();
+		YoldaNowPlaying.togglePlay(MainActivityDelegate.get(getContext()));
+		post(ticker);
 		play.animate().scaleX(0.86f).scaleY(0.86f).setDuration(80)
 				.withEndAction(() -> play.animate().scaleX(1f).scaleY(1f).setDuration(160).start()).start();
 	}
 
-	/** Kapağa ya da ada dokununca çalan içeriğe git (video ise video ekranı). */
+	/** Kapağa ya da ada dokununca: video ise tam ekran video, değilse "Şimdi çalıyor" ekranı (açıksa kapanır). */
 	private void openCurrent() {
 		try {
-			MainActivityDelegate.get(getContext()).goToCurrent();
+			MainActivityDelegate a = MainActivityDelegate.get(getContext());
+			if (!YoldaNowPlaying.hide(a)) YoldaNowPlaying.open(a);
 		} catch (Throwable ignore) {
 		}
 	}

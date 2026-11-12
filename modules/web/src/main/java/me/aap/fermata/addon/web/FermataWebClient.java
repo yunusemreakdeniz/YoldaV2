@@ -252,6 +252,24 @@ public class FermataWebClient extends WebViewClientCompat {
 				host.equals("youtu.be")));
 	}
 
+	/**
+	 * Yolda: web sayfasını çalıştıran işlem kapandı (çoğunlukla bellek azaldığı için Android kapattı).
+	 * Ele alınmazsa Android uygulamanın tamamını kapatır ("Yolda durduruldu"); burada sayfa sessizce
+	 * yeniden kurulur.
+	 */
+	@Override
+	public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+		boolean crash = (android.os.Build.VERSION.SDK_INT >= 26) && (detail != null) && detail.didCrash();
+		me.aap.fermata.ui.fragment.YoldaLog.add("Web sayfası işlemi kapandı (" + (crash ? "çöktü" : "bellek için kapatıldı")
+				+ "); sayfa yeniden kuruluyor");
+		try {
+			MainActivityDelegate.get(view.getContext()).recoverDeadWebView(view);
+		} catch (Throwable ex) {
+			Log.e(ex, "Web sayfası yeniden kurulamadı");
+		}
+		return true;
+	}
+
 	@Override
 	public void onReceivedError(@NonNull WebView view, @NonNull WebResourceRequest request,
 															@NonNull WebResourceErrorCompat error) {

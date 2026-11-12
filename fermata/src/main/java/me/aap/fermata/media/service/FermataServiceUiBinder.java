@@ -105,8 +105,13 @@ public class FermataServiceUiBinder extends BasicEventBroadcaster<FermataService
 
 	public void playItem(PlayableItem i, long pos) {
 		if (i.equals(getCurrentItem()) && (pos <= 0)) {
-			if (sessionCallback.getPlaybackState().getState() == PlaybackStateCompat.STATE_PAUSED) {
+			int st = sessionCallback.getPlaybackState().getState();
+			if (st == PlaybackStateCompat.STATE_PAUSED) {
 				sessionCallback.onPlay();
+			} else if ((st == PlaybackStateCompat.STATE_STOPPED) || (st == PlaybackStateCompat.STATE_ERROR)
+					|| (st == PlaybackStateCompat.STATE_NONE)) {
+				// Yolda: durdurulmuş ya da açılamamış aynı kanala yeniden dokununca yeniden aç (önceden hiçbir şey olmuyordu)
+				sessionCallback.playItem(i, pos);
 			}
 		} else {
 			sessionCallback.playItem(i, pos);

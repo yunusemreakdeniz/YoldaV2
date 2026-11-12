@@ -91,8 +91,33 @@ public final class YtMusic {
 		return p;
 	}
 
+	/** Bulunan akışlar 2 saat saklanır (YouTube adresleri ~6 saat geçerli): sıradaki şarkı beklemeden başlar. */
+	private static final long CACHE_MS = 2 * 60 * 60 * 1000L;
+	private static final java.util.Map<String, Stream> cache = new java.util.concurrent.ConcurrentHashMap<>();
+	private static final java.util.Map<String, Long> cacheTime = new java.util.concurrent.ConcurrentHashMap<>();
+
+	/** Şarkının akışını önceden bul (sıradaki şarkı için). */
+	public static void prefetch(Track t) {
+		if (cached(t) == null) resolve(t);
+	}
+
+	/** Akış adresi çalışmadıysa (süresi dolmuş olabilir) unut: bir dahakinde yeniden aranır. */
+	public static void forget(Track t) {
+		cache.remove(t.id());
+		cacheTime.remove(t.id());
+	}
+
+	@Nullable
+	private static Stream cached(Track t) {
+		Long at = cacheTime.get(t.id());
+		if ((at == null) || (System.currentTimeMillis() - at > CACHE_MS)) return null;
+		return cache.get(t.id());
+	}
+
 	/** Şarkının en iyi ses akışı (önce m4a, sonra en yüksek bit hızı; yalnız doğrudan HTTP). */
 	public static FutureSupplier<Stream> resolve(Track t) {
+		Stream hit = cached(t);
+		if (hit != null) return me.aap.utils.async.Completed.completed(hit);
 		Promise<Stream> p = new Promise<>();
 		App.get().getExecutor().submit(() -> {
 			try {
@@ -106,7 +131,10 @@ public final class YtMusic {
 				if (best == null) throw new IllegalStateException("Ses akışı bulunamadı");
 				String url = best.getContent();
 				String thumb = (t.thumb() != null) ? t.thumb() : bestImage(info.getThumbnails());
-				p.complete(new Stream(url, userAgentFor(url), info.getDuration(), thumb));
+				Stream s = new Stream(url, userAgentFor(url), info.getDuration(), thumb);
+				cache.put(t.id(), s);
+				cacheTime.put(t.id(), System.currentTimeMillis());
+				p.complete(s);
 			} catch (Throwable ex) {
 				Log.e(ex, "Şarkı açılamadı: ", t.url());
 				p.completeExceptionally(ex);

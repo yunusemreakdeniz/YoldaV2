@@ -49,11 +49,27 @@ public class YtMusicItem extends PlayableItemBase {
 	/** Listedeki şarkının akışını bulup çalınabilir öğe yapar. */
 	public static FutureSupplier<PlayableItem> create(MediaLib lib, List<YtMusic.Track> queue, int index) {
 		if ((index < 0) || (index >= queue.size())) return completedNull();
-		return YtMusic.resolve(queue.get(index)).main().map(s -> new YtMusicItem(lib, queue, index, s));
+		return YtMusic.resolve(queue.get(index)).main().map(s -> {
+			// sıradaki şarkının akışını biraz sonra önceden bul: şarkı bitince beklemeden geçilir
+			if (index + 1 < queue.size()) {
+				YtMusic.Track next = queue.get(index + 1);
+				me.aap.utils.app.App.get().getHandler().postDelayed(() -> YtMusic.prefetch(next), 4000);
+			}
+			return new YtMusicItem(lib, queue, index, s);
+		});
 	}
 
 	public YtMusic.Track getTrack() {
 		return track;
+	}
+
+	/** Çalınan liste (değiştirilemez görünüm). */
+	public List<YtMusic.Track> getQueue() {
+		return java.util.Collections.unmodifiableList(queue);
+	}
+
+	public int getIndex() {
+		return index;
 	}
 
 	@NonNull

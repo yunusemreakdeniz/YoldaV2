@@ -43,7 +43,14 @@ public final class YoldaWake {
 	private static final String MODEL_DIR = "vosk-tr";
 	private static final String GRAMMAR = "[\"hey yolda\", \"ey yolda\", \"yolda\", \"[unk]\"]";
 
+	/** Model yükleme / mikrofon açma tek bir arka plan iş parçacığında, sırayla (iki dinleyici açılmasın). */
+	private static final java.util.concurrent.ExecutorService EXEC = java.util.concurrent.Executors.newSingleThreadExecutor();
 	private static Model model;
+	/** Tek tanıyıcı, her dinlemede sıfırlanıp yeniden kullanılır (önceden her seferinde yenisi açılıp bellek sızıyordu). */
+	private static Recognizer recognizer;
+	/** Her başlat/durdur isteğinde artar: araya durdurma girdiyse geç biten başlatma çöpe atılır. */
+	private static int gen;
+	private static boolean starting;
 	@Nullable
 	private static SpeechService service;
 	@Nullable
@@ -76,7 +83,7 @@ public final class YoldaWake {
 		Context ctx = a.getContext();
 		owner = a;
 		paused = false;
-		if (!isEnabled(ctx) || (service != null)) return;
+		if (!isEnabled(ctx) || (service != null) || starting) return;
 		if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
 			YoldaLog.add("Hey Yolda: mikrofon izni yok");
 			return;
@@ -85,25 +92,44 @@ public final class YoldaWake {
 			download(a);
 			return;
 		}
-		App.get().getExecutor().submit(() -> {
+		starting = true;
+		int g = ++gen;
+		String dir = modelDir(ctx).getAbsolutePath();
+		EXEC.submit(() -> {
+			SpeechService s = null;
+			Throwable fail = null;
 			try {
 				LibVosk.setLogLevel(LogLevel.WARNINGS);
-				if (model == null) model = new Model(modelDir(ctx).getAbsolutePath());
-				Recognizer rec = new Recognizer(model, 16000.0f, GRAMMAR);
-				SpeechService s = new SpeechService(rec, 16000.0f);
-				App.get().getHandler().post(() -> {
-					if (paused || (owner == null) || !isEnabled(ctx)) {
-						s.shutdown();
-						return;
-					}
-					service = s;
-					s.startListening(listener);
-					YoldaLog.add("Hey Yolda: dinliyor (" + (a.isCarActivity() ? "araç" : "telefon") + ")");
-				});
+				if (model == null) model = new Model(dir);
+				if (recognizer == null) recognizer = new Recognizer(model, 16000.0f, GRAMMAR);
+				else recognizer.reset();
+				s = new SpeechService(recognizer, 16000.0f);
 			} catch (Throwable ex) {
-				Log.e(ex, "Hey Yolda başlatılamadı");
-				YoldaLog.add("Hey Yolda başlatılamadı: " + ex);
+				fail = ex;
 			}
+			SpeechService fs = s;
+			Throwable ff = fail;
+			App.get().getHandler().post(() -> {
+				starting = false;
+				if (fs == null) { // çoğunlukla mikrofon o an başka bir uygulamada: biraz sonra yeniden dene
+					Log.e(ff, "Hey Yolda başlatılamadı");
+					YoldaLog.add("Hey Yolda başlatılamadı: " + ff);
+					if (!paused) retrySoon(3000);
+					return;
+				}
+				if ((g != gen) || paused || (owner == null) || !isEnabled(ctx) || (service != null)) {
+					try {
+						fs.shutdown();
+					} catch (Throwable ignore) {
+					}
+					// bu arada durdurulup yeniden istendiyse (asistan bitti) şimdi başlat
+					if (!paused && (owner != null) && (service == null) && isEnabled(ctx)) start(owner);
+					return;
+				}
+				service = fs;
+				fs.startListening(listener);
+				YoldaLog.add("Hey Yolda: dinliyor (" + (a.isCarActivity() ? "araç" : "telefon") + ")");
+			});
 		});
 	}
 
@@ -130,14 +156,24 @@ public final class YoldaWake {
 
 	/** Sesli asistan bitince biraz bekleyip yeniden dinlemeye başla. */
 	public static void resumeSoon() {
+		paused = false;
+		retrySoon(1200);
+	}
+
+	private static void retrySoon(long delay) {
 		MainActivityDelegate a = owner;
 		if (a == null) return;
 		App.get().getHandler().postDelayed(() -> {
-			if ((owner == a) && (service == null)) start(a);
-		}, 1200);
+			if ((owner == a) && (service == null) && !paused) start(a);
+		}, delay);
 	}
 
+	/**
+	 * Dinlemeyi hemen bırakır: mikrofon bu çağrı dönünce boştur (sesli asistan hemen ardından mikrofonu
+	 * açabilir). Vosk'un okuma iş parçacığı en fazla bir ses parçası (~0,2 sn) sonra durur.
+	 */
 	private static void stopService() {
+		gen++;
 		SpeechService s = service;
 		service = null;
 		if (s != null) {

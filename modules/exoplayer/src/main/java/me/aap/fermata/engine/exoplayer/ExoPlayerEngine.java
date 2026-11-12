@@ -130,11 +130,14 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 								new DefaultAudioSink.DefaultAudioProcessorChain(audioProc)).build();
 			}
 		}).setMediaSourceFactory(msFactory)
-				// Yolda: canlı TV hızlı ve HD açılsın.
-				// Bağlantı baştan hızlı varsayılır (8 Mbit/sn): uyarlamalı seçim ilk parçadan HD seçer,
-				// en düşük kaliteden başlayıp yavaşça çıkmaz; hız gerçekten düşükse kendiliğinden iner.
-				.setBandwidthMeter(new androidx.media3.exoplayer.upstream.DefaultBandwidthMeter.Builder(ctx)
-						.setInitialBitrateEstimate(8_000_000).build())
+				// Yolda: canlı TV hem hızlı hem HD açılsın.
+				// İlk kalite, bu cihazda en son ölçülen gerçek bağlantı hızına göre seçilir (ilk kez 3 Mbit/sn):
+				// araçta mobil bağlantıda TRT'nin 4–7 MB'lık 1080p parçasını beklemek yerine yayın hemen başlar,
+				// kalite birkaç saniyede (10 sn yerine 4 sn tampon yeterli) bağlantının izin verdiği en yükseğe çıkar.
+				.setBandwidthMeter(meter(ctx))
+				.setTrackSelector(new androidx.media3.exoplayer.trackselection.DefaultTrackSelector(ctx,
+						new androidx.media3.exoplayer.trackselection.AdaptiveTrackSelection.Factory(4_000, 25_000,
+								25_000, 0.75f)))
 				// Oynatma 1 sn tampon dolunca başlar (varsayılan 2,5 sn); takılmadan sonra 2 sn
 				.setLoadControl(new androidx.media3.exoplayer.DefaultLoadControl.Builder()
 						.setBufferDurationsMs(15_000, 50_000, 1_000, 2_000).build())
@@ -166,6 +169,36 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 		return MediaPrefs.MEDIA_ENG_EXO;
 	}
 
+	// ---- Yolda: bağlantı hızı tahmini (tüm oynatıcılarda ortak, uygulama kapansa da hatırlanır) ----
+
+	private static final String BW_PREFS = "yolda_player";
+	private static final String BW_KEY = "bw_estimate";
+	private static androidx.media3.exoplayer.upstream.DefaultBandwidthMeter bwMeter;
+	private static Context bwCtx;
+
+	private static synchronized androidx.media3.exoplayer.upstream.DefaultBandwidthMeter meter(Context ctx) {
+		if (bwMeter == null) {
+			bwCtx = ctx.getApplicationContext();
+			long saved = bwCtx.getSharedPreferences(BW_PREFS, Context.MODE_PRIVATE).getLong(BW_KEY, 3_000_000L);
+			long init = Math.max(1_500_000L, Math.min(20_000_000L, saved));
+			bwMeter = new androidx.media3.exoplayer.upstream.DefaultBandwidthMeter.Builder(bwCtx)
+					.setInitialBitrateEstimate(init).build();
+		}
+		return bwMeter;
+	}
+
+	private static synchronized void saveBandwidth() {
+		if ((bwMeter == null) || (bwCtx == null)) return;
+		long e = bwMeter.getBitrateEstimate();
+		if (e > 0) bwCtx.getSharedPreferences(BW_PREFS, Context.MODE_PRIVATE).edit().putLong(BW_KEY, e).apply();
+	}
+
+	/** Son ölçülen bağlantı hızı (bit/sn); tanı günlüğü için. */
+	public static long getBandwidthEstimate() {
+		var m = bwMeter;
+		return (m != null) ? m.getBitrateEstimate() : 0;
+	}
+
 	@SuppressLint("SwitchIntDef")
 	@Override
 	public void prepare(PlayableItem source) {
@@ -192,6 +225,7 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 
 	@Override
 	public void stop() {
+		saveBandwidth();
 		stopped(false);
 		player.stop();
 		source = null;

@@ -27,8 +27,6 @@ https://turkmedya-live.ercdn.net/tv4/tv4.m3u8
 https://tv-trtturk.medya.trt.com.tr/master.m3u8
 #EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/TRT_Avaz_logo.svg/960px-TRT_Avaz_logo.svg.png" group-title="Ulusal",TRT Avaz
 https://tv-trtavaz.medya.trt.com.tr/master.m3u8
-#EXTINF:-1 tvg-logo="https://i.imgur.com/JrWFwBd.png" group-title="Ulusal",TRT 3
-https://tv-trt3.live.trt.com.tr/master.m3u8
 #EXTINF:-1 tvg-logo="https://i.imgur.com/fCHQYWS.png" group-title="Ulusal",TRT Genç
 https://tv-trtgenc.medya.trt.com.tr/master.m3u8
 #EXTINF:-1 tvg-logo="https://i.imgur.com/x9kHsXo.png" group-title="Ulusal",Euro D
@@ -103,8 +101,6 @@ https://live.duhnet.tv/S2/HLS_LIVE/dreamturknp/playlist.m3u8
 https://b01c02nl.mediatriple.net/videoonlylive/mtkgeuihrlfwlive/broadcast_5c9e17cd59e8b.smil/playlist.m3u8
 #EXTINF:-1 group-title="Radyo",TRT FM
 https://rd-trtfm.medya.trt.com.tr/master_128.m3u8
-#EXTINF:-1 group-title="Radyo",TRT Radyo Haber
-https://rd-trtradyohaber.medya.trt.com.tr/master_128.m3u8
 #EXTINF:-1 group-title="Radyo",TRT Radyo 1
 https://rd-trtradyo1.medya.trt.com.tr/master_128.m3u8
 #EXTINF:-1 group-title="Radyo",TRT Radyo 3

@@ -99,7 +99,7 @@ jobs:
           emulator-boot-timeout: 1200
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
-          script: ./gradlew fermata:connectedAutoDebugAndroidTest $GRADLE_ARGS; code=$?; adb logcat -d -s YoldaTest:I YoldaUiUx:W AndroidRuntime:E | tail -120; mkdir -p ui-ekranlar; adb pull /sdcard/Android/data/me.aap.fermata.auto.yolda.debug/files/ui ui-ekranlar/ || true; exit $code
+          script: ./gradlew fermata:connectedAutoDebugAndroidTest $GRADLE_ARGS; code=$?; adb logcat -d -s YoldaTest:I YoldaUiUx:I AndroidRuntime:E | tail -200; mkdir -p ui-ekranlar; adb pull /data/local/tmp/yolda-ui/. ui-ekranlar/ || true; ls ui-ekranlar | head -60; exit $code
       - name: Sonuçlar
         if: always()
         uses: actions/upload-artifact@v4
