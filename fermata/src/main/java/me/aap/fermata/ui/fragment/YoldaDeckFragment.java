@@ -331,7 +331,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			return 0xFF000000 | (r << 16) | (g << 8) | bl;
 		}
 
-		private boolean animate() {
+		private boolean motionOn() {
 			if (android.os.Build.VERSION.SDK_INT < 26) return true;
 			return android.animation.ValueAnimator.areAnimatorsEnabled();
 		}
@@ -340,7 +340,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		protected void onDraw(@NonNull android.graphics.Canvas c) {
 			float w = getWidth(), h = getHeight();
 			if ((w <= 0) || (h <= 0)) return;
-			boolean anim = animate();
+			boolean anim = motionOn();
 			// renk geçişi: her karede hedefe biraz yaklaş (animasyon kapalıysa hemen)
 			c1 = anim ? towards(c1, t1, 0.12f) : t1;
 			c2 = anim ? towards(c2, t2, 0.12f) : t2;

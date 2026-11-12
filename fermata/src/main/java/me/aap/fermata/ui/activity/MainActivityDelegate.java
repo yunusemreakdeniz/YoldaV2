@@ -842,7 +842,9 @@ public class MainActivityDelegate extends ActivityDelegate
 			id = R.id.yolda_channels_fragment;
 		BodyLayout b = getBody();
 		if (b.isVideoMode()) b.setMode(BodyLayout.Mode.BOTH);
-		return super.showFragment(id, input);
+		ActivityFragment f = super.showFragment(id, input);
+		updateBodyTopPadding();
+		return f;
 	}
 
 	protected ActivityFragment createFragment(int id) {
@@ -967,6 +969,63 @@ public class MainActivityDelegate extends ActivityDelegate
 			var cb = getMediaSessionCallback();
 			if (cb.isPlaying() || (getCurrentPlayable() != null)) getControlPanel().setVisibility(VISIBLE);
 		}, 150);
+	}
+
+	/**
+	 * V2: araç çubuğu (tarayıcının adres / arama çubuğu dahil) altta, oynatıcının hemen üstünde.
+	 * Gövde ekranın tepesinden başlar; araç çubuğu gizliyken gövde oynatıcıya kadar uzanır.
+	 */
+	private void toolbarToBottom(FermataActivity a) {
+		try {
+			View tb = a.findViewById(R.id.tool_bar);
+			View bd = a.findViewById(R.id.body_layout);
+			View cp = a.findViewById(R.id.control_panel);
+			if (!(tb.getLayoutParams() instanceof ConstraintLayout.LayoutParams tl)
+					|| !(bd.getLayoutParams() instanceof ConstraintLayout.LayoutParams bl)
+					|| !(cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl)) return;
+			int unset = ConstraintLayout.LayoutParams.UNSET;
+			tl.topToTop = unset;
+			tl.topToBottom = unset;
+			tl.bottomToBottom = unset;
+			tl.bottomToTop = R.id.control_panel;
+			tl.topMargin = 0;
+			tb.setLayoutParams(tl);
+			bl.topToBottom = unset;
+			bl.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+			bl.bottomToTop = R.id.tool_bar;
+			bd.setLayoutParams(bl);
+			cl.topToBottom = R.id.tool_bar;
+			cp.setLayoutParams(cl);
+			View pr = a.findViewById(R.id.content_loading_progress);
+			if ((pr != null) && (pr.getLayoutParams() instanceof ConstraintLayout.LayoutParams pl)) {
+				pl.topToBottom = unset;
+				pl.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+				pr.setLayoutParams(pl);
+			}
+			View tm = a.findViewById(R.id.tool_menu);
+			if ((tm != null) && (tm.getLayoutParams() instanceof ConstraintLayout.LayoutParams ml)) {
+				ml.topToBottom = unset;
+				ml.bottomToTop = R.id.tool_bar;
+				ml.verticalBias = 1f;
+				tm.setLayoutParams(ml);
+			}
+		} catch (Throwable ex) {
+			Log.e(ex, "Araç çubuğu alta alınamadı");
+		}
+	}
+
+	private int yoldaTopTop;
+
+	/** Kendi üst boşluğunu bırakmayan sayfalar (tarayıcı, YouTube sitesi, klasörler) çentiğin altında kalmasın. */
+	private void updateBodyTopPadding() {
+		if (!me.aap.fermata.ui.view.YoldaStyle.DECK || (body == null)) return;
+		int id = getActiveFragmentId();
+		boolean yolda = (id == R.id.home_fragment) || (id == R.id.yolda_channels_fragment) || (id == R.id.yolda_music)
+				|| (id == R.id.yolda_youtube) || (id == R.id.yolda_nav_fragment) || (id == R.id.yolda_menu_fragment)
+				|| (id == R.id.yolda_setup_fragment);
+		int top = yolda ? 0 : yoldaTopTop;
+		if (body.getPaddingTop() != top) body.setPadding(body.getPaddingLeft(), top, body.getPaddingRight(),
+				body.getPaddingBottom());
 	}
 
 	/** Yolda: işlemi kapanan web sayfasını at, sahibi olan ekranı yeniden kur (uygulama kapanmaz). */
@@ -1582,6 +1641,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		me.aap.fermata.ui.fragment.YoldaLog.add("Açılış: " + (isCarActivity() ? "ARAÇ" : "telefon")
 				+ " · " + me.aap.fermata.BuildConfig.VERSION_NAME);
 		a.setContentView(getLayout());
+		if (me.aap.fermata.ui.view.YoldaStyle.DECK) toolbarToBottom(a);
 		getContext().registerComponentCallbacks(memCallbacks = new android.content.ComponentCallbacks2() {
 			@Override
 			public void onTrimMemory(int level) {
@@ -1654,7 +1714,12 @@ public class MainActivityDelegate extends ActivityDelegate
 				);
 				me.aap.fermata.ui.view.YoldaStyle.cutoutTopPx =
 						insets.getInsets(WindowInsetsCompat.Type.displayCutout()).top;
-				if (me.aap.fermata.ui.view.YoldaStyle.glassActive) {
+				if (me.aap.fermata.ui.view.YoldaStyle.glassActive && me.aap.fermata.ui.view.YoldaStyle.DECK) {
+					// V2: araç çubuğu altta; üst boşluğu Yolda dışı sayfalar (tarayıcı, klasörler) kendisi alır
+					v.setPadding(bars.left, 0, bars.right, bars.bottom);
+					yoldaTopTop = bars.top;
+					updateBodyTopPadding();
+				} else if (me.aap.fermata.ui.view.YoldaStyle.glassActive) {
 					// Üst boşluk tüm ekrana değil yalnız Fermata'nın üst çubuğuna: Yolda sayfaları kendi
 					// boşluğunu bırakıyor, iki kez eklenince üstte büyük boşluk kalıyordu.
 					v.setPadding(bars.left, 0, bars.right, bars.bottom);
