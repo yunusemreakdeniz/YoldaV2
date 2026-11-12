@@ -47,8 +47,35 @@ if [ -n "$APK" ]; then
   # Yalnız Yolda'nın kendi çökmeleri ve donmaları sayılır
   awk '/FATAL EXCEPTION/{f=1} f{print} /^$/{f=0}' "$OUT/dayaniklilik-gunluk.txt" | head -300 > "$OUT/dayaniklilik-cokmeler.txt"
   crashes=$(grep -c "Process: $PKG" "$OUT/dayaniklilik-cokmeler.txt" || true)
-  anrs=$(grep -hc "NOT RESPONDING: $PKG\|ANR in $PKG" "$OUT"/dayaniklilik-*.txt | awk '{s+=$1} END {print s+0}')
-  echo "=== Dayanıklılık bitti: Yolda çökmesi $crashes, donma $anrs"
+  # Donma: Yolda'nınki (ActivityManager "ANR in"), her biri bir kez. Emülatörün ses sunucusu (AudioFlinger) son 15
+  # sn içinde çöktüyse ortam kaynaklı sayılır (ses çağrıları sunucu yeniden kalkana kadar bekler); ayrıca raporlanır.
+  python3 - "$OUT/dayaniklilik-gunluk.txt" "$PKG" > "$OUT/dayaniklilik-donmalar.txt" <<'PYX'
+import re, sys
+from datetime import datetime
+log, pkg = sys.argv[1], sys.argv[2]
+def ts(l):
+    try: return datetime.strptime(l[:18], '%m-%d %H:%M:%S.%f')
+    except Exception: return None
+deaths, anrs = [], []
+for l in open(log, encoding='utf-8', errors='replace'):
+    if 'AudioFlinger server died' in l or 'AudioPolicyService server died' in l:
+        t = ts(l)
+        if t: deaths.append(t)
+    if ('E/ActivityManager' in l) and ('ANR in ' + pkg) in l:
+        t = ts(l)
+        if t: anrs.append(t)
+own = env = 0
+for t in anrs:
+    if any(0 <= (t - d).total_seconds() <= 15 for d in deaths):
+        env += 1; print('ortam', t)
+    else:
+        own += 1; print('yolda', t)
+print('SAYI', own, env)
+PYX
+  anrs=$(awk '/^SAYI/{print $2}' "$OUT/dayaniklilik-donmalar.txt")
+  envanr=$(awk '/^SAYI/{print $3}' "$OUT/dayaniklilik-donmalar.txt")
+  adb root >/dev/null 2>&1 && sleep 2 && adb pull /data/anr "$OUT/anr" >/dev/null 2>&1 || true
+  echo "=== Dayanıklılık bitti: Yolda çökmesi $crashes, donma $anrs (ses sunucusu çökmesine bağlı: ${envanr:-0})"
   if [ "${crashes:-0}" -gt 0 ] || [ "${anrs:-0}" -gt 0 ]; then
     code=1
     echo "--- Dayanıklılık çökme yığınları"
