@@ -18,7 +18,6 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
-import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
@@ -750,12 +749,15 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		return Math.round(v * getResources().getDisplayMetrics().density);
 	}
 
-	/** Oynat düğmesinin çevresinde dönen ince halka: yayın bağlanırken / tamponlarken. */
+	/**
+	 * Oynat düğmesinin çevresinde dönen ince halka: yayın bağlanırken / tamponlarken. Animatör yerine kare
+	 * kare çizilir; cihazda animasyonlar kapalıysa (erişilebilirlik) halka döndürülmeden sabit çizilir
+	 * (sonsuz animatör animasyonlar kapalıyken ana iş parçacığını durmadan meşgul ediyordu).
+	 */
 	static final class BusyRing extends View {
 		private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
 		private final RectF r = new RectF();
-		private ValueAnimator anim;
-		private float angle;
+		private boolean busy;
 
 		BusyRing(Context ctx) {
 			super(ctx);
@@ -765,43 +767,33 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			setVisibility(INVISIBLE);
 		}
 
-		void setBusy(boolean busy) {
-			if (busy == (anim != null)) return;
-			if (busy) {
-				setVisibility(VISIBLE);
-				setAlpha(0f);
-				animate().alpha(1f).setDuration(200).start();
-				anim = ValueAnimator.ofFloat(0f, 360f);
-				anim.setDuration(900);
-				anim.setRepeatCount(ValueAnimator.INFINITE);
-				anim.setInterpolator(new LinearInterpolator());
-				anim.addUpdateListener(a -> {
-					angle = (float) a.getAnimatedValue();
-					invalidate();
-				});
-				anim.start();
-			} else {
-				anim.cancel();
-				anim = null;
-				setVisibility(INVISIBLE);
-			}
+		void setBusy(boolean b) {
+			if (busy == b) return;
+			busy = b;
+			setVisibility(b ? VISIBLE : INVISIBLE);
+			invalidate();
 		}
 
-		@Override
-		protected void onDetachedFromWindow() {
-			if (anim != null) {
-				anim.cancel();
-				anim = null;
+		private static boolean animate(Context ctx) {
+			if (Build.VERSION.SDK_INT >= 26) return ValueAnimator.areAnimatorsEnabled();
+			try {
+				return android.provider.Settings.Global.getFloat(ctx.getContentResolver(),
+						android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f;
+			} catch (Throwable ex) {
+				return true;
 			}
-			super.onDetachedFromWindow();
 		}
 
 		@Override
 		protected void onDraw(@NonNull Canvas c) {
+			if (!busy) return;
 			float w = Math.max(2f, getWidth() * 0.035f);
 			p.setStrokeWidth(w);
 			r.set(w, w, getWidth() - w, getHeight() - w);
-			c.drawArc(r, angle, 100, false, p);
+			boolean anim = animate(getContext());
+			float angle = anim ? (SystemClock.uptimeMillis() % 900) * 360f / 900f : -90f;
+			c.drawArc(r, angle, anim ? 100 : 300, false, p);
+			if (anim && isAttachedToWindow()) postInvalidateOnAnimation();
 		}
 	}
 }

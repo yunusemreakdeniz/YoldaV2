@@ -59,6 +59,10 @@ public class YoldaUiUxTest {
 	private ActivityScenario<MainActivity> scenario;
 	private final List<String> report = new ArrayList<>();
 
+	/** Takılan test tüm işi kilitlemesin: süre aşılırsa yalnız o test başarısız olur. */
+	@org.junit.Rule
+	public final org.junit.rules.Timeout timeout = org.junit.rules.Timeout.seconds(240);
+
 	@Before
 	public void start() {
 		MainActivityDelegate.skipSetupThisRun = true;

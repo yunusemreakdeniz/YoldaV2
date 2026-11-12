@@ -38,6 +38,10 @@ public class YoldaFunctionalTest {
 	private static final String TAG = "YoldaTest";
 	private ActivityScenario<MainActivity> scenario;
 
+	/** Takılan test tüm işi kilitlemesin: süre aşılırsa yalnız o test başarısız olur. */
+	@org.junit.Rule
+	public final org.junit.rules.Timeout timeout = org.junit.rules.Timeout.seconds(240);
+
 	@Before
 	public void start() {
 		// Kurulum ekranını atla (emülatör Play Store'dan kurulmuş görünmez)
