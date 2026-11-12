@@ -146,6 +146,7 @@ public class YoldaSetupFragment extends MainActivityFragment {
 		col.addView(intro);
 
 		if (ready && seen) {
+			phoneSteps(ctx, col);
 			col.addView(bigButton(ctx, "Ana ekrana geç", true, v -> a.showFragment(R.id.home_fragment)));
 			return;
 		}
@@ -204,6 +205,8 @@ public class YoldaSetupFragment extends MainActivityFragment {
 					a.showFragment(R.id.home_fragment);
 				}, false));
 
+		phoneSteps(ctx, col);
+
 		TextView skip = text(ctx, "Şimdi değil — telefonda kullan", 15, true);
 		skip.setGravity(Gravity.CENTER);
 		skip.setPadding(dp(16), dp(16), dp(16), dp(16));
@@ -215,6 +218,43 @@ public class YoldaSetupFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, -2);
 		slp.topMargin = dp(10);
 		col.addView(skip, slp);
+	}
+
+	/** Telefon ekranı (Yolda Telefon / Ekran yansıtma) için telefonda bir kez verilecek izinler. */
+	private void phoneSteps(Context ctx, LinearLayout col) {
+		TextView h = text(ctx, "Telefon ekranı için izinler", 24, true);
+		h.setPadding(0, dp(18), 0, dp(6));
+		col.addView(h);
+		TextView in = text(ctx, "Araçta telefonundaki uygulamaları kullanmak ve ekranı yansıtmak için bunları arabaya "
+				+ "binmeden önce telefonda bir kez ver. Araç bağlıyken bu pencereler açılamıyor.", 14, false);
+		in.setTextColor(0xCCFFFFFF);
+		in.setPadding(0, 0, 0, dp(14));
+		col.addView(in);
+		boolean ov = YoldaPhonePerms.overlay(ctx), ws = YoldaPhonePerms.writeSettings(ctx),
+				ac = YoldaPhonePerms.accessibility(ctx);
+		col.addView(step(ctx, ov ? "✓" : "1", "Diğer uygulamaların üzerinde gösterme",
+				"Telefondaki uygulama listesinin araçta açılabilmesi için.",
+				ov ? null : "İzni ver", v -> YoldaPhonePerms.openOverlay(ctx), ov));
+		col.addView(step(ctx, ws ? "✓" : "2", "Sistem ayarlarını değiştirme",
+				"Yansıtmada ekran yönü ve parlaklık için.",
+				ws ? null : "İzni ver", v -> YoldaPhonePerms.openWriteSettings(ctx), ws));
+		col.addView(step(ctx, ac ? "✓" : "3", "Erişilebilirlik → Yolda V2",
+				"Araç ekranından dokunabilmek için. Ayarlar → Erişilebilirlik → Yüklü uygulamalar → Yolda V2 → Aç.\n"
+						+ "Anahtar soluk ve basılmıyorsa (Android 13+ “Kısıtlanmış ayar”): Uygulama bilgisi → sağ üstteki ⋮ "
+						+ "→ “Kısıtlanmış ayarlara izin ver”, sonra yeniden dene.",
+				ac ? null : "Erişilebilirliği aç", v -> YoldaPhonePerms.openAccessibility(ctx), ac));
+		if (!ac) col.addView(step(ctx, "?", "Erişilebilirlik anahtarı basılmıyor mu?",
+				"Uygulama bilgisini aç → sağ üstteki ⋮ → “Kısıtlanmış ayarlara izin ver”.",
+				"Uygulama bilgisini aç", v -> YoldaPhonePerms.openAppInfo(ctx), false));
+		col.addView(step(ctx, "4", "Ekran paylaşımı",
+				"Araçta Telefon ya da Ekran yansıtma kartına ilk dokunduğunda telefonda “Paylaşımı / kaydı başlat” "
+						+ "onayı çıkar; onayla. Android her oturumda bir kez sorar.", null, null, false));
+	}
+
+	@Override
+	public void onResume() {
+		super.onResume();
+		if ((root != null) && isAdded()) render(); // ayarlardan dönünce ✓ durumları yenilensin
 	}
 
 	private void prepare(Context ctx, MainActivityDelegate a) {

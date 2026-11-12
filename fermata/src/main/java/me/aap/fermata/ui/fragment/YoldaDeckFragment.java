@@ -136,6 +136,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		t = YoldaStyle.current(ctx);
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
+		if (!prefs(ctx).getBoolean("deck_has_mirror", false)) {
+			deck.restore(YoldaDeck.MIRROR);
+			prefs(ctx).edit().putBoolean("deck_has_mirror", true).putString(PREF_DECK, deck.encode()).apply();
+		}
 		if (!prefs(ctx).getBoolean("deck_has_nav", false)) {
 			deck.restore(YoldaDeck.NAV);
 			prefs(ctx).edit().putBoolean("deck_has_nav", true).putString(PREF_DECK, deck.encode()).apply();
@@ -585,7 +589,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.NAV -> new Look(0xFF2DD4BF, 0xFF0F766E, R.drawable.yi_nav, true, "NAVİGASYON",
 					"Yol tarifi, ev, iş ve son gidilen yerler");
 			case YoldaDeck.PHONE -> new Look(0xFF34D399, 0xFF047857, R.drawable.yi_phone, true, "TELEFON",
-					"Telefonun ekranını araçta kullan");
+					"Telefondaki uygulamaları araçta kullan");
+			case YoldaDeck.MIRROR -> new Look(0xFF818CF8, 0xFF3730A3, R.drawable.yi_tv, true, "EKRAN YANSITMA",
+					"Telefonun ekranını araca olduğu gibi yansıt");
 			case YoldaDeck.WEB -> new Look(0xFF60A5FA, 0xFF1D4ED8, R.drawable.yi_globe, true, "TARAYICI",
 					"İnternette gez, reklamsız");
 			case YoldaDeck.SETTINGS -> new Look(0xFF94A3B8, 0xFF334155, R.drawable.yi_settings, true, "AYARLAR",
@@ -781,9 +787,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				if (row.getChildCount() == 0) row.addView(chipBtn(ctx, "Nereye gidiyoruz?", v -> open(c)), chipLp());
 				return scroll(ctx, row);
 			}
-			case YoldaDeck.PHONE -> {
+			case YoldaDeck.PHONE, YoldaDeck.MIRROR -> {
 				LinearLayout row = hrow(ctx);
-				row.addView(chipBtn(ctx, "Telefon ekranını aç", v -> HomeFragment.phone(ctx)), chipLp());
+				java.util.List<String> miss = YoldaPhonePerms.missing(ctx);
+				if (!miss.isEmpty()) {
+					row.addView(chipBtn(ctx, "⚠ " + miss.size() + " izin eksik — kurulum", v ->
+							a.showFragment(R.id.yolda_setup_fragment)), chipLp());
+				}
 				return row;
 			}
 			case YoldaDeck.SETTINGS -> {
@@ -794,6 +804,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					YoldaWake.setEnabled(a, !wake);
 					adapter.notifyDataSetChanged();
 				}), chipLp());
+				row.addView(chipBtn(ctx, "Telefon izinleri", v -> a.showFragment(R.id.yolda_setup_fragment)), chipLp());
 				boolean saver = prefs(ctx).getBoolean("data_saver", true);
 				row.addView(chipBtn(ctx, "Veri tasarrufu: " + (saver ? "Açık (720p)" : "Kapalı"), v -> {
 					prefs(ctx).edit().putBoolean("data_saver", !saver).apply();
@@ -885,7 +896,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.TV -> ChannelsFragment.openSegment(a, false);
 			case YoldaDeck.RADIO -> ChannelsFragment.openSegment(a, true);
 			case YoldaDeck.NAV -> a.showFragment(R.id.yolda_nav_fragment);
-			case YoldaDeck.PHONE -> HomeFragment.phone(ctx);
+			case YoldaDeck.PHONE, YoldaDeck.MIRROR -> openPhoneScreen(a, ctx);
 			case YoldaDeck.WEB -> {
 				YoldaStyle.webNoToolbar = false; // genel tarayıcı: adres çubuğu görünsün
 				a.showFragment(R.id.web_browser_fragment);
@@ -910,6 +921,25 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			default -> {
 			}
 		}
+	}
+
+	/**
+	 * Telefon ekranını araçta aç. İzin eksikse sessizce takılmasın: telefondaysa kurulum ekranı, araçtaysa
+	 * hangi iznin nereden verileceği söylenir.
+	 */
+	private void openPhoneScreen(MainActivityDelegate a, Context ctx) {
+		java.util.List<String> miss = YoldaPhonePerms.missing(ctx);
+		if (!miss.isEmpty()) {
+			YoldaLog.add("Telefon ekranı: eksik izinler " + miss);
+			if (a.isCarActivity()) {
+				UiUtils.showAlert(ctx, "Telefon ekranı için telefonda şu izinler gerekiyor:\n• " + String.join("\n• ", miss)
+						+ "\n\nTelefonda Yolda V2'yi aç → Ayarlar kartı → Telefon izinleri. Araç bağlıyken bu pencereler açılamıyor.");
+			} else {
+				a.showFragment(R.id.yolda_setup_fragment);
+			}
+			return;
+		}
+		HomeFragment.phone(ctx);
 	}
 
 	// ---- ekleme ----
