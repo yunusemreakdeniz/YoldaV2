@@ -155,7 +155,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout top = new LinearLayout(ctx);
 		top.setOrientation(LinearLayout.HORIZONTAL);
 		top.setGravity(Gravity.CENTER_VERTICAL);
-		top.setPadding(dp(22), YoldaStyle.cutoutTopPx + dp(car ? 8 : 12), dp(18), 0);
+		top.setPadding(dp(22), YoldaStyle.cutoutTop(ctx) + dp(car ? 8 : 12), dp(18), 0);
 		TextClock clock = new TextClock(ctx);
 		clock.setFormat24Hour("HH:mm");
 		clock.setFormat12Hour("HH:mm");
@@ -235,8 +235,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int h = list.getHeight();
 		if ((w <= 0) || (h <= 0)) return;
 		boolean wide = w > h * 1.2f;
-		int nw = Math.min(Math.round(w * (wide ? 0.6f : 0.8f)), dp(620));
-		int nh = Math.min(h - dp(12), wide ? dp(460) : dp(620));
+		boolean car = getActivityDelegate().isCarActivity();
+		// Araçta kartlar büyük: yüksekliğin neredeyse tamamı, genişliğin üçte ikisi
+		int nw = car ? Math.min(Math.round(w * 0.66f), dp(980))
+				: Math.min(Math.round(w * (wide ? 0.6f : 0.8f)), dp(620));
+		int nh = car ? (h - dp(8)) : Math.min(h - dp(12), wide ? dp(460) : dp(620));
+		if (car && (nw != cardW)) {
+			View rv = root;
+			me.aap.fermata.ui.fragment.YoldaLog.add("Araç destesi: liste " + Math.round(w / getResources().getDisplayMetrics().density)
+					+ "×" + Math.round(h / getResources().getDisplayMetrics().density) + " dp, kök "
+					+ ((rv != null) ? Math.round(rv.getHeight() / getResources().getDisplayMetrics().density) : 0)
+					+ " dp, üst pay " + YoldaStyle.cutoutTop(requireContext()) + " px, yoğunluk "
+					+ getResources().getDisplayMetrics().density);
+		}
 		boolean changed = (nw != cardW) || (nh != cardH);
 		cardW = nw;
 		cardH = nh;

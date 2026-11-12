@@ -64,6 +64,18 @@ public final class YoldaStyle {
 
 	/** Yolda V2: alt / yan menü yok; ana ekran yığılmış kart destesi, sesli asistan ve geri düğmesi sol altta. */
 	public static final boolean DECK = true;
+
+	/**
+	 * Üstte bırakılacak kamera çentiği payı. Telefondan ölçülür; araç ekranında çentik yoktur (telefonun piksel
+	 * değeri araçta büyük bir boşluk açıyordu).
+	 */
+	public static int cutoutTop(Context ctx) {
+		try {
+			if (me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx).isCarActivity()) return 0;
+		} catch (Throwable ignore) {
+		}
+		return cutoutTopPx;
+	}
 	/** V2: sesli düğme ve yanındaki arama kutuları aynı boy ve aynı alt boşluk (tam aynı hizada). */
 	public static final int VOICE_DP = 56;
 	public static final int VOICE_BOTTOM_DP = 14;

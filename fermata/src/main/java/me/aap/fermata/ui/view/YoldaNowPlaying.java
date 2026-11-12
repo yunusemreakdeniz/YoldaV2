@@ -373,7 +373,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 				new int[]{(t.base & 0x00FFFFFF) | 0x99000000, (t.base & 0x00FFFFFF) | 0xE6000000}));
 		addView(dim, new LayoutParams(-1, -1));
 
-		int cut = YoldaStyle.cutoutTopPx;
+		int cut = YoldaStyle.cutoutTop(ctx);
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
 		col.setPadding(dp(wide ? 24 : 20), cut + dp(8), dp(wide ? 24 : 20), dp(wide ? 14 : 24));

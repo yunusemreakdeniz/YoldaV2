@@ -952,7 +952,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
 			lp.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
 			lp.leftMargin = toIntPx(ctx, 16);
-			lp.topMargin = me.aap.fermata.ui.view.YoldaStyle.cutoutTopPx + toIntPx(ctx, 14);
+			lp.topMargin = me.aap.fermata.ui.view.YoldaStyle.cutoutTop(ctx) + toIntPx(ctx, 14);
 			cl.addView(v, lp);
 			yoldaBack = v;
 		}
