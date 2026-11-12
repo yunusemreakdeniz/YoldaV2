@@ -195,7 +195,7 @@ public class YoldaFunctionalTest {
 			assertEquals("Kartın içinde geri düğmesi görünmeli: " + k, View.VISIBLE,
 					onMain(a -> a.getDeckBackButton().getVisibility()).intValue());
 			// tarayıcıda geri önce sayfada geri gider: en çok birkaç basışta kartlara dönmeli
-			for (int k = 0; (k < 4) && (onMain(MainActivityDelegate::getActiveFragmentId) != R.id.home_fragment); k++) {
+			for (int tries = 0; (tries < 4) && (onMain(MainActivityDelegate::getActiveFragmentId) != R.id.home_fragment); tries++) {
 				onMain(a -> {
 					a.getDeckBackButton().performClick();
 					return null;
