@@ -297,7 +297,9 @@ public class YoutubeHomeFragment extends MainActivityFragment {
 				}
 				return;
 			}
-			status.setText(title);
+			boolean isCat = false; // seçili konu zaten çipte görünüyor: iki kez yazmasın; aramada aranan görünür
+			for (String[] c : CATS) isCat |= c[0].equals(title);
+			status.setText(isCat ? "" : title);
 			showCards(ctx, list);
 		});
 	}

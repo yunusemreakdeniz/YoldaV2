@@ -915,6 +915,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (me.aap.fermata.ui.view.YoldaNowPlaying.hide(this)) return; // önce "Şimdi çalıyor" kapanır
 		BodyLayout b = getBody();
 		if ((b != null) && (b.isVideoMode() || b.isBothMode())) { // tam ekran / bölünmüş videodan çık: yayın sürer
+			BodyLayout.yoldaSplit = false;
 			b.setMode(BodyLayout.Mode.FRAME);
 			return;
 		}
@@ -1011,6 +1012,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		BodyLayout b = getBody();
 		if (b == null) return;
 		if (b.isBothMode()) {
+			BodyLayout.yoldaSplit = false;
 			b.setMode(BodyLayout.Mode.VIDEO);
 			updateSplitButton();
 			return;
@@ -1020,6 +1022,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		String url = recent.isEmpty() ? "https://www.google.com/maps"
 				: "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + Uri.encode(recent.get(0));
 		me.aap.fermata.ui.view.YoldaStyle.webNoToolbar = true;
+		BodyLayout.yoldaSplit = true;
 		b.setMode(BodyLayout.Mode.BOTH);
 		Object f = showFragment(R.id.web_browser_fragment);
 		if (f != null) {
@@ -1100,7 +1103,8 @@ public class MainActivityDelegate extends ActivityDelegate
 				|| (id == R.id.yolda_youtube) || (id == R.id.yolda_nav_fragment) || (id == R.id.yolda_menu_fragment)
 				|| (id == R.id.yolda_setup_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
-		int left = (isCarActivity() && yolda && (id != R.id.home_fragment) && !videoMode)
+		int left = (me.aap.fermata.ui.view.YoldaStyle.sideRail(getContext()) && yolda && (id != R.id.home_fragment)
+				&& !videoMode)
 				? toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.searchLeftDp() - 8) : 0;
 		if ((body.getPaddingTop() != top) || (body.getPaddingLeft() != left))
 			body.setPadding(left, top, body.getPaddingRight(), body.getPaddingBottom());

@@ -97,7 +97,7 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		scroll.addView(col, new ScrollView.LayoutParams(-1, -2));
 		root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
 
-		TextView title = text(ctx, "Menü", 40, true);
+		TextView title = text(ctx, "Menü", me.aap.fermata.ui.view.YoldaStyle.titleSp(ctx), true);
 		title.setLetterSpacing(-0.025f);
 		col.addView(title);
 

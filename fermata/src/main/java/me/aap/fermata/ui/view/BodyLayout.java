@@ -83,6 +83,9 @@ public class BodyLayout extends SplitLayout
 		return getMode() == Mode.VIDEO;
 	}
 
+	/** Yolda: kullanıcı video + harita bölünmüş ekranını açtı (tarayıcı ekranındayken korunur). */
+	public static boolean yoldaSplit;
+
 	public boolean isBothMode() {
 		return getMode() == Mode.BOTH;
 	}
@@ -155,6 +158,12 @@ public class BodyLayout extends SplitLayout
 			b.removeBroadcastListener(this);
 			b.getMediaSessionCallback().removeBroadcastListener(this);
 		} else if (e == FRAGMENT_CHANGED) {
+			// Yolda bölünmüş ekran: video + haritayı (tarayıcı) yan yana tutar; tarayıcıya geçiş onu kapatmasın
+			if (yoldaSplit && (a.getActiveFragmentId() == me.aap.fermata.R.id.web_browser_fragment)) {
+				if (!isBothMode()) setMode(Mode.BOTH);
+				return;
+			}
+			yoldaSplit = false;
 			if (a.getActiveMediaLibFragment() == null) {
 				setMode(Mode.FRAME);
 			} else {

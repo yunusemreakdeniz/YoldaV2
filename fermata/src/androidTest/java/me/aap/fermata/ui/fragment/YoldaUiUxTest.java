@@ -260,8 +260,38 @@ public class YoldaUiUxTest {
 			}
 			clickables.add(v);
 		}
+		if ((v instanceof android.widget.TextView tv) && !(v instanceof android.widget.EditText) && fullyVisible) {
+			textIssues(tv, out, d, name);
+		}
 		if (v instanceof ViewGroup g) {
 			for (int i = 0; i < g.getChildCount(); i++) collect(g.getChildAt(i), clickables, out, d, sw, sh, name);
+		}
+	}
+
+	/**
+	 * Yazı kusurları: sözcüğün ortadan bölünmesi ("Na/vig/as/yon", "Rady/o") ve büyük başlığın "…" ile kesilmesi
+	 * ("Kaldığı…"). İkisi de ekranı amatör gösterir.
+	 */
+	private static void textIssues(android.widget.TextView tv, List<String> out, float d, String name) {
+		android.text.Layout l = tv.getLayout();
+		CharSequence t = tv.getText();
+		if ((l == null) || (t == null) || (t.length() < 2)) return;
+		for (int i = 0; i < l.getLineCount() - 1; i++) {
+			int end = l.getLineEnd(i);
+			if ((end <= 0) || (end >= t.length())) continue;
+			if (Character.isLetter(t.charAt(end - 1)) && Character.isLetter(t.charAt(end))) {
+				out.add(name + ": sözcük ortadan bölünmüş — " + desc(tv));
+				return;
+			}
+		}
+		float sp = tv.getTextSize() / tv.getResources().getDisplayMetrics().scaledDensity;
+		if (sp >= 20) {
+			for (int i = 0; i < l.getLineCount(); i++) {
+				if (l.getEllipsisCount(i) > 0) {
+					out.add(name + ": başlık kesik — " + desc(tv));
+					return;
+				}
+			}
 		}
 	}
 

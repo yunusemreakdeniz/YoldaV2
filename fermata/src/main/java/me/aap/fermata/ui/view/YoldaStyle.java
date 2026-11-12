@@ -174,11 +174,73 @@ public final class YoldaStyle {
 	/** Arama kutusunun soldan boşluğu (dp): telefonda sesli asistan düğmesinin sağında başlar. */
 	/** Arama kutusunun sol boşluğu: araçta gövde zaten sol sütunun sağından başlıyor. */
 	public static int searchLeft(Context ctx) {
+		return sideRail(ctx) ? 16 : searchLeftDp();
+	}
+
+	/**
+	 * Sesli ve ⌂ düğmeleri içeriğin solunda ayrı bir sütun mu: araçta ve yatay ekranda evet (gövde sağa kayar,
+	 * düğmeler kanal kartlarının, menü satırlarının üstüne binmez). Dikey telefonda düğmeler içeriğin üstünde yüzer.
+	 */
+	public static boolean sideRail(Context ctx) {
+		if (!DECK) return false;
 		try {
-			if (DECK && me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx).isCarActivity()) return 16;
+			if (me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx).isCarActivity()) return true;
 		} catch (Throwable ignore) {
 		}
-		return searchLeftDp();
+		android.content.res.Configuration c = ctx.getResources().getConfiguration();
+		return c.screenWidthDp > c.screenHeightDp;
+	}
+
+	/** Tüm sayfa başlıkları aynı ölçek (sp): araçta biraz küçük. */
+	public static int titleSp(Context ctx) {
+		try {
+			if (me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx).isCarActivity()) return 28;
+		} catch (Throwable ignore) {
+		}
+		return 34;
+	}
+
+	/** Hafif dokunma titreşimi (sistemde dokunma geri bildirimi açıksa). */
+	public static void haptic(@androidx.annotation.Nullable View v) {
+		if (v == null) return;
+		try {
+			v.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+		} catch (Throwable ignore) {
+		}
+	}
+
+	/**
+	 * Türkçe tarih ("Perşembe, 12 Kasım"): telefonun dili ne olursa olsun; dakikada bir yenilenir.
+	 */
+	public static android.widget.TextView turkishDate(Context ctx, String pattern) {
+		java.text.SimpleDateFormat f = new java.text.SimpleDateFormat(pattern, new java.util.Locale("tr", "TR"));
+		android.widget.TextView tv = new android.widget.TextView(ctx) {
+			private final Runnable tick = new Runnable() {
+				@Override
+				public void run() {
+					String s = f.format(new java.util.Date());
+					if (!s.isEmpty()) s = Character.toUpperCase(s.charAt(0)) + s.substring(1);
+					setText(s);
+					postDelayed(this, 30_000);
+				}
+			};
+
+			@Override
+			protected void onAttachedToWindow() {
+				super.onAttachedToWindow();
+				removeCallbacks(tick);
+				tick.run();
+			}
+
+			@Override
+			protected void onDetachedFromWindow() {
+				removeCallbacks(tick);
+				super.onDetachedFromWindow();
+			}
+		};
+		tv.setSingleLine(true);
+		tv.setEllipsize(android.text.TextUtils.TruncateAt.END);
+		return tv;
 	}
 
 	public static int searchLeftDp() {

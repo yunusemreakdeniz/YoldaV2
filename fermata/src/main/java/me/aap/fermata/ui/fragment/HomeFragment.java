@@ -197,9 +197,7 @@ public class HomeFragment extends MainActivityFragment {
 		head.setGravity(Gravity.CENTER_VERTICAL);
 		LinearLayout hello = new LinearLayout(ctx);
 		hello.setOrientation(LinearLayout.VERTICAL);
-		TextClock date = new TextClock(ctx);
-		date.setFormat24Hour("EEEE, d MMMM");
-		date.setFormat12Hour("EEEE, d MMMM");
+		TextView date = YoldaStyle.turkishDate(ctx, "EEEE, d MMMM");
 		date.setTextSize(14);
 		date.setTextColor(t.muted);
 		hello.addView(date);
@@ -542,9 +540,7 @@ public class HomeFragment extends MainActivityFragment {
 
 		LinearLayout hello = new LinearLayout(ctx);
 		hello.setOrientation(LinearLayout.VERTICAL);
-		TextClock date = new TextClock(ctx);
-		date.setFormat24Hour("EEEE, d MMMM · HH:mm");
-		date.setFormat12Hour("EEEE, d MMMM · HH:mm");
+		TextView date = YoldaStyle.turkishDate(ctx, "EEEE, d MMMM · HH:mm");
 		date.setTextSize(15 * YoldaStyle.textScale(ctx));
 		date.setTextColor(0xBFFFFFFF);
 		date.setShadowLayer(dp(6), 0, dp(1), 0x40000000);

@@ -295,7 +295,16 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		// Dokunulan kanal / şarkı: çalmaya başlamasını beklemeden adı ve resmi hemen (önceden eski ad kalıyordu)
 		MediaLib.PlayableItem opening = MediaSessionCallback.yoldaOpeningItem();
 		MediaLib.PlayableItem pi = (opening != null) ? opening : a.getCurrentPlayable();
-		if (pi == null) return;
+		if (pi == null) { // çalan bir şey yok: çubuk boş görünmesin
+			if (!"idle".equals(itemId)) {
+				itemId = "idle";
+				title.setText("Hazır");
+				sub.setText("Bir kanal, radyo ya da şarkı seç");
+				live.setVisibility(GONE);
+				setProg(0f, false);
+			}
+			return;
+		}
 		String id = itemKey(pi);
 		if (!id.equals(itemId)) {
 			itemId = id;

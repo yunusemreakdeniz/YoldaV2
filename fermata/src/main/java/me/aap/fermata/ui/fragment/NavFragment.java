@@ -125,8 +125,18 @@ public class NavFragment extends MainActivityFragment {
 		LinearLayout head = new LinearLayout(ctx);
 		head.setOrientation(LinearLayout.HORIZONTAL);
 		head.setGravity(Gravity.CENTER_VERTICAL);
-		TextView title = text(ctx, "Navigasyon", 40, true);
-		head.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
+		TextView title = text(ctx, "Navigasyon", YoldaStyle.titleSp(ctx), true);
+		title.setSingleLine(true);
+		// dar ekranda başlık tek başına bir satır, harita seçimi altında (önceden "Na/vig/as/yon" diye bölünüyordu)
+		boolean narrow = me.aap.fermata.ui.view.YoldaStyle.widthDp(ctx) < 560;
+		if (narrow) {
+			col.addView(title, new LinearLayout.LayoutParams(-1, -2));
+			LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(-1, -2);
+			head.setPadding(0, dp(10), 0, 0);
+			head.setLayoutParams(hlp);
+		} else {
+			head.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
+		}
 		head.addView(choice(ctx, "Google Haritalar", !waze(), v -> {
 			prefs().edit().putBoolean("nav_waze", false).apply();
 			render();
@@ -313,6 +323,7 @@ public class NavFragment extends MainActivityFragment {
 
 	private View choice(Context ctx, String label, boolean on, View.OnClickListener click) {
 		TextView c = text(ctx, label, 15, true);
+		c.setSingleLine(true);
 		c.setPadding(dp(18), dp(11), dp(18), dp(11));
 		c.setBackground(on ? YoldaStyle.selected(ctx, 999) : YoldaStyle.glass(ctx, t, 999));
 		c.setClickable(true);

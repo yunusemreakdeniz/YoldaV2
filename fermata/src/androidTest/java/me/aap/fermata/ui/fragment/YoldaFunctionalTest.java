@@ -325,33 +325,83 @@ public class YoldaFunctionalTest {
 		return r.totalMemory() - r.freeMemory();
 	}
 
-	/** Kartın boyu bir karta girip çıkınca değişmez (araçta küçülüyordu). */
+	/**
+	 * Ana ekrandaki ortadaki kartın görünen boyu (ölçek dahil) hiçbir durumda küçülmez: karta girip çıkınca,
+	 * oynatıcı çubuğu açılınca / kapanınca, kartlar arasında kaydırıp dönünce, ekran döndürülüp geri gelince.
+	 */
 	@Test
-	public void kartBoyuGirCikSonrasiAyni() {
+	public void kartBoyuHicKuculmez() {
 		onMain(a -> a.showFragment(R.id.home_fragment));
 		waitIdle(1800);
-		int h1 = onMain(this::cardHeight);
+		int[] base = onMain(this::centerCardSize);
+		Log.i(TAG, "Kart boyu: " + base[0] + "×" + base[1]);
+		assertTrue("Kart görünmeli", base[1] > 0);
+		java.util.function.Consumer<String> check = (when) -> {
+			int[] now = onMain(this::centerCardSize);
+			Log.i(TAG, "Kart boyu (" + when + "): " + now[0] + "×" + now[1]);
+			assertTrue(when + ": kart küçülmemeli " + base[0] + "×" + base[1] + " → " + now[0] + "×" + now[1],
+					(Math.abs(now[0] - base[0]) <= 6) && (Math.abs(now[1] - base[1]) <= 6));
+		};
+
+		// 1) karta gir, ⌂ ile dön
+		for (String k : new String[]{YoldaDeck.TV, YoldaDeck.MUSIC, YoldaDeck.SETTINGS}) {
+			onMain(a -> {
+				((YoldaDeckFragment) a.getActiveFragment()).openCard(k);
+				return null;
+			});
+			waitIdle(1200);
+			onMain(a -> a.getDeckBackButton().performClick());
+			waitIdle(1800);
+			check.accept("karttan dönünce: " + k);
+		}
+
+		// 2) oynatıcı çubuğu açılınca ve kapanınca
 		onMain(a -> {
-			((YoldaDeckFragment) a.getActiveFragment()).openCard(YoldaDeck.TV);
+			a.getControlPanel().setVisibility(View.VISIBLE);
+			return null;
+		});
+		waitIdle(1800);
+		check.accept("oynatıcı çubuğu açıkken");
+		onMain(a -> {
+			a.getControlPanel().setVisibility(View.GONE);
+			return null;
+		});
+		waitIdle(1800);
+		check.accept("oynatıcı çubuğu kapanınca");
+
+		// 3) kaydırıp geri dön
+		onMain(a -> {
+			androidx.recyclerview.widget.RecyclerView rv = findRv(a.getActiveFragment().getView());
+			rv.scrollBy(rv.getWidth() / 2, 0);
 			return null;
 		});
 		waitIdle(1500);
 		onMain(a -> {
-			a.getDeckBackButton().performClick();
+			androidx.recyclerview.widget.RecyclerView rv = findRv(a.getActiveFragment().getView());
+			rv.scrollBy(-rv.getWidth() / 2, 0);
 			return null;
 		});
-		waitIdle(1800);
-		int h2 = onMain(this::cardHeight);
-		assertTrue("Kart görünmeli", h1 > 0);
-		assertTrue("Kart boyu değişmemeli: " + h1 + " → " + h2, Math.abs(h1 - h2) <= 4);
+		waitIdle(2000);
+		check.accept("kaydırıp dönünce");
 	}
 
-	private int cardHeight(MainActivityDelegate a) {
-		View v = a.getActiveFragment().getView();
-		androidx.recyclerview.widget.RecyclerView rv = findRv(v);
-		if ((rv == null) || (rv.getChildCount() == 0)) return 0;
-		View box = rv.getChildAt(0);
-		return (box instanceof android.view.ViewGroup g && g.getChildCount() > 0) ? g.getChildAt(0).getHeight() : 0;
+	/** Ortadaki kartın ekranda görünen eni ve boyu (ölçek dahil). */
+	private int[] centerCardSize(MainActivityDelegate a) {
+		androidx.recyclerview.widget.RecyclerView rv = findRv(a.getActiveFragment().getView());
+		if ((rv == null) || (rv.getChildCount() == 0)) return new int[]{0, 0};
+		float cx = rv.getWidth() / 2f;
+		View best = null;
+		float bd = Float.MAX_VALUE;
+		for (int i = 0; i < rv.getChildCount(); i++) {
+			View c = rv.getChildAt(i);
+			float d = Math.abs((c.getLeft() + c.getRight()) / 2f + c.getTranslationX() - cx);
+			if (d < bd) {
+				bd = d;
+				best = c;
+			}
+		}
+		View card = (best instanceof android.view.ViewGroup g && g.getChildCount() > 0) ? g.getChildAt(0) : best;
+		return new int[]{Math.round(card.getWidth() * best.getScaleX()), Math.round(card.getHeight() * best.getScaleY())};
 	}
 
 	private static androidx.recyclerview.widget.RecyclerView findRv(View v) {

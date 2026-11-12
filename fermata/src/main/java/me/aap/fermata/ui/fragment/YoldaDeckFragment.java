@@ -177,9 +177,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		clock.setTypeface(Typeface.DEFAULT_BOLD);
 		clock.setTextColor(t.ink);
 		top.addView(clock);
-		TextClock date = new TextClock(ctx);
-		date.setFormat24Hour("EEEE, d MMMM");
-		date.setFormat12Hour("EEEE, d MMMM");
+		TextView date = YoldaStyle.turkishDate(ctx, "EEEE, d MMMM");
 		date.setTextSize(14);
 		date.setTextColor(t.muted);
 		date.setPadding(dp(12), dp(4), 0, 0);
@@ -219,6 +217,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		});
 		list.addOnLayoutChangeListener((v, l, tp, r, b, ol, ot, or, ob) -> {
 			if ((r - l != or - ol) || (b - tp != ob - ot)) v.post(this::resize);
+			else v.post(this::transform); // her yerleşimden sonra ortadaki kart tam boy (eski küçültme kalmasın)
+		});
+		list.addOnChildAttachStateChangeListener(new RecyclerView.OnChildAttachStateChangeListener() {
+			@Override
+			public void onChildViewAttachedToWindow(@NonNull View view) {
+				list.post(YoldaDeckFragment.this::transform);
+			}
+
+			@Override
+			public void onChildViewDetachedFromWindow(@NonNull View view) {
+			}
 		});
 		LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, 0, 1f);
 		llp.topMargin = dp(car ? 4 : 10);
@@ -249,8 +258,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int w = list.getWidth();
 		int h = list.getHeight();
 		if ((w <= 0) || (h <= 0)) return;
-		boolean wide = w > h * 1.2f;
 		boolean car = getActivityDelegate().isCarActivity();
+		// Kart boyu oynatıcı çubuğundan bağımsız: çubuğun yeri her zaman ayrılır; çubuk açılıp kapanınca kartlar
+		// küçülüp büyümez (önceden bir şey çalınca kartlar küçülüyordu)
+		h = stableHeight(h, car);
+		if (h <= 0) return;
+		boolean wide = w > h * 1.2f;
 		// Araçta kartlar büyük: yüksekliğin neredeyse tamamı, genişliğin üçte ikisi
 		int nw = car ? Math.min(Math.round(w * 0.66f), dp(980))
 				: Math.min(Math.round(w * (wide ? 0.6f : 0.8f)), dp(620));
@@ -277,6 +290,33 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				updateDots();
 			});
 		}
+	}
+
+	/** Son görülen oynatıcı çubuğu yüksekliği (çubuk gizliyken de bu kadar yer ayrılır). */
+	private int barReserve = -1;
+
+	private int stableHeight(int h, boolean car) {
+		if (car) return h; // araçta destede çubuk hiç gösterilmez
+		View cp = getActivityDelegate().getControlPanel();
+		boolean shown = (cp != null) && (cp.getVisibility() == View.VISIBLE);
+		if (shown && (cp.getHeight() > 0)) barReserve = cp.getHeight();
+		if (barReserve < 0) barReserve = dp(me.aap.fermata.ui.view.YoldaPlayerBar.heightDp(requireContext()) + 12);
+		return shown ? h : (h - barReserve);
+	}
+
+	@Override
+	public void onResume() {
+		super.onResume();
+		if (list != null) list.post(this::resize);
+	}
+
+	@Override
+	public void onHiddenChanged(boolean hidden) {
+		super.onHiddenChanged(hidden);
+		if (!hidden && (list != null)) list.post(() -> {
+			resize();
+			transform();
+		});
 	}
 
 	// ---- yığılmış görünüm ----
@@ -736,9 +776,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		tagRow.addView(tag);
 		names.addView(tagRow);
 		TextView title = text(ctx, c.title(), small ? 26 : 32, true, 0xFFFFFFFF);
-		title.setSingleLine(true);
+		title.setMaxLines(1);
 		title.setEllipsize(TextUtils.TruncateAt.END);
-		names.addView(title);
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(title, 16, small ? 26 : 32, 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP);
+		names.addView(title, new LinearLayout.LayoutParams(-1, -2));
 		if (noble) { // başlığın altında ince vurgu çizgisi
 			View line = new View(ctx);
 			GradientDrawable ld = new GradientDrawable();
@@ -977,6 +1019,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	// ---- kartı açma ----
 
 	private void open(YoldaDeck.Card c) {
+		YoldaStyle.haptic(list);
 		MainActivityDelegate a = getActivityDelegate();
 		Context ctx = requireContext();
 		switch (c.type()) {

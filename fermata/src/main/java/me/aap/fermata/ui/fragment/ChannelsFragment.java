@@ -119,8 +119,9 @@ public class ChannelsFragment extends MainActivityFragment {
 		LinearLayout titleRow = new LinearLayout(ctx);
 		titleRow.setOrientation(LinearLayout.HORIZONTAL);
 		titleRow.setGravity(Gravity.CENTER_VERTICAL);
-		TextView big = text(ctx, "Canlı yayın", carUi ? 26 : 34, true, t.ink);
+		TextView big = text(ctx, "Canlı yayın", YoldaStyle.titleSp(ctx), true, t.ink);
 		big.setLetterSpacing(-0.025f);
+		big.setSingleLine(true);
 		titleRow.addView(big);
 		LinearLayout seg = new LinearLayout(ctx);
 		seg.setOrientation(LinearLayout.HORIZONTAL);
@@ -130,6 +131,7 @@ public class ChannelsFragment extends MainActivityFragment {
 			boolean isRadio = (i == 1);
 			boolean on = (radio == isRadio);
 			TextView s = text(ctx, isRadio ? "Radyo" : "TV", 15, true, on ? YoldaStyle.ON_ACCENT : t.ink);
+			s.setSingleLine(true);
 			s.setGravity(Gravity.CENTER);
 			s.setPadding(dp(18), dp(8), dp(18), dp(8));
 			s.setMinHeight(dp(40));
@@ -143,17 +145,26 @@ public class ChannelsFragment extends MainActivityFragment {
 			seg.addView(s);
 		}
 		titles.addView(titleRow);
+		LinearLayout segRow = null;
 		if (carUi) { // araç: seçici başlığın yanında, tek satır (kanallara daha çok yer)
 			LinearLayout.LayoutParams il = new LinearLayout.LayoutParams(-2, -2);
 			il.leftMargin = dp(16);
 			titleRow.addView(seg, il);
 		} else { // telefon: seçici başlığın altında (yan yanayken dar ekranda sıkışıp "Radyo" kayboluyordu)
-			LinearLayout.LayoutParams sglp = new LinearLayout.LayoutParams(-2, -2);
+			// seçici, + ve Düzenle aynı satırda; başlık tek başına üstte (dar ekranda sıkışmasın)
+			segRow = new LinearLayout(ctx);
+			segRow.setOrientation(LinearLayout.HORIZONTAL);
+			segRow.setGravity(Gravity.CENTER_VERTICAL);
+			segRow.addView(seg);
+			segRow.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
+			LinearLayout.LayoutParams sglp = new LinearLayout.LayoutParams(-1, -2);
 			sglp.topMargin = dp(8);
 			sglp.bottomMargin = dp(6);
-			titles.addView(seg, sglp);
+			titles.addView(segRow, sglp);
 		}
 		status = text(ctx, "Kanallar yükleniyor…", 14, false, t.muted);
+		status.setSingleLine(true);
+		status.setEllipsize(android.text.TextUtils.TruncateAt.END);
 		titles.addView(status);
 		if (carUi) status.setVisibility(View.GONE);
 		head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -181,8 +192,10 @@ public class ChannelsFragment extends MainActivityFragment {
 			alp.rightMargin = dp(10);
 			head.addView(ara, alp);
 		}
-		head.addView(adv, new LinearLayout.LayoutParams(dp(48), dp(48)));
+		LinearLayout actions = (segRow != null) ? segRow : head;
+		actions.addView(adv, new LinearLayout.LayoutParams(dp(48), dp(48)));
 		TextView edit = text(ctx, editing ? "Bitti" : "Düzenle", 15, true, t.ink);
+		edit.setSingleLine(true);
 		edit.setGravity(Gravity.CENTER);
 		edit.setPadding(dp(18), dp(12), dp(18), dp(12));
 		edit.setBackground(editing ? YoldaStyle.selected(ctx, 999) : YoldaStyle.glass(ctx, t, 999));
@@ -195,7 +208,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		});
 		LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(-2, -2);
 		elp.leftMargin = dp(10);
-		head.addView(edit, elp);
+		actions.addView(edit, elp);
 		col.addView(head, new LinearLayout.LayoutParams(-1, -2));
 
 		// Arama: altta sabit, cam görünümlü (kartların üstünde süzülür)

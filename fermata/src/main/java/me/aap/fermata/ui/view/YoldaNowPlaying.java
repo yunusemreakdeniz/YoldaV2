@@ -407,7 +407,14 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		label.setLetterSpacing(0.14f);
 		label.setGravity(Gravity.CENTER);
 		top.addView(label, new LinearLayout.LayoutParams(0, -2, 1f));
-		top.addView(new View(ctx), new LinearLayout.LayoutParams(dp(48), dp(48)));
+		// ★ sağ üstte (geri düğmesinin karşısında); kontrol satırına sığmıyordu
+		favBtn = iconButton(ctx, R.drawable.yi_star_border, "Favorilere ekle");
+		favBtn.setBackground(YoldaStyle.glass(ctx, t, 999));
+		favBtn.setOnClickListener(v -> {
+			YoldaStyle.haptic(v);
+			toggleFav();
+		});
+		top.addView(favBtn, new LinearLayout.LayoutParams(dp(48), dp(48)));
 		col.addView(top, new LinearLayout.LayoutParams(-1, -2));
 
 		// Gövde: kapak + bilgiler (yatayda yan yana, dikeyde alt alta)
@@ -508,19 +515,13 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		play.setBackground(pc);
 		play.setPadding(dp(24), dp(24), dp(24), dp(24));
 		play.setOnClickListener(v -> {
+			YoldaStyle.haptic(v);
 			togglePlay(MainActivityDelegate.get(getContext()));
 			play.animate().scaleX(0.88f).scaleY(0.88f).setDuration(80)
 					.withEndAction(() -> play.animate().scaleX(1f).scaleY(1f).setDuration(160).start()).start();
 			post(ticker);
 		});
 		pf.addView(play, new LayoutParams(dp(80), dp(80), Gravity.CENTER));
-		favBtn = iconButton(ctx, R.drawable.yi_star_border, "Favorilere ekle");
-		favBtn.setBackground(YoldaStyle.glass(ctx, t, 999));
-		favBtn.setPadding(dp(13), dp(13), dp(13), dp(13));
-		favBtn.setOnClickListener(v -> toggleFav());
-		LinearLayout.LayoutParams fl = new LinearLayout.LayoutParams(dp(48), dp(48));
-		fl.rightMargin = dp(12);
-		ctl.addView(favBtn, fl);
 		ctl.addView(prev, new LinearLayout.LayoutParams(dp(64), dp(64)));
 		LinearLayout.LayoutParams pfl = new LinearLayout.LayoutParams(dp(96), dp(96));
 		pfl.setMargins(dp(22), 0, dp(22), 0);
