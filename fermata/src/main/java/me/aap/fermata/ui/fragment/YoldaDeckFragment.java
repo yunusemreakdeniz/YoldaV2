@@ -72,6 +72,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private final List<MediaLib.PlayableItem> radioChannels = new ArrayList<>();
 	@Nullable
 	private View overlay;
+	private Glow glow;
 
 	@Override
 	public int getFragmentId() {
@@ -140,6 +141,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		root = new FrameLayout(ctx);
 		YoldaStyle.applyScreenBackground(root, t);
+		// Ortadaki kartın renginde arkada süzülen ışıklar (kaydırdıkça kartın rengine akar)
+		glow = new Glow(ctx);
+		root.addView(glow, new FrameLayout.LayoutParams(-1, -1));
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
 		root.addView(col, new FrameLayout.LayoutParams(-1, -1));
@@ -264,6 +268,97 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			c.setTranslationZ(dp(12) * (1f - Math.min(ad, 1f)));
 		}
 		list.invalidate();
+		updateGlow();
+	}
+
+	/** Görünen kartların renklerini ortaya yakınlıklarına göre karıştırıp arka plan ışıklarına verir. */
+	private void updateGlow() {
+		if ((glow == null) || (list == null) || (cardW <= 0)) return;
+		float center = list.getWidth() / 2f;
+		float[] a = new float[4], b = new float[4];
+		float sum = 0;
+		for (int i = 0; i < list.getChildCount(); i++) {
+			View c = list.getChildAt(i);
+			int pos = list.getChildAdapterPosition(c);
+			if ((pos < 0) || (pos >= deck.size())) continue;
+			float d = Math.abs((c.getLeft() + c.getRight()) / 2f - center) / cardW;
+			float w = Math.max(0f, 1f - d);
+			if (w <= 0) continue;
+			Look lk = look(deck.get(pos));
+			add(a, lk.c1, w);
+			add(b, lk.c2, w);
+			sum += w;
+		}
+		if (sum <= 0) return;
+		glow.setColors(mix(a, sum), mix(b, sum));
+	}
+
+	private static void add(float[] acc, int c, float w) {
+		acc[0] += ((c >> 16) & 0xFF) * w;
+		acc[1] += ((c >> 8) & 0xFF) * w;
+		acc[2] += (c & 0xFF) * w;
+	}
+
+	private static int mix(float[] acc, float sum) {
+		return 0xFF000000 | (Math.round(acc[0] / sum) << 16) | (Math.round(acc[1] / sum) << 8) | Math.round(acc[2] / sum);
+	}
+
+	/**
+	 * Arka plan ışıltıları: kartın iki renginde büyük, yumuşak ışık lekeleri; yavaşça süzülür (animasyonlar
+	 * kapalıysa sabit). Renk değişince yumuşakça geçer.
+	 */
+	private static final class Glow extends View {
+		private final android.graphics.Paint p = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+		private int c1 = 0xFF3B82F6, c2 = 0xFF7C3AED;
+		private int t1 = c1, t2 = c2;
+		private final long start = android.os.SystemClock.uptimeMillis();
+
+		Glow(Context ctx) {
+			super(ctx);
+		}
+
+		void setColors(int a, int b) {
+			if ((a == t1) && (b == t2)) return;
+			t1 = a;
+			t2 = b;
+			invalidate();
+		}
+
+		private static int towards(int from, int to, float k) {
+			int r = Math.round(((from >> 16) & 0xFF) + (((to >> 16) & 0xFF) - ((from >> 16) & 0xFF)) * k);
+			int g = Math.round(((from >> 8) & 0xFF) + (((to >> 8) & 0xFF) - ((from >> 8) & 0xFF)) * k);
+			int bl = Math.round((from & 0xFF) + ((to & 0xFF) - (from & 0xFF)) * k);
+			return 0xFF000000 | (r << 16) | (g << 8) | bl;
+		}
+
+		private boolean animate() {
+			if (android.os.Build.VERSION.SDK_INT < 26) return true;
+			return android.animation.ValueAnimator.areAnimatorsEnabled();
+		}
+
+		@Override
+		protected void onDraw(@NonNull android.graphics.Canvas c) {
+			float w = getWidth(), h = getHeight();
+			if ((w <= 0) || (h <= 0)) return;
+			boolean anim = animate();
+			// renk geçişi: her karede hedefe biraz yaklaş (animasyon kapalıysa hemen)
+			c1 = anim ? towards(c1, t1, 0.12f) : t1;
+			c2 = anim ? towards(c2, t2, 0.12f) : t2;
+			float s = anim ? (android.os.SystemClock.uptimeMillis() - start) / 1000f : 0f;
+			float r = Math.max(w, h) * 0.62f;
+			blob(c, c1, w * (0.25f + 0.08f * (float) Math.sin(s * 0.21)), h * (0.30f + 0.10f * (float) Math.cos(s * 0.17)), r, 0x88);
+			blob(c, c2, w * (0.78f + 0.07f * (float) Math.cos(s * 0.19)), h * (0.72f + 0.09f * (float) Math.sin(s * 0.23)), r, 0x77);
+			blob(c, towards(c1, 0xFFFFFFFF, 0.25f), w * (0.55f + 0.12f * (float) Math.sin(s * 0.13)), h * 0.10f, r * 0.55f, 0x33);
+			boolean settling = (c1 != t1) || (c2 != t2);
+			if (anim || settling) postInvalidateOnAnimation();
+		}
+
+		private void blob(android.graphics.Canvas c, int color, float x, float y, float r, int alpha) {
+			p.setShader(new android.graphics.RadialGradient(x, y, r, new int[]{(color & 0x00FFFFFF) | (alpha << 24),
+					(color & 0x00FFFFFF) | ((alpha / 3) << 24), color & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f},
+					android.graphics.Shader.TileMode.CLAMP));
+			c.drawCircle(x, y, r, p);
+		}
 	}
 
 	/** Ortaya en yakın kart en son (en üstte) çizilir. */
