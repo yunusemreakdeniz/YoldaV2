@@ -1,4 +1,4 @@
-name: Yolda APK derle
+name: Yolda V2 APK derle
 
 on:
   push:
@@ -18,8 +18,8 @@ permissions:
 env:
   JAVA_VERSION: '17'
   # Kişisel sürüm: ad ve paket kimliği Fermata'dan ayrı (telefonda Fermata/Mola ile çakışmaz)
-  APP_NAME: 'Yolda'
-  APP_ID_SFX: '.yolda'
+  APP_NAME: 'Yolda V2'
+  APP_ID_SFX: '.yoldav2'
 
 jobs:
   build:
@@ -81,21 +81,21 @@ jobs:
           ./gradlew fermata:packageAutoReleaseUniversalApk -PABI=arm64-v8a \
             "-PAPP_NAME=$APP_NAME" "-PAPP_ID_SFX=$APP_ID_SFX" --build-cache
           mkdir -p dist
-          cp fermata/build/outputs/apk_from_bundle/autoRelease/*.apk dist/Yolda-${{ github.run_number }}.apk
+          cp fermata/build/outputs/apk_from_bundle/autoRelease/*.apk dist/YoldaV2-${{ github.run_number }}.apk
 
       # Yedek kopya; depolama dolarsa derleme yine release'e eklenir
       - uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: Yolda-${{ github.run_number }}
+          name: YoldaV2-${{ github.run_number }}
           path: dist/*.apk
           retention-days: 3
 
       - name: Release'e ekle (telefondan indirme)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: auto-${{ github.run_number }}
-          name: Yolda Auto ${{ github.run_number }} (${{ env.APP_VERSION }})
+          tag_name: v2-${{ github.run_number }}
+          name: Yolda V2 ${{ github.run_number }} (${{ env.APP_VERSION }})
           target_commitish: ${{ github.sha }}
           prerelease: true
           files: dist/*.apk

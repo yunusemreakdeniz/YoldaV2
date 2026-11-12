@@ -159,6 +159,38 @@ public class YoldaFunctionalTest {
 		Log.i(TAG, "Akış çözümü: " + res.get());
 	}
 
+	/** V2: ana ekran kart destesi; her kart kendi ekranını açar, sol alttaki geri düğmesi desteye döndürür. */
+	@Test
+	public void desteKartlariAcilirVeGeriDoner() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1500);
+		assertTrue("Ana ekran kart destesi olmalı", onMain(a -> a.getActiveFragment() instanceof YoldaDeckFragment));
+		assertEquals("Destede 8 kart olmalı", 8, onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().size()).intValue());
+		assertEquals("Ana ekranda geri düğmesi gizli", View.GONE, onMain(a -> a.getDeckBackButton().getVisibility()).intValue());
+		assertEquals("Menü olmamalı", View.GONE, onMain(a -> a.getNavBar().getVisibility()).intValue());
+		String[] keys = {YoldaDeck.YOUTUBE, YoldaDeck.MUSIC, YoldaDeck.TV, YoldaDeck.RADIO, YoldaDeck.WEB, YoldaDeck.SETTINGS};
+		int[] ids = {R.id.yolda_youtube, R.id.yolda_music, R.id.yolda_channels_fragment, R.id.yolda_channels_fragment,
+				R.id.web_browser_fragment, R.id.yolda_menu_fragment};
+		for (int i = 0; i < keys.length; i++) {
+			String k = keys[i];
+			onMain(a -> {
+				((YoldaDeckFragment) a.getActiveFragment()).openCard(k);
+				return null;
+			});
+			waitIdle(1500);
+			assertEquals("Kart açılmalı: " + k, ids[i], onMain(MainActivityDelegate::getActiveFragmentId).intValue());
+			assertEquals("Kartın içinde geri düğmesi görünmeli: " + k, View.VISIBLE,
+					onMain(a -> a.getDeckBackButton().getVisibility()).intValue());
+			onMain(a -> {
+				a.getDeckBackButton().performClick();
+				return null;
+			});
+			waitIdle(1200);
+			assertEquals("Geri düğmesi desteye dönmeli: " + k, R.id.home_fragment,
+					onMain(MainActivityDelegate::getActiveFragmentId).intValue());
+		}
+	}
+
 	/** Tema değişince açık sayfa, oynatıcı çubuğu ve sesli düğme yeni renklerle yeniden kurulur. */
 	@Test
 	public void temaDegisinceHerSeyYenilenir() {

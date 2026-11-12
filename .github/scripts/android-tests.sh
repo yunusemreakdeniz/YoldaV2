@@ -19,7 +19,7 @@ for c in YoldaFunctionalTest YoldaPlaybackTest YoldaUiUxTest; do
   cp -r fermata/build/reports/androidTests/. "$OUT/$c/" 2>/dev/null || true
   if [ $rc -eq 124 ]; then
     echo "!!! $c süre sınırında kesildi: ana iş parçacığı yığını"
-    adb shell "kill -3 \$(pidof me.aap.fermata.auto.yolda.debug)" || true
+    adb shell "kill -3 \$(pidof me.aap.fermata.auto.yoldav2.debug)" || true
     sleep 3
     adb shell "cat /data/anr/traces.txt 2>/dev/null; ls /data/anr" > "$OUT/$c/takilma.txt" 2>&1 || true
     adb logcat -d -b main | grep -A40 '"main"' | head -80 >> "$OUT/$c/takilma.txt" || true

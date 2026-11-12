@@ -102,7 +102,7 @@ public class YoldaPlaybackTest {
 		assertFalse("Geri ile tam ekrandan çıkılmalı", onMain(a -> a.getBody().isVideoMode()));
 		assertTrue("Yayın sürmeli", onMain(a -> a.getMediaSessionCallback().isPlaying()));
 		assertEquals("Oynatıcı altta görünmeli", View.VISIBLE, onMain(a -> a.getControlPanel().getVisibility()).intValue());
-		assertEquals("Menü görünmeli", View.VISIBLE, onMain(a -> a.getNavBar().getVisibility()).intValue());
+		assertEquals("Sesli düğme görünmeli", View.VISIBLE, onMain(a -> a.getYoldaVoiceButton().getVisibility()).intValue());
 
 		// Duraklat / devam
 		onMain(a -> {

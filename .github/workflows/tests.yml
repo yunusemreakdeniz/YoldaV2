@@ -1,8 +1,8 @@
-name: Yolda testleri
+name: Yolda V2 testleri
 
 on:
   push:
-    branches: [auto]
+    branches: [main, auto]
     paths-ignore:
       - "kanallar/**"
       - "**.md"
@@ -14,7 +14,7 @@ concurrency:
 
 env:
   JAVA_VERSION: '17'
-  GRADLE_ARGS: '-PABI=x86_64 -PAPP_NAME=Yolda -PAPP_ID_SFX=.yolda'
+  GRADLE_ARGS: '-PABI=x86_64 -PAPP_NAME=YoldaV2 -PAPP_ID_SFX=.yoldav2'
 
 jobs:
   # Hızlı: cihaz gerektirmeyen mantık (sesli komut çözümleme, kapak adresi, süre, reklam filtresi)
@@ -39,7 +39,7 @@ jobs:
         run: |
           chmod +x gradlew
           # Yalnız Yolda testleri (Fermata'nın eski altyazı testi CI'da takılıyor)
-          ./gradlew fermata:testAutoDebugUnitTest --tests 'me.aap.fermata.ui.fragment.YoldaLogicTest'             web:testAutoDebugUnitTest --tests 'me.aap.fermata.addon.web.AdFilterTest' $GRADLE_ARGS
+          ./gradlew fermata:testAutoDebugUnitTest --tests 'me.aap.fermata.ui.fragment.YoldaLogicTest' --tests 'me.aap.fermata.ui.fragment.YoldaDeckTest'             web:testAutoDebugUnitTest --tests 'me.aap.fermata.addon.web.AdFilterTest' $GRADLE_ARGS
       - name: Sonuçlar
         if: always()
         uses: actions/upload-artifact@v4

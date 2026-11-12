@@ -291,7 +291,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		v.setTag(TAG_KEY, null);
 		v.animate().alpha(0f).translationY(v.dp(48)).setDuration(180).withEndAction(() -> g.removeView(v)).start();
 		View nb = a.getNavBar();
-		if ((nb != null) && !a.isBarsHidden()) nb.setVisibility(VISIBLE);
+		if ((nb != null) && !a.isBarsHidden() && !YoldaStyle.DECK) nb.setVisibility(VISIBLE);
 		return true;
 	}
 

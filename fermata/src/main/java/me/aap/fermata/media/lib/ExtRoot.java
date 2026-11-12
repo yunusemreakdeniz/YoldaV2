@@ -41,6 +41,7 @@ public class ExtRoot extends ExtBrowsable {
 		return switch (getId()) {
 			case "youtube" -> "YouTube";
 			case "ytm_root" -> "YouTube Music";
+			case "radio_root" -> "Radyo";
 			default -> "";
 		};
 	}

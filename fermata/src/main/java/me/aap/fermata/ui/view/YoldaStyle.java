@@ -62,6 +62,9 @@ public final class YoldaStyle {
 	/** Fermata "Yolda Cam" teması etkinse true: Yolda ekranları kendi zeminini çizmez, kökteki ortak zemin görünür. */
 	public static volatile boolean glassActive;
 
+	/** Yolda V2: alt / yan menü yok; ana ekran yığılmış kart destesi, sesli asistan ve geri düğmesi sol altta. */
+	public static final boolean DECK = true;
+
 	/** Ortak zemin çizilen kökler (telefon ve araç ekranı ayrı ayrı): tema değişince hepsi yenilenir. */
 	private static final java.util.List<WeakReference<View>> backdropHosts = new java.util.ArrayList<>();
 

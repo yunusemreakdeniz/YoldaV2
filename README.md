@@ -1,72 +1,28 @@
-## !!!Be aware of scam!!! The sites like https :// fermata-auto . com  are 100% scam. This app is free and opensource!
+# Yolda V2
 
+Android Auto ve telefon için kişisel medya merkezi. Yolda'nın (Fermata çatalı) devamıdır; ana ekran
+**yığılmış kart destesi**dir.
 
-## Fermata Media Player
-[![Download the latest APK](https://img.shields.io/github/v/release/AndreyPavlenko/Fermata?label=Download%20APK&logo=github&style=for-the-badge)](https://github.com/AndreyPavlenko/Fermata/releases/latest)
+## Kartlar
 
-## About
-Fermata Media Player is a free, open source audio, video and TV player with a simple and intuitive interface. It is focused on playing media files organized in folders and playlists.
+1. YouTube · 2. Müzik · 3. TV · 4. Radyo · 5. Telefon · 6. Tarayıcı · 7. Ayarlar · 8. Ekle
 
-Supported features:
+- Ortadaki kart önde ve büyük, yandakiler arkasına dizilir; kaydırınca kartlar yerine oturur.
+- Karta dokununca içine girilir; sol alttaki **geri** düğmesi kartlara döndürür.
+- **Ekle** kartı: TV kanalı, radyo kanalı (Yolda listesi ya da internette arama), YouTube kanalı ve web
+  sayfası kartı eklenir. **Düzenle** ile kartlar sıralanır ve kaldırılır; kaldırılan kartlar geri getirilir.
+- Sesli asistan sol altta; menü çubuğu yok.
 
-* Play media files organized in folders
-* IPTV addon with support for XMLTV EPG and Catchup
-* Remembers the last played track and position for each folder
-* Support for favorites and playlists
-* Support for CUE and M3U playlists
-* Support for bookmarks
-* Audio effects: Equalizer, Bass/Volume Boost and Virtualizer
-* Configure audio effects for individual tracks and folders
-* Configure playback speed for individual tracks and folders
-* Customizable titles and subtitles
-* Support for Android Auto
-* Support for Android TV
-* Show favorites and playlists on Android TV home screen
-* Pluggable media engines: MediaPlayer, ExoPlayer and VLC
-* Video player with support for subtitles and audio streams (VLC Engine only)
+Yolda'dan gelenler: tek "Şimdi çalıyor" ekranı, cam oynatıcı çubuğu, hızlı HD TV, reklamsız YouTube ve
+müzik, "Hey Yolda", reklam engelleyici, tanı günlüğü.
 
-## Building the project
-* Download and install the latest Android SDK or Android Studio from https://developer.android.com/studio/
-* Set the environment variable ANDROID_SDK_ROOT pointing to the SDK directory
-```bash
-export ANDROID_SDK_ROOT=<path to android SDK>
-```
+## Kurulum
 
-### Clone the repository
-```bash
-git clone --recurse-submodules https://github.com/AndreyPavlenko/Fermata.git
-cd Fermata
-```
+Sürümler: Releases → `YoldaV2-N.apk`. Android Auto'da görünmesi için KingInstaller ile kurun.
+Yolda (V1) ile aynı anda kurulabilir (ayrı paket: `…auto.yoldav2`).
 
-### Build AAB
-```bash
-./gradlew bundleAutoRelease -PAPP_ID_SFX=.type.your.pkg.sfx.here
-find $PWD -name *.aab
-```
+## Lisans ve emekler
 
-### Build APK
-```bash
-./gradlew bundleAutoRelease -PAPP_ID_SFX=.type.your.pkg.sfx.here
-find $PWD -name *.apk
-```
-
-### Building in docker
-```bash
-docker run -ti --name Fermata andreypavlenko/fermata
-```
-Enter the requested key alias and password, when prompted.
-Build the required package using the above commands.
-To copy the built package to the host machine, open a new terminal and run:
-```bash
-docker cp Fermata:/home/mobiledevops/Fermata/fermata/build/outputs/bundle/autoRelease/ .
-```
-
-
-## Donation
-If you like the application, please consider making a donation:
-
-[PayPal](https://www.paypal.com/donate/?hosted_button_id=NP5Q3YDSCJ98N)
-
-[CloudTips](https://pay.cloudtips.ru/p/a03a73da)
-
-[Yandex Money](https://money.yandex.ru/to/410014661137336)
+GPL-3.0. Temel: [Fermata](https://github.com/AndreyPavlenko/Fermata) (Andrey Pavlenko).
+Kart destesi fikri [Mola / FermataX](https://github.com/moris545454/araba-) (GPL-3.0) ana ekranından
+esinlenmiştir. Radyo dizini: [radio-browser.info](https://www.radio-browser.info).

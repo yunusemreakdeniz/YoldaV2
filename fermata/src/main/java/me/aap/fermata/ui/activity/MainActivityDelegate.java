@@ -716,7 +716,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			int visibility = barsHidden ? GONE : VISIBLE;
 			ToolBarView tb = getToolBar();
 			if (tb.getMediator() != ToolBarView.Mediator.Invisible.instance) tb.setVisibility(visibility);
-			getNavBar().setVisibility(visibility);
+			getNavBar().setVisibility(me.aap.fermata.ui.view.YoldaStyle.DECK ? GONE : visibility);
 		});
 	}
 
@@ -846,8 +846,8 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	protected ActivityFragment createFragment(int id) {
-		if (id == R.id.home_fragment) {
-			return new me.aap.fermata.ui.fragment.HomeFragment();
+		if (id == R.id.home_fragment) { // Yolda V2: yığılmış kart destesi
+			return new me.aap.fermata.ui.fragment.YoldaDeckFragment();
 		} else if (id == R.id.yolda_channels_fragment) {
 			return new me.aap.fermata.ui.fragment.ChannelsFragment();
 		} else if (id == R.id.yolda_nav_fragment) {
@@ -1351,6 +1351,10 @@ public class MainActivityDelegate extends ActivityDelegate
 			yoldaBack.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
 					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
 		}
+		if (deckBack != null) {
+			deckBack.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
+					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
+		}
 		ControlPanelView cp = getControlPanel();
 		if (cp != null) cp.rebuildYoldaBar();
 		// Sayfalar: gizlileri bırak (açılınca yeni renklerle kurulur), açık olanı yeniden kur.
@@ -1402,7 +1406,12 @@ public class MainActivityDelegate extends ActivityDelegate
 		boolean rail = (navBar != null) && navBar.isLeft();
 		int s = toIntPx(ctx, rail ? 56 : 60);
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
-		if (rail) { // araç: dikey menünün en altında, ortalı
+		if (me.aap.fermata.ui.view.YoldaStyle.DECK) { // V2: menü yok; sol altta
+			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.leftMargin = toIntPx(ctx, 16);
+			lp.bottomMargin = toIntPx(ctx, rail ? 12 : 16);
+		} else if (rail) { // araç: dikey menünün en altında, ortalı
 			lp.startToStart = R.id.nav_bar;
 			lp.endToEnd = R.id.nav_bar;
 			lp.bottomToBottom = R.id.nav_bar;
@@ -1425,9 +1434,63 @@ public class MainActivityDelegate extends ActivityDelegate
 			ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
 					Context.MODE_PRIVATE).registerOnSharedPreferenceChangeListener(themeListener);
 		}
+		if (me.aap.fermata.ui.view.YoldaStyle.DECK) {
+			addDeckBackButton(host, b);
+			// Tam ekran videoda ve Şimdi çalıyor açıkken gizli
+			host.getViewTreeObserver().addOnGlobalLayoutListener(this::updateDeckButtons);
+			return;
+		}
 		// Video tam ekrandayken alt menü gizlenir; düğme de onunla birlikte gizlensin
 		navBar.getViewTreeObserver().addOnGlobalLayoutListener(() ->
 				b.setVisibility(navBar.getVisibility() == View.VISIBLE ? View.VISIBLE : View.GONE));
+	}
+
+	/** V2: sesli düğmenin üstünde, kartın içindeyken desteye dönüş düğmesi. */
+	@Nullable
+	private View deckBack;
+
+	@Nullable
+	public View getDeckBackButton() {
+		return deckBack;
+	}
+
+	private void addDeckBackButton(ConstraintLayout host, View voice) {
+		Context ctx = host.getContext();
+		AppCompatImageView v = new AppCompatImageView(ctx);
+		v.setImageResource(R.drawable.yi_left);
+		v.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		int p = toIntPx(ctx, 13);
+		v.setPadding(p, p, p, p);
+		v.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx, me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
+		v.setContentDescription("Kartlara dön");
+		v.setClickable(true);
+		v.setFocusable(true);
+		v.setElevation(toIntPx(ctx, 12));
+		v.setOnClickListener(x -> {
+			x.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80)
+					.withEndAction(() -> x.animate().scaleX(1f).scaleY(1f).setDuration(140).start()).start();
+			me.aap.fermata.ui.view.YoldaNowPlaying.hide(this);
+			showFragment(R.id.home_fragment);
+		});
+		int s = toIntPx(ctx, 52);
+		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
+		lp.startToStart = voice.getId();
+		lp.endToEnd = voice.getId();
+		lp.bottomToTop = voice.getId();
+		lp.bottomMargin = toIntPx(ctx, 12);
+		host.addView(v, lp);
+		deckBack = v;
+		updateDeckButtons();
+	}
+
+	private void updateDeckButtons() {
+		if (!me.aap.fermata.ui.view.YoldaStyle.DECK) return;
+		boolean np = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
+		int vv = (videoMode || np) ? View.GONE : View.VISIBLE;
+		if ((voiceButton != null) && (voiceButton.getVisibility() != vv)) voiceButton.setVisibility(vv);
+		int bv = (videoMode || np || (getActiveFragmentId() == R.id.home_fragment)) ? View.GONE : View.VISIBLE;
+		if ((deckBack != null) && (deckBack.getVisibility() != bv)) deckBack.setVisibility(bv);
+		if ((navBar != null) && (navBar.getVisibility() != View.GONE)) navBar.setVisibility(View.GONE);
 	}
 
 	private static boolean yoldaSplashShown;
@@ -1539,6 +1602,7 @@ public class MainActivityDelegate extends ActivityDelegate
 				float d = getContext().getResources().getDisplayMetrics().density;
 				cp.width = 0;
 				cp.leftMargin = cp.rightMargin = Math.round(16 * d);
+				if (me.aap.fermata.ui.view.YoldaStyle.DECK) cp.leftMargin = Math.round((16 + 60 + 12) * d);
 				cp.bottomMargin = Math.round(10 * d);
 				controlPanel.setLayoutParams(cp);
 				controlPanel.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(getContext(),
