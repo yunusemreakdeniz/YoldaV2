@@ -105,9 +105,10 @@ public class ChannelsFragment extends MainActivityFragment {
 		YoldaStyle.applyScreenBackground(root, t);
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
-		col.setPadding(dp(18), dp(14), dp(18), 0);
-		root.addView(col, new FrameLayout.LayoutParams(-1, -1));
 		MainActivityDelegate a = getActivityDelegate();
+		boolean carUi = a.isCarActivity();
+		col.setPadding(dp(18), dp(carUi ? 8 : 14), dp(18), 0);
+		root.addView(col, new FrameLayout.LayoutParams(-1, -1));
 
 		// Başlık: "Kanallar" · sayı · Gelişmiş (Fermata'nın liste ekleme/düzenleme ekranı)
 		LinearLayout head = new LinearLayout(ctx);
@@ -118,7 +119,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		LinearLayout titleRow = new LinearLayout(ctx);
 		titleRow.setOrientation(LinearLayout.HORIZONTAL);
 		titleRow.setGravity(Gravity.CENTER_VERTICAL);
-		TextView big = text(ctx, "Canlı yayın", 34, true, t.ink);
+		TextView big = text(ctx, "Canlı yayın", carUi ? 26 : 34, true, t.ink);
 		big.setLetterSpacing(-0.025f);
 		titleRow.addView(big);
 		LinearLayout seg = new LinearLayout(ctx);
@@ -142,13 +143,19 @@ public class ChannelsFragment extends MainActivityFragment {
 			seg.addView(s);
 		}
 		titles.addView(titleRow);
-		// Seçici başlığın altında kendi satırında (yan yanayken dar ekranda sıkışıp "Radyo" kayboluyordu)
-		LinearLayout.LayoutParams sglp = new LinearLayout.LayoutParams(-2, -2);
-		sglp.topMargin = dp(8);
-		sglp.bottomMargin = dp(6);
-		titles.addView(seg, sglp);
+		if (carUi) { // araç: seçici başlığın yanında, tek satır (kanallara daha çok yer)
+			LinearLayout.LayoutParams il = new LinearLayout.LayoutParams(-2, -2);
+			il.leftMargin = dp(16);
+			titleRow.addView(seg, il);
+		} else { // telefon: seçici başlığın altında (yan yanayken dar ekranda sıkışıp "Radyo" kayboluyordu)
+			LinearLayout.LayoutParams sglp = new LinearLayout.LayoutParams(-2, -2);
+			sglp.topMargin = dp(8);
+			sglp.bottomMargin = dp(6);
+			titles.addView(seg, sglp);
+		}
 		status = text(ctx, "Kanallar yükleniyor…", 14, false, t.muted);
 		titles.addView(status);
+		if (carUi) status.setVisibility(View.GONE);
 		head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1f));
 		ImageView adv = new ImageView(ctx);
 		adv.setImageResource(R.drawable.yi_add);
@@ -217,7 +224,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		search.setElevation(dp(8));
 		// Sesli asistan düğmesiyle aynı hizada, hemen sağında (düğme: solda 22dp, 56dp, alttan 14dp)
 		FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(-1, dp(YoldaStyle.DECK ? YoldaStyle.VOICE_DP : 56), Gravity.BOTTOM);
-		slp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(YoldaStyle.DECK ? YoldaStyle.VOICE_BOTTOM_DP : 14));
+		slp.setMargins(dp(YoldaStyle.searchLeft(ctx)), 0, dp(22), dp(YoldaStyle.DECK ? YoldaStyle.VOICE_BOTTOM_DP : 14));
 		search.addTextChangedListener(new TextWatcher() {
 			@Override
 			public void beforeTextChanged(CharSequence s, int st, int c, int a1) {
@@ -240,14 +247,14 @@ public class ChannelsFragment extends MainActivityFragment {
 		hs.setHorizontalScrollBarEnabled(false);
 		hs.addView(chips);
 		LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(-1, -2);
-		hlp.topMargin = dp(12);
+		hlp.topMargin = dp(carUi ? 8 : 12);
 		col.addView(hs, hlp);
 
 		ScrollView scroll = new ScrollView(ctx);
 		scroll.setClipToPadding(false);
 		grid = new LinearLayout(ctx);
 		grid.setOrientation(LinearLayout.VERTICAL);
-		grid.setPadding(0, dp(14), 0, car ? dp(20) : dp(96)); // telefonda altta arama + sesli asistan
+		grid.setPadding(0, dp(car ? 10 : 14), 0, car ? dp(20) : dp(96)); // telefonda altta arama + sesli asistan
 		scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
 		if (car) { // araç: arama başlığın altında, "Kanal ara" ile açılır
 			search.setVisibility(View.GONE);
@@ -375,7 +382,7 @@ public class ChannelsFragment extends MainActivityFragment {
 			boolean on = g.equals(group);
 			TextView c = text(ctx, g, 15, true, 0xFFFFFFFF);
 			c.setPadding(dp(18), dp(10), dp(18), dp(10));
-			c.setMinHeight(dp(getActivityDelegate().isCarActivity() ? 52 : 44));
+			c.setMinHeight(dp(44));
 			c.setGravity(Gravity.CENTER);
 			c.setBackground(on ? YoldaStyle.selected(ctx, 999) : YoldaStyle.glass(ctx, t, 999));
 			c.setClickable(true);

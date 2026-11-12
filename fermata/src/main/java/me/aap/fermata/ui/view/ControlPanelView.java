@@ -182,7 +182,7 @@ public class ControlPanelView extends ConstraintLayout
 		// Yolda: cam panelin iç boşluğu yüksekliğe eklenir; eklenmezse düğmeler eziliyor, simgeler kayıyordu
 		getLayoutParams().height = panelSize + getPaddingTop() + getPaddingBottom();
 		if (yoldaBar != null) { // Yolda çubuğu: sabit yükseklik
-			getLayoutParams().height = toIntPx(getContext(), YoldaPlayerBar.HEIGHT_DP) + getPaddingTop()
+			getLayoutParams().height = toIntPx(getContext(), YoldaPlayerBar.heightDp(getContext())) + getPaddingTop()
 					+ getPaddingBottom();
 		}
 	}

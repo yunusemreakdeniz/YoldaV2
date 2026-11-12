@@ -32,6 +32,16 @@ import me.aap.fermata.ui.activity.MainActivityDelegate;
  */
 public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.Listener {
 	public static final int HEIGHT_DP = 72;
+	/** Araçta daha ince (Android Auto'nun kendi medya çubuğu da altta). */
+	public static final int HEIGHT_CAR_DP = 58;
+
+	public static int heightDp(Context ctx) {
+		try {
+			if (MainActivityDelegate.get(ctx).isCarActivity()) return HEIGHT_CAR_DP;
+		} catch (Throwable ignore) {
+		}
+		return HEIGHT_DP;
+	}
 	private final GradientDrawable tintBg;
 
 	/** Çubukta görünen ad (testler için). */
@@ -66,7 +76,12 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 				YoldaStyle.glass(ctx, t, 26)}));
 		setElevation(dp(8));
 		setClickable(true); // boş alana dokunuş alttaki eski düğmelere gitmesin
-		boolean compact = YoldaStyle.compact(ctx);
+		boolean car = false;
+		try {
+			car = MainActivityDelegate.get(ctx).isCarActivity();
+		} catch (Throwable ignore) {
+		}
+		boolean compact = YoldaStyle.compact(ctx) || car;
 
 		LinearLayout row = new LinearLayout(ctx);
 		row.setOrientation(LinearLayout.HORIZONTAL);

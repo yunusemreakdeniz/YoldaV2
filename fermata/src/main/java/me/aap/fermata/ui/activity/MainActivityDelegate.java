@@ -1096,8 +1096,10 @@ public class MainActivityDelegate extends ActivityDelegate
 				|| (id == R.id.yolda_youtube) || (id == R.id.yolda_nav_fragment) || (id == R.id.yolda_menu_fragment)
 				|| (id == R.id.yolda_setup_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
-		if (body.getPaddingTop() != top) body.setPadding(body.getPaddingLeft(), top, body.getPaddingRight(),
-				body.getPaddingBottom());
+		int left = (isCarActivity() && (id != R.id.home_fragment))
+				? toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.searchLeftDp() - 8) : 0;
+		if ((body.getPaddingTop() != top) || (body.getPaddingLeft() != left))
+			body.setPadding(left, top, body.getPaddingRight(), body.getPaddingBottom());
 	}
 
 	/** Yolda: işlemi kapanan web sayfasını at, sahibi olan ekranı yeniden kur (uygulama kapanmaz). */
@@ -1619,22 +1621,20 @@ public class MainActivityDelegate extends ActivityDelegate
 	private void addDeckBackButton(ConstraintLayout host, View voice) {
 		Context ctx = host.getContext();
 		AppCompatImageView v = new AppCompatImageView(ctx);
-		v.setImageResource(R.drawable.yi_left);
+		v.setImageResource(R.drawable.yi_home_fill);
 		v.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		int p = toIntPx(ctx, 13);
+		int p = toIntPx(ctx, 14);
 		v.setPadding(p, p, p, p);
 		v.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx, me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
-		v.setContentDescription("Kartlara dön");
+		v.setContentDescription("Ana sayfa");
 		v.setClickable(true);
 		v.setFocusable(true);
 		v.setElevation(toIntPx(ctx, 12));
 		v.setOnClickListener(x -> {
 			x.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80)
 					.withEndAction(() -> x.animate().scaleX(1f).scaleY(1f).setDuration(140).start()).start();
-			if (me.aap.fermata.ui.view.YoldaNowPlaying.hide(this)) return;
-			ActivityFragment af = getActiveFragment();
-			if ((af != null) && af.onBackPressed()) return; // tarayıcı: önce sayfada geri
-			showFragment(R.id.home_fragment);
+			me.aap.fermata.ui.view.YoldaNowPlaying.hide(this);
+			showFragment(R.id.home_fragment); // Ana sayfa: her zaman kartlara
 		});
 		int s = toIntPx(ctx, 52);
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);

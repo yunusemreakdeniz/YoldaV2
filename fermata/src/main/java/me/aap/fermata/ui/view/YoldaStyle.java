@@ -137,8 +137,17 @@ public final class YoldaStyle {
 	public static volatile boolean railMode;
 
 	/** Arama kutusunun soldan boşluğu (dp): telefonda sesli asistan düğmesinin sağında başlar. */
+	/** Arama kutusunun sol boşluğu: araçta gövde zaten sol sütunun sağından başlıyor. */
+	public static int searchLeft(Context ctx) {
+		try {
+			if (DECK && me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx).isCarActivity()) return 16;
+		} catch (Throwable ignore) {
+		}
+		return searchLeftDp();
+	}
+
 	public static int searchLeftDp() {
-		if (DECK) return 16 + VOICE_DP + 12; // V2: sesli düğmenin sağında, aynı hizada
+		if (DECK) return 16 + VOICE_DP + 12; // V2: sesli düğmenin sağında, aynı hizada (araçta gövde zaten kaydırılmış)
 		return railMode ? 18 : 22; // sesli asistan artık alt menünün yanında
 	}
 
