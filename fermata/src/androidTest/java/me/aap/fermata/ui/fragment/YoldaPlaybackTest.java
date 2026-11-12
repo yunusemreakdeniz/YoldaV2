@@ -87,7 +87,9 @@ public class YoldaPlaybackTest {
 			a.getBody().playItem(ch);
 			return null;
 		});
-		assertTrue("TRT 1 25 sn içinde çalmalı", waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying())));
+		boolean started = waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+		if (!started) dumpDiag("TRT 1 başlamadı");
+		assertTrue("TRT 1 25 sn içinde çalmalı", started);
 		long ms = SystemClock.elapsedRealtime() - t0;
 		Log.i(TAG, "TV açılış süresi (TRT 1): " + ms + " ms");
 		assertTrue("Oynatıcı çubuğu kurulmalı", onMain(a -> a.getControlPanel().getYoldaBar() != null));
@@ -252,6 +254,25 @@ public class YoldaPlaybackTest {
 				onMain(MainActivityDelegate::getActiveFragmentId).intValue());
 		assertNotSame(old, onMain(this::webView));
 		Log.i(TAG, "Web sayfası çöktü ve yeniden kuruldu");
+	}
+
+	/** Başarısızlıkta: oynatıcı durumu, motor, gövde kipi ve uygulamanın tanı günlüğü test kaydına. */
+	private void dumpDiag(String why) {
+		try {
+			String st = onMain(a -> {
+				var cb = a.getMediaSessionCallback();
+				var s = cb.getPlaybackState();
+				return "durum=" + ((s != null) ? s.getState() + " hata=" + s.getErrorMessage() : "yok")
+						+ " motor=" + ((cb.getEngine() != null) ? cb.getEngine().getClass().getSimpleName() : "yok")
+						+ " kip=" + a.getBody().getMode() + " öğe=" + ((a.getCurrentPlayable() != null)
+						? a.getCurrentPlayable().getName() : "yok");
+			});
+			Log.i(TAG, "TANI " + why + ": " + st);
+			for (String l : YoldaLog.read(ctx()).split("
+")) Log.i(TAG, "GÜNLÜK " + l);
+		} catch (Throwable ex) {
+			Log.i(TAG, "Tanı alınamadı: " + ex);
+		}
 	}
 
 	// ---- yardımcılar ----
