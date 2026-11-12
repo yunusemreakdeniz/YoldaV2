@@ -1306,6 +1306,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	public void playItem(PlayableItem i, long pos) {
 		playerTask.cancel();
 		yoldaOpenItem = i; // oynatıcı çubuğu yeni kanalın adını hemen göstersin (çalmaya başlamayı beklemeden)
+		me.aap.fermata.ui.view.YoldaNowPlaying.clearExpected(); // başka bir şeye dokunulduysa eski bekleyen ad gitsin
 		yoldaOpenStart = android.os.SystemClock.elapsedRealtime();
 		setLastPlayed(i, pos);
 		PlaybackStateCompat state = new PlaybackStateCompat.Builder().setActions(SUPPORTED_ACTIONS)

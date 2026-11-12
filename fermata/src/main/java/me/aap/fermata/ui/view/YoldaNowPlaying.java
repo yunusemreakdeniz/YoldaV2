@@ -134,7 +134,14 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		if (e == null) return null;
 		var eng = cb.getEngine();
 		// YouTube oynatıcısı henüz başlamadıysa (ilk şarkı) da göster; başka bir şey çalıyorsa gösterme
-		if ((eng != null) && !eng.getClass().getName().contains("Youtube")) return null;
+		if (eng == null) return e;
+		if (!eng.getClass().getName().contains("Youtube")) return null;
+		// YouTube'da başka bir video açıldıysa (şarkı değil) eski şarkı bilgisi gösterilmesin
+		try {
+			var src = eng.getSource();
+			if ((src != null) && !String.valueOf(src.getLocation()).contains(e.track().id())) return null;
+		} catch (Throwable ignore) {
+		}
 		return e;
 	}
 
@@ -634,7 +641,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			else label.setText("BAĞLANIYOR…");
 			return;
 		}
-		String key = pi.getId();
+		String key = YoldaPlayerBar.itemKey(pi);
 		if (!key.equals(itemKey)) {
 			itemKey = key;
 			metaKey = metaSig(cb.getYoldaMetadata());
@@ -674,7 +681,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		showInfo(pi.getName(), "", logo);
 		pi.getMediaDescription().main().onSuccess(md -> {
 			if (!key.equals(itemKey) || (md == null)) return;
-			title.setText(pi.getName()); // açıklama başlığı sıra numarası içerebiliyor ("1. TRT 1")
+			title.setText(YoldaPlayerBar.displayName(pi, md)); // açıklama başlığı sıra numarası içerebiliyor ("1. TRT 1")
 			CharSequence s = md.getSubtitle();
 			if (TextUtils.isEmpty(s)) {
 				MediaLib.BrowsableItem p = pi.getParent();

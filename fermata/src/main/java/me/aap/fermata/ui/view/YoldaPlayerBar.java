@@ -296,7 +296,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		MediaLib.PlayableItem opening = MediaSessionCallback.yoldaOpeningItem();
 		MediaLib.PlayableItem pi = (opening != null) ? opening : a.getCurrentPlayable();
 		if (pi == null) return;
-		String id = pi.getId();
+		String id = itemKey(pi);
 		if (!id.equals(itemId)) {
 			itemId = id;
 			metaKey = YoldaNowPlaying.metaSig(cb.getYoldaMetadata()); // eski öğenin bilgisi üstüne yazmasın
@@ -358,6 +358,30 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 	private String metaKey;
 	private long descAt;
 
+	/** Öğe anahtarı: YouTube'da her video aynı kimlikle gelir, adresi de katılır (yoksa ad eski kalıyordu). */
+	static String itemKey(MediaLib.PlayableItem pi) {
+		String id = pi.getId();
+		if (isYoutubeItem(pi)) {
+			try {
+				id = id + "|" + pi.getLocation();
+			} catch (Throwable ignore) {
+			}
+		}
+		return id;
+	}
+
+	static boolean isYoutubeItem(MediaLib.PlayableItem pi) {
+		return pi.getClass().getName().contains("Youtube");
+	}
+
+	/** Gösterilecek ad: YouTube'da videonun başlığı (öğe adı adres parçası olabiliyor), diğerlerinde öğenin adı. */
+	static CharSequence displayName(MediaLib.PlayableItem pi, @Nullable android.support.v4.media.MediaDescriptionCompat md) {
+		if (isYoutubeItem(pi)) {
+			return ((md != null) && !TextUtils.isEmpty(md.getTitle())) ? md.getTitle() : "YouTube";
+		}
+		return pi.getName();
+	}
+
 	static boolean isYoutube(MediaSessionCallback cb) {
 		var eng = cb.getEngine();
 		return (eng != null) && eng.getClass().getName().contains("Youtube");
@@ -366,10 +390,10 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 	/** Ad ve alt bilgi öğenin kendi açıklamasından (TV'de güncel program). */
 	private void refreshDesc(MediaLib.PlayableItem pi) {
 		descAt = SystemClock.elapsedRealtime();
-		String key = pi.getId();
+		String key = itemKey(pi);
 		pi.getMediaDescription().main().onSuccess(md -> {
 			if ((md == null) || !key.equals(itemId)) return;
-			title.setText(pi.getName()); // açıklama başlığı sıra numarası içerebiliyor ("1. TRT 1")
+			title.setText(displayName(pi, md)); // açıklama başlığı sıra numarası içerebiliyor ("1. TRT 1")
 			CharSequence s = md.getSubtitle();
 			if (TextUtils.isEmpty(s)) {
 				MediaLib.BrowsableItem p = pi.getParent();
@@ -454,13 +478,13 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		descAt = SystemClock.elapsedRealtime();
 		tintBg.setColors(new int[]{0x00000000, 0x00000000});
 		coverPh.setImageResource(pi.isStream() ? (pi.isVideo() ? R.drawable.yi_tv : R.drawable.yi_live) : R.drawable.yi_music);
-		title.setText(pi.getName());
+		title.setText(isYoutubeItem(pi) ? "YouTube" : pi.getName());
 		subText = "";
 		if (!subOverride) sub.setText("");
 		cover.animate().alpha(0f).setDuration(120).start();
 		pi.getMediaDescription().main().onSuccess(md -> {
-			if (!pi.getId().equals(itemId) || (md == null)) return;
-			title.setText(pi.getName()); // açıklama başlığı sıra numarası içerebiliyor ("1. TRT 1")
+			if (!itemKey(pi).equals(itemId) || (md == null)) return;
+			title.setText(displayName(pi, md)); // açıklama başlığı sıra numarası içerebiliyor ("1. TRT 1")
 			CharSequence s = md.getSubtitle();
 			if (TextUtils.isEmpty(s)) {
 				MediaLib.BrowsableItem p = pi.getParent();
@@ -470,9 +494,9 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			if (!subOverride) sub.setText(s);
 		});
 		pi.getIconUri().main().onCompletion((u, err) -> {
-			if ((u == null) || !pi.getId().equals(itemId)) return;
+			if ((u == null) || !itemKey(pi).equals(itemId)) return;
 			a.getLib().getBitmap(u.toString(), true, true).main().onCompletion((bmp, e2) -> {
-				if ((bmp == null) || !pi.getId().equals(itemId)) return;
+				if ((bmp == null) || !itemKey(pi).equals(itemId)) return;
 				showCover(bmp);
 				cover.animate().alpha(1f).setDuration(220).start(); // kapak yumuşakça belirir
 			});
