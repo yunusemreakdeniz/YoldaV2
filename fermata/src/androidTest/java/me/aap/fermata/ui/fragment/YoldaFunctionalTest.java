@@ -194,11 +194,14 @@ public class YoldaFunctionalTest {
 			assertEquals("Kart açılmalı: " + k, ids[i], onMain(MainActivityDelegate::getActiveFragmentId).intValue());
 			assertEquals("Kartın içinde geri düğmesi görünmeli: " + k, View.VISIBLE,
 					onMain(a -> a.getDeckBackButton().getVisibility()).intValue());
-			onMain(a -> {
-				a.getDeckBackButton().performClick();
-				return null;
-			});
-			waitIdle(1200);
+			// tarayıcıda geri önce sayfada geri gider: en çok birkaç basışta kartlara dönmeli
+			for (int k = 0; (k < 4) && (onMain(MainActivityDelegate::getActiveFragmentId) != R.id.home_fragment); k++) {
+				onMain(a -> {
+					a.getDeckBackButton().performClick();
+					return null;
+				});
+				waitIdle(1200);
+			}
 			assertEquals("Geri düğmesi desteye dönmeli: " + k, R.id.home_fragment,
 					onMain(MainActivityDelegate::getActiveFragmentId).intValue());
 		}
