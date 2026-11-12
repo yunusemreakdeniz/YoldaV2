@@ -247,7 +247,8 @@ public final class YoldaStyle {
 	public static synchronized void applyBackdrop(View root) {
 		backdropHosts.removeIf(r -> (r.get() == null) || (r.get() == root));
 		backdropHosts.add(new WeakReference<>(root));
-		root.setBackground(new BackdropDrawable(current(root.getContext())));
+		// V2: kart renginde ışıltılı zemin tüm ekranda (kenar payları dahil)
+		root.setBackground(DECK ? new YoldaGlow(current(root.getContext())) : new BackdropDrawable(current(root.getContext())));
 	}
 
 	/** Tema değişince ortak zemini yenile (önceden yalnız en son açılan ekranınki yenileniyordu). */
@@ -255,7 +256,15 @@ public final class YoldaStyle {
 		backdropHosts.removeIf(r -> r.get() == null);
 		for (WeakReference<View> r : backdropHosts) {
 			View v = r.get();
-			if (v != null) v.setBackground(new BackdropDrawable(current(ctx)));
+			if (v == null) continue;
+			if (DECK) {
+				YoldaGlow old = YoldaGlow.of(v);
+				YoldaGlow g = new YoldaGlow(current(ctx));
+				if (old != null) g.setColors(old.colors()[0], old.colors()[1]);
+				v.setBackground(g);
+			} else {
+				v.setBackground(new BackdropDrawable(current(ctx)));
+			}
 		}
 	}
 

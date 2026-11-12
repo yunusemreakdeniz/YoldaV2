@@ -40,6 +40,7 @@ import me.aap.fermata.media.radio.RadioBrowser;
 import me.aap.fermata.media.radio.YoldaStreamItem;
 import me.aap.fermata.media.yt.YtMusic;
 import me.aap.fermata.ui.activity.MainActivityDelegate;
+import me.aap.fermata.ui.view.YoldaGlow;
 import me.aap.fermata.ui.view.YoldaNowPlaying;
 import me.aap.fermata.ui.view.YoldaStyle;
 import me.aap.utils.log.Log;
@@ -74,7 +75,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private final List<MediaLib.PlayableItem> radioChannels = new ArrayList<>();
 	@Nullable
 	private View overlay;
-	private Glow glow;
+
 
 	@Override
 	public int getFragmentId() {
@@ -143,10 +144,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		root = new FrameLayout(ctx);
 		YoldaStyle.applyScreenBackground(root, t);
-		// Ortadaki kartın renginde arkada süzülen ışıklar (kaydırdıkça kartın rengine akar)
-		glow = new Glow(ctx);
-		glow.drift = !car; // araçta ışıklar sabit (sürekli çizim araca giden görüntüyü ağırlaştırıyor)
-		root.addView(glow, new FrameLayout.LayoutParams(-1, -1));
+		// Ortadaki kartın renginde ışıltılar: uygulamanın en dış zemininde (tüm ekran, kenarlar dahil)
+		YoldaGlow g = rootGlow();
+		if (g != null) g.setDrift(!car); // araçta ışıklar sabit (sürekli çizim araca giden görüntüyü ağırlaştırıyor)
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
 		root.addView(col, new FrameLayout.LayoutParams(-1, -1));
@@ -278,7 +278,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	/** Görünen kartların renklerini ortaya yakınlıklarına göre karıştırıp arka plan ışıklarına verir. */
+	@Nullable
+	private YoldaGlow rootGlow() {
+		try {
+			return YoldaGlow.of(getActivityDelegate().findViewById(R.id.main_activity));
+		} catch (Throwable ex) {
+			return null;
+		}
+	}
+
 	private void updateGlow() {
+		YoldaGlow glow = rootGlow();
 		if ((glow == null) || (list == null) || (cardW <= 0)) return;
 		float center = list.getWidth() / 2f;
 		float[] a = new float[4], b = new float[4];
