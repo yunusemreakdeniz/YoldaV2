@@ -1631,7 +1631,9 @@ public class MainActivityDelegate extends ActivityDelegate
 		v.setOnClickListener(x -> {
 			x.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80)
 					.withEndAction(() -> x.animate().scaleX(1f).scaleY(1f).setDuration(140).start()).start();
-			me.aap.fermata.ui.view.YoldaNowPlaying.hide(this);
+			if (me.aap.fermata.ui.view.YoldaNowPlaying.hide(this)) return;
+			ActivityFragment af = getActiveFragment();
+			if ((af != null) && af.onBackPressed()) return; // tarayıcı: önce sayfada geri
 			showFragment(R.id.home_fragment);
 		});
 		int s = toIntPx(ctx, 52);

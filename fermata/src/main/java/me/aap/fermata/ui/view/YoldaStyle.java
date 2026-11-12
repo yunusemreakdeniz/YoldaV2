@@ -177,8 +177,44 @@ public final class YoldaStyle {
 		};
 	}
 
+	/** Arka plan ışıltısının o anki rengi (sıvı cam kutular bu tona bürünür). */
+	public static volatile int glowTint = 0xFF7C3AED;
+
+	/**
+	 * V2 sıvı cam kapsül (arama kutuları, tarayıcı adres kapsülü): koyu ama yarı saydam taban, ışıltının
+	 * renginde ton, üstte sönen parıltı, ince parlak kenar; odaklanınca kenar vurgu renginde parlar.
+	 * Gerçek bulanıklık yerine renk ve ışıkla taklit edilir (araçta akıcı kalsın).
+	 */
+	public static Drawable liquid(Context ctx, Theme t) {
+		android.graphics.drawable.StateListDrawable s = new android.graphics.drawable.StateListDrawable();
+		s.addState(new int[]{android.R.attr.state_focused}, liquidLayer(ctx, t, true));
+		s.addState(new int[]{}, liquidLayer(ctx, t, false));
+		return s;
+	}
+
+	private static Drawable liquidLayer(Context ctx, Theme t, boolean focused) {
+		float r = dp(ctx, 999);
+		int tint = glowTint;
+		GradientDrawable base = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+				new int[]{(t.base & 0x00FFFFFF) | 0xA6000000, (t.base & 0x00FFFFFF) | 0xC7000000});
+		base.setCornerRadius(r);
+		GradientDrawable tone = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+				new int[]{(tint & 0x00FFFFFF) | 0x59000000, (tint & 0x00FFFFFF) | 0x1A000000});
+		tone.setCornerRadius(r);
+		GradientDrawable sheen = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+				new int[]{0x3DFFFFFF, 0x0DFFFFFF, 0x00FFFFFF});
+		sheen.setCornerRadius(r);
+		GradientDrawable rim = new GradientDrawable();
+		rim.setCornerRadius(r);
+		rim.setStroke(Math.max(1, Math.round(dp(ctx, focused ? 2 : 1))), focused ? (ACCENT & 0x00FFFFFF) | 0xE6000000 : 0x8CFFFFFF);
+		LayerDrawable l = new LayerDrawable(new Drawable[]{base, tone, sheen, rim});
+		l.setLayerInset(2, 0, 0, 0, Math.round(dp(ctx, 22)));
+		return l;
+	}
+
 	/** Arama kutusu: fazla saydam olmasın; koyu tema rengi dolgu, üstte cam parlaması, belirgin kenar. */
 	public static Drawable searchField(Context ctx, Theme t) {
+		if (DECK) return liquid(ctx, t);
 		float r = dp(ctx, 999);
 		GradientDrawable fill = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
 				new int[]{(t.base & 0x00FFFFFF) | 0xEB000000, (t.base & 0x00FFFFFF) | 0xF5000000});

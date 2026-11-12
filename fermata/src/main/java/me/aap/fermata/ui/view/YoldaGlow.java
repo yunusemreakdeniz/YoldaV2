@@ -39,6 +39,7 @@ public final class YoldaGlow extends Drawable {
 	}
 
 	public void setColors(int a, int b) {
+		YoldaStyle.glowTint = a;
 		if ((a == t1) && (b == t2)) return;
 		t1 = a;
 		t2 = b;

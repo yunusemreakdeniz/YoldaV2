@@ -75,6 +75,9 @@ public class WebBrowserFragment extends MainActivityFragment
 		FermataChromeClient chromeClient = new FermataChromeClient(webView, fullScreenView);
 		webView.init(addon, webClient, chromeClient);
 		webView.loadUrl(addon.getLastUrl());
+		if (me.aap.fermata.ui.view.YoldaStyle.DECK && (view instanceof android.widget.FrameLayout fl)) {
+			YoldaUrlBar.attach(fl, webView, this::loadUrl);
+		}
 		MainActivityDelegate.getActivityDelegate(ctx).onSuccess(this::registerListeners);
 	}
 
@@ -208,7 +211,8 @@ public class WebBrowserFragment extends MainActivityFragment
 	@Override
 	public ToolBarView.Mediator getToolBarMediator() {
 		// Yolda: YouTube Music tam ekran, adres çubuğu yok
-		if (me.aap.fermata.ui.view.YoldaStyle.glassActive && me.aap.fermata.ui.view.YoldaStyle.webNoToolbar)
+		if (me.aap.fermata.ui.view.YoldaStyle.glassActive && (me.aap.fermata.ui.view.YoldaStyle.webNoToolbar
+				|| me.aap.fermata.ui.view.YoldaStyle.DECK)) // V2: adres çubuğu yerine sayfanın üstünde yüzen kapsül
 			return ToolBarView.Mediator.Invisible.instance;
 		return WebToolBarMediator.getInstance();
 	}
