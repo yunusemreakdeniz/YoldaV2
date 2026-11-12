@@ -165,6 +165,18 @@ public class YoldaFunctionalTest {
 		onMain(a -> a.showFragment(R.id.home_fragment));
 		waitIdle(1500);
 		assertTrue("Ana ekran kart destesi olmalı", onMain(a -> a.getActiveFragment() instanceof YoldaDeckFragment));
+		// Deste gerçekten ekranda: yüksekliği ekranın en az yarısı (yerleşim çökerse boş ekran geliyordu)
+		assertTrue("Kart destesi ekranı kaplamalı", onMain(a -> {
+			View v = a.getActiveFragment().getView();
+			int h = ((android.app.Activity) a.getContext()).getWindow().getDecorView().getHeight();
+			return (v != null) && v.isShown() && (v.getHeight() > h / 2);
+		}));
+		assertTrue("Oynatıcı ve sesli düğme ekranın altında olmalı", onMain(a -> {
+			int[] l = new int[2];
+			a.getYoldaVoiceButton().getLocationOnScreen(l);
+			int h = ((android.app.Activity) a.getContext()).getWindow().getDecorView().getHeight();
+			return l[1] > h / 2;
+		}));
 		assertEquals("Destede 9 kart olmalı", 9, onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().size()).intValue());
 		assertEquals("Ana ekranda geri düğmesi gizli", View.GONE, onMain(a -> a.getDeckBackButton().getVisibility()).intValue());
 		assertTrue("Menü görünmemeli", onMain(a -> a.getNavBar().getVisibility() != View.VISIBLE));
