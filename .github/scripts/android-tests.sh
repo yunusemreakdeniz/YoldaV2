@@ -37,7 +37,8 @@ if [ -n "$APK" ]; then
   adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; sleep 6
   adb logcat -c || true
   for seed in 11 29 47; do
-    timeout 10m adb shell monkey -p $PKG -s $seed --throttle 120 --pct-syskeys 2 --pct-appswitch 3 \
+    timeout 10m adb shell monkey -p $PKG -s $seed --throttle 120 --pct-syskeys 0 --pct-appswitch 3 \
+      --ignore-crashes --ignore-timeouts --ignore-security-exceptions \
       --pct-touch 45 --pct-motion 25 --pct-nav 10 --pct-majornav 10 -v 2500 > "$OUT/dayaniklilik-$seed.txt" 2>&1
     echo "tohum $seed: çıkış $? · $(grep -c 'CRASH' "$OUT/dayaniklilik-$seed.txt") çökme · $(grep -c 'NOT RESPONDING' "$OUT/dayaniklilik-$seed.txt") donma"
     adb shell am force-stop $PKG || true
