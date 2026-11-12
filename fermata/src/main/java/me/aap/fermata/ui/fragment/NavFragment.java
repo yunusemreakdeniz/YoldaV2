@@ -359,6 +359,14 @@ public class NavFragment extends MainActivityFragment {
 		try {
 			MainActivityDelegate a = MainActivityDelegate.get(ctx);
 			if (a.isCarActivityNotMirror()) {
+				// Araçta harita Yolda'nın içinde açılır (rota ve konum); Android Auto haritasını açtırmak
+				// bazı araçlarda hiçbir şey göstermiyordu
+				String web = webMapUrl(i);
+				if (web != null) {
+					HomeFragment.openWeb(a, web);
+					YoldaLog.add("Harita Yolda içinde açıldı: " + web);
+					return true;
+				}
 				Object act = a.getAppActivity();
 				java.lang.reflect.Method m = act.getClass().getMethod("startCarActivity", Intent.class);
 				try {
@@ -379,6 +387,28 @@ public class NavFragment extends MainActivityFragment {
 			Log.d("Navigasyon açılamadı: ", i);
 			return false;
 		}
+	}
+
+	/** Navigasyon / harita isteğini Google Haritalar web adresine çevirir. */
+	@androidx.annotation.Nullable
+	static String webMapUrl(Intent i) {
+		Uri u = i.getData();
+		if (u == null) return null;
+		String s = u.toString();
+		if (s.startsWith("google.navigation:")) {
+			String q = u.getEncodedSchemeSpecificPart();
+			if (q.startsWith("q=")) q = q.substring(2);
+			return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + q;
+		}
+		if (s.startsWith("geo:")) {
+			String q = u.getQueryParameter("q");
+			return "https://www.google.com/maps/search/?api=1&query=" + Uri.encode((q != null) ? q : "");
+		}
+		if (s.contains("waze.com")) {
+			String q = u.getQueryParameter("q");
+			return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + Uri.encode((q != null) ? q : "");
+		}
+		return null;
 	}
 
 	/** Son gidilen yerler (en yenisi başta). */

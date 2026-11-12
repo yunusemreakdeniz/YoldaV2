@@ -264,6 +264,23 @@ public class ControlPanelView extends ConstraintLayout
 		setVisibility(GONE);
 	}
 
+	/** Araçta kart destesi açıkken oynatıcı çubuğu gösterilmez: kartlar küçülmesin. */
+	private boolean yoldaCarHome() {
+		try {
+			MainActivityDelegate a = getActivity();
+			return YoldaStyle.DECK && a.isCarActivity() && (a.getActiveFragmentId() == R.id.home_fragment);
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
+
+	/** Ekran değişince: çalan bir şey varsa çubuk iç ekranlarda görünür, araçta destede gizlenir. */
+	public void yoldaRefreshVisibility() {
+		if (((mask & MASK_VISIBLE) == 0) || ((mask & MASK_VIDEO_MODE) != 0)) return;
+		int v = yoldaCarHome() ? GONE : VISIBLE;
+		if (getVisibility() != v) super.setVisibility(v);
+	}
+
 	public boolean isActive() {
 		return mask != 0;
 	}
@@ -275,6 +292,10 @@ public class ControlPanelView extends ConstraintLayout
 		if (visibility == VISIBLE) {
 			mask |= MASK_VISIBLE;
 			if ((mask & MASK_VIDEO_MODE) != 0) return;
+			if (yoldaCarHome()) { // araç + kart destesi: çubuk gizli (Android Auto'nun kendi çubuğu altta)
+				super.setVisibility(GONE);
+				return;
+			}
 
 			super.setVisibility(VISIBLE);
 

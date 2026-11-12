@@ -159,6 +159,7 @@ public final class YoldaVoice {
 		android.media.AudioManager am = (android.media.AudioManager) ctx.getSystemService(android.content.Context.AUDIO_SERVICE);
 		if (c.matches("(sesi |ses )?(aç|yükselt|artır|arttır|yükseltir misin)") || c.matches("ses(i)? (aç|yükselt|artır)")
 				|| c.equals("daha yüksek") || c.equals("sesi biraz aç")) {
+			a.getMediaSessionCallback().yoldaUnmute("sesli komut");
 			for (int i = 0; i < 2; i++)
 				am.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_RAISE,
 						android.media.AudioManager.FLAG_SHOW_UI);

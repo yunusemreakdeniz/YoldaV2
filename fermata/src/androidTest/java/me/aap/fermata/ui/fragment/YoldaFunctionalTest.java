@@ -242,6 +242,46 @@ public class YoldaFunctionalTest {
 		return null;
 	}
 
+	/** Kartın boyu bir karta girip çıkınca değişmez (araçta küçülüyordu). */
+	@Test
+	public void kartBoyuGirCikSonrasiAyni() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1800);
+		int h1 = onMain(this::cardHeight);
+		onMain(a -> {
+			((YoldaDeckFragment) a.getActiveFragment()).openCard(YoldaDeck.TV);
+			return null;
+		});
+		waitIdle(1500);
+		onMain(a -> {
+			a.getDeckBackButton().performClick();
+			return null;
+		});
+		waitIdle(1800);
+		int h2 = onMain(this::cardHeight);
+		assertTrue("Kart görünmeli", h1 > 0);
+		assertTrue("Kart boyu değişmemeli: " + h1 + " → " + h2, Math.abs(h1 - h2) <= 4);
+	}
+
+	private int cardHeight(MainActivityDelegate a) {
+		View v = a.getActiveFragment().getView();
+		androidx.recyclerview.widget.RecyclerView rv = findRv(v);
+		if ((rv == null) || (rv.getChildCount() == 0)) return 0;
+		View box = rv.getChildAt(0);
+		return (box instanceof android.view.ViewGroup g && g.getChildCount() > 0) ? g.getChildAt(0).getHeight() : 0;
+	}
+
+	private static androidx.recyclerview.widget.RecyclerView findRv(View v) {
+		if (v instanceof androidx.recyclerview.widget.RecyclerView r) return r;
+		if (v instanceof android.view.ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				androidx.recyclerview.widget.RecyclerView r = findRv(g.getChildAt(i));
+				if (r != null) return r;
+			}
+		}
+		return null;
+	}
+
 	/** Tema değişince açık sayfa, oynatıcı çubuğu ve sesli düğme yeni renklerle yeniden kurulur. */
 	@Test
 	public void temaDegisinceHerSeyYenilenir() {

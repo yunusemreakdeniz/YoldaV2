@@ -170,6 +170,46 @@ public class YoldaPlaybackTest {
 		});
 	}
 
+	/**
+	 * Ses kısa süre başka uygulamaya geçince (Android Auto bildirimi, asistan) radyo / müzik sessize alınır;
+	 * ses geri gelmeli: ▶ ile hemen, dokunulmazsa en geç 8 sn sonra kendiliğinden.
+	 */
+	@Test
+	public void sesOdakKaybindanSonraGeriGelir() {
+		MediaLib.PlayableItem r = channel("TRT FM");
+		onMain(a -> {
+			a.getBody().playItem(r);
+			return null;
+		});
+		assertTrue("TRT FM çalmalı", waitFor(20_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying())));
+		onMain(a -> {
+			a.getMediaSessionCallback().onAudioFocusChange(android.media.AudioManager.AUDIOFOCUS_LOSS_TRANSIENT);
+			return null;
+		});
+		waitIdle(500);
+		if (onMain(a -> a.getMediaSessionCallback().isYoldaMuted())) {
+			onMain(a -> {
+				YoldaNowPlaying.togglePlay(a);
+				return null;
+			});
+			waitIdle(500);
+			assertFalse("▶ sesi geri getirmeli", onMain(a -> a.getMediaSessionCallback().isYoldaMuted()));
+			assertTrue("Çalmaya devam etmeli", onMain(a -> a.getMediaSessionCallback().isPlaying()));
+			onMain(a -> {
+				a.getMediaSessionCallback().onAudioFocusChange(android.media.AudioManager.AUDIOFOCUS_LOSS_TRANSIENT);
+				return null;
+			});
+			assertTrue("Ses 8 sn sonra kendiliğinden açılmalı",
+					waitFor(12_000, () -> !onMain(a -> a.getMediaSessionCallback().isYoldaMuted())));
+		} else { // duraklatan motor: odak gelince sürer
+			onMain(a -> {
+				a.getMediaSessionCallback().onAudioFocusChange(android.media.AudioManager.AUDIOFOCUS_GAIN);
+				return null;
+			});
+			assertTrue("Odak gelince çalmalı", waitFor(15_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying())));
+		}
+	}
+
 	/** Radyo (ses akışı): "Şimdi çalıyor" açılır, geri tuşu önce onu kapatır. */
 	@Test
 	public void radyoVeSimdiCaliyorEkrani() {

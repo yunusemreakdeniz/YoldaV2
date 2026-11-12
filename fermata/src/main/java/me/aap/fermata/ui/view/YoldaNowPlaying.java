@@ -223,6 +223,8 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	 */
 	public static void togglePlay(MainActivityDelegate a) {
 		MediaSessionCallback cb = a.getMediaSessionCallback();
+		// Ses kısa süreli odak kaybıyla kapalı kaldıysa ilk dokunuş sesi geri getirir (duraklatmaz)
+		if (cb.isPlaying() && cb.yoldaUnmute("oynatıcı düğmesi")) return;
 		if (cb.isPlaying()) {
 			cb.onPause();
 			return;

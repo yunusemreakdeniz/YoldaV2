@@ -736,6 +736,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			if (cp != null) cp.disableVideoMode();
 		}
 		showYoldaBack(videoMode);
+		updateBodyTopPadding(); // tam ekran videoda soldaki pay kalkar
+		if (cp != null) cp.yoldaRefreshVisibility();
 
 		if (!checkMirroringMode(false)) {
 			MainActivityPrefs p = getPrefs();
@@ -844,6 +846,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (b.isVideoMode()) b.setMode(BodyLayout.Mode.BOTH);
 		ActivityFragment f = super.showFragment(id, input);
 		updateBodyTopPadding();
+		ControlPanelView cpv = getControlPanel();
+		if (cpv != null) cpv.yoldaRefreshVisibility();
 		return f;
 	}
 
@@ -1096,7 +1100,7 @@ public class MainActivityDelegate extends ActivityDelegate
 				|| (id == R.id.yolda_youtube) || (id == R.id.yolda_nav_fragment) || (id == R.id.yolda_menu_fragment)
 				|| (id == R.id.yolda_setup_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
-		int left = (isCarActivity() && (id != R.id.home_fragment))
+		int left = (isCarActivity() && yolda && (id != R.id.home_fragment) && !videoMode)
 				? toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.searchLeftDp() - 8) : 0;
 		if ((body.getPaddingTop() != top) || (body.getPaddingLeft() != left))
 			body.setPadding(left, top, body.getPaddingRight(), body.getPaddingBottom());

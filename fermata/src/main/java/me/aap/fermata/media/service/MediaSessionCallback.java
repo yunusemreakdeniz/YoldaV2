@@ -513,8 +513,24 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 		});
 	}
 
+	/** Yolda: ses kısa süreli odak kaybıyla sessize alınmış mı. */
+	public boolean isYoldaMuted() {
+		return isMuted;
+	}
+
+	/** Yolda: sessize alınmışsa sesi aç (kullanıcı ▶ ya da "sesi aç" dedi, ya da odak uzun süre gelmedi). */
+	public boolean yoldaUnmute(String why) {
+		if (!isMuted) return false;
+		isMuted = false;
+		var eng = getEngine();
+		if (eng != null) eng.unmute(getContext());
+		me.aap.fermata.ui.fragment.YoldaLog.add("Ses yeniden açıldı: " + why);
+		return true;
+	}
+
 	@Override
 	public void onPlay() {
+		yoldaUnmute("oynat");
 		playerTask.cancel();
 		playerTask = play();
 	}
@@ -1271,6 +1287,12 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	@Override
 	public void onAudioFocusChange(int focusChange) {
 		Log.i("Audio focus event received: ", focusChange);
+		me.aap.fermata.ui.fragment.YoldaLog.add("Ses odağı: " + switch (focusChange) {
+			case AUDIOFOCUS_GAIN -> "geri geldi";
+			case AUDIOFOCUS_LOSS_TRANSIENT -> "kısa süre başkasında";
+			case AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> "kısık";
+			default -> "kaybedildi (" + focusChange + ")";
+		});
 
 		switch (focusChange) {
 			case AUDIOFOCUS_GAIN:
@@ -1291,6 +1313,10 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 				if ((eng != null) && eng.muteOnTransientFocusLoss()) {
 					isMuted = true;
 					eng.mute(getContext());
+					// Yolda: odak geri gelmezse ses sonsuza dek kapalı kalıyordu; 8 sn sonra kendiliğinden aç
+					handler.postDelayed(() -> {
+						if (isMuted && isPlaying()) yoldaUnmute("odak 8 sn içinde geri gelmedi");
+					}, 8000);
 					return;
 				}
 			default:
