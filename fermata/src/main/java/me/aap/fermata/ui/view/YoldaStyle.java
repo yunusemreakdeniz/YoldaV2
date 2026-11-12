@@ -38,8 +38,15 @@ public final class YoldaStyle {
 		public final int glassTop = 0x38FFFFFF, glassBottom = 0x14FFFFFF, edge = 0x59FFFFFF;
 		public final int surface = 0x24FFFFFF, stroke = 0x59FFFFFF;
 		public final int bg1, bg2;
+		/** Kart üslubu: CARDS_VIVID canlı renk geçişi, CARDS_SOFT yarı doygun, CARDS_NOBLE koyu cam. */
+		public final int cards;
 
 		Theme(String name, int base, int[] blobs, int accent) {
+			this(name, base, blobs, accent, CARDS_VIVID);
+		}
+
+		Theme(String name, int base, int[] blobs, int accent, int cards) {
+			this.cards = cards;
 			this.name = name;
 			this.base = base;
 			this.blobs = blobs;
@@ -51,13 +58,41 @@ public final class YoldaStyle {
 		}
 	}
 
+	public static final int CARDS_VIVID = 0, CARDS_SOFT = 1, CARDS_NOBLE = 2;
+
 	public static final Theme[] THEMES = {
 			new Theme("Gece", 0xFF0A0D18, new int[]{0xFF5B21B6, 0xFF9D174D, 0xFF0369A1, 0xFF0A0D18}, 0xFFF5F7FF),
 			new Theme("Gece mavi", 0xFF0B0E2A, new int[]{0xFF6D5BFF, 0xFF00B8FF, 0xFFFF4FA0, 0xFF2E1A78}, 0xFF7AA2FF),
 			new Theme("Gün batımı", 0xFF24110C, new int[]{0xFFFF8A3D, 0xFFFF4F6D, 0xFFFFC857, 0xFF6B1E3F}, 0xFFFFC857),
 			new Theme("Okyanus", 0xFF061A24, new int[]{0xFF00C9A7, 0xFF1E90FF, 0xFF7BDFF2, 0xFF0B3B5C}, 0xFF7BDFF2),
 			new Theme("Gül", 0xFF220C1F, new int[]{0xFFFF6FB5, 0xFFB26BFF, 0xFFFFB38A, 0xFF5A1446}, 0xFFFFB38A),
+			// Sakin temalar: kartlar koyu cam (renk yalnız vurgu) ya da yarı doygun; zemin ışıkları soluk
+			new Theme("Asil", 0xFF0B0D12, new int[]{0xFF2A2740, 0xFF1C2433, 0xFF262230, 0xFF0B0D12}, 0xFFE6E8EE, CARDS_NOBLE),
+			new Theme("Yumuşak", 0xFF0E0F15, new int[]{0xFF3E3566, 0xFF4A3340, 0xFF2D3F4A, 0xFF0E0F15}, 0xFFD6D1EA, CARDS_SOFT),
 	};
+
+	/** Rengi sakinleştirir: doygunluğu sat, parlaklığı val katıyla çarpar (HSV). */
+	public static int calm(int c, float sat, float val) {
+		float[] h = new float[3];
+		Color.colorToHSV(c | 0xFF000000, h);
+		h[1] = Math.min(1f, h[1] * sat);
+		h[2] = Math.min(1f, h[2] * val);
+		return Color.HSVToColor(h);
+	}
+
+	/** Asil temada kartın vurgu rengi: açık, pastel (koyu zemin üzerinde okunur). */
+	public static int nobleAccent(int c) {
+		float[] h = new float[3];
+		Color.colorToHSV(c | 0xFF000000, h);
+		h[1] = Math.min(h[1], 0.38f);
+		h[2] = Math.max(h[2], 0.84f);
+		return Color.HSVToColor(h);
+	}
+
+	/** Rengin saydamlığını ayarlar (0-1). */
+	public static int alpha(int c, float a) {
+		return (Math.round(a * 255) << 24) | (c & 0xFFFFFF);
+	}
 
 	/** Fermata "Yolda Cam" teması etkinse true: Yolda ekranları kendi zeminini çizmez, kökteki ortak zemin görünür. */
 	public static volatile boolean glassActive;

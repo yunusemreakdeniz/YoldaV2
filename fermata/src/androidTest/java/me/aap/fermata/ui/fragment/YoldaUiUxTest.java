@@ -1,5 +1,6 @@
 package me.aap.fermata.ui.fragment;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
@@ -114,6 +115,30 @@ public class YoldaUiUxTest {
 	}
 
 	/** Oynatıcı çubuğu: görünür yapılıp ayrıca denetlenir (dikey ve araç boyutu). */
+	/** Her tema (canlı, Asil, Yumuşak) kart destesinde denetlenir; ekran görüntüleri kaydedilir. */
+	@Test
+	public void temalarDeste() {
+		scenario.onActivity(a -> a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+		android.content.SharedPreferences p = ctx().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
+				android.content.Context.MODE_PRIVATE);
+		List<String> all = new ArrayList<>();
+		try {
+			for (int i = 0; i < me.aap.fermata.ui.view.YoldaStyle.THEMES.length; i++) {
+				p.edit().putInt("theme", i).commit();
+				onMain(a -> a.showFragment(R.id.yolda_menu_fragment));
+				waitIdle(800);
+				onMain(a -> a.showFragment(R.id.home_fragment));
+				waitIdle(2000);
+				int idx = i;
+				assertEquals("Tema uygulanmalı", idx, onMain(a -> me.aap.fermata.ui.view.YoldaStyle.index(a.getContext())).intValue());
+				all.addAll(audit("tema_" + i + "_deste"));
+			}
+		} finally {
+			p.edit().putInt("theme", 0).commit();
+		}
+		assertTrue(fmt(all), all.isEmpty());
+	}
+
 	@Test
 	public void oynaticiCubugu() {
 		onMain(a -> {

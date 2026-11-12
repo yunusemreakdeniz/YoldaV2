@@ -327,8 +327,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			float w = Math.max(0f, 1f - d);
 			if (w <= 0) continue;
 			Look lk = look(deck.get(pos));
-			add(a, lk.c1, w);
-			add(b, lk.c2, w);
+			if (noble()) { // asil: zemin yalnız hafifçe kartın tonunu alır
+				int ac = YoldaStyle.nobleAccent(lk.c1);
+				add(a, YoldaStyle.calm(ac, 0.6f, 0.30f), w);
+				add(b, YoldaStyle.calm(ac, 0.4f, 0.20f), w);
+			} else {
+				add(a, lk.c1, w);
+				add(b, lk.c2, w);
+			}
 			sum += w;
 		}
 		if (sum <= 0) return;
@@ -496,7 +502,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private Look look(YoldaDeck.Card c) {
 		Look lk = baseLook(c);
 		int[] cc = customColors(c.key());
-		return (cc == null) ? lk : new Look(cc[0], cc[1], lk.icon(), lk.tint(), lk.tag(), lk.sub());
+		if (cc != null) lk = new Look(cc[0], cc[1], lk.icon(), lk.tint(), lk.tag(), lk.sub());
+		// Yumuşak tema: kartın renkleri yarı doygun ve biraz koyu
+		if ((t != null) && (t.cards == YoldaStyle.CARDS_SOFT)) {
+			lk = new Look(YoldaStyle.calm(lk.c1, 0.5f, 0.62f), YoldaStyle.calm(lk.c2, 0.5f, 0.55f), lk.icon(), lk.tint(),
+					lk.tag(), lk.sub());
+		}
+		return lk;
+	}
+
+	private boolean noble() {
+		return (t != null) && (t.cards == YoldaStyle.CARDS_NOBLE);
 	}
 
 	// ---- kart renkleri (kullanıcı seçer) ----
@@ -629,15 +645,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@SuppressLint("ClickableViewAccessibility")
 	private View card(Context ctx, YoldaDeck.Card c, int pos) {
 		Look lk = look(c);
+		boolean noble = noble();
+		// Asil: kart koyu cam, renk yalnız vurguda (simge, ince çizgi, kenar, etiket, Aç düğmesi)
+		int accent = noble ? YoldaStyle.nobleAccent(lk.c1) : 0xFFFFFFFF;
 		FrameLayout f = new FrameLayout(ctx);
-		GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{lk.c1, lk.c2});
+		GradientDrawable bg = noble
+				? new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xFF1B1E28, 0xFF13151C})
+				: new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{lk.c1, lk.c2});
 		bg.setCornerRadius(dp(30));
 		GradientDrawable sheen = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-				new int[]{0x33FFFFFF, 0x00FFFFFF, 0x00FFFFFF});
+				noble ? new int[]{0x0FFFFFFF, 0x00FFFFFF, 0x00FFFFFF} : new int[]{0x33FFFFFF, 0x00FFFFFF, 0x00FFFFFF});
 		sheen.setCornerRadius(dp(30));
 		GradientDrawable rim = new GradientDrawable();
 		rim.setCornerRadius(dp(30));
-		rim.setStroke(Math.max(1, dp(1)), 0x66FFFFFF);
+		rim.setStroke(Math.max(1, dp(1)), noble ? YoldaStyle.alpha(accent, 0.30f) : 0x66FFFFFF);
 		f.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{bg, sheen, rim}));
 		f.setClipToOutline(true);
 		f.setOutlineProvider(new android.view.ViewOutlineProvider() {
@@ -665,8 +686,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		// Arkada büyük, soluk simge
 		ImageView mark = new ImageView(ctx);
 		mark.setImageResource(lk.icon);
-		if (lk.tint) mark.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		mark.setAlpha(0.13f);
+		if (lk.tint) mark.setImageTintList(ColorStateList.valueOf(accent));
+		mark.setAlpha(noble ? 0.06f : 0.13f);
 		int ms = Math.round(cardH * 0.62f);
 		FrameLayout.LayoutParams mlp = new FrameLayout.LayoutParams(ms, ms, Gravity.END | Gravity.BOTTOM);
 		mlp.rightMargin = -ms / 6;
@@ -687,11 +708,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		FrameLayout chip = new FrameLayout(ctx);
 		GradientDrawable cb = new GradientDrawable();
 		cb.setCornerRadius(dp(16));
-		cb.setColor(lk.tint ? 0x33FFFFFF : 0xF2FFFFFF);
+		cb.setColor(noble ? YoldaStyle.alpha(accent, 0.16f) : (lk.tint ? 0x33FFFFFF : 0xF2FFFFFF));
 		chip.setBackground(cb);
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
-		if (lk.tint) ic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		if (lk.tint) ic.setImageTintList(ColorStateList.valueOf(accent));
 		chip.addView(ic, new FrameLayout.LayoutParams(dp(small ? 26 : 30), dp(small ? 26 : 30), Gravity.CENTER));
 		head.addView(chip, new LinearLayout.LayoutParams(dp(small ? 46 : 54), dp(small ? 46 : 54)));
 		LinearLayout names = new LinearLayout(ctx);
@@ -710,7 +731,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			dlp.rightMargin = dp(6);
 			tagRow.addView(dot, dlp);
 		}
-		TextView tag = text(ctx, lk.tag, 12, true, 0xE6FFFFFF);
+		TextView tag = text(ctx, lk.tag, 12, true, noble ? accent : 0xE6FFFFFF);
 		tag.setLetterSpacing(0.14f);
 		tagRow.addView(tag);
 		names.addView(tagRow);
@@ -718,10 +739,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		title.setSingleLine(true);
 		title.setEllipsize(TextUtils.TruncateAt.END);
 		names.addView(title);
+		if (noble) { // başlığın altında ince vurgu çizgisi
+			View line = new View(ctx);
+			GradientDrawable ld = new GradientDrawable();
+			ld.setCornerRadius(dp(2));
+			ld.setColor(accent);
+			line.setBackground(ld);
+			LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(dp(40), dp(3));
+			llp.topMargin = dp(6);
+			names.addView(line, llp);
+		}
 		head.addView(names, new LinearLayout.LayoutParams(0, -2, 1f));
 		v.addView(head);
 
-		TextView sub = text(ctx, lk.sub, 15, false, 0xD9FFFFFF);
+		TextView sub = text(ctx, lk.sub, 15, false, noble ? 0xFFA3A8B5 : 0xD9FFFFFF);
 		sub.setMaxLines(2);
 		sub.setEllipsize(TextUtils.TruncateAt.END);
 		sub.setPadding(0, dp(10), 0, 0);
@@ -737,12 +768,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		View content = content(ctx, c);
 		if (content != null) bottom.addView(content, new LinearLayout.LayoutParams(0, -2, 1f));
 		else bottom.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
-		TextView openBtn = text(ctx, "▶  Aç", 16, true, 0xFF111827);
+		TextView openBtn = text(ctx, "▶  Aç", 16, true, noble ? 0xFFF2F3F7 : 0xFF111827);
 		openBtn.setGravity(Gravity.CENTER);
 		openBtn.setPadding(dp(18), 0, dp(20), 0);
 		GradientDrawable ob = new GradientDrawable();
 		ob.setCornerRadius(dp(999));
-		ob.setColor(0xFFFFF4D6);
+		if (noble) {
+			ob.setColor(YoldaStyle.alpha(accent, 0.16f));
+			ob.setStroke(Math.max(1, dp(1)), YoldaStyle.alpha(accent, 0.7f));
+		} else {
+			ob.setColor(0xFFFFF4D6);
+		}
 		openBtn.setBackground(ob);
 		openBtn.setElevation(dp(4));
 		openBtn.setContentDescription("Aç: " + c.title());
