@@ -102,7 +102,8 @@ public final class YoldaWake {
 			return;
 		}
 		if (!isModelReady(ctx)) {
-			download(a);
+			if (hasBundledModel(ctx)) extractBundled(a); // APK'nın içindeki model: internetsiz açılır
+			else download(a);
 			return;
 		}
 		starting = true;
@@ -322,13 +323,56 @@ public final class YoldaWake {
 	}
 
 	/** Zip'teki tek üst klasörü atlayarak hedefe açar (vosk-model-small-tr-0.3/… → vosk-tr/…). */
+	private static final String BUNDLED = "vosk-tr.zip";
+
+	/** APK'nın içinde ses modeli var mı (GitHub derlemesi gömer). */
+	static boolean hasBundledModel(Context ctx) {
+		try (InputStream in = ctx.getAssets().open(BUNDLED)) {
+			return in.read() >= 0;
+		} catch (Exception ex) {
+			return false;
+		}
+	}
+
+	/** İçteki modeli bir kez açar (internet gerekmez), sonra dinlemeye başlar. */
+	private static void extractBundled(MainActivityDelegate a) {
+		if (downloading) return;
+		downloading = true;
+		Context ctx = a.getContext().getApplicationContext();
+		YoldaLog.add("Hey Yolda modeli uygulamanın içinden açılıyor");
+		App.get().getExecutor().submit(() -> {
+			try (InputStream in = ctx.getAssets().open(BUNDLED)) {
+				unzip(in, modelDir(ctx));
+				YoldaLog.add("Hey Yolda modeli hazır (gömülü)");
+				App.get().getHandler().post(() -> {
+					downloading = false;
+					start(a);
+				});
+			} catch (Throwable ex) {
+				Log.e(ex, "Gömülü model açılamadı");
+				YoldaLog.add("Gömülü model açılamadı: " + ex + "; internetten indirilecek");
+				App.get().getHandler().post(() -> {
+					downloading = false;
+					download(a);
+				});
+			}
+		});
+	}
+
 	private static void unzip(File zip, File dest) throws Exception {
+		try (InputStream in = new java.io.FileInputStream(zip)) {
+			unzip(in, dest);
+		}
+	}
+
+	/** Zip'teki tek üst klasörü atlayarak hedefe açar (vosk-model-small-tr-0.3/… → vosk-tr/…). */
+	private static void unzip(InputStream src, File dest) throws Exception {
 		File part = new File(dest.getParentFile(), dest.getName() + ".part");
 		deleteTree(part);
 		//noinspection ResultOfMethodCallIgnored
 		part.mkdirs();
 		String destPath = part.getCanonicalPath() + File.separator;
-		try (ZipInputStream zin = new ZipInputStream(new BufferedInputStream(new java.io.FileInputStream(zip)))) {
+		try (ZipInputStream zin = new ZipInputStream(new BufferedInputStream(src))) {
 			byte[] buf = new byte[65536];
 			for (ZipEntry e; (e = zin.getNextEntry()) != null; ) {
 				String name = e.getName();

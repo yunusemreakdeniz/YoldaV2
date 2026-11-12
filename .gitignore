@@ -16,3 +16,6 @@ res/*.jks
 # Custom builds
 fermata/src/custom/
 build-custom.gradle
+
+# Hey Yolda ses modeli derlemede indirilir (depoya konmaz)
+fermata/src/main/assets/vosk-tr.zip

@@ -73,6 +73,20 @@ jobs:
             echo "storePassword=$KEYSTORE_PASSWORD"
           } > local.properties
 
+      # Hey Yolda: Türkçe ses modeli (Vosk, Apache-2.0) APK'nın içine gömülür; telefon indirmek zorunda kalmaz
+      - name: Hey Yolda ses modeli önbelleği
+        uses: actions/cache@v4
+        with:
+          path: fermata/src/main/assets/vosk-tr.zip
+          key: vosk-model-small-tr-0.3
+      - name: Hey Yolda ses modeli (APK'ya gömülü)
+        run: |
+          mkdir -p fermata/src/main/assets
+          if [ ! -s fermata/src/main/assets/vosk-tr.zip ]; then
+            curl -fsSL --retry 3 -o fermata/src/main/assets/vosk-tr.zip https://alphacephei.com/vosk/models/vosk-model-small-tr-0.3.zip
+          fi
+          ls -la fermata/src/main/assets/vosk-tr.zip
+
       - name: Derle (arm64)
         env:
           NO_GS: true
