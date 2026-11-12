@@ -277,7 +277,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		v.setElevation(v.dp(30));
 		cl.addView(v, lp);
 		View nb = a.getNavBar();
-		if (nb != null) nb.setVisibility(INVISIBLE); // sesli düğme menüyle birlikte gizlenir
+		if ((nb != null) && !YoldaStyle.DECK) nb.setVisibility(INVISIBLE); // sesli düğme menüyle birlikte gizlenir
 		View body = a.getBody();
 		if (body != null) v.postDelayed(() -> {
 			if (v.getTag(TAG_KEY) != null) body.setVisibility(INVISIBLE);
@@ -327,7 +327,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	private final TextView title;
 	private final TextView sub;
 	private final TextView live;
-	private final SeekBar seek;
+	private final YoldaSeekLine seek;
 	private final LinearLayout times;
 	private final TextView pos;
 	private final TextView dur;
@@ -377,8 +377,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		LinearLayout top = new LinearLayout(ctx);
 		top.setOrientation(LinearLayout.HORIZONTAL);
 		top.setGravity(Gravity.CENTER_VERTICAL);
-		ImageView down = iconButton(ctx, R.drawable.yi_chevron, "Kapat");
-		down.setRotation(90);
+		ImageView down = iconButton(ctx, R.drawable.yi_left, "Geri");
 		down.setBackground(YoldaStyle.glass(ctx, t, 999));
 		down.setOnClickListener(v -> {
 			MainActivityDelegate a = MainActivityDelegate.get(getContext());
@@ -447,21 +446,24 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		subRow.addView(sub, new LinearLayout.LayoutParams(-2, -2));
 		info.addView(subRow, new LinearLayout.LayoutParams(-1, -2));
 
-		seek = new SeekBar(ctx);
-		seek.setMax(1000);
-		seek.setProgressTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		seek.setThumbTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		seek.setProgressBackgroundTintList(ColorStateList.valueOf(0x55FFFFFF));
-		info.addView(seek, new LinearLayout.LayoutParams(-1, dp(40)));
+		// 0:02 ━━━━●──── 3:54 — süreler çubuğun iki yanında, tek satır; geniş dokunma alanı
 		times = new LinearLayout(ctx);
 		times.setOrientation(LinearLayout.HORIZONTAL);
-		times.setPadding(dp(16), 0, dp(16), 0);
-		pos = text(ctx, "0:00", 13 * ts, false, t.muted);
-		dur = text(ctx, "", 13 * ts, false, t.muted);
-		dur.setGravity(Gravity.END);
-		times.addView(pos, new LinearLayout.LayoutParams(0, -2, 1f));
-		times.addView(dur, new LinearLayout.LayoutParams(0, -2, 1f));
-		info.addView(times, new LinearLayout.LayoutParams(-1, -2));
+		times.setGravity(Gravity.CENTER_VERTICAL);
+		pos = text(ctx, "0:00", 14 * ts, true, t.ink);
+		pos.setGravity(Gravity.END);
+		pos.setMinWidth(dp(48));
+		dur = text(ctx, "", 14 * ts, false, t.muted);
+		dur.setMinWidth(dp(48));
+		seek = new YoldaSeekLine(ctx);
+		times.addView(pos);
+		LinearLayout.LayoutParams sk = new LinearLayout.LayoutParams(0, dp(48), 1f);
+		sk.leftMargin = sk.rightMargin = dp(10);
+		times.addView(seek, sk);
+		times.addView(dur);
+		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(-1, -2);
+		tlp.topMargin = dp(6);
+		info.addView(times, tlp);
 
 		// Kontroller: önceki · oynat/duraklat (bağlanırken dönen halka) · sonraki
 		LinearLayout ctl = new LinearLayout(ctx);
@@ -523,24 +525,19 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		else ilp.topMargin = dp(20);
 		body.addView(info, ilp);
 
-		seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+		seek.setListener(new YoldaSeekLine.Listener() {
 			@Override
-			public void onProgressChanged(SeekBar s, int p, boolean user) {
-				if (!user) return;
-				long d = duration();
-				if (d > 0) pos.setText(MusicFragment.fmt(d * p / 1000 / 1000));
-			}
-
-			@Override
-			public void onStartTrackingTouch(SeekBar s) {
+			public void onDrag(float f) {
 				dragging = true;
+				long d = durationNow();
+				if (d > 0) pos.setText(MusicFragment.fmt((long) (d * f) / 1000)); // gidilecek yer
 			}
 
 			@Override
-			public void onStopTrackingTouch(SeekBar s) {
+			public void onSeek(float f) {
 				dragging = false;
-				long d = duration();
-				if (d > 0) cb().onSeekTo(d * s.getProgress() / 1000);
+				long d = durationNow();
+				if (d > 0) cb().onSeekTo((long) (d * f));
 			}
 		});
 		body.addOnLayoutChangeListener((v, l, tp, r, b, ol, ot, or, ob) -> {
@@ -646,13 +643,21 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		setProgress(position(cb), d, !isLive);
 	}
 
+	private long lastDur;
+
+	/** Sürükleme sırasında kullanılan süre (YouTube yedeğindeki şarkıda öğe süresi yok). */
+	private long durationNow() {
+		long d = duration();
+		return (d > 0) ? d : lastDur;
+	}
+
 	private void setProgress(long p, long d, boolean show) {
 		int vis = (show && (d > 0)) ? VISIBLE : GONE;
-		if (seek.getVisibility() != vis) post(this::fitCover); // kapak kalan alana göre yeniden boyutlansın
-		seek.setVisibility(vis);
+		if (times.getVisibility() != vis) post(this::fitCover); // kapak kalan alana göre yeniden boyutlansın
 		times.setVisibility(vis);
+		if (d > 0) lastDur = d;
 		if ((d <= 0) || dragging) return;
-		seek.setProgress((int) Math.min(1000, p * 1000 / d));
+		seek.setProgress(Math.min(1f, p / (float) d));
 		pos.setText(MusicFragment.fmt(p / 1000));
 		dur.setText(MusicFragment.fmt(d / 1000));
 	}

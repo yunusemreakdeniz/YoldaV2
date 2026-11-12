@@ -44,7 +44,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 	private final TextView title;
 	private final TextView sub;
 	private final ImageView play;
-	private final ProgressLine progress;
+	private final YoldaSeekLine progress;
 	private final TextView live;
 	private final YoldaNowPlaying.BusyRing ring;
 	private final Runnable ticker = this::tick;
@@ -71,7 +71,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		LinearLayout row = new LinearLayout(ctx);
 		row.setOrientation(LinearLayout.HORIZONTAL);
 		row.setGravity(Gravity.CENTER_VERTICAL);
-		row.setPadding(dp(10), dp(6), dp(6), dp(6));
+		row.setPadding(dp(10), dp(6), dp(6), dp(12)); // altta ilerleme çizgisine yer
 		addView(row, new LayoutParams(-1, -1));
 
 		// Kapak
@@ -166,10 +166,22 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		}), btnLp(40));
 
 		// Üstte ilerleme çizgisi
-		progress = new ProgressLine(ctx);
-		LayoutParams plp2 = new LayoutParams(-1, dp(30), Gravity.TOP);
-		plp2.topMargin = -dp(15);
-		addView(progress, plp2);
+		// İlerleme: çubuğun içinde, alt kenara oturan ince çizgi; sürüklenerek sarılır
+		progress = new YoldaSeekLine(ctx);
+		progress.setLine(0.7f, dp(26), dp(3));
+		progress.setListener(new YoldaSeekLine.Listener() {
+			@Override
+			public void onDrag(float f) {
+				dragging = true;
+			}
+
+			@Override
+			public void onSeek(float f) {
+				dragging = false;
+				seekTo(f);
+			}
+		});
+		addView(progress, new LayoutParams(-1, dp(16), Gravity.BOTTOM));
 	}
 
 	// ---- yaşam döngüsü ----
@@ -249,7 +261,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			}
 			sub.setText("Bağlanıyor…");
 			live.setVisibility(GONE);
-			progress.set(0f, false);
+			setProg(0f, false);
 			return;
 		}
 
@@ -261,7 +273,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			long p = YoldaNowPlaying.position(cb);
 			live.setVisibility(GONE);
 			sub.setText(busy ? "Bağlanıyor…" : subText);
-			if (!dragging) progress.set((d > 0) ? Math.min(1f, p / (float) d) : 0f, d > 0);
+			if (!dragging) setProg((d > 0) ? Math.min(1f, p / (float) d) : 0f, d > 0);
 			return;
 		}
 
@@ -305,7 +317,12 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			an.setRepeatCount(android.view.animation.Animation.INFINITE);
 			live.startAnimation(an);
 		} else if (!isLive && (live.getAnimation() != null)) live.clearAnimation();
-		if (!dragging) progress.set((dur > 0) ? Math.min(1f, pos / (float) dur) : (isLive ? 1f : 0f), dur > 0);
+		if (!dragging) setProg((dur > 0) ? Math.min(1f, pos / (float) dur) : (isLive ? 1f : 0f), dur > 0);
+	}
+
+	private void setProg(float f, boolean seekable) {
+		progress.setSeekable(seekable);
+		progress.setProgress(f);
 	}
 
 	private static long durationOf(MediaLib.PlayableItem pi) {

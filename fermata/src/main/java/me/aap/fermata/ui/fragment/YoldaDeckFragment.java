@@ -1292,11 +1292,43 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private View scroll(Context ctx, View row) {
-		HorizontalScrollView hs = new HorizontalScrollView(ctx);
+		HorizontalScrollView hs = new ChipScroll(ctx);
 		hs.setHorizontalScrollBarEnabled(false);
-		hs.setClipToPadding(false);
+		hs.setHorizontalFadingEdgeEnabled(true);
+		hs.setFadingEdgeLength(dp(28));
 		hs.addView(row);
 		return hs;
+	}
+
+	/**
+	 * Kart içindeki yatay kısayol şeridi: kaydırılabildiği sürece desteye (dış yatay liste) dokunuşu
+	 * kaptırmaz; şeridin sonuna gelince deste kaymaya devam eder.
+	 */
+	private static final class ChipScroll extends HorizontalScrollView {
+		private float downX;
+
+		ChipScroll(Context ctx) {
+			super(ctx);
+		}
+
+		@Override
+		public boolean dispatchTouchEvent(MotionEvent e) {
+			switch (e.getActionMasked()) {
+				case MotionEvent.ACTION_DOWN -> {
+					downX = e.getX();
+					if (canScrollHorizontally(1) || canScrollHorizontally(-1))
+						getParent().requestDisallowInterceptTouchEvent(true);
+				}
+				case MotionEvent.ACTION_MOVE -> {
+					float dx = e.getX() - downX;
+					boolean can = (dx < 0) ? canScrollHorizontally(1) : canScrollHorizontally(-1);
+					getParent().requestDisallowInterceptTouchEvent(can);
+				}
+				default -> {
+				}
+			}
+			return super.dispatchTouchEvent(e);
+		}
 	}
 
 	private LinearLayout.LayoutParams tileLp(int tile) {

@@ -169,9 +169,19 @@ public class NavFragment extends MainActivityFragment {
 		goBtn.setClickable(true);
 		goBtn.setOnClickListener(v -> navigate(ctx, input.getText().toString(), true));
 		search.addView(goBtn);
-		LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, dp(72));
-		slp.topMargin = dp(22);
-		col.addView(search, slp);
+		if (YoldaStyle.DECK) { // V2: arama altta, sesli düğmenin sağında; içerik üstünde kayar
+			search.setElevation(dp(8));
+			FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(-1, dp(60), Gravity.BOTTOM);
+			flp.setMargins(dp(YoldaStyle.searchLeftDp()), 0, dp(22), dp(14));
+			root.addView(search, flp);
+			col.setPadding(col.getPaddingLeft(), col.getPaddingTop(), col.getPaddingRight(), dp(100));
+			goBtn.setPadding(dp(18), dp(10), dp(18), dp(10));
+			input.setPadding(dp(12), dp(8), dp(12), dp(8));
+		} else {
+			LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, dp(72));
+			slp.topMargin = dp(22);
+			col.addView(search, slp);
+		}
 
 		// Ev, İş ve yakındakiler
 		LinearLayout quick = new LinearLayout(ctx);
