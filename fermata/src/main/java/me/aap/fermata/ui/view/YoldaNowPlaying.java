@@ -277,6 +277,10 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		cl.addView(v, lp);
 		View nb = a.getNavBar();
 		if (nb != null) nb.setVisibility(INVISIBLE); // sesli düğme menüyle birlikte gizlenir
+		View body = a.getBody();
+		if (body != null) v.postDelayed(() -> {
+			if (v.getTag(TAG_KEY) != null) body.setVisibility(INVISIBLE);
+		}, 300);
 		v.setAlpha(0f);
 		v.setTranslationY(v.dp(48));
 		v.animate().alpha(1f).translationY(0).setInterpolator(new DecelerateInterpolator(2f)).setDuration(260).start();
@@ -289,6 +293,8 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		YoldaNowPlaying v = find(g);
 		if (v == null) return false;
 		v.setTag(TAG_KEY, null);
+		View body = a.getBody();
+		if (body != null) body.setVisibility(VISIBLE);
 		v.animate().alpha(0f).translationY(v.dp(48)).setDuration(180).withEndAction(() -> g.removeView(v)).start();
 		View nb = a.getNavBar();
 		if ((nb != null) && !a.isBarsHidden() && !YoldaStyle.DECK) nb.setVisibility(VISIBLE);

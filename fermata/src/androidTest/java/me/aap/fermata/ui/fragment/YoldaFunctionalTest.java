@@ -167,7 +167,7 @@ public class YoldaFunctionalTest {
 		assertTrue("Ana ekran kart destesi olmalı", onMain(a -> a.getActiveFragment() instanceof YoldaDeckFragment));
 		assertEquals("Destede 8 kart olmalı", 8, onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().size()).intValue());
 		assertEquals("Ana ekranda geri düğmesi gizli", View.GONE, onMain(a -> a.getDeckBackButton().getVisibility()).intValue());
-		assertEquals("Menü olmamalı", View.GONE, onMain(a -> a.getNavBar().getVisibility()).intValue());
+		assertTrue("Menü görünmemeli", onMain(a -> a.getNavBar().getVisibility() != View.VISIBLE));
 		String[] keys = {YoldaDeck.YOUTUBE, YoldaDeck.MUSIC, YoldaDeck.TV, YoldaDeck.RADIO, YoldaDeck.WEB, YoldaDeck.SETTINGS};
 		int[] ids = {R.id.yolda_youtube, R.id.yolda_music, R.id.yolda_channels_fragment, R.id.yolda_channels_fragment,
 				R.id.web_browser_fragment, R.id.yolda_menu_fragment};

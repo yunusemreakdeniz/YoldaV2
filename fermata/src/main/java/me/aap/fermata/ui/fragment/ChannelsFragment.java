@@ -141,10 +141,12 @@ public class ChannelsFragment extends MainActivityFragment {
 			});
 			seg.addView(s);
 		}
-		LinearLayout.LayoutParams sglp = new LinearLayout.LayoutParams(-2, -2);
-		sglp.leftMargin = dp(16);
-		titleRow.addView(seg, sglp);
 		titles.addView(titleRow);
+		// Seçici başlığın altında kendi satırında (yan yanayken dar ekranda sıkışıp "Radyo" kayboluyordu)
+		LinearLayout.LayoutParams sglp = new LinearLayout.LayoutParams(-2, -2);
+		sglp.topMargin = dp(8);
+		sglp.bottomMargin = dp(6);
+		titles.addView(seg, sglp);
 		status = text(ctx, "Kanallar yükleniyor…", 14, false, t.muted);
 		titles.addView(status);
 		head.addView(titles, new LinearLayout.LayoutParams(0, -2, 1f));

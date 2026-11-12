@@ -469,18 +469,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		title.setEllipsize(TextUtils.TruncateAt.END);
 		names.addView(title);
 		head.addView(names, new LinearLayout.LayoutParams(0, -2, 1f));
-		if (!editing) {
-			TextView openBtn = text(ctx, "▶  Aç", 16, true, 0xFF111827);
-			openBtn.setGravity(Gravity.CENTER);
-			openBtn.setPadding(dp(18), 0, dp(20), 0);
-			GradientDrawable ob = new GradientDrawable();
-			ob.setCornerRadius(dp(999));
-			ob.setColor(0xFFFFF4D6);
-			openBtn.setBackground(ob);
-			openBtn.setElevation(dp(4));
-			openBtn.setOnClickListener(x -> open(c));
-			head.addView(openBtn, new LinearLayout.LayoutParams(-2, dp(48)));
-		}
 		v.addView(head);
 
 		TextView sub = text(ctx, lk.sub, 15, false, 0xD9FFFFFF);
@@ -490,8 +478,29 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		v.addView(sub);
 		v.addView(new View(ctx), new LinearLayout.LayoutParams(-1, 0, 1f));
 
-		View content = editing ? editBar(ctx, c, pos) : content(ctx, c);
-		if (content != null) v.addView(content, new LinearLayout.LayoutParams(-1, -2));
+		if (editing) {
+			v.addView(editBar(ctx, c, pos), new LinearLayout.LayoutParams(-1, -2));
+			return f;
+		}
+		LinearLayout bottom = hrow(ctx);
+		bottom.setGravity(Gravity.BOTTOM);
+		View content = content(ctx, c);
+		if (content != null) bottom.addView(content, new LinearLayout.LayoutParams(0, -2, 1f));
+		else bottom.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
+		TextView openBtn = text(ctx, "▶  Aç", 16, true, 0xFF111827);
+		openBtn.setGravity(Gravity.CENTER);
+		openBtn.setPadding(dp(18), 0, dp(20), 0);
+		GradientDrawable ob = new GradientDrawable();
+		ob.setCornerRadius(dp(999));
+		ob.setColor(0xFFFFF4D6);
+		openBtn.setBackground(ob);
+		openBtn.setElevation(dp(4));
+		openBtn.setContentDescription("Aç: " + c.title());
+		openBtn.setOnClickListener(x -> open(c));
+		LinearLayout.LayoutParams olp = new LinearLayout.LayoutParams(-2, dp(52));
+		olp.leftMargin = dp(10);
+		bottom.addView(openBtn, olp);
+		v.addView(bottom, new LinearLayout.LayoutParams(-1, -2));
 		return f;
 	}
 
