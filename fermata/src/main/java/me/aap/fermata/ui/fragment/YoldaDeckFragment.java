@@ -830,8 +830,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				LinearLayout hours = hrow(ctx);
 				for (int i = 1; i < Math.min(weather.hours().size(), 7); i++) {
 					YoldaWeather.Hour h = weather.hours().get(i);
-					TextView c = chipBtn(ctx, h.time() + "  " + YoldaWeather.emoji(h.code()) + " " + h.temp() + "°", v -> open(deck.get(deck.indexOf(YoldaDeck.WEATHER))));
-					hours.addView(c, chipLp());
+					TextView hc = chipBtn(ctx, h.time() + "  " + YoldaWeather.emoji(h.code()) + " " + h.temp() + "°", v -> open(c));
+					hours.addView(hc, chipLp());
 				}
 				row.addView(scroll(ctx, hours), new LinearLayout.LayoutParams(0, -2, 1f));
 				return row;
