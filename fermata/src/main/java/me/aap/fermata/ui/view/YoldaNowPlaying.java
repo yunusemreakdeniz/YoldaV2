@@ -110,6 +110,54 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		return (p != null) ? p.thumb : null;
 	}
 
+	// ---- oturumun güncel bilgisi: aynı öğede yayın / şarkı / program değişince de ad ve resim yenilenir ----
+
+	@Nullable
+	static String metaSig(@Nullable MediaMetadataCompat md) {
+		if (md == null) return null;
+		return metaTitle(md) + "|" + metaSub(md) + "|" + metaArtUri(md) + "|" + (metaBitmap(md) != null);
+	}
+
+	@Nullable
+	static String metaTitle(@Nullable MediaMetadataCompat md) {
+		if (md == null) return null;
+		String s = md.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE);
+		return TextUtils.isEmpty(s) ? md.getString(MediaMetadataCompat.METADATA_KEY_TITLE) : s;
+	}
+
+	@Nullable
+	static String metaSub(@Nullable MediaMetadataCompat md) {
+		if (md == null) return null;
+		for (String k : new String[]{MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
+				MediaMetadataCompat.METADATA_KEY_ARTIST, MediaMetadataCompat.METADATA_KEY_ALBUM}) {
+			String s = md.getString(k);
+			if (!TextUtils.isEmpty(s)) return s;
+		}
+		return null;
+	}
+
+	@Nullable
+	static String metaArtUri(@Nullable MediaMetadataCompat md) {
+		if (md == null) return null;
+		for (String k : new String[]{MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI,
+				MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, MediaMetadataCompat.METADATA_KEY_ART_URI}) {
+			String s = md.getString(k);
+			if (!TextUtils.isEmpty(s)) return s;
+		}
+		return null;
+	}
+
+	@Nullable
+	static Bitmap metaBitmap(@Nullable MediaMetadataCompat md) {
+		if (md == null) return null;
+		for (String k : new String[]{MediaMetadataCompat.METADATA_KEY_ALBUM_ART,
+				MediaMetadataCompat.METADATA_KEY_ART, MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON}) {
+			Bitmap b = md.getBitmap(k);
+			if (b != null) return b;
+		}
+		return null;
+	}
+
 	// ---- ortak eylemler (çubuk ve bu ekran) ----
 
 	/** Yayın açılıyor mu (bağlanıyor / tamponluyor ya da dokunulan şarkı aranıyor). */
@@ -250,6 +298,8 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	private final LinearLayout queueRow;
 	private final Runnable ticker = this::tick;
 	private String itemKey;
+	@Nullable
+	private String metaKey;
 	private boolean dragging;
 	private boolean logo;
 
@@ -524,6 +574,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			itemKey = key;
 			loadItem(a, pi, key);
 		}
+		applyMeta(a, cb.getYoldaMetadata(), pi, key);
 		long d = duration();
 		boolean isLive = (d <= 0) && pi.isStream();
 		live.setVisibility(isLive ? VISIBLE : GONE);
@@ -566,6 +617,27 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 				if (key.equals(itemKey)) loadCover(a, (u != null) ? u.toString() : null, key, logo);
 			});
 		}
+	}
+
+	/** Oturum bilgisi değiştiyse (YouTube'da yeni video, TV'de yeni program) adı, alt bilgiyi, resmi yenile. */
+	private void applyMeta(MainActivityDelegate a, @Nullable MediaMetadataCompat md, MediaLib.PlayableItem pi,
+												 String key) {
+		String sig = metaSig(md);
+		if ((sig == null) || sig.equals(metaKey)) return;
+		metaKey = sig;
+		String tt = metaTitle(md);
+		if (!TextUtils.isEmpty(tt)) title.setText(tt);
+		String st = metaSub(md);
+		if (!TextUtils.isEmpty(st)) sub.setText(st);
+		Bitmap bm = metaBitmap(md);
+		if (bm != null) {
+			setCover(bm, logo);
+			return;
+		}
+		String u = metaArtUri(md);
+		if (u == null) return;
+		if (pi instanceof YtMusicItem) u = MusicFragment.bigThumb(u);
+		loadCover(a, u, key, logo);
 	}
 
 	private void showInfo(String name, String subtitle, boolean logoMode) {

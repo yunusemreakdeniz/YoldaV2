@@ -247,6 +247,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 			itemId = id;
 			loadInfo(a, pi);
 		}
+		applyMeta(a, cb.getYoldaMetadata());
 		if (YoldaNowPlaying.isError(cb)) {
 			sub.setText("Açılamadı · ▶ ile tekrar dene");
 			subOverride = true;
@@ -277,6 +278,40 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		} catch (Throwable ignore) {
 		}
 		return 0;
+	}
+
+	@Nullable
+	private String metaKey;
+
+	/**
+	 * Oturumun güncel bilgisiyle adı, alt bilgiyi ve resmi yenile: çalınan öğe aynı kalsa da (YouTube'da
+	 * sonraki video, TV'de yeni program, şarkının kapağı geç gelince) çubuk güncel kalır.
+	 */
+	private void applyMeta(MainActivityDelegate a, @Nullable MediaMetadataCompat md) {
+		String sig = YoldaNowPlaying.metaSig(md);
+		if ((sig == null) || sig.equals(metaKey)) return;
+		metaKey = sig;
+		String tt = YoldaNowPlaying.metaTitle(md);
+		if (!TextUtils.isEmpty(tt)) title.setText(tt);
+		String st = YoldaNowPlaying.metaSub(md);
+		if (!TextUtils.isEmpty(st)) {
+			subText = st;
+			if (!subOverride) sub.setText(st);
+		}
+		String key = itemId;
+		android.graphics.Bitmap bm = YoldaNowPlaying.metaBitmap(md);
+		if (bm != null) {
+			cover.setImageBitmap(bm);
+			cover.animate().alpha(1f).setDuration(220).start();
+			return;
+		}
+		String u = YoldaNowPlaying.metaArtUri(md);
+		if (u == null) return;
+		a.getLib().getBitmap(u, true, true).main().onCompletion((bmp, e2) -> {
+			if ((bmp == null) || !java.util.Objects.equals(key, itemId)) return;
+			cover.setImageBitmap(bmp);
+			cover.animate().alpha(1f).setDuration(220).start();
+		});
 	}
 
 	/** Alt satır geçici olarak "Bağlanıyor…" / hata gösteriyorsa asıl metin burada bekler. */

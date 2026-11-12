@@ -698,6 +698,12 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	private static volatile long yoldaOpenStart;
 	private static volatile String yoldaOpenName;
 
+	/** Oturumun güncel bilgisi (bildirimde ve araç ekranında görünen ad / resim). */
+	@Nullable
+	public MediaMetadataCompat getYoldaMetadata() {
+		return metadata;
+	}
+
 	/** Şu an açılmakta olan yayının başlama zamanı (elapsedRealtime), açılmıyorsa 0. */
 	public static long yoldaOpeningSince() {
 		return yoldaOpenStart;

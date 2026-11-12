@@ -730,6 +730,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			keepScreenOn(false);
 			if (cp != null) cp.disableVideoMode();
 		}
+		showYoldaBack(videoMode);
 
 		if (!checkMirroringMode(false)) {
 			MainActivityPrefs p = getPrefs();
@@ -901,7 +902,66 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	public void onBackPressed() {
 		if (me.aap.fermata.ui.view.YoldaNowPlaying.hide(this)) return; // önce "Şimdi çalıyor" kapanır
+		BodyLayout b = getBody();
+		if ((b != null) && b.isVideoMode()) { // tam ekran videodan çık: yayın sürer, oynatıcı altta kalır
+			b.setMode(BodyLayout.Mode.FRAME);
+			return;
+		}
 		super.onBackPressed();
+	}
+
+	/**
+	 * Yolda: tam ekran video / YouTube tam ekranındayken menü gizli ve araçta geri tuşu yok; her zaman
+	 * görünen geri düğmesi. Basınca tam ekrandan çıkılır, yayın sürer, oynatıcı çubuğu altta kalır
+	 * (✕ ile kapatılabilir).
+	 */
+	@Nullable
+	private View yoldaBack;
+
+	private void showYoldaBack(boolean show) {
+		View host = findViewById(R.id.main_activity);
+		if (!(host instanceof ConstraintLayout cl)) return;
+		if (!show) {
+			if (yoldaBack != null) yoldaBack.setVisibility(GONE);
+			return;
+		}
+		Context ctx = getContext();
+		if (yoldaBack == null) {
+			AppCompatImageView v = new AppCompatImageView(ctx);
+			v.setImageResource(R.drawable.yi_left);
+			v.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+			int p = toIntPx(ctx, 13);
+			v.setPadding(p, p, p, p);
+			v.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
+					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
+			v.setContentDescription("Geri");
+			v.setClickable(true);
+			v.setFocusable(true);
+			v.setElevation(toIntPx(ctx, 25));
+			v.setOnClickListener(x -> yoldaBackPressed());
+			int s = toIntPx(ctx, isCarActivity() ? 56 : 52);
+			ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
+			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.leftMargin = toIntPx(ctx, 16);
+			lp.topMargin = me.aap.fermata.ui.view.YoldaStyle.cutoutTopPx + toIntPx(ctx, 14);
+			cl.addView(v, lp);
+			yoldaBack = v;
+		}
+		yoldaBack.setVisibility(VISIBLE);
+		yoldaBack.setAlpha(0f);
+		yoldaBack.animate().alpha(0.92f).setDuration(200).start();
+	}
+
+	private void yoldaBackPressed() {
+		onBackPressed(); // video → çerçeve; web tam ekranı → normal sayfa
+		App.get().getHandler().postDelayed(() -> {
+			if (videoMode) setVideoMode(false, null); // hâlâ tam ekransa zorla çık
+			setBarsHidden(false);
+			showYoldaBack(false);
+			var cb = getMediaSessionCallback();
+			if (cb.isPlaying() || (getCurrentPlayable() != null)) getControlPanel().setVisibility(VISIBLE);
+		}, 150);
 	}
 
 	/** Yolda: işlemi kapanan web sayfasını at, sahibi olan ekranı yeniden kur (uygulama kapanmaz). */

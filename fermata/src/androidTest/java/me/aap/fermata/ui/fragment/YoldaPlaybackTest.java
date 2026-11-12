@@ -92,6 +92,18 @@ public class YoldaPlaybackTest {
 		Log.i(TAG, "TV açılış süresi (TRT 1): " + ms + " ms");
 		assertTrue("Oynatıcı çubuğu kurulmalı", onMain(a -> a.getControlPanel().getYoldaBar() != null));
 
+		// Tam ekran videodan geri ile çıkılır: yayın sürer, oynatıcı altta kalır, menü görünür
+		waitFor(3000, () -> onMain(a -> a.getBody().isVideoMode()));
+		onMain(a -> {
+			a.onBackPressed();
+			return null;
+		});
+		waitIdle(800);
+		assertFalse("Geri ile tam ekrandan çıkılmalı", onMain(a -> a.getBody().isVideoMode()));
+		assertTrue("Yayın sürmeli", onMain(a -> a.getMediaSessionCallback().isPlaying()));
+		assertEquals("Oynatıcı altta görünmeli", View.VISIBLE, onMain(a -> a.getControlPanel().getVisibility()).intValue());
+		assertEquals("Menü görünmeli", View.VISIBLE, onMain(a -> a.getNavBar().getVisibility()).intValue());
+
 		// Duraklat / devam
 		onMain(a -> {
 			a.getMediaSessionCallback().onPause();
