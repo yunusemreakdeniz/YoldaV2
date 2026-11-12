@@ -266,6 +266,12 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 				protected void onQueryComplete(int token, Object cookie, Cursor c) {
 					boolean connected = isCarConnected(c);
 					if (carConnected && !connected) onPause();
+					// Yolda: araç bağlanınca son dinleneni çal (Ayarlar kartından kapatılabilir)
+					if (!carConnected && connected && !isPlaying() && ctx.getSharedPreferences(
+							me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE).getBoolean("car_autoplay", true)) {
+						me.aap.fermata.ui.fragment.YoldaLog.add("Araç bağlandı: son dinlenen çalınıyor");
+						onPlay();
+					}
 					carConnected = connected;
 				}
 			};

@@ -910,7 +910,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	public void onBackPressed() {
 		if (me.aap.fermata.ui.view.YoldaNowPlaying.hide(this)) return; // önce "Şimdi çalıyor" kapanır
 		BodyLayout b = getBody();
-		if ((b != null) && b.isVideoMode()) { // tam ekran videodan çık: yayın sürer, oynatıcı altta kalır
+		if ((b != null) && (b.isVideoMode() || b.isBothMode())) { // tam ekran / bölünmüş videodan çık: yayın sürer
 			b.setMode(BodyLayout.Mode.FRAME);
 			return;
 		}
@@ -930,6 +930,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (!(host instanceof ConstraintLayout cl)) return;
 		if (!show) {
 			if (yoldaBack != null) yoldaBack.setVisibility(GONE);
+			if (yoldaSplit != null) yoldaSplit.setVisibility(GONE);
 			return;
 		}
 		Context ctx = getContext();
@@ -958,6 +959,74 @@ public class MainActivityDelegate extends ActivityDelegate
 		yoldaBack.setVisibility(VISIBLE);
 		yoldaBack.setAlpha(0f);
 		yoldaBack.animate().alpha(0.92f).setDuration(200).start();
+		showSplitButton(cl);
+	}
+
+	/** Video + navigasyon: video izlerken ekranı bölüp yanında haritayı açan düğme (geri düğmesinin sağında). */
+	@Nullable
+	private AppCompatImageView yoldaSplit;
+
+	private void showSplitButton(ConstraintLayout cl) {
+		Context ctx = getContext();
+		if (yoldaSplit == null) {
+			AppCompatImageView v = new AppCompatImageView(ctx);
+			v.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+			int p = toIntPx(ctx, 13);
+			v.setPadding(p, p, p, p);
+			v.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
+					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
+			v.setClickable(true);
+			v.setFocusable(true);
+			v.setElevation(toIntPx(ctx, 25));
+			v.setOnClickListener(x -> toggleSplit());
+			int s = toIntPx(ctx, isCarActivity() ? 56 : 52);
+			ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
+			lp.startToEnd = yoldaBack.getId();
+			lp.topToTop = yoldaBack.getId();
+			lp.leftMargin = toIntPx(ctx, 12);
+			if (yoldaBack.getId() == View.NO_ID) yoldaBack.setId(View.generateViewId());
+			lp.startToEnd = yoldaBack.getId();
+			lp.topToTop = yoldaBack.getId();
+			cl.addView(v, lp);
+			yoldaSplit = v;
+		}
+		updateSplitButton();
+		yoldaSplit.setVisibility(VISIBLE);
+	}
+
+	private void updateSplitButton() {
+		if (yoldaSplit == null) return;
+		BodyLayout b = getBody();
+		boolean split = (b != null) && b.isBothMode();
+		yoldaSplit.setImageResource(split ? R.drawable.yi_tv : R.drawable.yi_nav);
+		yoldaSplit.setContentDescription(split ? "Tam ekran video" : "Navigasyonla böl");
+	}
+
+	/** Tam ekran video ↔ yarısı video, yarısı harita (son gidilen yere rota, yoksa konumun). */
+	private void toggleSplit() {
+		BodyLayout b = getBody();
+		if (b == null) return;
+		if (b.isBothMode()) {
+			b.setMode(BodyLayout.Mode.VIDEO);
+			updateSplitButton();
+			return;
+		}
+		Context ctx = getContext();
+		java.util.List<String> recent = me.aap.fermata.ui.fragment.NavFragment.recent(ctx);
+		String url = recent.isEmpty() ? "https://www.google.com/maps"
+				: "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + Uri.encode(recent.get(0));
+		me.aap.fermata.ui.view.YoldaStyle.webNoToolbar = true;
+		b.setMode(BodyLayout.Mode.BOTH);
+		Object f = showFragment(R.id.web_browser_fragment);
+		if (f != null) {
+			try {
+				f.getClass().getMethod("loadUrl", String.class).invoke(f, url);
+			} catch (Exception ex) {
+				Log.e(ex, "Harita açılamadı");
+			}
+		}
+		updateSplitButton();
+		me.aap.fermata.ui.fragment.YoldaLog.add("Bölünmüş ekran: video + harita");
 	}
 
 	private void yoldaBackPressed() {
@@ -1581,6 +1650,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		boolean np = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
 		if ((navBar != null) && (navBar.getVisibility() != View.GONE)) navBar.setVisibility(View.GONE);
 		boolean full = videoMode || barsHidden;
+		updateSplitButton();
 		int vv = (full || np) ? View.GONE : View.VISIBLE;
 		if ((voiceButton != null) && (voiceButton.getVisibility() != vv)) voiceButton.setVisibility(vv);
 		int bv = (full || np || (getActiveFragmentId() == R.id.home_fragment)) ? View.GONE : View.VISIBLE;
