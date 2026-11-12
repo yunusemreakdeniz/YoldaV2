@@ -214,7 +214,7 @@ public class YoldaFunctionalTest {
 				View voice = a.getYoldaVoiceButton();
 				android.widget.EditText e = findEdit(a.getActiveFragment().getView());
 				if ((voice == null) || (e == null) || !e.isShown()) return "yok";
-				View box = (e.getParent() instanceof View p && p.getHeight() > e.getHeight()) ? p : e;
+				View box = e; // arama kutusu doğrudan düzenleme alanı
 				int[] lv = new int[2], le = new int[2];
 				voice.getLocationOnScreen(lv);
 				box.getLocationOnScreen(le);
