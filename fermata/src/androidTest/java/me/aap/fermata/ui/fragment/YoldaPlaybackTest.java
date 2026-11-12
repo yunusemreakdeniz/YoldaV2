@@ -221,6 +221,51 @@ public class YoldaPlaybackTest {
 		}
 	}
 
+	/**
+	 * Hızlı kanal değiştirme arayüzü dondurmaz: TV ve radyo arasında art arda geçilirken (önceki yayın ağda takılı
+	 * olsa da) ana iş parçacığı hiçbir an 2,5 sn'den uzun kilitlenmez. Önceden VLC eski yayını kapatırken
+	 * uygulama 5 sn donuyordu.
+	 */
+	@Test
+	public void hizliKanalDegistirmeDondurmaz() {
+		String[] names = {"TRT 1", "TRT FM", "ATV", "TRT Haber", "Show TV", "TRT FM"};
+		List<MediaLib.PlayableItem> items = new java.util.ArrayList<>();
+		for (String n : names) {
+			try {
+				items.add(channel(n));
+			} catch (Throwable ex) {
+				Log.i(TAG, "Kanal yok: " + n);
+			}
+		}
+		Assume.assumeTrue("Kanal listesi yok", items.size() >= 3);
+		long[] maxGap = {0};
+		long[] last = {SystemClock.elapsedRealtime()};
+		boolean[] run = {true};
+		Runnable[] beat = new Runnable[1];
+		android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+		beat[0] = () -> {
+			long now = SystemClock.elapsedRealtime();
+			maxGap[0] = Math.max(maxGap[0], now - last[0]);
+			last[0] = now;
+			if (run[0]) h.postDelayed(beat[0], 50);
+		};
+		h.post(beat[0]);
+		for (int round = 0; round < 2; round++) {
+			for (MediaLib.PlayableItem pi : items) {
+				onMain(a -> {
+					a.getBody().playItem(pi);
+					return null;
+				});
+				SystemClock.sleep(700);
+			}
+		}
+		SystemClock.sleep(6000); // son geçişin kapanışları da bitsin
+		run[0] = false;
+		SystemClock.sleep(200);
+		Log.i(TAG, "Kanal değiştirirken en uzun ana iş parçacığı beklemesi: " + maxGap[0] + " ms");
+		assertTrue("Arayüz donmamalı: en uzun bekleme " + maxGap[0] + " ms", maxGap[0] < 2500);
+	}
+
 	/** Radyo (ses akışı): "Şimdi çalıyor" açılır, geri tuşu önce onu kapatır. */
 	@Test
 	public void radyoVeSimdiCaliyorEkrani() {

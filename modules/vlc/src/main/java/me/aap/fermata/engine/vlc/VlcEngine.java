@@ -64,7 +64,21 @@ public class VlcEngine extends MediaEngineBase
 	@SuppressWarnings({"FieldCanBeLocal", "unused"}) // Hold reference to prevent garbage collection
 	private final VlcEngineProvider provider;
 	private final LibVLC vlc;
-	private final MediaPlayer player;
+	private MediaPlayer player;
+	/** Oynatıcıda bir yayın var mı (varsa yeni yayından önce eski oynatıcı arka planda kapatılır). */
+	private boolean hasMedia;
+	private boolean muted;
+	/**
+	 * Yolda: VLC'nin stop() ve setMedia() çağrıları önceki yayının okuma iş parçacığını bekler; ağda takılı bir
+	 * yayında bu saniyeler sürüyor ve ana iş parçacığında uygulama donuyordu (kanal değiştirirken). Eski
+	 * oynatıcı bu tek iş parçacığında kapatılır, yeni yayın temiz bir oynatıcıyla hemen başlar.
+	 */
+	private static final java.util.concurrent.ExecutorService RETIRE =
+			java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+				Thread t = new Thread(r, "VlcRetire");
+				t.setDaemon(true);
+				return t;
+			});
 	private final AudioEffects effects;
 	@NonNull
 	private Source source = Source.NULL;
@@ -156,7 +170,9 @@ public class VlcEngine extends MediaEngineBase
 		long off = source.getItem().getOffset();
 		this.source = source.prepare();
 		pendingPosition = -1;
+		if (hasMedia) retirePlayer(true); // önceki yayın arka planda kapanır, burada beklenmez
 		player.setMedia(media);
+		hasMedia = true;
 		source.release();
 		if (off > 0) player.setTime(off);
 		listener.onEnginePrepared(this);
@@ -171,8 +187,8 @@ public class VlcEngine extends MediaEngineBase
 	public void stop() {
 		stopped(false);
 		pendingPosition = -1;
-		player.stop();
-		player.detachViews();
+		if (hasMedia) retirePlayer(false); // durdurma arka planda (takılı yayın arayüzü dondurmasın)
+		else player.detachViews();
 		source.close();
 		source = Source.NULL;
 	}
@@ -412,6 +428,38 @@ public class VlcEngine extends MediaEngineBase
 		player.setSpuDelay(milliseconds * 1000L);
 	}
 
+	/** Eski oynatıcıyı bırakıp yenisini kurar; eskisi arka planda durdurulup serbest bırakılır. */
+	private void retirePlayer(boolean keepViews) {
+		MediaPlayer old = player;
+		hasMedia = false;
+		old.setEventListener(null);
+		try {
+			old.getVLCVout().detachViews();
+		} catch (Throwable ignore) {
+		}
+		MediaPlayer p = new MediaPlayer(vlc);
+		p.setEventListener(this);
+		if (muted) p.setVolume(0);
+		player = p;
+		if (keepViews && (videoView != null)) {
+			IVLCVout out = p.getVLCVout();
+			out.setVideoView(videoView.getVideoSurface());
+			out.setSubtitlesView(videoView.getSubtitleSurface());
+			out.attachViews(this);
+			setSurfaceSize(videoView);
+		}
+		RETIRE.execute(() -> {
+			try {
+				old.stop();
+			} catch (Throwable ignore) {
+			}
+			try {
+				old.release();
+			} catch (Throwable ignore) {
+			}
+		});
+	}
+
 	@Override
 	public void close() {
 		stop();
@@ -641,11 +689,13 @@ public class VlcEngine extends MediaEngineBase
 
 	@Override
 	public void mute(Context ctx) {
+		muted = true;
 		player.setVolume(0);
 	}
 
 	@Override
 	public void unmute(Context ctx) {
+		muted = false;
 		player.setVolume(100);
 	}
 
