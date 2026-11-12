@@ -215,7 +215,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Kart boyu destenin alanına göre: yatayda geniş, dikeyde ekranın çoğu; yanlarda komşular görünür. */
 	private void resize() {
-		if (list == null) return;
+		if ((list == null) || !isAdded() || (getContext() == null)) return; // geç gelen çağrı: sayfa kapanmışsa çökmesin
 		int w = list.getWidth();
 		int h = list.getHeight();
 		if ((w <= 0) || (h <= 0)) return;
@@ -242,7 +242,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Ortadaki kart tam boy ve önde; uzaklaştıkça küçülür, solar, merkeze doğru çekilip arkasına yığılır. */
 	private void transform() {
-		if (list == null) return;
+		if ((list == null) || !isAdded() || (getContext() == null)) return;
 		float center = list.getWidth() / 2f;
 		for (int i = 0; i < list.getChildCount(); i++) {
 			View c = list.getChildAt(i);
@@ -281,7 +281,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private void updateDots() {
-		if (dots == null) return;
+		if ((dots == null) || !isAdded() || (getContext() == null)) return;
 		Context ctx = requireContext();
 		dots.removeAllViews();
 		int cur = centerPosition();
@@ -582,9 +582,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private void afterChange(int focus) {
+		if (!isAdded() || (getContext() == null)) return;
 		save();
 		adapter.notifyDataSetChanged();
 		list.post(() -> {
+			if (!isAdded()) return;
 			((LinearLayoutManager) list.getLayoutManager()).scrollToPositionWithOffset(focus, 0);
 			prefs(requireContext()).edit().putInt(PREF_POS, focus).apply();
 			list.post(() -> {
