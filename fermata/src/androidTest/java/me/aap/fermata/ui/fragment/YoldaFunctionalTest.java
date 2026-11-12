@@ -204,6 +204,41 @@ public class YoldaFunctionalTest {
 		}
 	}
 
+	/** Arama kutuları sesli düğmeyle aynı hizada (ortaları en çok 3 dp farklı) ve onun sağında. */
+	@Test
+	public void aramaSesliDugmeyleAyniHizada() {
+		for (int id : new int[]{R.id.yolda_music, R.id.yolda_channels_fragment, R.id.yolda_youtube}) {
+			onMain(a -> a.showFragment(id));
+			waitIdle(1500);
+			String r = onMain(a -> {
+				View voice = a.getYoldaVoiceButton();
+				android.widget.EditText e = findEdit(a.getActiveFragment().getView());
+				if ((voice == null) || (e == null) || !e.isShown()) return "yok";
+				View box = (e.getParent() instanceof View p && p.getHeight() > e.getHeight()) ? p : e;
+				int[] lv = new int[2], le = new int[2];
+				voice.getLocationOnScreen(lv);
+				box.getLocationOnScreen(le);
+				float d = voice.getResources().getDisplayMetrics().density;
+				float cv = lv[1] + voice.getHeight() / 2f, ce = le[1] + box.getHeight() / 2f;
+				if (Math.abs(cv - ce) / d > 3) return "hiza farkı " + Math.round(Math.abs(cv - ce) / d) + " dp";
+				if (le[0] < lv[0] + voice.getWidth()) return "arama sesli düğmenin üstüne biniyor";
+				return "tamam";
+			});
+			if (!"yok".equals(r)) assertEquals("Ekran " + id, "tamam", r);
+		}
+	}
+
+	private static android.widget.EditText findEdit(View v) {
+		if (v instanceof android.widget.EditText e) return e;
+		if (v instanceof android.view.ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				android.widget.EditText e = findEdit(g.getChildAt(i));
+				if (e != null) return e;
+			}
+		}
+		return null;
+	}
+
 	/** Tema değişince açık sayfa, oynatıcı çubuğu ve sesli düğme yeni renklerle yeniden kurulur. */
 	@Test
 	public void temaDegisinceHerSeyYenilenir() {
