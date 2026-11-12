@@ -521,6 +521,27 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				}
 				return scroll(ctx, row);
 			}
+			case YoldaDeck.YOUTUBE -> {
+				LinearLayout row = hrow(ctx);
+				for (String[] q : new String[][]{{"Haber", "haber canlı"}, {"Canlı yayın", "canlı yayın türkiye"},
+						{"Müzik", "türkçe pop"}, {"Spor", "spor özet"}, {"Belgesel", "belgesel türkçe"}}) {
+					row.addView(chipBtn(ctx, q[0], v -> YoutubeHomeFragment.searchFor(a, q[1])), chipLp());
+				}
+				return scroll(ctx, row);
+			}
+			case YoldaDeck.WEB -> {
+				LinearLayout row = hrow(ctx);
+				for (String[] s : new String[][]{{"Google", "https://www.google.com"}, {"Hava durumu", "https://www.mgm.gov.tr"},
+						{"Haberler", "https://news.google.com/?hl=tr&gl=TR&ceid=TR:tr"}, {"Vikipedi", "https://tr.m.wikipedia.org"}}) {
+					row.addView(chipBtn(ctx, s[0], v -> HomeFragment.openWeb(a, s[1])), chipLp());
+				}
+				return scroll(ctx, row);
+			}
+			case YoldaDeck.PHONE -> {
+				LinearLayout row = hrow(ctx);
+				row.addView(chipBtn(ctx, "Telefon ekranını aç", v -> HomeFragment.phone(ctx)), chipLp());
+				return row;
+			}
 			case YoldaDeck.SETTINGS -> {
 				LinearLayout row = hrow(ctx);
 				row.addView(chipBtn(ctx, "Tema: " + t.name, v -> YoldaStyle.next(ctx)), chipLp());
