@@ -90,8 +90,13 @@ public class WebBrowserFragment extends MainActivityFragment
 		super.onHiddenChanged(hidden);
 		FermataWebView v = getWebView();
 		if (v == null) return;
-		if (hidden && !me.aap.fermata.ui.view.YoldaStyle.webNoToolbar) v.onPause();
+		if (hidden && !me.aap.fermata.ui.view.YoldaStyle.webNoToolbar && !keepRunningWhenHidden()) v.onPause();
 		else if (!hidden) v.onResume();
+	}
+
+	/** Gizlenince sayfa sürsün mü (ör. YouTube'da ses çalıyorsa: Müzik ekranına dönünce ses kesiliyordu). */
+	protected boolean keepRunningWhenHidden() {
+		return false;
 	}
 
 	@Override

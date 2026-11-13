@@ -853,6 +853,26 @@ public class MainActivityDelegate extends ActivityDelegate
 		return f;
 	}
 
+	/**
+	 * Parçayı ekrana getirmeden hazırlar (yoksa kurulur ve gizli eklenir). Yolda Müzik, YouTube Music
+	 * sayfasını arkada bu yolla açar: ekran YouTube'a geçmez.
+	 */
+	@Nullable
+	public ActivityFragment ensureFragment(int id) {
+		var fm = getSupportFragmentManager();
+		for (Fragment f : fm.getFragments()) {
+			if ((f instanceof ActivityFragment af) && (af.getFragmentId() == id)) return af;
+		}
+		try {
+			ActivityFragment f = createFragment(id);
+			fm.beginTransaction().add(getFrameContainerId(), f).hide(f).commitNow();
+			return f;
+		} catch (Exception ex) {
+			Log.e(ex, "Parça hazırlanamadı: ", id);
+			return null;
+		}
+	}
+
 	protected ActivityFragment createFragment(int id) {
 		if (id == R.id.home_fragment) { // Yolda V2: yığılmış kart destesi
 			return new me.aap.fermata.ui.fragment.YoldaDeckFragment();

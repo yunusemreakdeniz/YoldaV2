@@ -160,6 +160,19 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 		if (v != null) v.loadUrl(url);
 	}
 
+	/** Bu sayfanın videosu / şarkısı çalıyorken ekran gizlense de sayfa duraklatılmaz (ses sürer). */
+	@Override
+	protected boolean keepRunningWhenHidden() {
+		try {
+			MainActivityDelegate a = MainActivityDelegate.get(requireContext());
+			var cb = a.getMediaSessionCallback();
+			return (cb.getEngine() instanceof YoutubeMediaEngine eng) && (eng.getWebView() == getWebView())
+					&& (cb.isPlaying() || (me.aap.fermata.ui.fragment.MusicFragment.playingViaYoutube()));
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
+
 	/** Yolda: videoyu açar ve oynamaya başlayınca doğrudan tam ekrana geçer (sayfa görünümü değil). */
 	public void loadVideo(String url) {
 		YoutubeWebView v = getWebView();

@@ -1,5 +1,6 @@
 package me.aap.fermata.ui.fragment;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -123,6 +124,13 @@ public class YoldaMusicTest {
 		if (MusicFragment.playingViaYoutube()) {
 			assertTrue("YouTube videosu sessiz olmamalı: " + js, !js.contains("sessiz"));
 		}
+		// Ses sürmeli: ekran YouTube'a geçmeden, arkadaki sayfa duraklatılmadan (önceden birkaç sn sonra kesiliyordu)
+		assertEquals("Ekran Müzik'te kalmalı (YouTube'a geçmemeli)", R.id.yolda_music,
+				onMain(MainActivityDelegate::getActiveFragmentId).intValue());
+		waitIdle(10_000);
+		String later = MusicFragment.playingViaYoutube() ? videoState() : "-";
+		Log.i(TAG, "Müzik 10 sn sonra: " + later + " ses=" + soundActive());
+		assertTrue("10 sn sonra da ses sürmeli (" + later + ")", soundActive());
 
 		String first = MusicFragment.nowPlayingId();
 		onMain(a -> {

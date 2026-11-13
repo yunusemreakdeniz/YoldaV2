@@ -155,6 +155,11 @@ public class MusicFragment extends MainActivityFragment {
 		full.setPadding(dp(14), 0, dp(14), 0);
 		full.setBackground(YoldaStyle.glass(ctx, t, 999));
 		full.setOnClickListener(v -> HomeFragment.openWeb(a, HomeFragment.MUSIC_URL));
+		if (!signedIn() && !directPreferred(ctx)) { // bir kez giriş: YouTube Music hesabınla, "bot" engeli olmadan
+			full.setText("Google ile giriş");
+			full.setContentDescription("YouTube Music için Google hesabıyla giriş");
+			full.setOnClickListener(v -> HomeFragment.openWeb(a, LOGIN_URL));
+		}
 		LinearLayout.LayoutParams flp = new LinearLayout.LayoutParams(-2, dp(48));
 		flp.leftMargin = dp(10);
 		top.addView(full, flp);
@@ -809,7 +814,8 @@ public class MusicFragment extends MainActivityFragment {
 			});
 		}
 		everPlayed = false;
-		boolean broken = directBroken();
+		// Varsayılan: YouTube Music sitesi (Google hesabınla, "bot" engeli yok). Doğrudan çalma yalnız ayarla.
+		boolean broken = !directPreferred(requireContext()) || directBroken();
 		nowViaYoutube = broken;
 		nowId = tr.id();
 		nowYoutube = broken;
@@ -880,27 +886,28 @@ public class MusicFragment extends MainActivityFragment {
 			YtMusic.Track cur = nowTrack();
 			if (nowViaYoutube && (cur != null)) autoAdvance(positionMs(a.getMediaSessionCallback()), durationMs(cur));
 		});
-		String url = "https://m.youtube.com/watch?v=" + tr.id();
+		String url = "https://music.youtube.com/watch?v=" + tr.id();
+		YoldaLog.add("Müzik: YouTube Music'te çalınıyor (" + (signedIn() ? "hesapla" : "giriş yapılmamış") + ")");
 		Object existing = findFragment(R.id.youtube_fragment);
-		if (existing != null) { // sekme zaten açık: ekran değiştirmeden şarkıyı yükle
+		if (existing != null) { // sayfa hazır: ekran değiştirmeden şarkıyı yükle
 			loadInto(existing, url);
 			return;
 		}
-		Object f = a.showFragment(R.id.youtube_fragment);
+		// Sayfa ekrana getirilmeden arkada kurulur: ekran YouTube'a geçmez
+		Object f = a.ensureFragment(R.id.youtube_fragment);
+		if (f == null) f = a.showFragment(R.id.youtube_fragment);
 		if (f == null) return;
+		Object ff = f;
 		loadInto(f, url);
 		// Sekme ilk kez açılıyorsa kendi ana sayfasını yükleyip bizimkinin üstüne yazabilir: kısa süre sonra yeniden dene
 		me.aap.utils.app.App.get().getHandler().postDelayed(() -> {
 			try {
-				Object u = f.getClass().getMethod("getUrl").invoke(f);
-				if (!(u instanceof String s) || !s.contains(tr.id())) loadInto(f, url);
+				Object u = ff.getClass().getMethod("getUrl").invoke(ff);
+				if (!(u instanceof String s) || !s.contains(tr.id())) loadInto(ff, url);
 			} catch (Exception ignore) {
-				loadInto(f, url);
+				loadInto(ff, url);
 			}
 		}, 800);
-		me.aap.utils.app.App.get().getHandler().postDelayed(() -> {
-			if (a.getActiveFragmentId() == R.id.youtube_fragment) a.showFragment(R.id.yolda_music);
-		}, 4000);
 	}
 
 	/**
@@ -941,6 +948,24 @@ public class MusicFragment extends MainActivityFragment {
 		}
 		return null;
 	}
+
+	/** Doğrudan çalma (YouTube'un ses dosyası, Yolda'nın oynatıcısı) seçili mi; varsayılan YouTube Music. */
+	static boolean directPreferred(Context ctx) {
+		return prefs(ctx).getBoolean("music_direct", false);
+	}
+
+	/** YouTube / Google hesabıyla giriş yapılmış mı (YouTube Music sitesinin oturum çerezi). */
+	public static boolean signedIn() {
+		try {
+			String c = android.webkit.CookieManager.getInstance().getCookie("https://music.youtube.com");
+			return (c != null) && (c.contains("SAPISID") || c.contains("__Secure-3PAPISID"));
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
+
+	static final String LOGIN_URL = "https://accounts.google.com/ServiceLogin?service=youtube&hl=tr"
+			+ "&continue=https%3A%2F%2Fmusic.youtube.com%2F";
 
 	@Nullable
 	private Object findFragment(int id) {
