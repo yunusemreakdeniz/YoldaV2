@@ -441,7 +441,11 @@ public class VlcEngine extends MediaEngineBase
 		} catch (Throwable ignore) {
 		}
 		try {
-			old.pause();
+			old.pause(); // canlı yayında yok sayılabilir (duraklatılamayan akış)
+		} catch (Throwable ignore) {
+		}
+		try {
+			old.setAudioTrack(-1); // ses kanalı kapanır: ses çıkışı hemen bırakılır (canlıda da)
 		} catch (Throwable ignore) {
 		}
 		try {
