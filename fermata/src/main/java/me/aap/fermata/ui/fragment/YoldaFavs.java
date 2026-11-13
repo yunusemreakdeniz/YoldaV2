@@ -94,6 +94,30 @@ public final class YoldaFavs {
 		return r;
 	}
 
+	/** Sırada bir öne (dir = -1) ya da arkaya (+1) taşır. @return yeni konum (taşınamadıysa eskisi). */
+	public static int move(Context ctx, String key, int dir) {
+		List<YoldaDeck.Card> l = load(ctx);
+		int i = -1;
+		for (int k = 0; k < l.size(); k++) if (l.get(k).key().equals(key)) i = k;
+		int j = i + dir;
+		if ((i < 0) || (j < 0) || (j >= l.size())) return i;
+		java.util.Collections.swap(l, i, j);
+		save(ctx, l);
+		return j;
+	}
+
+	/** Görünen adı değiştirir. */
+	public static void rename(Context ctx, String key, String title) {
+		String t = clean(title).trim();
+		if (t.isEmpty()) return;
+		List<YoldaDeck.Card> l = load(ctx);
+		for (int k = 0; k < l.size(); k++) {
+			YoldaDeck.Card c = l.get(k);
+			if (c.key().equals(key)) l.set(k, new YoldaDeck.Card(c.key(), c.type(), t, c.data(), c.logo()));
+		}
+		save(ctx, l);
+	}
+
 	public static boolean remove(Context ctx, String type, String data) {
 		List<YoldaDeck.Card> l = load(ctx);
 		boolean r = l.removeIf(c -> c.type().equals(type) && c.data().equals(data));

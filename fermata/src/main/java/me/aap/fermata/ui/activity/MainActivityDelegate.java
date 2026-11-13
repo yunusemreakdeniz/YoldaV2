@@ -1564,6 +1564,10 @@ public class MainActivityDelegate extends ActivityDelegate
 			deckBack.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
 					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
 		}
+		if (deckPrev != null) {
+			deckPrev.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
+					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
+		}
 		ControlPanelView cp = getControlPanel();
 		if (cp != null) cp.rebuildYoldaBar();
 		// Sayfalar: gizlileri bırak (açılınca yeni renklerle kurulur), açık olanı yeniden kur.
@@ -1731,9 +1735,12 @@ public class MainActivityDelegate extends ActivityDelegate
 		if ((cp == null) || !(cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl)) return;
 		int m = videoMode ? toIntPx(getContext(), 6) : toIntPx(getContext(),
 				me.aap.fermata.ui.view.YoldaStyle.VOICE_DP + me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP + 10);
-		if (m == floatingBarMargin) return;
+		// solda sesli / ana sayfa / geri düğmeleri sütunu: çubuk onun sağından başlar (üstlerine binmez)
+		int left = videoMode ? 0 : toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.searchLeft(getContext()) - 12);
+		if ((m == floatingBarMargin) && (cl.leftMargin == left)) return;
 		floatingBarMargin = m;
 		cl.bottomMargin = m;
+		cl.leftMargin = left;
 		cp.setLayoutParams(cl);
 	}
 
@@ -1764,8 +1771,35 @@ public class MainActivityDelegate extends ActivityDelegate
 		lp.bottomMargin = toIntPx(ctx, 12);
 		host.addView(v, lp);
 		deckBack = v;
+		if (v.getId() == View.NO_ID) v.setId(View.generateViewId());
+		// Geri: ana sayfa düğmesinin hemen üstünde (bir önceki ekrana / sayfaya)
+		AppCompatImageView bk = new AppCompatImageView(ctx);
+		bk.setImageResource(R.drawable.yi_left);
+		bk.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		bk.setPadding(p, p, p, p);
+		bk.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx, me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
+		bk.setContentDescription("Geri");
+		bk.setClickable(true);
+		bk.setFocusable(true);
+		bk.setElevation(toIntPx(ctx, 12));
+		bk.setOnClickListener(x -> {
+			x.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80)
+					.withEndAction(() -> x.animate().scaleX(1f).scaleY(1f).setDuration(140).start()).start();
+			onBackPressed();
+		});
+		ConstraintLayout.LayoutParams blp = new ConstraintLayout.LayoutParams(s, s);
+		blp.startToStart = v.getId();
+		blp.endToEnd = v.getId();
+		blp.bottomToTop = v.getId();
+		blp.bottomMargin = toIntPx(ctx, 12);
+		host.addView(bk, blp);
+		deckPrev = bk;
 		updateDeckButtons();
 	}
+
+	/** V2: ana sayfa düğmesinin üstünde geri düğmesi. */
+	@Nullable
+	private View deckPrev;
 
 	/** Küçük pencere (resim içinde resim): yalnız video; düğmeler, çubuk, kanal şeridi gizli. */
 	private boolean yoldaPip;
@@ -1782,6 +1816,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			if (cp != null) cp.setVisibility(GONE);
 			if (voiceButton != null) voiceButton.setVisibility(GONE);
 			if (deckBack != null) deckBack.setVisibility(GONE);
+			if (deckPrev != null) deckPrev.setVisibility(GONE);
 			showYoldaBack(false);
 			me.aap.fermata.ui.view.VideoView vv = getBody().getVideoView();
 			if (vv != null) me.aap.fermata.ui.view.YoldaChannelRail.of(vv).hide();
@@ -1843,6 +1878,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		if ((voiceButton != null) && (voiceButton.getVisibility() != vv)) voiceButton.setVisibility(vv);
 		int bv = (full || np || (getActiveFragmentId() == R.id.home_fragment)) ? View.GONE : View.VISIBLE;
 		if ((deckBack != null) && (deckBack.getVisibility() != bv)) deckBack.setVisibility(bv);
+		if ((deckPrev != null) && (deckPrev.getVisibility() != bv)) deckPrev.setVisibility(bv);
 	}
 
 	private static boolean yoldaSplashShown;

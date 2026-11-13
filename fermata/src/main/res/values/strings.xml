@@ -11,6 +11,7 @@
     <string name="yolda_youtube" translatable="false">YouTube</string>
     <string name="yolda_nav" translatable="false">Navigasyon</string>
     <string name="yolda_nav_dest" translatable="false">Nereye gidelim? (adres ya da yer adı)</string>
+    <string name="yolda_fav_name" translatable="false">Favorinin adı</string>
     <string name="yolda_add_yt" translatable="false">YouTube kanalı ekle (@kanal ya da bağlantı)</string>
     <string name="mirror_service_name_release" translatable="false">Yolda Telefon</string>
     <string name="mirror_service_name_debug" translatable="false">Debug Fermata Mirror</string>

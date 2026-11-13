@@ -1080,11 +1080,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		Fit fz = fit();
 		int tile = dp(fz.tile());
 		switch (c.type()) {
-			case YoldaDeck.TV -> {
-				return channelRow(ctx, a, pickChannels(tvChannels), tile);
+			case YoldaDeck.TV -> { // kutucuğun altında kanal adı (logosu olmayan kanal da tanınsın)
+				return channelRow(ctx, a, pickChannels(tvChannels), labeledTile(tile));
 			}
 			case YoldaDeck.RADIO -> {
-				return channelRow(ctx, a, pickChannels(radioChannels), tile);
+				return channelRow(ctx, a, pickChannels(radioChannels), labeledTile(tile));
 			}
 			case YoldaDeck.MUSIC -> {
 				List<YtMusic.Track> rec = MusicFragment.recent(ctx);
@@ -1434,7 +1434,85 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			row.addView(cell, clp);
 		}
 		row.addView(chipBtn(ctx, "＋ Favori ekle", v -> showFavAddMenu()), chipLp());
+		if (!YoldaFavs.load(ctx).isEmpty()) row.addView(chipBtn(ctx, "✎ Düzenle", v -> editFavorites()), chipLp());
 		return scroll(ctx, row);
+	}
+
+	/** Favorileri düzenle: ▲ ▼ ile sırala, ada dokunup değiştir, ✕ ile kaldır. Değişiklik hemen kaydedilir. */
+	private void editFavorites() {
+		Context ctx = requireContext();
+		FrameLayout panel = openOverlay(ctx, "Favorileri düzenle");
+		LinearLayout box = (LinearLayout) panel.getChildAt(0);
+		ScrollView sv = new ScrollView(ctx);
+		sv.setVerticalScrollBarEnabled(true);
+		LinearLayout lst = new LinearLayout(ctx);
+		lst.setOrientation(LinearLayout.VERTICAL);
+		sv.addView(lst, new ScrollView.LayoutParams(-1, -2));
+		LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, 0, 1f);
+		slp.topMargin = dp(8);
+		box.addView(sv, slp);
+		fillFavEdit(ctx, lst);
+	}
+
+	private void fillFavEdit(Context ctx, LinearLayout lst) {
+		lst.removeAllViews();
+		List<YoldaDeck.Card> l = YoldaFavs.load(ctx);
+		if (l.isEmpty()) {
+			lst.addView(text(ctx, "Favori yok. Kartta \"＋ Favori ekle\" ile ekleyebilirsin.", 16, false, t.muted));
+		}
+		for (int i = 0; i < l.size(); i++) {
+			YoldaDeck.Card f = l.get(i);
+			LinearLayout r = hrow(ctx);
+			r.setPadding(dp(4), dp(6), 0, dp(6));
+			ImageView ic = new ImageView(ctx);
+			ic.setImageResource(favIcon(f.type()));
+			ic.setImageTintList(ColorStateList.valueOf(t.ink));
+			r.addView(ic, new LinearLayout.LayoutParams(dp(24), dp(24)));
+			LinearLayout names = new LinearLayout(ctx);
+			names.setOrientation(LinearLayout.VERTICAL);
+			names.setPadding(dp(12), 0, dp(8), 0);
+			TextView n = text(ctx, f.title(), 17, true, t.ink);
+			n.setSingleLine(true);
+			n.setEllipsize(TextUtils.TruncateAt.END);
+			names.addView(n);
+			names.addView(text(ctx, favKind(f.type()) + " · adı değiştirmek için dokun", 12, false, t.muted));
+			names.setMinimumHeight(dp(48));
+			names.setGravity(Gravity.CENTER_VERTICAL);
+			names.setClickable(true);
+			names.setContentDescription("Adını değiştir: " + f.title());
+			names.setOnClickListener(v -> UiUtils.queryText(ctx, R.string.yolda_fav_name, R.drawable.yi_edit, f.title())
+					.onSuccess(s -> {
+						if (s == null) return;
+						YoldaFavs.rename(ctx, f.key(), s);
+						fillFavEdit(ctx, lst);
+						refreshCard(YoldaDeck.FAVS);
+					}));
+			r.addView(names, new LinearLayout.LayoutParams(0, -2, 1f));
+			int idx = i;
+			ImageView up = roundButton(ctx, R.drawable.yi_up, "Yukarı taşı: " + f.title(), v -> {
+				YoldaFavs.move(ctx, f.key(), -1);
+				fillFavEdit(ctx, lst);
+				refreshCard(YoldaDeck.FAVS);
+			});
+			up.setAlpha((idx > 0) ? 1f : 0.3f);
+			r.addView(up, new LinearLayout.LayoutParams(dp(44), dp(44)));
+			ImageView down = roundButton(ctx, R.drawable.yi_down, "Aşağı taşı: " + f.title(), v -> {
+				YoldaFavs.move(ctx, f.key(), 1);
+				fillFavEdit(ctx, lst);
+				refreshCard(YoldaDeck.FAVS);
+			});
+			down.setAlpha((idx < l.size() - 1) ? 1f : 0.3f);
+			LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(dp(44), dp(44));
+			dlp.leftMargin = dlp.rightMargin = dp(8);
+			r.addView(down, dlp);
+			r.addView(roundButton(ctx, R.drawable.yi_close, "Kaldır: " + f.title(), v -> {
+				YoldaFavs.remove(ctx, f.key());
+				YoldaStyle.toast(ctx, "Favorilerden çıkarıldı: " + f.title());
+				fillFavEdit(ctx, lst);
+				refreshCard(YoldaDeck.FAVS);
+			}), new LinearLayout.LayoutParams(dp(44), dp(44)));
+			lst.addView(r, new LinearLayout.LayoutParams(-1, -2));
+		}
 	}
 
 	/** Favorilerin tam listesi (dokun: çal / aç); başta ekleme. */
@@ -1447,6 +1525,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		List<Row> rows = new ArrayList<>();
 		rows.add(new Row("＋ Favori ekle", "Kanal, radyo, YouTube kanalı, şarkı, web sayfası", null, R.drawable.yi_add,
 				this::showFavAddMenu));
+		rows.add(new Row("✎ Favorileri düzenle", "Sırala, adını değiştir, kaldır", null, R.drawable.yi_edit,
+				this::editFavorites));
 		for (YoldaDeck.Card f : l) rows.add(new Row(f.title(), favKind(f.type()), f.logo(), favIcon(f.type()), () -> open(f)));
 		showPicker("Favoriler", rows, null);
 	}
@@ -1900,17 +1980,37 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	@Nullable
+	/** Altında ad satırı olan kutucuğun boyu: ad satırına yer kalsın (kart yüksekliği aşılmasın). */
+	private int labeledTile(int tile) {
+		return Math.max(dp(40), tile - dp(Math.round(17 * Math.max(1f, getResources().getConfiguration().fontScale))));
+	}
+
 	private View channelRow(Context ctx, MainActivityDelegate a, List<MediaLib.PlayableItem> l, int tile) {
 		if (l.isEmpty()) return null;
 		LinearLayout row = hrow(ctx);
+		row.setGravity(Gravity.TOP);
 		for (MediaLib.PlayableItem pi : l) {
 			FrameLayout plate = (FrameLayout) imageTile(ctx, null, null, tile, true, pi.getName(), v -> {
 				a.getBody().playItem(pi);
 				if (!pi.isVideo()) YoldaNowPlaying.show(a);
 			});
 			ImageView logo = (ImageView) plate.getChildAt(1);
-			loadItemIcon(logo, (ImageView) plate.getChildAt(0), pi);
-			row.addView(plate, tileLp(tile));
+			ImageView ph = (ImageView) plate.getChildAt(0);
+			if (!pi.isVideo()) ph.setImageResource(R.drawable.yi_live); // radyo: logo gelene kadar radyo simgesi
+			loadItemIcon(logo, ph, pi);
+			LinearLayout cell = new LinearLayout(ctx);
+			cell.setOrientation(LinearLayout.VERTICAL);
+			cell.setGravity(Gravity.CENTER_HORIZONTAL);
+			cell.addView(plate, new LinearLayout.LayoutParams(tile, tile));
+			TextView name = text(ctx, pi.getName(), 12, false, 0xE6FFFFFF);
+			name.setSingleLine(true);
+			name.setEllipsize(TextUtils.TruncateAt.END);
+			name.setGravity(Gravity.CENTER);
+			name.setMaxWidth(tile + dp(12));
+			cell.addView(name, new LinearLayout.LayoutParams(-2, -2));
+			LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-2, -2);
+			clp.rightMargin = dp(10);
+			row.addView(cell, clp);
 		}
 		return scroll(ctx, row);
 	}

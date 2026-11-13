@@ -429,6 +429,88 @@ public class YoldaAtoZTest {
 		return false;
 	}
 
+	/** Favoriler kartında içerik düzenleme: sırala, adını değiştir, kaldır; karttaki "Düzenle" ekranı açar. */
+	@Test
+	public void favorileriDuzenle() {
+		ctx().getSharedPreferences("yolda_favs", Context.MODE_PRIVATE).edit().clear().commit();
+		YoldaFavs.add(ctx(), YoldaDeck.URL, "Bir", "https://a.example", null);
+		YoldaFavs.add(ctx(), YoldaDeck.URL, "İki", "https://b.example", null);
+		YoldaFavs.add(ctx(), YoldaDeck.URL, "Üç", "https://c.example", null);
+		List<YoldaDeck.Card> l = YoldaFavs.load(ctx());
+		assertEquals("Üç", l.get(0).title()); // en yeni başta
+		assertEquals(1, YoldaFavs.move(ctx(), l.get(0).key(), 1));
+		assertEquals("İki", YoldaFavs.load(ctx()).get(0).title());
+		YoldaFavs.rename(ctx(), l.get(0).key(), "Üçüncü");
+		assertEquals("Üçüncü", YoldaFavs.load(ctx()).get(1).title());
+		assertTrue(YoldaFavs.remove(ctx(), l.get(0).key()));
+		assertEquals(2, YoldaFavs.load(ctx()).size());
+
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1500);
+		int pos = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().indexOf(YoldaDeck.FAVS));
+		onMain(a -> {
+			((YoldaDeckFragment) a.getActiveFragment()).scrollToCard(pos);
+			return null;
+		});
+		waitIdle(1200);
+		View edit = onMain(a -> byText(a.getActiveFragment().getView(), "✎ Düzenle"));
+		assertNotNull("Favoriler kartında Düzenle olmalı", edit);
+		onMain(a -> edit.performClick());
+		waitIdle(800);
+		assertNotNull("Düzenleme ekranı açılmalı", onMain(a -> byText(a.getActiveFragment().getView(), "Favorileri düzenle")));
+		assertNotNull("Kaldır düğmesi olmalı", onMain(a -> byDesc(a.getActiveFragment().getView(), "Kaldır: İki")));
+		onMain(a -> {
+			a.onBackPressed(); // düzenleme ekranı kapanır
+			return null;
+		});
+		ctx().getSharedPreferences("yolda_favs", Context.MODE_PRIVATE).edit().clear().commit();
+	}
+
+	/** Ana sayfa düğmesinin üstünde geri düğmesi: bir önceki ekrana döner. */
+	@Test
+	public void geriDugmesiAnaSayfaUstunde() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(800);
+		onMain(a -> a.showFragment(R.id.yolda_channels_fragment));
+		waitIdle(1200);
+		View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+		View back = onMain(a -> byDescExact(root, "Geri"));
+		View home = onMain(a -> byDescExact(root, "Ana sayfa"));
+		assertNotNull("Geri düğmesi olmalı", back);
+		assertNotNull("Ana sayfa düğmesi olmalı", home);
+		assertTrue("Geri, ana sayfanın üstünde", onMain(a -> (back.getVisibility() == View.VISIBLE)
+				&& (back.getBottom() <= home.getTop()) && (Math.abs(back.getLeft() - home.getLeft()) < 4)));
+		onMain(a -> back.performClick());
+		waitIdle(1200);
+		assertEquals("Geri bir önceki ekrana dönmeli", R.id.home_fragment,
+				onMain(MainActivityDelegate::getActiveFragmentId).intValue());
+	}
+
+	private static View byText(View v, String s) {
+		if ((v == null) || (v.getVisibility() != View.VISIBLE)) return null;
+		if ((v instanceof android.widget.TextView tv) && s.contentEquals(tv.getText())) return v;
+		if (v instanceof ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				View f = byText(g.getChildAt(i), s);
+				if (f != null) return f;
+			}
+		}
+		return null;
+	}
+
+	private static View byDescExact(View v, String s) {
+		if (v == null) return null;
+		CharSequence d = v.getContentDescription();
+		if ((d != null) && s.contentEquals(d) && (v.getVisibility() == View.VISIBLE)) return v;
+		if (v instanceof ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				View f = byDescExact(g.getChildAt(i), s);
+				if (f != null) return f;
+			}
+		}
+		return null;
+	}
+
 	/** Üstteki ayarlar düğmesi ayarlar (menü) ekranını açar. */
 	@Test
 	public void ayarlarDugmesiUstte() {
