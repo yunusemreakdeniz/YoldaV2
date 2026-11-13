@@ -116,6 +116,14 @@ public class MainActivity extends SplitCompatActivityBase
 	}
 
 	@Override
+	/** Yolda: video küçük pencerede (harita uygulaması açıkken) — yalnız görüntü kalsın. */
+	@Override
+	public void onPictureInPictureModeChanged(boolean inPip, @NonNull android.content.res.Configuration cfg) {
+		super.onPictureInPictureModeChanged(inPip, cfg);
+		getActivityDelegate().onSuccess(a -> a.yoldaPipChanged(inPip));
+	}
+
+	@Override
 	protected void onDestroy() {
 		AddonManager.get().removeBroadcastListener(this);
 		super.onDestroy();

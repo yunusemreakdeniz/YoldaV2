@@ -149,6 +149,52 @@ public class YoldaPlaybackTest {
 		assertEquals("Aynı kanal açılmalı", ch.getId(), onMain(a -> a.getCurrentPlayable().getId()));
 	}
 
+	/** Kanal değişince eski kanalın sesi susar: aynı anda yalnız bir ses akışı çalar (sesler üst üste binmez). */
+	@Test
+	public void kanalDegisinceSesUstUsteBinmez() {
+		MediaLib.PlayableItem a1 = channel("TRT 1");
+		MediaLib.PlayableItem a2 = channel("TRT Haber");
+		onMain(a -> {
+			a.getBody().playItem(a1);
+			return null;
+		});
+		boolean ok = waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+		Assume.assumeTrue("TRT 1 bu ağdan açılmıyor", ok);
+		waitIdle(3000);
+		onMain(a -> {
+			a.getBody().playItem(a2);
+			return null;
+		});
+		boolean ok2 = waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()
+				&& (a.getCurrentPlayable() != null) && "TRT Haber".equals(a.getCurrentPlayable().getName())));
+		Assume.assumeTrue("TRT Haber bu ağdan açılmıyor", ok2);
+		waitIdle(4000);
+		android.media.AudioManager am = (android.media.AudioManager) ctx().getSystemService(Context.AUDIO_SERVICE);
+		int active = playing(am);
+		Log.i(TAG, "Kanal değişince etkin ses akışı: " + active);
+		assertTrue("Aynı anda tek ses çalmalı (eski kanal susmalı): " + active, active <= 1);
+		// Kapat: hiç ses kalmamalı
+		onMain(a -> {
+			a.getControlPanel().closePlayer();
+			return null;
+		});
+		assertTrue("Kapatınca ses tamamen kesilmeli", waitFor(6000, () -> playing(am) == 0));
+	}
+
+	/** Gerçekten çalan (başlatılmış) ses oynatıcılarının sayısı; duraklatılmış / kapanmakta olanlar sayılmaz. */
+	private static int playing(android.media.AudioManager am) {
+		int n = 0;
+		for (android.media.AudioPlaybackConfiguration c : am.getActivePlaybackConfigurations()) {
+			try {
+				int st = (Integer) c.getClass().getMethod("getPlayerState").invoke(c);
+				if (st == 2) n++; // PLAYER_STATE_STARTED
+			} catch (Exception ex) {
+				n++;
+			}
+		}
+		return n;
+	}
+
 	/** Kanal değişince oynatıcı çubuğunda yeni kanalın adı hemen görünür (çalmaya başlamasını beklemeden). */
 	@Test
 	public void kanalDegisinceAdHemenGuncellenir() {

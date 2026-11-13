@@ -197,6 +197,7 @@ public class YoutubeHomeFragment extends MainActivityFragment {
 			col.addView(search, 1, sl);
 			grid.setPadding(dp(side), dp(12), dp(side), dp(20));
 		} else {
+			root.addView(YoldaStyle.bottomScrim(ctx, t), YoldaStyle.bottomScrimLp(ctx));
 			root.addView(search, slp);
 		}
 

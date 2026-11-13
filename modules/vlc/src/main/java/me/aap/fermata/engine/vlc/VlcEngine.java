@@ -73,8 +73,10 @@ public class VlcEngine extends MediaEngineBase
 	 * yayında bu saniyeler sürüyor ve ana iş parçacığında uygulama donuyordu (kanal değiştirirken). Eski
 	 * oynatıcı bu tek iş parçacığında kapatılır, yeni yayın temiz bir oynatıcıyla hemen başlar.
 	 */
+	// Her eski oynatıcı kendi iş parçacığında kapanır: takılı bir yayının kapanması sıradakileri bekletmesin
+	// (tek kuyrukta eski kanallar çalmaya devam ediyor, sesler üst üste biniyordu)
 	private static final java.util.concurrent.ExecutorService RETIRE =
-			java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+			java.util.concurrent.Executors.newCachedThreadPool(r -> {
 				Thread t = new Thread(r, "VlcRetire");
 				t.setDaemon(true);
 				return t;
@@ -433,6 +435,15 @@ public class VlcEngine extends MediaEngineBase
 		MediaPlayer old = player;
 		hasMedia = false;
 		old.setEventListener(null);
+		// Önce hemen sustur ve duraklat (beklemeyen çağrılar): kapanması sürse de sesi duyulmasın
+		try {
+			old.setVolume(0);
+		} catch (Throwable ignore) {
+		}
+		try {
+			old.pause();
+		} catch (Throwable ignore) {
+		}
 		try {
 			old.getVLCVout().detachViews();
 		} catch (Throwable ignore) {

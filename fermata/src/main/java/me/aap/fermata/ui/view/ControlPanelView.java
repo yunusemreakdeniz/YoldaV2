@@ -494,13 +494,14 @@ public class ControlPanelView extends ConstraintLayout
 		if (getVisibility() == VISIBLE) {
 			super.setVisibility(GONE);
 			fb.setVisibility(GONE);
-			if (a.getPrefs().getSysBarsOnVideoTouchPref()) a.setFullScreen(true);
+			if (!YoldaStyle.DECK && a.getPrefs().getSysBarsOnVideoTouchPref()) a.setFullScreen(true);
 			if (info != null) info.setVisibility(GONE);
 			rail.hide();
 		} else {
 			super.setVisibility(VISIBLE);
 			fb.setVisibility(VISIBLE);
-			if (a.getPrefs().getSysBarsOnVideoTouchPref()) a.setFullScreen(false);
+			// Yolda: dokununca sistem çubukları açılmaz (görüntü ve düzen kayıyordu)
+			if (!YoldaStyle.DECK && a.getPrefs().getSysBarsOnVideoTouchPref()) a.setFullScreen(false);
 			if (info != null) info.setVisibility(VISIBLE);
 			rail.showFor(a); // yayında sağda kanal listesi
 			clearFocus();

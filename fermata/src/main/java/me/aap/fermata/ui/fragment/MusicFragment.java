@@ -236,6 +236,7 @@ public class MusicFragment extends MainActivityFragment {
 			col.addView(search, 1, sl);
 			content.setPadding(0, dp(6), 0, dp(20));
 		} else {
+			root.addView(YoldaStyle.bottomScrim(ctx, t), YoldaStyle.bottomScrimLp(ctx));
 			root.addView(search, slp);
 		}
 

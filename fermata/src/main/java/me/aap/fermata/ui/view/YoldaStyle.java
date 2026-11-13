@@ -338,6 +338,26 @@ public final class YoldaStyle {
 		return tv;
 	}
 
+	/**
+	 * Alttaki yüzen arama kutusu, sesli ve ⌂ düğmelerinin arkasında: içerik buraya doğru zemin rengine
+	 * yumuşakça kaybolur (kanal adları kutunun altında karışık görünmesin).
+	 */
+	public static View bottomScrim(Context ctx, Theme t) {
+		View v = new View(ctx);
+		int c = t.bg1 | 0xFF000000;
+		v.setBackground(new android.graphics.drawable.GradientDrawable(
+				android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+				new int[]{c & 0x00FFFFFF, (c & 0x00FFFFFF) | 0xCC000000, c}));
+		v.setClickable(false);
+		v.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+		return v;
+	}
+
+	public static android.widget.FrameLayout.LayoutParams bottomScrimLp(Context ctx) {
+		return new android.widget.FrameLayout.LayoutParams(-1, Math.round(dp(ctx, VOICE_DP + VOICE_BOTTOM_DP + 46)),
+				android.view.Gravity.BOTTOM);
+	}
+
 	public static int searchLeftDp() {
 		if (DECK) return 16 + VOICE_DP + 12; // V2: sesli düğmenin sağında, aynı hizada (araçta gövde zaten kaydırılmış)
 		return railMode ? 18 : 22; // sesli asistan artık alt menünün yanında

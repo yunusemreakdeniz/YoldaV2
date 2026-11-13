@@ -213,6 +213,7 @@ public class NavFragment extends MainActivityFragment {
 			search.setElevation(dp(8));
 			FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(-1, dp(YoldaStyle.VOICE_DP), Gravity.BOTTOM);
 			flp.setMargins(dp(YoldaStyle.searchLeft(ctx)), 0, dp(22), dp(YoldaStyle.VOICE_BOTTOM_DP));
+			root.addView(YoldaStyle.bottomScrim(ctx, t), YoldaStyle.bottomScrimLp(ctx));
 			root.addView(search, flp);
 			col.setPadding(col.getPaddingLeft(), col.getPaddingTop(), col.getPaddingRight(), dp(100));
 			goBtn.setPadding(dp(18), dp(10), dp(18), dp(10));

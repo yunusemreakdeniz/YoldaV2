@@ -133,12 +133,18 @@ public class VideoView extends FrameLayout
 	}
 
 	protected void addInfoView(Context context) {
-		VideoInfoView d = new VideoInfoView(context, null);
+		// Yolda: kanal adı ve logosu alttaki oynatıcı çubuğunda; videonun üstünde ayrıca siyah bilgi kutusu
+		// gösterilmez (dokununca üst kısımda kayan bir kutu açılıyor, görüntüyü kapatıyordu)
+		VideoInfoView d = YoldaStyle.DECK ? new VideoInfoView(context, null) {
+			@Override
+			public void setVisibility(int visibility) {
+				super.setVisibility(GONE);
+			}
+		} : new VideoInfoView(context, null);
 		FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
 		lp.gravity = Gravity.CENTER_HORIZONTAL | Gravity.TOP;
-		// Yolda: sol üstteki geri ve harita düğmeleri kanal logosunun / adının üstüne binmesin
-		if (YoldaStyle.DECK) lp.leftMargin = Math.round(156 * context.getResources().getDisplayMetrics().density);
 		d.setLayoutParams(lp);
+		if (YoldaStyle.DECK) d.setVisibility(GONE);
 		addView(d);
 	}
 

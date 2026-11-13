@@ -279,7 +279,10 @@ public class ChannelsFragment extends MainActivityFragment {
 		}
 		col.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-		if (!car) root.addView(search, slp);
+		if (!car) {
+			root.addView(YoldaStyle.bottomScrim(ctx, t), YoldaStyle.bottomScrimLp(ctx));
+			root.addView(search, slp);
+		}
 		load(a);
 		return root;
 	}

@@ -1029,11 +1029,9 @@ public class MainActivityDelegate extends ActivityDelegate
 				&& me.aap.fermata.ui.fragment.NavFragment.carNav(this, null)) {
 			return;
 		}
-		// YouTube videosu web sayfasında çizilir: yanında harita açılırsa sayfa gizlenip video kararıyordu
-		var eng = getMediaSessionCallback().getEngine();
-		if ((eng != null) && eng.getClass().getName().contains("Youtube")) {
-			me.aap.utils.ui.UiUtils.showInfo(ctx, "YouTube videosunun yanında harita açılamıyor; navigasyon ayrı açılıyor");
-			me.aap.fermata.ui.fragment.NavFragment.navigateTo(ctx, recent.isEmpty() ? "" : recent.get(0), false);
+		// Telefonda: harita web sayfası değil, harita uygulaması; video küçük pencerede üstünde sürer
+		if (!isCarActivity()) {
+			pipWithMaps();
 			return;
 		}
 		String url = recent.isEmpty() ? "https://www.google.com/maps"
@@ -1710,8 +1708,73 @@ public class MainActivityDelegate extends ActivityDelegate
 		updateDeckButtons();
 	}
 
+	/** Küçük pencere (resim içinde resim): yalnız video; düğmeler, çubuk, kanal şeridi gizli. */
+	private boolean yoldaPip;
+
+	public boolean isYoldaPip() {
+		return yoldaPip;
+	}
+
+	public void yoldaPipChanged(boolean pip) {
+		yoldaPip = pip;
+		me.aap.fermata.ui.fragment.YoldaLog.add("Küçük pencere: " + (pip ? "açıldı" : "kapandı"));
+		ControlPanelView cp = getControlPanel();
+		if (pip) {
+			if (cp != null) cp.setVisibility(GONE);
+			if (voiceButton != null) voiceButton.setVisibility(GONE);
+			if (deckBack != null) deckBack.setVisibility(GONE);
+			showYoldaBack(false);
+			me.aap.fermata.ui.view.VideoView vv = getBody().getVideoView();
+			if (vv != null) me.aap.fermata.ui.view.YoldaChannelRail.of(vv).hide();
+		} else {
+			setBarsHidden(false);
+			if ((cp != null) && (getMediaSessionCallback().isPlaying() || (getCurrentPlayable() != null)))
+				cp.setVisibility(VISIBLE);
+			if (videoMode) showYoldaBack(true);
+			updateDeckButtons();
+		}
+	}
+
+	/**
+	 * Telefonda "videonun yanında harita": video küçük pencereye geçer, harita uygulaması (Google Haritalar /
+	 * Waze) açılır; video haritanın üstünde oynamaya devam eder. Küçük pencere desteklenmezse yalnız harita açılır.
+	 */
+	private void pipWithMaps() {
+		Context ctx = getContext();
+		boolean pip = false;
+		try {
+			if (android.os.Build.VERSION.SDK_INT >= 26) {
+				android.app.PictureInPictureParams p = new android.app.PictureInPictureParams.Builder()
+						.setAspectRatio(new android.util.Rational(16, 9)).build();
+				pip = ((android.app.Activity) getAppActivity()).enterPictureInPictureMode(p);
+			}
+		} catch (Throwable ex) {
+			me.aap.fermata.ui.fragment.YoldaLog.add("Küçük pencere açılamadı: " + ex);
+		}
+		java.util.List<String> recent = me.aap.fermata.ui.fragment.NavFragment.recent(ctx);
+		boolean waze = ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
+				Context.MODE_PRIVATE).getBoolean("nav_waze", false);
+		Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(recent.isEmpty() ? "geo:0,0?q="
+				: ("google.navigation:q=" + Uri.encode(recent.get(0)))))
+				.setPackage(waze ? "com.waze" : "com.google.android.apps.maps").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		App.get().getHandler().postDelayed(() -> {
+			try {
+				ctx.getApplicationContext().startActivity(i);
+			} catch (Exception ex) {
+				try {
+					ctx.getApplicationContext().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q="))
+							.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+				} catch (Exception ex2) {
+					me.aap.utils.ui.UiUtils.showAlert(ctx, "Harita uygulaması bulunamadı");
+				}
+			}
+		}, pip ? 350 : 0);
+		me.aap.fermata.ui.fragment.YoldaLog.add("Video + harita: " + (pip ? "küçük pencere ve " : "") + "harita uygulaması");
+	}
+
 	private void updateDeckButtons() {
 		if (!me.aap.fermata.ui.view.YoldaStyle.DECK) return;
+		if (yoldaPip) return;
 		boolean np = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
 		if ((navBar != null) && (navBar.getVisibility() != View.GONE)) navBar.setVisibility(View.GONE);
 		boolean full = videoMode || barsHidden;

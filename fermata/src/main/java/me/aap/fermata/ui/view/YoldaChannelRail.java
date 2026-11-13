@@ -39,16 +39,18 @@ public final class YoldaChannelRail extends FrameLayout {
 	private YoldaChannelRail(Context ctx) {
 		super(ctx);
 		setClickable(true);
-		GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-				new int[]{0x00000000, 0xB3000000, 0xE6000000});
+		// Koyu, okunaklı panel: altındaki görüntü satırlara karışmaz
+		GradientDrawable bg = new GradientDrawable();
+		bg.setCornerRadius(dp(22));
+		bg.setColor(0xE6101218);
+		bg.setStroke(Math.max(1, dp(1)), 0x33FFFFFF);
 		setBackground(bg);
+		setClipToOutline(true);
+		setOutlineProvider(android.view.ViewOutlineProvider.BACKGROUND);
 		scroll = new ScrollView(ctx);
 		scroll.setVerticalScrollBarEnabled(false);
-		scroll.setVerticalFadingEdgeEnabled(true);
-		scroll.setFadingEdgeLength(dp(40));
 		scroll.setClipToPadding(false);
-		// altta oynatıcı çubuğu var: son kanallar onun üstüne kaydırılabilsin
-		scroll.setPadding(dp(28), dp(16), dp(12), dp(120));
+		scroll.setPadding(dp(8), dp(8), dp(8), dp(8));
 		list = new LinearLayout(ctx);
 		list.setOrientation(LinearLayout.VERTICAL);
 		scroll.addView(list, new ScrollView.LayoutParams(-1, -2));
@@ -72,8 +74,10 @@ public final class YoldaChannelRail extends FrameLayout {
 	private static FrameLayout.LayoutParams railLp(ViewGroup video) {
 		float d = video.getResources().getDisplayMetrics().density;
 		int w = video.getWidth();
-		int rw = Math.round(Math.min(300 * d, Math.max(220 * d, w * 0.32f)));
-		return new FrameLayout.LayoutParams(rw, -1, Gravity.END);
+		int rw = Math.round(Math.min(320 * d, Math.max(230 * d, w * 0.32f)));
+		FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(rw, -1, Gravity.END);
+		lp.topMargin = lp.bottomMargin = lp.rightMargin = Math.round(12 * d);
+		return lp;
 	}
 
 	/** Testler için: şeritteki kanal sayısı (görünürse). */
@@ -100,8 +104,7 @@ public final class YoldaChannelRail extends FrameLayout {
 		if (p != null) setLayoutParams(railLp(p));
 		setVisibility(VISIBLE);
 		setAlpha(0f);
-		setTranslationX(dp(40));
-		animate().alpha(1f).translationX(0).setDuration(180).start();
+		animate().alpha(1f).setDuration(160).start(); // yerinde belirir (kayma yok)
 		if (cur.getId().equals(shownFor) && (list.getChildCount() > 0)) {
 			mark(cur.getId());
 			return;
@@ -116,7 +119,7 @@ public final class YoldaChannelRail extends FrameLayout {
 
 	public void hide() {
 		if (getVisibility() != VISIBLE) return;
-		animate().alpha(0f).translationX(dp(40)).setDuration(160).withEndAction(() -> setVisibility(GONE)).start();
+		animate().alpha(0f).setDuration(140).withEndAction(() -> setVisibility(GONE)).start();
 	}
 
 	/** Dokunuldukça kontroller açık kalsın (kaydırırken şerit kaybolmasın). */
@@ -160,6 +163,7 @@ public final class YoldaChannelRail extends FrameLayout {
 			row.setGravity(Gravity.CENTER_VERTICAL);
 			row.setPadding(dp(8), dp(6), dp(10), dp(6));
 			row.setMinimumHeight(dp(60));
+			row.setClipToOutline(true);
 			row.setClickable(true);
 			row.setFocusable(true);
 			row.setTag(pi.getId());
@@ -220,8 +224,8 @@ public final class YoldaChannelRail extends FrameLayout {
 			boolean on = id.equals(r.getTag());
 			GradientDrawable g = new GradientDrawable();
 			g.setCornerRadius(dp(14));
-			g.setColor(on ? 0x40FFFFFF : 0x00000000);
-			if (on) g.setStroke(dp(2), 0xCCFFFFFF);
+			g.setColor(on ? 0x33FFFFFF : 0x0FFFFFFF);
+			if (on) g.setStroke(dp(2), 0xE6FFFFFF);
 			r.setBackground(g);
 			if (on) sel = r;
 		}

@@ -128,6 +128,18 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		external = e;
 	}
 
+	/** İki ad aynı şarkı mı (büyük / küçük harf, Türkçe karakter, ek bilgi "(Official Video)" farkı gözetmez). */
+	static boolean sameSong(String a, String b) {
+		String x = fold(a), y = fold(b);
+		return !x.isEmpty() && !y.isEmpty() && (x.contains(y) || y.contains(x));
+	}
+
+	private static String fold(String s) {
+		String t = s.toLowerCase(new java.util.Locale("tr", "TR")).replace('ı', 'i');
+		t = java.text.Normalizer.normalize(t, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+		return t.replaceAll("\\(.*?\\)|\\[.*?\\]", "").replaceAll("[^a-z0-9]", "");
+	}
+
 	/** YouTube motoru çalıyorsa bildirilen şarkı; değilse null. */
 	@Nullable
 	static External external(MediaSessionCallback cb) {
@@ -140,7 +152,12 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		// YouTube'da başka bir video açıldıysa (şarkı değil) eski şarkı bilgisi gösterilmesin
 		try {
 			var src = eng.getSource();
-			if ((src != null) && !String.valueOf(src.getLocation()).contains(e.track().id())) return null;
+			String loc = (src != null) ? String.valueOf(src.getLocation()) : "";
+			if ((src == null) || loc.contains(e.track().id()) || loc.contains("youtube.com/next")) return e;
+			// Adres değişmiş olabilir (YouTube yönlendirmesi, sonraki): şarkı adı tutuyorsa yine o şarkı
+			String t = metaTitle(cb.getYoldaMetadata());
+			if ((t != null) && sameSong(t, e.track().title())) return e;
+			return null;
 		} catch (Throwable ignore) {
 		}
 		return e;
@@ -749,7 +766,10 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			metaKey = metaSig(cb.getYoldaMetadata());
 			loadItem(a, pi, key);
 		}
-		if ((opening == null) && YoldaPlayerBar.isYoutube(cb)) applyMeta(a, cb.getYoldaMetadata(), pi, key);
+		if ((opening == null) && YoldaPlayerBar.isYoutube(cb)) {
+			applyMeta(a, cb.getYoldaMetadata(), pi, key);
+			suggest(a, String.valueOf(title.getText()), key);
+		}
 		long d = duration();
 		boolean isLive = (d <= 0) && pi.isStream() && !(pi instanceof YtMusicItem);
 		live.setVisibility(isLive ? VISIBLE : GONE);
@@ -775,6 +795,31 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		seek.setProgress(Math.min(1f, p / (float) d));
 		pos.setText(MusicFragment.fmt(p / 1000));
 		dur.setText(MusicFragment.fmt(d / 1000));
+	}
+
+	/** En son öneri aranan ad (aynı şarkı için tekrar aranmasın). */
+	@Nullable
+	private String suggestKey;
+
+	/**
+	 * YouTube'da çalan şarkının bilgisi yoksa (ör. "Kaldığın yerden" ile açıldı): adıyla YouTube Music'te aranır;
+	 * kapak ve sanatçı oradan, aynı aramanın diğer şarkıları "Sıradaki" öneriler olarak gösterilir.
+	 */
+	private void suggest(MainActivityDelegate a, String name, String key) {
+		if (TextUtils.isEmpty(name) || name.equals(suggestKey)) return;
+		suggestKey = name;
+		YtMusic.search(name).main().onSuccess(l -> {
+			if (!key.equals(itemKey) || (l == null) || l.isEmpty()) return;
+			YtMusic.Track best = l.get(0);
+			if (sameSong(name, best.title())) {
+				if (cover.getAlpha() < 0.5f) loadCover(a, MusicFragment.bigThumb(best.thumb()), key, false);
+				CharSequence st = sub.getText();
+				if ((best.artist() != null) && (TextUtils.isEmpty(st) || "YouTube".contentEquals(st))) sub.setText(best.artist());
+			}
+			List<YtMusic.Track> rest = new java.util.ArrayList<>();
+			for (YtMusic.Track tr : l) if (!sameSong(name, tr.title())) rest.add(tr);
+			if (!rest.isEmpty()) fillQueue(a, rest, -1, true);
+		});
 	}
 
 	private void loadItem(MainActivityDelegate a, MediaLib.PlayableItem pi, String key) {

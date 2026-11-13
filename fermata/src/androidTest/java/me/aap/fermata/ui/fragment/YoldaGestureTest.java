@@ -164,7 +164,7 @@ public class YoldaGestureTest {
 		int[] rb = onMain(a -> bounds(rail(vv)));
 		int[] vb = onMain(a -> bounds(vv));
 		Log.i(TAG, "Kanal şeridi: " + n + " kanal, " + rb[2] + "×" + rb[3] + " px, video " + vb[2] + "×" + vb[3]);
-		assertTrue("Şerit sağda olmalı", rb[0] + rb[2] >= vb[0] + vb[2] - 4);
+		assertTrue("Şerit sağda olmalı", rb[0] + rb[2] >= vb[0] + vb[2] - Math.round(20 * ctx().getResources().getDisplayMetrics().density));
 		assertTrue("Şerit videonun yarısından dar olmalı", rb[2] < vb[2] / 2);
 
 		// Şeride dokununca kontroller açık kalır; kanal seçilir
