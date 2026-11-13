@@ -533,6 +533,26 @@ public class NavFragment extends MainActivityFragment {
 		return true;
 	}
 
+	/**
+	 * Hey Yolda: hedefe rota (araçta Android Auto'nun haritası, telefonda harita uygulaması).
+	 *
+	 * @param which "home" / "work" (kayıtlı adres) ya da null (dest kullanılır)
+	 * @return rota başlatılan hedef; kayıtlı adres yoksa null (Navigasyon ekranı açılır)
+	 */
+	public static String voiceGo(MainActivityDelegate a, @androidx.annotation.Nullable String which,
+															 @androidx.annotation.Nullable String dest) {
+		Context ctx = a.getContext();
+		SharedPreferences p = ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+		String d = (which == null) ? dest : p.getString("nav_" + which, null);
+		if ((d == null) || d.trim().isEmpty()) {
+			a.showFragment(R.id.yolda_nav_fragment);
+			return null;
+		}
+		if (a.isCarActivityNotMirror() && !inAppMap(ctx) && carNav(a, d)) return d;
+		navigateTo(ctx, d, which == null);
+		return d;
+	}
+
 	/** Araçta haritayı Yolda'nın içinde mi açalım (Android Auto navigasyonu bu araçta açılmıyorsa). */
 	public static boolean inAppMap(Context ctx) {
 		return ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("nav_in_app", false);

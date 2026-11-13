@@ -308,6 +308,7 @@ public final class YoldaWake {
 		if (a == null) return;
 		YoldaLog.add("Hey Yolda duyuldu (" + (a.isCarActivity() ? "araç" : "telefon") + " ekranında işleniyor)");
 		pause(); // mikrofonu sesli asistana bırak
+		YoldaSpeak.wakeBeep(); // ekrana bakmadan dinlemeye başladığını anla
 		App.get().getHandler().postDelayed(() -> {
 			try {
 				a.startVoiceAssistant();

@@ -608,6 +608,69 @@ public class YoldaAtoZTest {
 		assertFalse("Anlamsız komut işlenmiş sayılmamalı", onMain(a -> YoldaVoice.handle(a, "zxqw plor")));
 	}
 
+	/**
+	 * Hey Yolda: yeni komutlar gerçek uygulamada yürür; tanıma motorunun ikinci tahmini de denenir;
+	 * yanıt hem yazı hem ses olarak verilir.
+	 */
+	@Test
+	public void heyYoldaKomutlari() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1000);
+		android.content.Context ctx = InstrumentationRegistry.getInstrumentation().getTargetContext();
+		boolean speak = YoldaSpeak.isEnabled(ctx);
+		try {
+			YoldaSpeak.setEnabled(ctx, true);
+
+			// saat: sesli yanıt
+			YoldaSpeak.lastSpoken = null;
+			assertTrue(onMain(a -> YoldaVoice.handle(a, "Hey Yolda saat kaç")));
+			assertTrue("Saat söylenmeli: " + YoldaSpeak.lastSpoken,
+					(YoldaSpeak.lastSpoken != null) && YoldaSpeak.lastSpoken.startsWith("Saat "));
+
+			// uyku zamanlayıcısı kurulur ve iptal edilir
+			assertTrue(onMain(a -> YoldaVoice.handle(a, "otuz dakika sonra kapat")));
+			long left = YoldaVoice.sleepAt - android.os.SystemClock.elapsedRealtime();
+			assertTrue("30 dk kurulmalı: " + left, (left > 29 * 60_000L) && (left <= 30 * 60_000L));
+			assertTrue(onMain(a -> YoldaVoice.handle(a, "zamanlayıcıyı iptal et")));
+			assertEquals("İptal edilmeli", 0, YoldaVoice.sleepAt);
+
+			// ses yüzdesi
+			android.media.AudioManager am = (android.media.AudioManager) ctx.getSystemService(android.content.Context.AUDIO_SERVICE);
+			int old = am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC);
+			int max = am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+			try {
+				assertTrue(onMain(a -> YoldaVoice.handle(a, "sesi yüzde elli yap")));
+				int v = am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC);
+				assertTrue("Ses yarıda olmalı: " + v + "/" + max, Math.abs(v - Math.round(max / 2f)) <= 1);
+			} finally {
+				am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, old, 0);
+			}
+
+			// ekranlar: ilk tahmin anlamsız, ikincisi komut
+			assertTrue(onMain(a -> YoldaVoice.handle(a, java.util.List.of("zxqw plor", "nöbetçi eczane"))));
+			assertTrue("Eczane ekranı açılmalı", waitFor(3000, () -> onMain(MainActivityDelegate::getActiveFragmentId)
+					== R.id.yolda_pharmacy_fragment));
+			assertTrue(onMain(a -> YoldaVoice.handle(a, "ana sayfaya dön")));
+			assertTrue("Ana sayfa", waitFor(3000, () -> onMain(MainActivityDelegate::getActiveFragmentId) == R.id.home_fragment));
+
+			// yardım ve anlaşılmayan
+			YoldaSpeak.lastSpoken = null;
+			assertTrue(onMain(a -> YoldaVoice.handle(a, "ne yapabilirsin")));
+			assertTrue("Yardım söylenmeli", (YoldaSpeak.lastSpoken != null) && YoldaSpeak.lastSpoken.startsWith("Örneğin"));
+
+			// sesli yanıt kapatılınca yine yazılı yanıt verilir, ayar saklanır
+			assertTrue(onMain(a -> YoldaVoice.handle(a, "sesli yanıtı kapat")));
+			assertFalse(YoldaSpeak.isEnabled(ctx));
+			assertTrue(onMain(a -> YoldaVoice.handle(a, "sesli yanıtı aç")));
+			assertTrue(YoldaSpeak.isEnabled(ctx));
+		} finally {
+			YoldaSpeak.setEnabled(ctx, speak);
+			YoldaVoice.cancelSleep();
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			waitIdle(800);
+		}
+	}
+
 	/** Üstteki ayarlar düğmesi ayarlar (menü) ekranını açar. */
 	@Test
 	public void ayarlarDugmesiUstte() {

@@ -1305,10 +1305,11 @@ public class MainActivityDelegate extends ActivityDelegate
 	private void voiceSearch(View focus) {
 		startSpeechRecognizer().onSuccess(q -> {
 			if ((q == null) || q.isEmpty()) return;
-			me.aap.fermata.ui.fragment.YoldaLog.add("Sesli komut: “" + q.get(0) + "”");
+			me.aap.fermata.ui.fragment.YoldaLog.add("Sesli komut: “" + q.get(0) + "”"
+					+ ((q.size() > 1) ? (" (diğer tahminler: " + String.join(" | ", q.subList(1, Math.min(q.size(), 5))) + ")") : ""));
 			// Önce Yolda komutu ("TRT Haber aç", "müzik", "eve git"); komut değilse odaktaki yazı kutusuna yazılır.
 			// Önceden bir arama kutusu odaktaysa komut kutuya yazılıp hiçbir şey olmuyordu.
-			if (me.aap.fermata.ui.fragment.YoldaVoice.handle(this, q.get(0))) return;
+			if (me.aap.fermata.ui.fragment.YoldaVoice.handle(this, q)) return; // bütün tahminler denenir
 			if (focus instanceof EditText) {
 				((EditText) focus).setText(q.get(0));
 				focus.requestFocus();
@@ -1343,6 +1344,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			String lang = (locale == null) ? getPrefs().getVoiceControlLang(this) : locale;
 			Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
 			i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+			i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5); // Hey Yolda ilk tahmin tutmazsa diğerlerini dener
 			i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang);
 			i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
 			speechListener = new SpeechListener(p, textInput);

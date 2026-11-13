@@ -258,6 +258,22 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		closedAt = SystemClock.elapsedRealtime();
 	}
 
+	/**
+	 * Hey Yolda "devam et": çalıyorsa (ses kısık kaldıysa açar) dokunmaz; duraklatılmış / kapatılmış bir şey varsa
+	 * sürdürür. @return false sürdürülecek bir şey yoksa.
+	 */
+	public static boolean togglePlayIfStopped(MainActivityDelegate a) {
+		MediaSessionCallback cb = a.getMediaSessionCallback();
+		if (cb.isPlaying()) {
+			cb.yoldaUnmute("sesli komut");
+			return true;
+		}
+		boolean closed = (closedItem != null) && (SystemClock.elapsedRealtime() - closedAt < 30 * 60_000L);
+		if ((a.getCurrentPlayable() == null) && !closed) return false;
+		togglePlay(a);
+		return true;
+	}
+
 	public static void togglePlay(MainActivityDelegate a) {
 		MediaSessionCallback cb = a.getMediaSessionCallback();
 		// Ses kısa süreli odak kaybıyla kapalı kaldıysa ilk dokunuş sesi geri getirir (duraklatmaz)

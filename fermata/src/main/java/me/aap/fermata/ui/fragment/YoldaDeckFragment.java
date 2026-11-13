@@ -1531,6 +1531,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.SETTINGS -> a.showFragment(R.id.yolda_menu_fragment);
 			case YoldaDeck.ADD -> showAddMenu();
+			default -> openFavorite(a, c);
+		}
+	}
+
+	/** Favori / kanal kartını aç (Hey Yolda "favorilerimden … aç" da kullanır). @return açılabilen türdeyse true. */
+	public static boolean openFavorite(MainActivityDelegate a, YoldaDeck.Card c) {
+		Context ctx = a.getContext();
+		switch (c.type()) {
 			case YoldaDeck.TV_CHANNEL, YoldaDeck.RADIO_CHANNEL -> a.getLib().getItem(c.data()).main().onCompletion((i, err) -> {
 				if (i instanceof MediaLib.PlayableItem pi) {
 					a.getBody().playItem(pi);
@@ -1552,8 +1560,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaFavs.MUSIC_QUERY -> MusicFragment.playQuery(a, c.data());
 			default -> {
+				return false;
 			}
 		}
+		return true;
 	}
 
 	// ---- favoriler: kanal, radyo, YouTube kanalı, şarkı, web sayfası bir arada ----
@@ -1714,6 +1724,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	/** Favorilerin tam listesi (dokun: çal / aç); başta ekleme. */
+	/** Hey Yolda "favorileri aç". */
+	public void openFavorites() {
+		if (isAdded()) showFavorites();
+	}
+
 	private void showFavorites() {
 		List<YoldaDeck.Card> l = YoldaFavs.load(requireContext());
 		if (l.isEmpty()) {
