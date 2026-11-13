@@ -124,7 +124,23 @@ public class YoldaSpeedRail extends LinearLayout {
 		super.onDetachedFromWindow();
 	}
 
-	/** Tam ekran video, küçük pencere, oynatıcı ekranı gibi durumlarda gizli kalsın. */
+	private boolean video;
+
+	/**
+	 * Video (tam ekran / YouTube) oynarken: gösterge yalnız önemli anda görünür — radar 1 km içinde, hız
+	 * aşımı, okul / hastane bölgesi, ortalama hız koridoru. Düz hız göstergesi videoyu kapatmasın.
+	 */
+	public void setVideo(boolean video) {
+		if (this.video == video) return;
+		this.video = video;
+		update();
+	}
+
+	public boolean isVideo() {
+		return video;
+	}
+
+	/** Küçük pencere, oynatıcı ekranı gibi durumlarda gizli kalsın. */
 	public void setAllowed(boolean allowed) {
 		if (this.allowed == allowed) return;
 		this.allowed = allowed;
@@ -142,6 +158,10 @@ public class YoldaSpeedRail extends LinearLayout {
 		boolean avgOn = YoldaRadar.avg.isActive() && YoldaRadar.feature(ctx, "avg");
 		me.aap.fermata.ui.fragment.YoldaDriveCore.Place z = YoldaRadar.zone;
 		boolean show = on && ((lim > 0) || (sp >= 3) || (a != null) || avgOn || (z != null));
+		if (video) {
+			boolean overV = YoldaRadarCore.overSpeed(sp, lim) && !YoldaRadar.limitEstimated;
+			show = show && (((a != null) && (a.meters() <= 1000)) || overV || avgOn || (z != null));
+		}
 		if (show) {
 			int av = YoldaRadar.avg.average();
 			if (avgOn) {
@@ -180,7 +200,7 @@ public class YoldaSpeedRail extends LinearLayout {
 		// Kısa ekranda (araç) levha ve radar yetsin: hız aracın göstergesinde zaten var (aşımda yine görünür)
 		android.view.View parent = (android.view.View) getParent();
 		boolean compact = (parent != null) && (parent.getHeight() > 0) && (parent.getHeight() < dp(470));
-		if ((sp >= 0) && (!compact || (lim == 0) || over)) {
+		if ((sp >= 0) && ((!compact && !video) || (lim == 0) || over)) {
 			speed.setVisibility(VISIBLE);
 			speed.setText(sp + "\nkm/s");
 			speed.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);

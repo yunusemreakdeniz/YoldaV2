@@ -284,6 +284,21 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		date.setPadding(dp(12), dp(4), 0, 0);
 		top.addView(date, new LinearLayout.LayoutParams(0, -2, 1f));
 		// Çalan: destede oynatıcı çubuğu yok; çalan şeyin adı burada, dokununca Şimdi çalıyor / video
+		// Hava: saatin yanında küçük rozet (☀ 18°); dokununca hava durumu
+		wxChip = text(ctx, "", 15, true, t.ink);
+		wxChip.setSingleLine(true);
+		wxChip.setGravity(Gravity.CENTER);
+		wxChip.setPadding(dp(12), 0, dp(12), 0);
+		wxChip.setBackground(YoldaStyle.glass(ctx, t, 999));
+		wxChip.setVisibility(View.GONE);
+		wxChip.setOnClickListener(v -> {
+			YoldaStyle.haptic(v);
+			HomeFragment.openWeb(getActivityDelegate(), "https://www.google.com/search?q=hava+durumu");
+		});
+		LinearLayout.LayoutParams wlp = new LinearLayout.LayoutParams(-2, dp(44));
+		wlp.rightMargin = dp(10);
+		top.addView(wxChip, wlp);
+		updateWeatherChip();
 		TextView playing = text(ctx, "", 15, true, 0xFFFFFFFF);
 		playing.setSingleLine(true);
 		playing.setEllipsize(TextUtils.TruncateAt.END);
@@ -340,6 +355,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams slp2 = new LinearLayout.LayoutParams(dp(44), dp(44));
 		slp2.rightMargin = dp(10);
 		top.addView(setBtn, slp2);
+		restoreBtn = roundButton(ctx, R.drawable.yi_history, "Kaldırılan kartlar", v -> {
+			YoldaStyle.haptic(v);
+			showRestoreMenu();
+		});
+		LinearLayout.LayoutParams rlp2 = new LinearLayout.LayoutParams(dp(44), dp(44));
+		rlp2.rightMargin = dp(10);
+		top.addView(restoreBtn, rlp2);
+		restoreBtn.setVisibility(View.GONE);
 		editBtn = roundButton(ctx, R.drawable.yi_edit, "Düzenle", v -> setEditing(!editing));
 		top.addView(editBtn, new LinearLayout.LayoutParams(dp(44), dp(44)));
 		col.addView(top);
@@ -529,6 +552,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		lastRadarRefresh = now;
 		refreshCard(YoldaDeck.RADAR);
 	};
+
+	/** Kartın Açık / Kapalı düğmesi. */
+	private TextView radarToggle(Context ctx) {
+		boolean on = YoldaRadar.isEnabled(ctx);
+		TextView sw = chipBtn(ctx, on ? "● Açık" : "○ Kapalı", v -> toggleRadar(ctx));
+		sw.setContentDescription("Radar uyarıları: " + (on ? "açık, kapatmak için dokun" : "kapalı, açmak için dokun"));
+		GradientDrawable g = new GradientDrawable();
+		g.setCornerRadius(dp(999));
+		g.setColor(on ? 0xFF16A34A : 0x33FFFFFF);
+		g.setStroke(Math.max(1, dp(1)), 0x55FFFFFF);
+		sw.setBackground(g);
+		return sw;
+	}
 
 	/** Karttan aç / kapat (izin yoksa önce sorulur). */
 	private void toggleRadar(Context ctx) {
@@ -903,13 +939,105 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return (jumpStrip != null) ? jumpStrip.getChildCount() : 0;
 	}
 
+	@androidx.annotation.Nullable
+	private ImageView restoreBtn;
+	@androidx.annotation.Nullable
+	private TextView wxChip;
+
+	private void updateWeatherChip() {
+		TextView c = wxChip;
+		if (c == null) return;
+		if (weather == null) {
+			c.setVisibility(View.GONE);
+			return;
+		}
+		c.setText(YoldaWeather.emoji(weather.code()) + " " + weather.temp() + "°");
+		c.setContentDescription("Hava: " + weather.temp() + " derece, " + YoldaWeather.text(weather.code()) + ". Ayrıntı için dokun");
+		c.setVisibility(View.VISIBLE);
+	}
+
+	/** Testler için: destedeki kartın görünümü (bağlıysa). */
+	@androidx.annotation.Nullable
+	public View cardView(int pos) {
+		RecyclerView.ViewHolder h = (list != null) ? list.findViewHolderForAdapterPosition(pos) : null;
+		return (h != null) ? h.itemView : null;
+	}
+
+	public boolean isEditing() {
+		return editing;
+	}
+
+	/** Testler için. */
+	public String weatherChipText() {
+		return ((wxChip != null) && (wxChip.getVisibility() == View.VISIBLE)) ? wxChip.getText().toString() : null;
+	}
+
+	private List<YoldaDeck.Card> removedCards() {
+		return YoldaDeck.decodeCards(prefs(requireContext()).getString("deck_removed", ""));
+	}
+
+	private void saveRemoved(List<YoldaDeck.Card> l) {
+		prefs(requireContext()).edit().putString("deck_removed", YoldaDeck.encodeCards(l)).apply();
+	}
+
+	private void stashRemoved(YoldaDeck.Card c) {
+		List<YoldaDeck.Card> l = removedCards();
+		l.removeIf(x -> x.type().equals(c.type()) && x.data().equals(c.data()));
+		l.add(0, c);
+		while (l.size() > 30) l.remove(l.size() - 1);
+		saveRemoved(l);
+	}
+
+	/** Kaldırılan sabit ve kullanıcı kartı sayısı. */
+	public int removedCount() {
+		return deck.missingBuiltIns().size() + removedCards().size();
+	}
+
+	private void updateRestoreBtn() {
+		if (restoreBtn != null) restoreBtn.setVisibility((editing && (removedCount() > 0)) ? View.VISIBLE : View.GONE);
+	}
+
+	/** Kaldırılan kartlar: dokununca destedeki eski yerine (sabit kart) ya da "Ekle"nin önüne geri gelir. */
+	private void showRestoreMenu() {
+		List<Row> rows = new ArrayList<>();
+		addRestoreRows(rows);
+		if (rows.isEmpty()) {
+			YoldaStyle.toast(requireContext(), "Kaldırılmış kart yok");
+			return;
+		}
+		showPicker("Kaldırılan kartlar", rows, null);
+	}
+
+	private void addRestoreRows(List<Row> rows) {
+		for (String type : deck.missingBuiltIns()) {
+			rows.add(new Row(YoldaDeck.titleOf(type) + " kartı", "Kaldırılmış kart · dokun, geri gelsin", null, R.drawable.yi_history,
+					() -> {
+						afterChange(deck.restore(type));
+						YoldaStyle.toast(requireContext(), "Geri geldi: " + YoldaDeck.titleOf(type));
+						updateRestoreBtn();
+					}));
+		}
+		for (YoldaDeck.Card c : removedCards()) {
+			rows.add(new Row(c.title(), "Kaldırdığın kart · dokun, geri gelsin", c.logo(), R.drawable.yi_history, () -> {
+				int at = deck.add(c.type(), c.title(), c.data(), c.logo());
+				List<YoldaDeck.Card> l = removedCards();
+				l.removeIf(x -> x.type().equals(c.type()) && x.data().equals(c.data()));
+				saveRemoved(l);
+				afterChange(at);
+				YoldaStyle.toast(requireContext(), "Geri geldi: " + c.title());
+				updateRestoreBtn();
+			}));
+		}
+	}
+
 	private void setEditing(boolean on) {
 		editing = on;
+		updateRestoreBtn();
 		editBtn.setImageResource(on ? R.drawable.yi_check : R.drawable.yi_edit);
 		editBtn.setContentDescription(on ? "Bitti" : "Düzenle");
 		adapter.notifyDataSetChanged();
 		list.post(this::transform);
-		if (on) YoldaStyle.toast(requireContext(), "Düzenle: ◀ ▶ sırala, 🎨 renk seç, ✕ kaldır");
+		if (on) YoldaStyle.toast(requireContext(), "Düzenle: ◀ ▶ sırala, 🎨 renk, ✕ kaldır, ↺ kaldırılanlar");
 	}
 
 	// ---- kart görünümü ----
@@ -1094,7 +1222,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.SETTINGS -> new Look(0xFF94A3B8, 0xFF334155, R.drawable.yi_settings, true, "AYARLAR",
 					"Tema, Hey Yolda, reklam engelleyici ve dahası");
 			case YoldaDeck.ADD -> new Look(0xFFA78BFA, 0xFF5B21B6, R.drawable.yi_add, true, "EKLE",
-					"TV, radyo, YouTube kanalı ya da web sayfası kartı ekle");
+					"TV, radyo, YouTube kanalı ya da web sayfası kartı ekle" + ((removedCount() > 0)
+							? (" · kaldırılan " + removedCount() + " kart geri getirilebilir") : ""));
 			case YoldaDeck.TV_CHANNEL -> new Look(0xFF2563EB, 0xFF172554, R.drawable.yi_tv, true, "TV KANALI",
 					"Dokun, hemen açılsın");
 			case YoldaDeck.RADIO_CHANNEL, YoldaDeck.RADIO_STREAM -> new Look(0xFFF59E0B, 0xFF9A3412, R.drawable.yi_live,
@@ -1232,6 +1361,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				head.addView(editBar(ctx, c, pos), new LinearLayout.LayoutParams(-2, -2));
 				return f;
 			}
+			// Radar: alçak kartta da açıp kapatılabilsin (içerik satırı yok)
+			if (YoldaDeck.RADAR.equals(c.type())) head.addView(radarToggle(ctx), openLp(fz));
 			head.addView(openButton(ctx, c, noble, accent, fz), openLp(fz));
 			return f;
 		}
@@ -1359,14 +1490,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.RADAR -> {
 				LinearLayout row = hrow(ctx);
 				boolean on = YoldaRadar.isEnabled(ctx);
-				TextView sw = chipBtn(ctx, on ? "● Açık" : "○ Kapalı", v -> toggleRadar(ctx));
-				sw.setContentDescription("Radar uyarıları: " + (on ? "açık, kapatmak için dokun" : "kapalı, açmak için dokun"));
-				GradientDrawable g = new GradientDrawable();
-				g.setCornerRadius(dp(999));
-				g.setColor(on ? 0xFF16A34A : 0x33FFFFFF);
-				g.setStroke(Math.max(1, dp(1)), 0x55FFFFFF);
-				sw.setBackground(g);
-				row.addView(sw, chipLp());
+				row.addView(radarToggle(ctx), chipLp());
 				if (on) row.addView(chipBtn(ctx, "＋ Buraya radar ekle", v -> YoldaStyle.toast(ctx,
 						YoldaRadar.addHere(ctx) ? "Radar eklendi" : "Konum henüz bilinmiyor")), chipLp());
 				row.addView(chipBtn(ctx, "Ayrıntılar", v -> open(c)), chipLp());
@@ -1538,7 +1662,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		row.addView(roundButton(ctx, R.drawable.yi_palette, "Rengi değiştir", v -> pickColor(c, pos)), clp);
 		if (c.isRemovable()) {
 			row.addView(roundButton(ctx, R.drawable.yi_close, "Kaldır", v -> {
-				if (deck.remove(pos)) afterChange(Math.max(0, pos - 1));
+				if (!deck.remove(pos)) return;
+				if (!c.isBuiltIn()) stashRemoved(c); // kendi eklediğin kart da geri getirilebilsin
+				YoldaStyle.toast(ctx, "Kaldırıldı: " + c.title() + " · ↺ ile geri getirebilirsin");
+				afterChange(Math.max(0, pos - 1));
+				updateRestoreBtn();
 			}), new LinearLayout.LayoutParams(dp(eb), dp(eb)));
 		}
 		return row;
@@ -2026,10 +2154,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		rows.add(new Row("Radyo kanalı", "Listeden seç ya da internette ara", null, R.drawable.yi_live, this::addRadio));
 		rows.add(new Row("YouTube kanalı", "Kanal ya da konu adı", null, R.drawable.yi_youtube, this::addYoutube));
 		rows.add(new Row("Web sayfası", "Bir adres", null, R.drawable.yi_globe, this::addWeb));
-		for (String type : deck.missingBuiltIns()) {
-			rows.add(new Row(YoldaDeck.titleOf(type) + " kartını geri getir", "Kaldırılmış kart", null, R.drawable.yi_history,
-					() -> afterChange(deck.restore(type))));
-		}
+		addRestoreRows(rows);
 		rows.add(new Row("Kartları düzenle", "Sırala ya da kaldır", null, R.drawable.yi_edit, () -> setEditing(true)));
 		rows.add(new Row("Desteyi varsayılana döndür", "Eklenen kartlar silinir", null, R.drawable.yi_close, () -> {
 			deck.reset();
@@ -2324,6 +2449,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		Runnable wx = () -> YoldaWeather.get(requireContext()).main().onSuccess(w -> {
 			weather = w;
 			refreshCard(YoldaDeck.WEATHER);
+			updateWeatherChip();
 		});
 		// Telefonda ilk açılışta konum izni sorulur (araçta pencere açılamaz; son bilinen konum ya da İstanbul)
 		Context pc = requireContext();

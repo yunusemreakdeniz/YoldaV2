@@ -179,6 +179,46 @@ public class YoldaDriveTest {
 		assertNull("ikinci kez bitmez", tr.end());
 	}
 
+	/** 20 km üstü yolculuklar hep kalır; kısalardan en yeni 30. */
+	@Test
+	public void yolculukSaklama() {
+		int[] m = new int[100];
+		for (int i = 0; i < m.length; i++) m[i] = (i % 3 == 0) ? 25_000 : 4_000; // 34 uzun, 66 kısa
+		boolean[] k = YoldaDriveCore.retain(m, 30, 2000);
+		int longs = 0, shorts = 0, lastShort = -1;
+		for (int i = 0; i < k.length; i++) {
+			if (!k[i]) continue;
+			if (m[i] >= 20_000) longs++;
+			else {
+				shorts++;
+				lastShort = i;
+			}
+		}
+		assertEquals(34, longs);
+		assertEquals(30, shorts);
+		assertTrue("en yeni kısalar kalmalı", lastShort < 50);
+		assertTrue(new YoldaDriveCore.TripRec(0, 0, 20_000, 0, 0, 0, 0, 0, 0, 0).isLong());
+		assertFalse(new YoldaDriveCore.TripRec(0, 0, 19_999, 0, 0, 0, 0, 0, 0, 0).isLong());
+	}
+
+	@Test
+	public void nereden() {
+		assertEquals("İstanbul → Ankara", YoldaDriveCore.route("Kadıköy", "İstanbul", "Çankaya", "Ankara"));
+		assertEquals("Kadıköy → Beşiktaş", YoldaDriveCore.route("Kadıköy", "İstanbul", "Beşiktaş", "İstanbul"));
+		assertEquals("Kadıköy", YoldaDriveCore.route("Kadıköy", "İstanbul", "Kadıköy", "İstanbul"));
+		assertEquals("Kadıköy → ?", YoldaDriveCore.route("Kadıköy", "", "", ""));
+		assertEquals("", YoldaDriveCore.route("", "", "", ""));
+	}
+
+	@Test
+	public void yolculukYeri() {
+		YoldaDriveCore.Trip tr = new YoldaDriveCore.Trip();
+		for (int s = 0; s < 120; s++) tr.update(s * 1000L, s * 1000L, latAt(s * 25.0), LON0, 90, null);
+		YoldaDriveCore.TripRec r = tr.end();
+		assertEquals(LAT0, r.startLat(), 1e-9);
+		assertEquals(latAt(119 * 25.0), r.endLat(), 1e-9);
+	}
+
 	@Test
 	public void uzaklikYazisi() {
 		assertEquals("350 m", YoldaDriveCore.distText(350.4));

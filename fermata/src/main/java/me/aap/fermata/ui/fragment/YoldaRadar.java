@@ -864,14 +864,24 @@ public final class YoldaRadar {
 		if (rec != null) saveTrip(ctx, rec);
 	}
 
-	private static void saveTrip(Context ctx, YoldaDriveCore.TripRec t) {
+	/** Kısa (20 km altı) yolculuklardan saklanan; 20 km ve üstü olanlar silinene kadar kalır. */
+	private static final int MAX_SHORT = 30, MAX_LONG = 2000;
+
+	private static synchronized void saveTrip(Context ctx, YoldaDriveCore.TripRec t) {
 		try {
 			JSONArray old = new JSONArray(prefs(ctx).getString("trips", "[]"));
+			JSONArray all = new JSONArray();
+			all.put(new JSONObject().put("s", t.startWall()).put("e", t.endWall()).put("m", t.meters()).put("mv", t.movingMs())
+					.put("mx", t.maxKmh()).put("r", t.radars()).put("sla", t.startLat()).put("slo", t.startLon())
+					.put("ela", t.endLat()).put("elo", t.endLon()));
+			for (int i = 0; i < old.length(); i++) all.put(old.get(i));
+			int[] m = new int[all.length()];
+			for (int i = 0; i < m.length; i++) m[i] = all.getJSONObject(i).optInt("m");
+			boolean[] keep = YoldaDriveCore.retain(m, MAX_SHORT, MAX_LONG);
 			JSONArray a = new JSONArray();
-			a.put(new JSONObject().put("s", t.startWall()).put("e", t.endWall()).put("m", t.meters()).put("mv", t.movingMs())
-					.put("mx", t.maxKmh()).put("r", t.radars()));
-			for (int i = 0; (i < old.length()) && (a.length() < 30); i++) a.put(old.get(i));
+			for (int i = 0; i < keep.length; i++) if (keep[i]) a.put(all.get(i));
 			prefs(ctx).edit().putString("trips", a.toString()).apply();
+			nameTrip(ctx, t);
 			lastTrip = t;
 			YoldaLog.add("Yolculuk bitti: " + t.summary());
 			YoldaStyleToast.show(ctx, "Yolculuk bitti: " + t.summary());
@@ -884,24 +894,88 @@ public final class YoldaRadar {
 	/** Testler için: son kaydedilen yolculuk. */
 	public static volatile YoldaDriveCore.TripRec lastTrip;
 
-	/** Son yolculuklar (en yeni önce). */
+	/** Yolculuk ve nereden nereye ("Kadıköy → Ankara"; adı henüz bulunmadıysa ""). */
+	public record TripItem(YoldaDriveCore.TripRec rec, String route) {
+	}
+
+	/** Yolculuklar (en yeni önce): 20 km ve üstü olanların hepsi, kısalardan son 30. */
 	public static List<YoldaDriveCore.TripRec> trips(Context ctx) {
 		List<YoldaDriveCore.TripRec> l = new ArrayList<>();
+		for (TripItem t : tripItems(ctx)) l.add(t.rec());
+		return l;
+	}
+
+	public static List<TripItem> tripItems(Context ctx) {
+		List<TripItem> l = new ArrayList<>();
 		try {
 			JSONArray a = new JSONArray(prefs(ctx).getString("trips", "[]"));
 			for (int i = 0; i < a.length(); i++) {
 				JSONObject o = a.getJSONObject(i);
-				l.add(new YoldaDriveCore.TripRec(o.getLong("s"), o.getLong("e"), o.getInt("m"), o.getLong("mv"), o.getInt("mx"),
-						o.optInt("r")));
+				YoldaDriveCore.TripRec r = new YoldaDriveCore.TripRec(o.getLong("s"), o.getLong("e"), o.getInt("m"), o.getLong("mv"),
+						o.getInt("mx"), o.optInt("r"), o.optDouble("sla", Double.NaN), o.optDouble("slo", Double.NaN),
+						o.optDouble("ela", Double.NaN), o.optDouble("elo", Double.NaN));
+				l.add(new TripItem(r, YoldaDriveCore.route(o.optString("fi"), o.optString("fl"), o.optString("ti"), o.optString("tl"))));
 			}
 		} catch (Throwable ignore) {
 		}
 		return l;
 	}
 
+	/** Tek yolculuğu sil (başlangıç zamanıyla). */
+	public static synchronized void deleteTrip(Context ctx, long startWall) {
+		try {
+			JSONArray a = new JSONArray(prefs(ctx).getString("trips", "[]"));
+			JSONArray b = new JSONArray();
+			for (int i = 0; i < a.length(); i++) if (a.getJSONObject(i).optLong("s") != startWall) b.put(a.get(i));
+			prefs(ctx).edit().putString("trips", b.toString()).apply();
+		} catch (Throwable ignore) {
+		}
+		changed();
+	}
+
 	public static void clearTrips(Context ctx) {
 		prefs(ctx).edit().remove("trips").apply();
 		changed();
+	}
+
+	/** Başlangıç ve bitişin ilçe / il adı (arka planda; internet / Geocoder yoksa boş kalır). */
+	private static void nameTrip(Context ctx, YoldaDriveCore.TripRec t) {
+		if (Double.isNaN(t.startLat())) return;
+		Context c = ctx.getApplicationContext();
+		NET.submit(() -> {
+			String[] f = place(c, t.startLat(), t.startLon()), to = place(c, t.endLat(), t.endLon());
+			if ((f == null) && (to == null)) return;
+			synchronized (YoldaRadar.class) {
+				try {
+					JSONArray a = new JSONArray(prefs(c).getString("trips", "[]"));
+					for (int i = 0; i < a.length(); i++) {
+						JSONObject o = a.getJSONObject(i);
+						if (o.optLong("s") != t.startWall()) continue;
+						if (f != null) o.put("fi", f[0]).put("fl", f[1]);
+						if (to != null) o.put("ti", to[0]).put("tl", to[1]);
+					}
+					prefs(c).edit().putString("trips", a.toString()).apply();
+				} catch (Throwable ignore) {
+				}
+			}
+			changed();
+		});
+	}
+
+	/** {ilçe, il}; bulunamazsa null. */
+	@androidx.annotation.Nullable
+	private static String[] place(Context ctx, double la, double lo) {
+		try {
+			android.location.Geocoder g = new android.location.Geocoder(ctx, new Locale("tr", "TR"));
+			@SuppressWarnings("deprecation") List<android.location.Address> l = g.getFromLocation(la, lo, 1);
+			if ((l == null) || l.isEmpty()) return null;
+			android.location.Address ad = l.get(0);
+			String ilce = (ad.getSubAdminArea() != null) ? ad.getSubAdminArea() : (ad.getLocality() != null) ? ad.getLocality() : "";
+			String il = (ad.getAdminArea() != null) ? ad.getAdminArea() : "";
+			return new String[]{ilce, il};
+		} catch (Throwable ex) {
+			return null;
+		}
 	}
 
 	/** Kısa yazı: açık Yolda ekranında (arka planda yalnız ses). */

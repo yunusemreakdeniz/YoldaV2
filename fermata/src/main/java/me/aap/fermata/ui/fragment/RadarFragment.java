@@ -248,34 +248,48 @@ public class RadarFragment extends MainActivityFragment {
 			for (YoldaDriveCore.Stop s : st) col.addView(stopRow(ctx, a, s));
 		}
 
-		// Son yolculuklar
+		// Yolculuklar: kısalar (son 5) ve 20 km üstü geçmiş (silinene kadar)
 		if (YoldaRadar.feature(ctx, "trips")) {
-			List<YoldaDriveCore.TripRec> trips = YoldaRadar.trips(ctx);
+			List<YoldaRadar.TripItem> items = YoldaRadar.tripItems(ctx);
+			List<YoldaRadar.TripItem> shorts = new java.util.ArrayList<>(), longs = new java.util.ArrayList<>();
+			for (YoldaRadar.TripItem it : items) (it.rec().isLong() ? longs : shorts).add(it);
 			String nowTrip = YoldaRadar.trip.isActive() ? (" · şu an yoldasın, " + YoldaDriveCore.distText(YoldaRadar.trip.meters())) : "";
-			TextView th = text(ctx, (trips.isEmpty() ? "Henüz yolculuk yok" : "Son yolculuklar") + nowTrip, 18, true, t.ink);
+			TextView th = text(ctx, (shorts.isEmpty() ? "Kısa yolculuk yok" : "Son yolculuklar") + nowTrip, 18, true, t.ink);
 			th.setPadding(dp(4), dp(20), dp(4), dp(8));
 			col.addView(th);
-			java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("d MMM EEE HH:mm", new Locale("tr"));
-			for (int i = 0; i < Math.min(10, trips.size()); i++) {
-				YoldaDriveCore.TripRec tr = trips.get(i);
-				LinearLayout row = new LinearLayout(ctx);
-				row.setOrientation(LinearLayout.VERTICAL);
-				row.setBackground(YoldaStyle.glass(ctx, t, 16));
-				row.setPadding(dp(14), dp(10), dp(14), dp(10));
-				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-				lp.topMargin = dp(8);
-				row.addView(text(ctx, df.format(new java.util.Date(tr.startWall())), 13, false, t.muted));
-				row.addView(text(ctx, tr.summary(), 15, true, t.ink));
-				row.setContentDescription("Yolculuk " + df.format(new java.util.Date(tr.startWall())) + ": " + tr.summary());
-				col.addView(row, lp);
-			}
-			if (!trips.isEmpty()) {
-				LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-2, dp(46));
-				clp.topMargin = dp(10);
-				col.addView(button(ctx, "Yolculukları sil", v -> {
-					YoldaRadar.clearTrips(ctx);
+			for (int i = 0; i < Math.min(5, shorts.size()); i++) col.addView(tripRow(ctx, shorts.get(i)));
+
+			TextView lh = text(ctx, longs.isEmpty() ? "Yolculuk geçmişi: 20 km üstü yolculukların burada saklanır"
+					: ("Yolculuk geçmişi · 20 km üstü · " + longs.size() + " yolculuk, " + totalKm(longs) + " km"), 18, true, t.ink);
+			lh.setPadding(dp(4), dp(20), dp(4), dp(8));
+			col.addView(lh);
+			int show = allTrips ? longs.size() : Math.min(10, longs.size());
+			for (int i = 0; i < show; i++) col.addView(tripRow(ctx, longs.get(i)));
+			LinearLayout tr = new LinearLayout(ctx);
+			tr.setOrientation(LinearLayout.HORIZONTAL);
+			LinearLayout.LayoutParams trp = new LinearLayout.LayoutParams(-1, -2);
+			trp.topMargin = dp(10);
+			col.addView(tr, trp);
+			if (longs.size() > 10) {
+				tr.addView(button(ctx, allTrips ? "Daha az göster" : ("Tümünü göster (" + longs.size() + ")"), v -> {
+					allTrips = !allTrips;
 					render();
-				}), clp);
+				}), new LinearLayout.LayoutParams(-2, dp(46)));
+			}
+			if (!items.isEmpty()) {
+				LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(-2, dp(46));
+				if (tr.getChildCount() > 0) dl.leftMargin = dp(10);
+				boolean sure = System.currentTimeMillis() - clearAskedAt < 4000;
+				tr.addView(button(ctx, sure ? "Emin misin? Tekrar dokun" : "Tüm yolculukları sil", v -> {
+					if (System.currentTimeMillis() - clearAskedAt < 4000) {
+						clearAskedAt = 0;
+						YoldaRadar.clearTrips(ctx);
+						YoldaStyle.toast(ctx, "Yolculuklar silindi");
+					} else {
+						clearAskedAt = System.currentTimeMillis();
+					}
+					render();
+				}), dl);
 			}
 		}
 
@@ -337,6 +351,45 @@ public class RadarFragment extends MainActivityFragment {
 				YoldaStyle.toast(ctx, "Harita uygulaması bulunamadı");
 			}
 		});
+		return row;
+	}
+
+	private boolean allTrips;
+	private long clearAskedAt;
+
+	private static int totalKm(List<YoldaRadar.TripItem> l) {
+		long m = 0;
+		for (YoldaRadar.TripItem t : l) m += t.rec().meters();
+		return (int) Math.round(m / 1000d);
+	}
+
+	/** Yolculuk satırı: tarih · nereden → nereye, özet; "Sil". */
+	private View tripRow(Context ctx, YoldaRadar.TripItem it) {
+		YoldaDriveCore.TripRec tr = it.rec();
+		java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("d MMM yyyy EEE HH:mm", new Locale("tr"));
+		LinearLayout row = new LinearLayout(ctx);
+		row.setOrientation(LinearLayout.HORIZONTAL);
+		row.setGravity(Gravity.CENTER_VERTICAL);
+		row.setBackground(YoldaStyle.glass(ctx, t, 16));
+		row.setPadding(dp(14), dp(10), dp(10), dp(10));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+		lp.topMargin = dp(8);
+		row.setLayoutParams(lp);
+		LinearLayout tx = new LinearLayout(ctx);
+		tx.setOrientation(LinearLayout.VERTICAL);
+		String head = df.format(new java.util.Date(tr.startWall())) + (it.route().isEmpty() ? "" : (" · " + it.route()));
+		TextView h = text(ctx, head, 13, false, t.muted);
+		h.setSingleLine(true);
+		h.setEllipsize(TextUtils.TruncateAt.END);
+		tx.addView(h);
+		tx.addView(text(ctx, tr.summary(), 15, true, t.ink));
+		row.addView(tx, new LinearLayout.LayoutParams(0, -2, 1f));
+		row.addView(button(ctx, "Sil", v -> {
+			YoldaRadar.deleteTrip(ctx, tr.startWall());
+			YoldaStyle.toast(ctx, "Yolculuk silindi");
+			render();
+		}), new LinearLayout.LayoutParams(-2, dp(42)));
+		row.setContentDescription("Yolculuk " + head + ": " + tr.summary());
 		return row;
 	}
 

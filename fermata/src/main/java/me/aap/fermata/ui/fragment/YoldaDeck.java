@@ -168,6 +168,28 @@ public final class YoldaDeck {
 
 	// ---- kayıt ----
 
+	/** Kart listesi kaydı (kaldırılan kullanıcı kartları için; varsayılan deste eklenmez). */
+	public static String encodeCards(List<Card> l) {
+		StringBuilder b = new StringBuilder();
+		for (Card c : l) {
+			if (b.length() > 0) b.append(RECORD);
+			b.append(c.key()).append(FIELD).append(c.type()).append(FIELD).append(c.title()).append(FIELD)
+					.append(c.data()).append(FIELD).append((c.logo() != null) ? c.logo() : "");
+		}
+		return b.toString();
+	}
+
+	public static List<Card> decodeCards(@Nullable String s) {
+		List<Card> l = new ArrayList<>();
+		if ((s == null) || s.isEmpty()) return l;
+		for (String rec : s.split(String.valueOf(RECORD), -1)) {
+			String[] f = rec.split(String.valueOf(FIELD), -1);
+			if ((f.length < 5) || f[0].isEmpty() || f[1].isEmpty()) continue;
+			l.add(new Card(f[0], f[1], f[2], f[3], f[4].isEmpty() ? null : f[4]));
+		}
+		return l;
+	}
+
 	@NonNull
 	public String encode() {
 		StringBuilder b = new StringBuilder();

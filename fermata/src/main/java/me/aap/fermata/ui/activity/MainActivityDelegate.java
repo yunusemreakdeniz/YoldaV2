@@ -1731,6 +1731,29 @@ public class MainActivityDelegate extends ActivityDelegate
 	private me.aap.fermata.ui.view.YoldaSpeedRail speedRail;
 	private boolean radarAttached;
 
+	private void placeSpeedRail(boolean video) {
+		me.aap.fermata.ui.view.YoldaSpeedRail r = speedRail;
+		if ((r == null) || !(r.getLayoutParams() instanceof ConstraintLayout.LayoutParams lp)) return;
+		Context ctx = r.getContext();
+		if (video) {
+			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.endToEnd = ConstraintLayout.LayoutParams.UNSET;
+			lp.bottomToTop = ConstraintLayout.LayoutParams.UNSET;
+			lp.leftMargin = toIntPx(ctx, 16);
+			lp.topMargin = toIntPx(ctx, 16);
+			lp.verticalBias = 0f;
+		} else {
+			View anchor = (deckPrev != null) ? deckPrev : voiceButton;
+			lp.startToStart = anchor.getId();
+			lp.endToEnd = anchor.getId();
+			lp.bottomToTop = anchor.getId();
+			lp.leftMargin = 0;
+			lp.topMargin = toIntPx(ctx, 8);
+			lp.verticalBias = 1f;
+		}
+		r.setLayoutParams(lp);
+	}
+
 	/** Sol kenar: hız sınırı, hız ve öndeki radar (geri / ana sayfa düğmelerinin üstünde). */
 	private void addSpeedRail(ConstraintLayout host) {
 		Context ctx = host.getContext();
@@ -1966,7 +1989,12 @@ public class MainActivityDelegate extends ActivityDelegate
 		int bv = (full || np || (getActiveFragmentId() == R.id.home_fragment)) ? View.GONE : View.VISIBLE;
 		if ((deckBack != null) && (deckBack.getVisibility() != bv)) deckBack.setVisibility(bv);
 		if ((deckPrev != null) && (deckPrev.getVisibility() != bv)) deckPrev.setVisibility(bv);
-		if (speedRail != null) speedRail.setAllowed(!full && !np);
+		if (speedRail != null) {
+			// Videoda da (tam ekran, YouTube): yalnız önemli anda, sol üstte (video düğmelerine binmesin)
+			if (speedRail.isVideo() != full) placeSpeedRail(full);
+			speedRail.setVideo(full);
+			speedRail.setAllowed(!np || full);
+		}
 	}
 
 	private static boolean yoldaSplashShown;

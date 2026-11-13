@@ -140,7 +140,15 @@ public final class YoldaDriveCore {
 	// ---- yolculuk özeti ----
 
 	/** Biten yolculuk: başlangıç / bitiş (duvar saati), metre, hareket süresi, en yüksek hız, geçilen radar. */
-	public record TripRec(long startWall, long endWall, int meters, long movingMs, int maxKmh, int radars) {
+	public record TripRec(long startWall, long endWall, int meters, long movingMs, int maxKmh, int radars,
+												double startLat, double startLon, double endLat, double endLon) {
+		/** 20 km ve üstü yolculuklar geçmişte kalıcı tutulur (kullanıcı silene kadar). */
+		public static final int LONG_M = 20_000;
+
+		public boolean isLong() {
+			return meters >= LONG_M;
+		}
+
 		public int avgKmh() {
 			return (movingMs > 0) ? (int) Math.round(meters / (movingMs / 1000d) * 3.6) : 0;
 		}
@@ -164,7 +172,7 @@ public final class YoldaDriveCore {
 		public static final long STOP = 10 * 60_000L;
 		private boolean active;
 		private long startWall, lastMs = -1, stopSince = -1, lastMoveWall, movingMs;
-		private double meters, lastLat = Double.NaN, lastLon;
+		private double meters, lastLat = Double.NaN, lastLon, sLat, sLon, eLat, eLon;
 		private int max;
 		private final java.util.Set<Long> radars = new java.util.HashSet<>();
 
@@ -186,6 +194,8 @@ public final class YoldaDriveCore {
 					max = speedKmh;
 					stopSince = -1;
 					radars.clear();
+					sLat = eLat = lat;
+					sLon = eLon = lon;
 				}
 			} else {
 				if (!Double.isNaN(lastLat)) {
@@ -196,6 +206,8 @@ public final class YoldaDriveCore {
 					movingMs += dt;
 					stopSince = -1;
 					lastMoveWall = wallMs;
+					eLat = lat;
+					eLon = lon;
 				} else {
 					if (stopSince < 0) stopSince = nowMs;
 					if (nowMs - stopSince >= STOP) done = finish();
@@ -219,7 +231,7 @@ public final class YoldaDriveCore {
 			active = false;
 			stopSince = -1;
 			if (meters < 1000) return null;
-			return new TripRec(startWall, lastMoveWall, (int) Math.round(meters), movingMs, max, radars.size());
+			return new TripRec(startWall, lastMoveWall, (int) Math.round(meters), movingMs, max, radars.size(), sLat, sLon, eLat, eLon);
 		}
 
 		public boolean isActive() {
@@ -229,6 +241,35 @@ public final class YoldaDriveCore {
 		public int meters() {
 			return (int) Math.round(meters);
 		}
+	}
+
+	/**
+	 * Hangi yolculuklar saklanır (en yeni önce verilir): 20 km ve üstü olanların hepsi (en çok maxLong), kısalardan
+	 * en yeni maxShort tanesi.
+	 */
+	public static boolean[] retain(int[] metersNewestFirst, int maxShort, int maxLong) {
+		boolean[] keep = new boolean[metersNewestFirst.length];
+		int s = 0, l = 0;
+		for (int i = 0; i < metersNewestFirst.length; i++) {
+			if (metersNewestFirst[i] >= TripRec.LONG_M) keep[i] = (l++ < maxLong);
+			else keep[i] = (s++ < maxShort);
+		}
+		return keep;
+	}
+
+	/** "Kadıköy → Beşiktaş" (aynı ilde ilçeler), "İstanbul → Ankara" (iller arası); bilinmiyorsa "". */
+	public static String route(String fromIlce, String fromIl, String toIlce, String toIl) {
+		String f, t;
+		if (!fromIl.isEmpty() && !toIl.isEmpty() && !fromIl.equals(toIl)) {
+			f = fromIl;
+			t = toIl;
+		} else {
+			f = fromIlce.isEmpty() ? fromIl : fromIlce;
+			t = toIlce.isEmpty() ? toIl : toIlce;
+		}
+		if (f.isEmpty() && t.isEmpty()) return "";
+		if (f.equals(t)) return f;
+		return (f.isEmpty() ? "?" : f) + " → " + (t.isEmpty() ? "?" : t);
 	}
 
 	/** Park yeri: araçtan ne kadar uzaktasın ("350 m", "1,2 km"). */

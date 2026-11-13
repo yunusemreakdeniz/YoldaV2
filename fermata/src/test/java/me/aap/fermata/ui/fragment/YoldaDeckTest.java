@@ -12,6 +12,15 @@ import java.util.List;
 public class YoldaDeckTest {
 
 	@Test
+	public void kaldirilanKartlarKaydi() {
+		java.util.List<YoldaDeck.Card> l = java.util.List.of(new YoldaDeck.Card("tvch:1", YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null),
+				new YoldaDeck.Card("url:2", YoldaDeck.URL, "Haber", "https://x", "https://x/logo.png"));
+		assertEquals(l, YoldaDeck.decodeCards(YoldaDeck.encodeCards(l)));
+		assertTrue(YoldaDeck.decodeCards("").isEmpty());
+		assertTrue(YoldaDeck.decodeCards(null).isEmpty());
+	}
+
+	@Test
 	public void varsayilanSira() {
 		YoldaDeck d = new YoldaDeck();
 		String[] want = {"resume", "youtube", "music", "tv", "radio", "favs", "nav", "radar", "weather", "pharmacy", "phone", "mirror", "web",

@@ -961,6 +961,126 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Kart kaldırılır, Düzenle'deki "Kaldırılan kartlar" düğmesiyle geri gelir; Ekle kartı da söyler. */
+	@Test
+	public void kartKaldirGeriGetir() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1500);
+		int n0 = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().size());
+		int pos = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().indexOf(YoldaDeck.WEATHER));
+		assertTrue(pos >= 0);
+		View edit = onMain(a -> byDesc(a.getActiveFragment().getView(), "Düzenle"));
+		assertNotNull(edit);
+		onMain(a -> edit.performClick());
+		waitIdle(800);
+		onMain(a -> {
+			((YoldaDeckFragment) a.getActiveFragment()).scrollToCard(pos);
+			return null;
+		});
+		waitIdle(1500);
+		View rm = onMain(a -> byDescExact(((YoldaDeckFragment) a.getActiveFragment()).cardView(pos), "Kaldır"));
+		assertNotNull("Düzenle'de Kaldır düğmesi olmalı", rm);
+		onMain(a -> rm.performClick());
+		waitIdle(1000);
+		assertEquals("Hava kartı kaldırılmalı", n0 - 1, onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().size()).intValue());
+		assertEquals(-1, onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().indexOf(YoldaDeck.WEATHER)).intValue());
+		View back = onMain(a -> byDesc(a.getActiveFragment().getView(), "Kaldırılan kartlar"));
+		assertNotNull("Düzenle'de ↺ Kaldırılan kartlar görünmeli", back);
+		shot("kaldirilan_kartlar_dugmesi");
+		onMain(a -> back.performClick());
+		waitIdle(1000);
+		View row = onMain(a -> clickableOf(byText(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Hava durumu kartı")));
+		assertNotNull("Listede Hava durumu olmalı", row);
+		shot("kaldirilan_kartlar_listesi");
+		onMain(a -> row.performClick());
+		waitIdle(1200);
+		assertTrue("Hava kartı geri gelmeli",
+				onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().indexOf(YoldaDeck.WEATHER)) >= 0);
+		assertEquals(n0, onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().size()).intValue());
+		onMain(a -> {
+			View e = byDesc(a.getActiveFragment().getView(), "Bitti");
+			if (e != null) e.performClick();
+			return null;
+		});
+		waitIdle(800);
+	}
+
+	/** Başlıkta hava rozeti (☀ 18°). */
+	@Test
+	public void basliktaHava() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		boolean ok = waitFor(25_000, () -> onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).weatherChipText()) != null);
+		String txt = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).weatherChipText());
+		Log.i(TAG, "Başlıkta hava: " + txt);
+		shot("baslik_hava");
+		assertTrue("Başlıkta hava rozeti görünmeli", ok);
+		assertTrue("Sıcaklık yazmalı: " + txt, txt.endsWith("°"));
+	}
+
+	/** Video oynarken radar yaklaşınca gösterge sol üstte görünür; önemli bir şey yokken video kapanmaz. */
+	@Test
+	public void videodaRadarGostergesi() {
+		android.content.Context c = ctx();
+		boolean was = YoldaRadar.isEnabled(c);
+		java.util.List<YoldaRadarCore.Cam> old = YoldaRadar.cams();
+		boolean overWas = YoldaRadar.overspeedWarn(c);
+		double lat0 = 40.0, lon0 = 30.0;
+		YoldaRadar.ignoreGps = true;
+		try {
+			onMain(a -> {
+				me.aap.fermata.ui.view.YoldaNowPlaying.hide(a);
+				a.showFragment(R.id.home_fragment);
+				YoldaRadar.setEnabled(c, true);
+				YoldaRadar.setFeature(c, "cams", true);
+				YoldaRadar.setOverspeedWarn(c, false);
+				YoldaRadar.setCams(java.util.List.of(new YoldaRadarCore.Cam(55, lat0 + 600 / 111_195d, lon0, 50, -1, 'r')));
+				a.setVideoMode(true, a.getBody().getVideoView());
+				return null;
+			});
+			waitIdle(1000);
+			// Radar uzakta (3 km önce): videoda gösterge yok
+			onMain(a -> {
+				YoldaRadar.feed(lat0 - 3000 / 111_195d, lon0, 60, 0);
+				return null;
+			});
+			waitIdle(500);
+			assertNull("Önemli bir şey yokken video üstünde gösterge olmamalı", onMain(a -> byDesc(
+					((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Hız ve radar")));
+			// Radar 600 m önde
+			onMain(a -> {
+				YoldaRadar.feed(lat0, lon0, 60, 0);
+				return null;
+			});
+			waitIdle(800);
+			View rail = onMain(a -> byDesc(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Hız ve radar"));
+			assertNotNull("Video üstünde radar göstergesi görünmeli", rail);
+			shot("video_radar");
+			int top = onMain(a -> {
+				int[] xy = new int[2];
+				rail.getLocationOnScreen(xy);
+				return xy[1];
+			});
+			float d = c.getResources().getDisplayMetrics().density;
+			assertTrue("Videoda sol üstte olmalı: y=" + top, top < 140 * d);
+		} finally {
+			onMain(a -> {
+				a.setVideoMode(false, null);
+				YoldaRadar.setCams(old);
+				YoldaRadar.setOverspeedWarn(c, overWas);
+				YoldaRadar.setEnabled(c, was);
+				YoldaRadar.ignoreGps = false;
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(800);
+		}
+	}
+
+	private static View clickableOf(View v) {
+		while ((v != null) && !v.isClickable()) v = (v.getParent() instanceof View p) ? p : null;
+		return v;
+	}
+
 	/** Üstteki ayarlar düğmesi ayarlar (menü) ekranını açar. */
 	@Test
 	public void ayarlarDugmesiUstte() {
