@@ -349,11 +349,11 @@ public final class YoldaPharmacy {
 	}
 
 	/** Konuma göre en yakın önce (konumu bilinmeyenler sonda, kendi sıralarında). */
-	public static List<Pharmacy> sortByDistance(List<Pharmacy> l, @Nullable double[] me) {
-		if (me == null) return l;
+	public static List<Pharmacy> sortByDistance(List<Pharmacy> l, @Nullable double[] loc) {
+		if (loc == null) return l;
 		List<Pharmacy> s = new ArrayList<>(l);
-		s.sort((a, b) -> Double.compare(a.hasLocation() ? km(me[0], me[1], a.lat(), a.lon()) : Double.MAX_VALUE,
-				b.hasLocation() ? km(me[0], me[1], b.lat(), b.lon()) : Double.MAX_VALUE));
+		s.sort((a, b) -> Double.compare(a.hasLocation() ? km(loc[0], loc[1], a.lat(), a.lon()) : Double.MAX_VALUE,
+				b.hasLocation() ? km(loc[0], loc[1], b.lat(), b.lon()) : Double.MAX_VALUE));
 		return s;
 	}
 

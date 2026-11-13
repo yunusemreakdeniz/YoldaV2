@@ -48,7 +48,7 @@ public class PharmacyFragment extends MainActivityFragment {
 	private FrameLayout overlay;
 	private List<Pharmacy> shown = new ArrayList<>();
 	@Nullable
-	private double[] me;
+	private double[] myLoc;
 
 	@Override
 	public int getFragmentId() {
@@ -119,7 +119,7 @@ public class PharmacyFragment extends MainActivityFragment {
 		root.removeAllViews();
 		overlay = null;
 		YoldaStyle.applyScreenBackground(root, t);
-		me = YoldaPharmacy.myLocation(ctx);
+		myLoc = YoldaPharmacy.myLocation(ctx);
 		Place il = YoldaPharmacy.selectedIl(ctx);
 		Place ilce = YoldaPharmacy.selectedIlce(ctx);
 		if (il != null) offset = Math.max(YoldaPharmacy.minOffset(il), Math.min(YoldaPharmacy.maxOffset(il), offset));
@@ -261,7 +261,7 @@ public class PharmacyFragment extends MainActivityFragment {
 					+ YoldaPharmacy.dayLabel(offset) + " · " + d.list().size() + " eczane");
 			shown = new ArrayList<>(d.list());
 			showList();
-			if (me != null) {
+			if (myLoc != null) {
 				YoldaPharmacy.resolveLocations(ctx, shown, (i, ph) -> {
 					if (!isAdded() || (s != seq)) return;
 					for (int k = 0; k < shown.size(); k++) {
@@ -280,16 +280,16 @@ public class PharmacyFragment extends MainActivityFragment {
 	private void showList() {
 		if (!isAdded() || (listBox == null)) return;
 		Context ctx = requireContext();
-		List<Pharmacy> l = YoldaPharmacy.sortByDistance(shown, me);
+		List<Pharmacy> l = YoldaPharmacy.sortByDistance(shown, myLoc);
 		listBox.removeAllViews();
 		if (l.isEmpty()) {
 			status.setText("Bu seçim için nöbetçi eczane bulunamadı");
 			return;
 		}
 		String near = "";
-		if ((me != null) && l.get(0).hasLocation()) {
-			near = " · en yakını " + YoldaPharmacy.fmtKm(YoldaPharmacy.km(me[0], me[1], l.get(0).lat(), l.get(0).lon()));
-		} else if (me == null) {
+		if ((myLoc != null) && l.get(0).hasLocation()) {
+			near = " · en yakını " + YoldaPharmacy.fmtKm(YoldaPharmacy.km(myLoc[0], myLoc[1], l.get(0).lat(), l.get(0).lon()));
+		} else if (myLoc == null) {
 			near = " · uzaklık için konum izni gerekli";
 		}
 		status.setText(l.size() + " nöbetçi eczane" + near);
@@ -329,8 +329,8 @@ public class PharmacyFragment extends MainActivityFragment {
 			names.addView(d);
 		}
 		top.addView(names, new LinearLayout.LayoutParams(0, -2, 1f));
-		if ((me != null) && p.hasLocation()) {
-			TextView km = text(ctx, YoldaPharmacy.fmtKm(YoldaPharmacy.km(me[0], me[1], p.lat(), p.lon())), 15, true,
+		if ((myLoc != null) && p.hasLocation()) {
+			TextView km = text(ctx, YoldaPharmacy.fmtKm(YoldaPharmacy.km(myLoc[0], myLoc[1], p.lat(), p.lon())), 15, true,
 					YoldaStyle.ON_ACCENT);
 			km.setSingleLine(true);
 			km.setGravity(Gravity.CENTER);

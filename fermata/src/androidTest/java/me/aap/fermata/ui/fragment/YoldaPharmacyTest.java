@@ -234,9 +234,9 @@ public class YoldaPharmacyTest {
 			l.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
 			lm.setTestProviderLocation(LocationManager.GPS_PROVIDER, l);
 			waitIdle(500);
-			double[] me = YoldaPharmacy.myLocation(ctx());
-			Log.i(TAG, "Sahte konum: " + ((me != null) ? (me[0] + "," + me[1]) : "yok"));
-			return (me != null) && (Math.abs(me[0] - lat) < 0.01);
+			double[] loc = YoldaPharmacy.myLocation(ctx());
+			Log.i(TAG, "Sahte konum: " + ((loc != null) ? (loc[0] + "," + loc[1]) : "yok"));
+			return (loc != null) && (Math.abs(loc[0] - lat) < 0.01);
 		} catch (Throwable ex) {
 			Log.i(TAG, "Sahte konum kurulamadı: " + ex);
 			return false;
