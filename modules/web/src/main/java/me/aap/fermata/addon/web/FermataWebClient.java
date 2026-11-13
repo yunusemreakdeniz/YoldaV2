@@ -255,7 +255,7 @@ public class FermataWebClient extends WebViewClientCompat {
 	}
 
 	/** Web dışı adres (intent://, geo:, tel:, market:…): sayfada açılamaz, "Web sayfası mevcut değil" hatası çıkar. */
-	static boolean isAppLink(Uri u) {
+	public static boolean isAppLink(Uri u) {
 		String sc = u.getScheme();
 		if (sc == null) return false;
 		sc = sc.toLowerCase(java.util.Locale.ROOT);
@@ -271,7 +271,7 @@ public class FermataWebClient extends WebViewClientCompat {
 	private static String lastAppTarget;
 	private static long lastAppTargetAt;
 
-	static boolean openAppLink(WebView view, WebResourceRequest request) {
+	public static boolean openAppLink(WebView view, WebResourceRequest request) {
 		Uri u = request.getUrl();
 		String target = webTarget(u);
 		String cur = view.getUrl();
