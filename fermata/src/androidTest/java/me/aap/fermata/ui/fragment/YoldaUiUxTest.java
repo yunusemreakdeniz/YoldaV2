@@ -365,20 +365,34 @@ public class YoldaUiUxTest {
 	 * Kaydırılan kaplar (liste, yatay şerit) sayılmaz; çok soluk süs simgeleri (zemin işareti) bilerek taşar.
 	 */
 	private static void clipped(View v, List<String> out, float d, String name) {
-		if (!(v.getParent() instanceof ViewGroup pg)) return;
-		if ((pg instanceof ScrollView) || (pg instanceof HorizontalScrollView) || (pg instanceof android.widget.AbsListView)
-				|| pg.getClass().getName().contains("RecyclerView") || pg.getClass().getName().contains("ViewPager")) return;
-		if ((v.getAlpha() < 0.3f) || (pg.getWidth() <= 0) || (pg.getHeight() <= 0)) return;
+		if (v.getAlpha() < 0.3f) return;
 		boolean leaf = (v instanceof android.widget.TextView) || (v instanceof android.widget.ImageView)
 				|| v.isClickable() || v.hasOnClickListeners();
-		if (!leaf) return;
+		if (!leaf || (v.getWidth() <= 0) || (v.getHeight() <= 0)) return;
 		int tol = Math.round(3 * d);
-		int over = Math.max(Math.max(-v.getLeft(), -v.getTop()),
-				Math.max(v.getRight() - pg.getWidth(), v.getBottom() - pg.getHeight()));
-		if (over > tol) {
-			out.add(name + ": kesik / kabına sığmıyor (" + Math.round(over / d) + " dp taşıyor) — " + desc(v)
-					+ " ⊂ " + desc(pg));
+		// v'nin konumu, sırayla her üst kabın içinde (yerleşim koordinatları; ölçek / kaydırma animasyonu hariç)
+		int x = v.getLeft(), y = v.getTop();
+		ViewParent p = v.getParent();
+		for (int depth = 0; (depth < 10) && (p instanceof ViewGroup pg); depth++) {
+			if (isScrollContainer(pg) || (pg.getWidth() <= 0) || (pg.getHeight() <= 0)) return;
+			int over = Math.max(Math.max(-x, -y), Math.max(x + v.getWidth() - pg.getWidth(), y + v.getHeight() - pg.getHeight()));
+			if (over > tol) {
+				String m = name + ": kesik / kabına sığmıyor (" + Math.round(over / d) + " dp taşıyor) — " + desc(v)
+						+ " ⊂ " + desc(pg);
+				if (!out.contains(m)) out.add(m);
+				return;
+			}
+			x += pg.getLeft() - pg.getScrollX();
+			y += pg.getTop() - pg.getScrollY();
+			p = pg.getParent();
 		}
+	}
+
+	private static boolean isScrollContainer(ViewGroup g) {
+		String n = g.getClass().getName();
+		return (g instanceof ScrollView) || (g instanceof HorizontalScrollView) || (g instanceof android.widget.AbsListView)
+				|| n.contains("RecyclerView") || n.contains("ViewPager") || n.contains("NestedScrollView")
+				|| n.contains("DecorView") || (g.getParent() == null);
 	}
 
 	private static boolean inScrollable(View v) {

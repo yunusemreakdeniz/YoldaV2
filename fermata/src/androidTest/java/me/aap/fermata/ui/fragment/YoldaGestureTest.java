@@ -59,6 +59,14 @@ public class YoldaGestureTest {
 	@Before
 	public void start() {
 		MainActivityDelegate.skipSetupThisRun = true;
+		for (String p : new String[]{"android.permission.RECORD_AUDIO", "android.permission.POST_NOTIFICATIONS",
+				"android.permission.READ_EXTERNAL_STORAGE", "android.permission.READ_MEDIA_AUDIO",
+				"android.permission.READ_MEDIA_VIDEO", "android.permission.READ_MEDIA_IMAGES"}) {
+			try {
+				InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(ctx().getPackageName(), p);
+			} catch (Exception ignore) {
+			}
+		}
 		ctx().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE).edit()
 				.putBoolean("wake_enabled", false).commit();
 		scenario = ActivityScenario.launch(MainActivity.class);

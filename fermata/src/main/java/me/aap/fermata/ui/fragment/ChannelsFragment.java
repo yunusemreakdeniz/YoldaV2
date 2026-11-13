@@ -133,7 +133,7 @@ public class ChannelsFragment extends MainActivityFragment {
 			TextView s = text(ctx, isRadio ? "Radyo" : "TV", 15, true, on ? YoldaStyle.ON_ACCENT : t.ink);
 			s.setSingleLine(true);
 			s.setGravity(Gravity.CENTER);
-			s.setPadding(dp(18), dp(8), dp(18), dp(8));
+			s.setPadding(dp(14), dp(8), dp(14), dp(8)); // dar dikey ekranda + ve Düzenle aynı satıra sığsın
 			s.setMinHeight(dp(40));
 			if (on) s.setBackground(YoldaStyle.accentFill(ctx, 999));
 			s.setOnClickListener(v -> {
@@ -197,7 +197,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		TextView edit = text(ctx, editing ? "Bitti" : "Düzenle", 15, true, t.ink);
 		edit.setSingleLine(true);
 		edit.setGravity(Gravity.CENTER);
-		edit.setPadding(dp(18), dp(12), dp(18), dp(12));
+		edit.setPadding(dp(14), dp(12), dp(14), dp(12));
 		edit.setBackground(editing ? YoldaStyle.selected(ctx, 999) : YoldaStyle.glass(ctx, t, 999));
 		edit.setClickable(true);
 		edit.setOnClickListener(v -> {
@@ -207,7 +207,7 @@ public class ChannelsFragment extends MainActivityFragment {
 			showGrid();
 		});
 		LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(-2, -2);
-		elp.leftMargin = dp(10);
+		elp.leftMargin = dp(8);
 		actions.addView(edit, elp);
 		col.addView(head, new LinearLayout.LayoutParams(-1, -2));
 

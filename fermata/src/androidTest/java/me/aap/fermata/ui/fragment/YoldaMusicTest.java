@@ -55,6 +55,8 @@ public class YoldaMusicTest {
 		MainActivityDelegate.skipSetupThisRun = true;
 		String pkg = ctx().getPackageName();
 		for (String p : new String[]{"android.permission.RECORD_AUDIO", "android.permission.POST_NOTIFICATIONS",
+				"android.permission.READ_EXTERNAL_STORAGE", "android.permission.READ_MEDIA_AUDIO",
+				"android.permission.READ_MEDIA_VIDEO", "android.permission.READ_MEDIA_IMAGES",
 				"android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"}) {
 			try {
 				InstrumentationRegistry.getInstrumentation().getUiAutomation().grantRuntimePermission(pkg, p);
@@ -159,10 +161,12 @@ public class YoldaMusicTest {
 
 	/** Ses gerçekten çıkıyor mu: müzik akışı etkin (sessiz web videosu ses akışı açmaz). */
 	private boolean soundActive() {
-		AudioManager am = (AudioManager) ctx().getSystemService(Context.AUDIO_SERVICE);
-		boolean active = am.isMusicActive();
-		if (!active) return false;
-		if (!MusicFragment.playingViaYoutube()) return onMain(a -> a.getMediaSessionCallback().isPlaying());
+		// Emülatör ses kartsız (-noaudio): web sayfasının sesi sisteme "çalan müzik" olarak görünmeyebilir. Doğrudan
+		// akışta oynatıcının durumu, YouTube oynatıcısında videonun sessiz olmayıp ilerlemesi ölçülür.
+		if (!MusicFragment.playingViaYoutube()) {
+			AudioManager am = (AudioManager) ctx().getSystemService(Context.AUDIO_SERVICE);
+			return onMain(a -> a.getMediaSessionCallback().isPlaying()) && am.isMusicActive();
+		}
 		return videoState().contains("sesli-caliyor");
 	}
 

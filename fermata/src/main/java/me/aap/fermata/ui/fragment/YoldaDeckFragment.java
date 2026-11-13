@@ -77,11 +77,36 @@ public class YoldaDeckFragment extends MainActivityFragment {
 										 int btn, int chipH, int big) {
 	}
 
+	/**
+	 * Ölçüm payı (dp): kart çizildikten sonra içerik yine de taşarsa (yazı tipi, ekran yoğunluğu, tahmin hatası)
+	 * taşan kadar artar ve kartlar daha sıkı düzenle yeniden kurulur. Kart boyu değişince sıfırlanır.
+	 */
+	private int fitSlackDp;
+
+	/** Kartın içeriği kartın içine sığıyor mu: sığmıyorsa payı artırıp desteyi yeniden kur. */
+	private void watchOverflow(LinearLayout v) {
+		int base = fitSlackDp; // bu kart kurulurkenki pay: birden çok kart aynı anda taşarsa paylar toplanmasın
+		v.addOnLayoutChangeListener((x, l, tp, r, b, ol, ot, or, ob) -> {
+			if ((v.getChildCount() == 0) || (v.getHeight() <= 0)) return;
+			View last = v.getChildAt(v.getChildCount() - 1);
+			int over = last.getBottom() - (v.getHeight() - v.getPaddingBottom());
+			if (over <= dp(1)) return;
+			int add = Math.round(over / getResources().getDisplayMetrics().density) + 2;
+			int want = base + add;
+			if ((want <= fitSlackDp) || (want > 240)) return;
+			fitSlackDp = want;
+			YoldaLog.add("Deste: kart içeriği " + add + " dp taştı, sıkı düzen");
+			if (list != null) list.post(() -> {
+				if (adapter != null) adapter.notifyDataSetChanged();
+			});
+		});
+	}
+
 	private Fit fit() {
 		android.content.res.Resources r = getResources();
 		float dens = r.getDisplayMetrics().density;
 		float fs = Math.max(1f, r.getConfiguration().fontScale);
-		int h = Math.round(cardH / dens);
+		int h = Math.round(cardH / dens) - fitSlackDp;
 		boolean small = h < 330;
 		boolean compact = h < 260;
 		int pad = compact ? 14 : small ? 18 : 24;
@@ -325,6 +350,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					+ getResources().getDisplayMetrics().density);
 		}
 		boolean changed = (nw != cardW) || (nh != cardH);
+		if (changed) fitSlackDp = 0;
 		cardW = nw;
 		cardH = nh;
 		int pad = (w - cardW) / 2;
@@ -807,6 +833,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		v.setOrientation(LinearLayout.VERTICAL);
 		int p = dp(fz.pad());
 		v.setPadding(p, p, p, p);
+		watchOverflow(v);
 		f.addView(v, new FrameLayout.LayoutParams(-1, -1));
 
 		// Üst satır: simge, etiket + ad, "Aç"

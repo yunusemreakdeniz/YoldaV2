@@ -143,7 +143,9 @@ public class YoldaPlaybackTest {
 			YoldaNowPlaying.togglePlay(a);
 			return null;
 		});
-		assertTrue("Yeniden açılmalı", waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying())));
+		boolean again = waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+		if (!again) dumpDiag("TRT 1 yeniden açılmadı");
+		assertTrue("Yeniden açılmalı", again);
 		assertEquals("Aynı kanal açılmalı", ch.getId(), onMain(a -> a.getCurrentPlayable().getId()));
 	}
 
