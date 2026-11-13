@@ -302,7 +302,9 @@ public final class YoldaStyle {
 		View knob = new View(ctx);
 		android.graphics.drawable.GradientDrawable kg = new android.graphics.drawable.GradientDrawable();
 		kg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-		kg.setColor(on ? 0xFFFFFFFF : 0xFFCBD1DC);
+		// Açık renkli vurguda (beyaza yakın tema) beyaz düğme kaybolmasın: koyu düğme
+		boolean lightAccent = androidx.core.graphics.ColorUtils.calculateLuminance(accent) > 0.6;
+		kg.setColor(on ? (lightAccent ? 0xFF1F2937 : 0xFFFFFFFF) : 0xFFCBD1DC);
 		knob.setBackground(kg);
 		knob.setElevation(2 * d);
 		int k = Math.round(24 * d);

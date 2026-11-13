@@ -1422,9 +1422,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return f;
 			}
 			// Radar: alçak kartta da açıp kapatılabilsin (içerik satırı yok)
-			if (YoldaDeck.RADAR.equals(c.type())) {
-				head.addView(radarUpdateBtn(ctx, true), openLp(fz));
-				head.addView(radarToggle(ctx), openLp(fz));
+			if (YoldaDeck.RADAR.equals(c.type())) { // alçak kart: başlığa yer kalsın, küçük anahtar
+				boolean on = YoldaRadar.isEnabled(ctx);
+				View sw = YoldaStyle.toggleSwitch(ctx, on, 0xFFFFFFFF);
+				sw.setContentDescription("Radar uyarıları: " + (on ? "açık, kapatmak için dokun" : "kapalı, açmak için dokun"));
+				sw.setClickable(true);
+				sw.setOnClickListener(v -> toggleRadar(ctx));
+				TextView up = radarUpdateBtn(ctx, true);
+				up.setPadding(0, 0, 0, 0);
+				LinearLayout.LayoutParams upl = new LinearLayout.LayoutParams(dp(44), dp(44));
+				upl.leftMargin = dp(8);
+				head.addView(up, upl);
+				LinearLayout.LayoutParams swp = new LinearLayout.LayoutParams(dp(56), dp(32));
+				swp.leftMargin = dp(10);
+				head.addView(sw, swp);
 			}
 			head.addView(openButton(ctx, c, noble, accent, fz), openLp(fz));
 			return f;
