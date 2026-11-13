@@ -306,25 +306,29 @@ public class YoldaAtoZTest {
 
 	@Test
 	public void bolunmusEkranAcilipKapanir() {
+		// Telefonda "videonun yanında harita": video küçük pencereye geçer, harita uygulaması açılır
+		// (web haritası değil). Emülatörde harita uygulaması olmayabilir; istek ve küçük pencere denenmiş olmalı.
 		onMain(a -> {
 			call(a, "toggleSplit");
 			return null;
 		});
-		waitIdle(2000);
-		assertTrue("Bölünmüş ekranda gövde ikiye ayrılmalı", onMain(a -> a.getBody().isBothMode()));
-		assertEquals("Harita tarafı tarayıcı olmalı", R.id.web_browser_fragment,
-				onMain(MainActivityDelegate::getActiveFragmentId).intValue());
+		waitIdle(2500);
+		String log = YoldaLog.read(ctx());
+		Log.i(TAG, "Video + harita: " + log.substring(Math.max(0, log.lastIndexOf("Video + harita"))));
+		assertTrue("Telefonda harita uygulaması istenmeli", log.contains("Video + harita"));
+		assertFalse("Web haritası açılmamalı", onMain(a -> a.getBody().isBothMode()));
+		// Küçük pencereden çıkılınca düğmeler ve çubuk geri gelir
 		onMain(a -> {
-			call(a, "toggleSplit");
+			a.yoldaPipChanged(true);
+			a.yoldaPipChanged(false);
 			return null;
 		});
-		waitIdle(1200);
-		assertFalse("Bölünmüş ekran kapanmalı", onMain(a -> a.getBody().isBothMode()));
-		onMain(a -> {
-			a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
-			return a.showFragment(R.id.home_fragment);
+		assertFalse("Küçük pencere bitmeli", onMain(MainActivityDelegate::isYoldaPip));
+		scenario.onActivity(act -> {
 		});
-		waitIdle(1000);
+		InstrumentationRegistry.getInstrumentation().getUiAutomation().performGlobalAction(
+				android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK);
+		waitIdle(1500);
 	}
 
 	// ---- hava durumu ----

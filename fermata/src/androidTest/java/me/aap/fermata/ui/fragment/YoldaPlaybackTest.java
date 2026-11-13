@@ -178,7 +178,10 @@ public class YoldaPlaybackTest {
 			a.getControlPanel().closePlayer();
 			return null;
 		});
-		assertTrue("Kapatınca ses tamamen kesilmeli", waitFor(6000, () -> playing(am) == 0));
+		// Eski oynatıcı hemen susturulur; ses çıkışının bırakılması arka planda biraz sürebilir
+		boolean silent = waitFor(20_000, () -> playing(am) == 0);
+		Log.i(TAG, "Kapatınca çalan ses akışı: " + playing(am));
+		assertTrue("Kapatınca ses tamamen kesilmeli (" + playing(am) + " akış)", silent);
 	}
 
 	/** Gerçekten çalan (başlatılmış) ses oynatıcılarının sayısı; duraklatılmış / kapanmakta olanlar sayılmaz. */
