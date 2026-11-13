@@ -115,7 +115,6 @@ public class MainActivity extends SplitCompatActivityBase
 		super.onCreate(savedInstanceState);
 	}
 
-	@Override
 	/** Yolda: video küçük pencerede (harita uygulaması açıkken) — yalnız görüntü kalsın. */
 	@Override
 	public void onPictureInPictureModeChanged(boolean inPip, @NonNull android.content.res.Configuration cfg) {
