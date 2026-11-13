@@ -71,9 +71,9 @@ public class YoldaDeckTest {
 
 	@Test
 	public void bozukKayitVarsayilanaDoner() {
-		assertEquals(13, YoldaDeck.decode(null).size());
-		assertEquals(13, YoldaDeck.decode("").size());
-		assertEquals(13, YoldaDeck.decode("çöp").size());
+		assertEquals(14, YoldaDeck.decode(null).size());
+		assertEquals(14, YoldaDeck.decode("").size());
+		assertEquals(14, YoldaDeck.decode("çöp").size());
 		// "Ekle" kaydı kaybolsa da eklenir
 		YoldaDeck d = YoldaDeck.decode("tv\u001Ftv\u001FTV\u001F\u001F");
 		assertEquals(2, d.size());

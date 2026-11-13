@@ -171,14 +171,14 @@ public class YoldaPharmacyTest {
 		assertTrue("Yıldızlı ilçe kısayolu görünmeli", onMain(a -> findText(a, "★ Kadıköy") != null));
 		assertTrue("Yıldızlı il kısayolu görünmeli", onMain(a -> findText(a, "★ Ankara") != null));
 		if (mock) {
-			assertTrue("Uzaklık yazmalı: " + onMain(a -> fragment(a).statusText()),
-					waitFor(40_000, () -> String.valueOf(onMain(a -> fragment(a).statusText())).contains("en yakını")));
+			boolean dist = waitFor(40_000, () -> status().contains("en yakını"));
+			assertTrue("Uzaklık yazmalı: " + status(), dist);
 		} else {
 			Log.i(TAG, "Sahte konum kurulamadı; uzaklık denetlenmedi");
 		}
 		waitIdle(1500);
 		shot("eczane_kadikoy");
-		Log.i(TAG, "Eczane ekranı: " + onMain(a -> fragment(a).statusText()));
+		Log.i(TAG, "Eczane ekranı: " + status());
 
 		// Ankara kısayolu: tek dokunuşla Ankara, seçim kalıcı
 		onMain(a -> findText(a, "★ Ankara").performClick());
@@ -194,6 +194,15 @@ public class YoldaPharmacyTest {
 	}
 
 	// ---- yardımcılar ----
+
+	private String status() {
+		AtomicReference<String> r = new AtomicReference<>("");
+		scenario.onActivity(act -> {
+			if (MainActivityDelegate.get(act).getActiveFragment() instanceof PharmacyFragment f)
+				r.set(String.valueOf(f.statusText()));
+		});
+		return r.get();
+	}
 
 	private PharmacyFragment fragment(MainActivityDelegate a) {
 		return (PharmacyFragment) a.getActiveFragment();
