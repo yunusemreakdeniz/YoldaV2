@@ -1427,7 +1427,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				View sw = YoldaStyle.toggleSwitch(ctx, on, 0xFFFFFFFF);
 				sw.setContentDescription("Radar uyarıları: " + (on ? "açık, kapatmak için dokun" : "kapalı, açmak için dokun"));
 				sw.setClickable(true);
-				sw.setOnClickListener(v -> toggleRadar(ctx));
+				sw.setOnClickListener(x -> toggleRadar(ctx));
 				TextView up = radarUpdateBtn(ctx, true);
 				up.setPadding(0, 0, 0, 0);
 				LinearLayout.LayoutParams upl = new LinearLayout.LayoutParams(dp(44), dp(44));
