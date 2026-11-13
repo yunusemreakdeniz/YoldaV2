@@ -413,10 +413,19 @@ public class YoldaAtoZTest {
 			onMain(a -> btn.performClick());
 			assertTrue("Dokununca tema değişmeli", waitFor(5000, () -> YoldaStyle.index(ctx()) == 1));
 			// Onay kutusu yok: altta kısa yazı belirir ve ~1 sn sonra kaybolur
-			assertTrue("Tema yazısı görünmeli", waitFor(1500, () -> onMain(a -> toastShown(a))));
+			// animasyon sürerken boşta beklemeden bak (yazı ~1,4 sn görünür)
+			try {
+				Thread.sleep(450);
+			} catch (InterruptedException ignore) {
+			}
+			assertTrue("Tema yazısı görünmeli", onMain(a -> toastShown(a)));
 			assertFalse("Onay kutusu çıkmamalı", onMain(a -> ((android.app.Activity) a.getContext()).getWindow()
 					.getDecorView().getRootView().findViewById(android.R.id.button1) != null));
-			assertTrue("Tema yazısı kendiliğinden kapanmalı", waitFor(2500, () -> !onMain(a -> toastShown(a))));
+			try {
+				Thread.sleep(2500);
+			} catch (InterruptedException ignore) {
+			}
+			assertFalse("Tema yazısı kendiliğinden kapanmalı", onMain(a -> toastShown(a)));
 			waitIdle(1500);
 			View btn2 = onMain(a -> byDesc(a.getActiveFragment().getView(), "Tema:"));
 			onMain(a -> btn2.performLongClick());

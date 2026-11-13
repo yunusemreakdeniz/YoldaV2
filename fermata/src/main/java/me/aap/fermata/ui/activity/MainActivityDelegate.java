@@ -868,14 +868,21 @@ public class MainActivityDelegate extends ActivityDelegate
 		for (Fragment f : fm.getFragments()) {
 			if ((f instanceof ActivityFragment af) && (af.getFragmentId() == id)) return af;
 		}
+		ActivityFragment f;
 		try {
-			ActivityFragment f = createFragment(id);
-			fm.beginTransaction().add(getFrameContainerId(), f).hide(f).commitNow();
-			return f;
+			f = createFragment(id);
 		} catch (Exception ex) {
-			Log.e(ex, "Parça hazırlanamadı: ", id);
+			me.aap.fermata.ui.fragment.YoldaLog.add("Parça kurulamadı: " + ex);
 			return null;
 		}
+		try {
+			fm.beginTransaction().add(getFrameContainerId(), f).hide(f).commitNow();
+		} catch (IllegalStateException busy) {
+			// Başka bir ekran geçişi sürerken (ör. Müzik açılırken şarkı başlatıldı): hemen ardından kurulsun
+			fm.beginTransaction().add(getFrameContainerId(), f).hide(f).commitAllowingStateLoss();
+			me.aap.fermata.ui.fragment.YoldaLog.add("Parça sıraya alındı (geçiş sürüyordu)");
+		}
+		return f;
 	}
 
 	protected ActivityFragment createFragment(int id) {
