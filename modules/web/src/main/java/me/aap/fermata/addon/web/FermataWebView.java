@@ -269,13 +269,23 @@ public class FermataWebView extends WebView
 			Log.e(ex, "Sayfa kapatılırken");
 		}
 		try {
-			setWebViewClient(new android.webkit.WebViewClient());
+			// İşlem kapanışını karşılayan istemci: emekli sayfa karşılamazsa Android tüm uygulamayı kapatıyordu
+			setWebViewClient(SAFE_CLIENT);
 			setWebChromeClient(new android.webkit.WebChromeClient());
 			removeJavascriptInterface(FermataJsInterface.NAME);
 			stopLoading();
 		} catch (Throwable ex) {
 			Log.e(ex, "Sayfa kapatılamadı");
 		}
+		// Emekli sayfa tamamen bırakılır (web işlemine bağlı kalmasın, bellek boşalsın)
+		post(() -> {
+			try {
+				if (getParent() instanceof android.view.ViewGroup g) g.removeView(this);
+				destroy();
+			} catch (Throwable ex) {
+				Log.e(ex, "Sayfa bırakılamadı");
+			}
+		});
 	}
 
 	/** Alt sınıflar için: sayfa kapanmadan önce (ör. bu sayfada çalan YouTube'u durdur). */
