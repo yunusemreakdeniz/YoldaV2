@@ -184,6 +184,40 @@ public class RadarFragment extends MainActivityFragment {
 		col.addView(feature(ctx, "stops", "Yol üstü mola yerleri", "Önündeki akaryakıt ve dinlenme tesisleri"));
 		col.addView(feature(ctx, "fatigue", "Mola hatırlatıcısı", "2 saat ara vermeden sürünce hatırlatır · şu an "
 				+ YoldaDriveCore.duration(YoldaRadar.fatigue.drivingMs())));
+		col.addView(feature(ctx, "bg", "Arka planda da çalış", "Android Auto'da haritaya geçince, telefon kilitliyken de sesli uyarır"
+				+ (YoldaDriveService.running ? " · çalışıyor" : "")));
+		col.addView(feature(ctx, "park", "Park yerimi hatırla", "Araç bağlantısı kesilince aracın yeri kaydedilir"));
+		col.addView(feature(ctx, "trips", "Yolculuk özeti", "Her yolculuğun km, süre, ortalama ve en yüksek hızı"));
+
+		// Aracım nerede
+		if (YoldaRadar.feature(ctx, "park")) {
+			double[] pk = YoldaRadar.park(ctx);
+			TextView ph = text(ctx, "Aracım nerede", 18, true, t.ink);
+			ph.setPadding(dp(4), dp(20), dp(4), dp(8));
+			col.addView(ph);
+			String pl;
+			if (pk == null) pl = "Henüz kayıt yok · araç bağlantısı kesilince kendiliğinden kaydedilir";
+			else {
+				pl = "Kaydedildi: " + new java.text.SimpleDateFormat("d MMM HH:mm", new Locale("tr")).format(new java.util.Date((long) pk[2]));
+				if (!Double.isNaN(YoldaRadar.lat))
+					pl += " · " + YoldaDriveCore.distText(YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1])) + " uzakta";
+			}
+			TextView pt = text(ctx, pl, 14, false, t.muted);
+			pt.setPadding(dp(4), 0, dp(4), dp(6));
+			col.addView(pt);
+			LinearLayout pr = new LinearLayout(ctx);
+			pr.setOrientation(LinearLayout.HORIZONTAL);
+			col.addView(pr, new LinearLayout.LayoutParams(-1, -2));
+			if (pk != null) {
+				pr.addView(button(ctx, "🚶 Aracıma git", v -> YoldaRadar.walkToPark(ctx)), new LinearLayout.LayoutParams(0, dp(52), 1f));
+			}
+			LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(0, dp(52), 1f);
+			if (pk != null) hp.leftMargin = dp(10);
+			pr.addView(button(ctx, "🅿 Buraya park ettim", v -> {
+				YoldaStyle.toast(ctx, YoldaRadar.savePark(ctx, false) ? "Park yeri kaydedildi" : "Konum henüz bilinmiyor");
+				render();
+			}), hp);
+		}
 
 		LinearLayout acts = new LinearLayout(ctx);
 		acts.setOrientation(LinearLayout.HORIZONTAL);
@@ -212,6 +246,37 @@ public class RadarFragment extends MainActivityFragment {
 			sh.setPadding(dp(4), dp(20), dp(4), dp(8));
 			col.addView(sh);
 			for (YoldaDriveCore.Stop s : st) col.addView(stopRow(ctx, a, s));
+		}
+
+		// Son yolculuklar
+		if (YoldaRadar.feature(ctx, "trips")) {
+			List<YoldaDriveCore.TripRec> trips = YoldaRadar.trips(ctx);
+			String nowTrip = YoldaRadar.trip.isActive() ? (" · şu an yoldasın, " + YoldaDriveCore.distText(YoldaRadar.trip.meters())) : "";
+			TextView th = text(ctx, (trips.isEmpty() ? "Henüz yolculuk yok" : "Son yolculuklar") + nowTrip, 18, true, t.ink);
+			th.setPadding(dp(4), dp(20), dp(4), dp(8));
+			col.addView(th);
+			java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("d MMM EEE HH:mm", new Locale("tr"));
+			for (int i = 0; i < Math.min(10, trips.size()); i++) {
+				YoldaDriveCore.TripRec tr = trips.get(i);
+				LinearLayout row = new LinearLayout(ctx);
+				row.setOrientation(LinearLayout.VERTICAL);
+				row.setBackground(YoldaStyle.glass(ctx, t, 16));
+				row.setPadding(dp(14), dp(10), dp(14), dp(10));
+				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+				lp.topMargin = dp(8);
+				row.addView(text(ctx, df.format(new java.util.Date(tr.startWall())), 13, false, t.muted));
+				row.addView(text(ctx, tr.summary(), 15, true, t.ink));
+				row.setContentDescription("Yolculuk " + df.format(new java.util.Date(tr.startWall())) + ": " + tr.summary());
+				col.addView(row, lp);
+			}
+			if (!trips.isEmpty()) {
+				LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-2, dp(46));
+				clp.topMargin = dp(10);
+				col.addView(button(ctx, "Yolculukları sil", v -> {
+					YoldaRadar.clearTrips(ctx);
+					render();
+				}), clp);
+			}
 		}
 
 		// Yakındaki radarlar

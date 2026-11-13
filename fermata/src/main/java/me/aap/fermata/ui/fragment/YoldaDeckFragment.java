@@ -1409,6 +1409,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				if (home != null) row.addView(chipBtn(ctx, "⌂ Ev", v -> NavFragment.navigateTo(ctx, home, false)), chipLp());
 				if (work != null) row.addView(chipBtn(ctx, "İş", v -> NavFragment.navigateTo(ctx, work, false)), chipLp());
 				row.addView(chipBtn(ctx, "Hedef ara", v -> a.showFragment(R.id.yolda_nav_fragment)), chipLp());
+				if (YoldaRadar.feature(ctx, "park") && (YoldaRadar.park(ctx) != null))
+					row.addView(chipBtn(ctx, "🅿 Aracım", v -> YoldaRadar.walkToPark(ctx)), chipLp());
 				for (String d : NavFragment.recent(ctx)) {
 					if (row.getChildCount() >= 7) break;
 					row.addView(chipBtn(ctx, d, v -> NavFragment.navigateTo(ctx, d, true)), chipLp());

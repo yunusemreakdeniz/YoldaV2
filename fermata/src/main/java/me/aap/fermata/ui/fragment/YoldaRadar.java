@@ -63,7 +63,13 @@ public final class YoldaRadar {
 	private static final YoldaRadarCore.Alerter alerter = new YoldaRadarCore.Alerter();
 
 	private static Context app;
+	@androidx.annotation.Nullable
+	private static java.lang.ref.WeakReference<Context> ui;
 	private static int users;
+	private static boolean service;
+	/** Son hareket (10 km/s üstü) anı: hizmet uzun süre hareketsizse kapanır. */
+	public static volatile long lastMoveAt;
+	public static final YoldaDriveCore.Trip trip = new YoldaDriveCore.Trip();
 	private static LocationManager lm;
 	private static boolean listening;
 
@@ -112,8 +118,11 @@ public final class YoldaRadar {
 	public static void setEnabled(Context ctx, boolean on) {
 		prefs(ctx).edit().putBoolean("enabled", on).apply();
 		YoldaLog.add("Radar uyarıları: " + (on ? "açık" : "kapalı"));
-		if (on) startListening(ctx);
-		else {
+		if (on) {
+			startListening(ctx);
+			if (feature(ctx, "bg") && hasUi()) YoldaDriveService.start(ctx);
+		} else {
+			YoldaDriveService.stop(ctx);
 			stopListening();
 			ahead = null;
 			alerter.reset();
@@ -150,6 +159,11 @@ public final class YoldaRadar {
 		if (!on && "avg".equals(key)) avg.cancel();
 		if (!on && "zones".equals(key)) zone = null;
 		if (!on && "cams".equals(key)) ahead = null;
+		if ("bg".equals(key)) {
+			if (on && isEnabled(ctx) && hasUi()) YoldaDriveService.start(ctx);
+			else if (!on) YoldaDriveService.stop(ctx);
+		}
+		if (!on && "trips".equals(key)) trip.end();
 		changed();
 	}
 
@@ -159,29 +173,83 @@ public final class YoldaRadar {
 
 	// ---- yaşam döngüsü: Yolda'nın her ekranı (telefon, araç) bağlanır ----
 
+	/** Yolda ekranı (telefon ya da araç) açıldı. */
 	public static void attach(Context ctx) {
 		app = ctx.getApplicationContext();
+		ui = new java.lang.ref.WeakReference<>(ctx);
 		users++;
 		load(app);
-		if (isEnabled(app)) startListening(app);
+		initCar(app);
+		if (isEnabled(app)) {
+			startListening(app);
+			if (feature(app, "bg")) YoldaDriveService.start(app); // ekran açıkken başlatılabilir (Android kuralı)
+		}
 	}
 
 	public static void detach() {
 		if (--users <= 0) {
 			users = 0;
-			stopListening();
+			ui = null;
+			if (!service) stopListening();
 		}
+	}
+
+	/** Arka plan hizmeti başladı: ekran kapansa da dinlemeye devam. */
+	public static void attachService(Context ctx) {
+		app = ctx.getApplicationContext();
+		service = true;
+		lastMoveAt = SystemClock.elapsedRealtime();
+		load(app);
+		initCar(app);
+		startListening(app);
+	}
+
+	public static void detachService() {
+		service = false;
+		Context c = app;
+		if (c != null) endTrip(c);
+		if (users <= 0) stopListening();
+	}
+
+	/** Yolda ekranı açık mı (telefon ya da araç). */
+	public static boolean hasUi() {
+		return users > 0;
+	}
+
+	private static boolean carInit;
+
+	private static void initCar(Context ctx) {
+		if (carInit) return;
+		carInit = true;
+		YoldaCar.init(ctx);
+		YoldaCar.addListener(YoldaRadar::carChanged);
+	}
+
+	/** Araç bağlandı / ayrıldı: ayrılınca park yeri kaydedilir, yolculuk biter; ekran yoksa hizmet kapanır. */
+	public static void carChanged(boolean connected) {
+		Context c = app;
+		if (c == null) return;
+		if (connected) {
+			if (isEnabled(c) && feature(c, "bg") && hasUi()) YoldaDriveService.start(c);
+			return;
+		}
+		if (isEnabled(c) && feature(c, "park")) savePark(c, true);
+		endTrip(c);
+		if (!hasUi()) YoldaDriveService.stop(c);
 	}
 
 	/** İzin sonradan verildiyse dinlemeyi başlat. */
 	public static void permissionChanged(Context ctx) {
-		if (isEnabled(ctx)) startListening(ctx);
+		if (isEnabled(ctx)) {
+			startListening(ctx);
+			if (feature(ctx, "bg") && hasUi()) YoldaDriveService.start(ctx);
+		}
 		changed();
 	}
 
 	@SuppressLint("MissingPermission")
 	private static void startListening(Context ctx) {
-		if (listening || (users <= 0) || !hasPermission(ctx)) return;
+		if (listening || ((users <= 0) && !service) || !hasPermission(ctx)) return;
 		try {
 			lm = (LocationManager) ctx.getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
 			if (lm == null) return;
@@ -232,7 +300,11 @@ public final class YoldaRadar {
 		}
 	};
 
+	/** Testler için: gerçek GPS yok sayılır (benzetilen konum bozulmasın). */
+	public static volatile boolean ignoreGps;
+
 	private static void onLocation(Location l) {
+		if (ignoreGps) return;
 		int sp = l.hasSpeed() ? Math.round(l.getSpeed() * 3.6f) : -1;
 		double hd = (l.hasBearing() && (sp >= 8)) ? l.getBearing() : ((sp >= 0) && (sp < 5) ? -1 : heading);
 		feed(l.getLatitude(), l.getLongitude(), sp, hd);
@@ -276,6 +348,13 @@ public final class YoldaRadar {
 		int stage = alerter.update(a, Math.max(0, speedKmh));
 		if (stage > 0) alert(ctx, YoldaRadarCore.alertText(a, stage, limit), stage <= 150, 'r');
 		helpers(ctx, la, lo, speedKmh, hd);
+		if (speedKmh >= 10) lastMoveAt = SystemClock.elapsedRealtime();
+		if (feature(ctx, "trips")) {
+			Long passed = null;
+			for (Ahead n : YoldaRadarCore.nearby(la, lo, cams, 40, 1)) passed = n.cam().id();
+			YoldaDriveCore.TripRec rec = trip.update(SystemClock.elapsedRealtime(), System.currentTimeMillis(), la, lo, speedKmh, passed);
+			if (rec != null) saveTrip(ctx, rec);
+		}
 
 		// hız aşımı: 3 sn sürerse çift bip, sürerse 20 sn'de bir (sınır değişince hemen)
 		long now = SystemClock.elapsedRealtime();
@@ -692,10 +771,146 @@ public final class YoldaRadar {
 		return b.toByteArray();
 	}
 
-	/** Kısa yazı için ara sınıf (YoldaStyle'a bağımlılık tek yerde). */
+	// ---- park yeri ----
+
+	/** Park yeri: {lat, lon, zaman (ms)}; yoksa null. */
+	@androidx.annotation.Nullable
+	public static double[] park(Context ctx) {
+		SharedPreferences p = prefs(ctx);
+		if (!p.contains("park_lat")) return null;
+		return new double[]{Double.longBitsToDouble(p.getLong("park_lat", 0)), Double.longBitsToDouble(p.getLong("park_lon", 0)),
+				p.getLong("park_at", 0)};
+	}
+
+	public static void clearPark(Context ctx) {
+		prefs(ctx).edit().remove("park_lat").remove("park_lon").remove("park_at").apply();
+		changed();
+	}
+
+	/**
+	 * Bulunduğun yeri park yeri olarak kaydet (son 5 dk içindeki konum; yoksa telefonun bilinen son konumu).
+	 * notify: araç ayrılınca bildirim gösterilir (dokununca yürüyerek yol tarifi).
+	 */
+	@SuppressLint("MissingPermission")
+	public static boolean savePark(Context ctx, boolean notify) {
+		double la = lat, lo = lon;
+		if (Double.isNaN(la) || (SystemClock.elapsedRealtime() - fixAt > 5 * 60_000L)) {
+			try {
+				LocationManager m = (LocationManager) ctx.getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+				Location l = hasPermission(ctx) && (m != null) ? m.getLastKnownLocation(LocationManager.GPS_PROVIDER) : null;
+				if (l == null && hasPermission(ctx) && (m != null)) l = m.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+				if (l != null) {
+					la = l.getLatitude();
+					lo = l.getLongitude();
+				}
+			} catch (Throwable ignore) {
+			}
+		}
+		if (Double.isNaN(la)) {
+			YoldaLog.add("Park yeri kaydedilemedi: konum yok");
+			return false;
+		}
+		prefs(ctx).edit().putLong("park_lat", Double.doubleToLongBits(la)).putLong("park_lon", Double.doubleToLongBits(lo))
+				.putLong("park_at", System.currentTimeMillis()).apply();
+		YoldaLog.add(String.format(Locale.ROOT, "Park yeri kaydedildi: %.5f,%.5f", la, lo));
+		if (notify) notifyPark(ctx, la, lo);
+		changed();
+		return true;
+	}
+
+	/** Park yerine yürüyerek yol tarifi (Google Haritalar; yoksa harita uygulaması). */
+	public static android.content.Intent walkIntent(double la, double lo) {
+		return new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(Locale.ROOT,
+				"google.navigation:q=%.6f,%.6f&mode=w", la, lo))).setPackage("com.google.android.apps.maps")
+				.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+	}
+
+	public static void walkToPark(Context ctx) {
+		double[] p = park(ctx);
+		if (p == null) return;
+		try {
+			ctx.startActivity(walkIntent(p[0], p[1]));
+		} catch (Throwable ex) {
+			try {
+				ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(String.format(
+						Locale.ROOT, "geo:%.6f,%.6f?q=%.6f,%.6f(Aracım)", p[0], p[1], p[0], p[1])))
+						.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+			} catch (Throwable ignore) {
+			}
+		}
+	}
+
+	private static void notifyPark(Context ctx, double la, double lo) {
+		try {
+			android.app.NotificationManager nm = ctx.getSystemService(android.app.NotificationManager.class);
+			String ch = "yolda_park";
+			if ((android.os.Build.VERSION.SDK_INT >= 26) && (nm.getNotificationChannel(ch) == null))
+				nm.createNotificationChannel(new android.app.NotificationChannel(ch, "Park yeri", android.app.NotificationManager.IMPORTANCE_DEFAULT));
+			android.app.PendingIntent pi = android.app.PendingIntent.getActivity(ctx, 3, walkIntent(la, lo),
+					android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+			android.app.Notification.Builder b = (android.os.Build.VERSION.SDK_INT >= 26)
+					? new android.app.Notification.Builder(ctx, ch) : new android.app.Notification.Builder(ctx);
+			nm.notify(0x59_50, b.setSmallIcon(me.aap.fermata.R.drawable.notification).setContentTitle("Aracının yeri kaydedildi")
+					.setContentText("Dokun, aracına yürüyerek yol tarifi al").setContentIntent(pi).setAutoCancel(true).build());
+		} catch (Throwable ex) {
+			YoldaLog.add("Park bildirimi gösterilemedi: " + ex);
+		}
+	}
+
+	// ---- yolculuklar ----
+
+	private static void endTrip(Context ctx) {
+		YoldaDriveCore.TripRec rec = trip.end();
+		if (rec != null) saveTrip(ctx, rec);
+	}
+
+	private static void saveTrip(Context ctx, YoldaDriveCore.TripRec t) {
+		try {
+			JSONArray old = new JSONArray(prefs(ctx).getString("trips", "[]"));
+			JSONArray a = new JSONArray();
+			a.put(new JSONObject().put("s", t.startWall()).put("e", t.endWall()).put("m", t.meters()).put("mv", t.movingMs())
+					.put("mx", t.maxKmh()).put("r", t.radars()));
+			for (int i = 0; (i < old.length()) && (a.length() < 30); i++) a.put(old.get(i));
+			prefs(ctx).edit().putString("trips", a.toString()).apply();
+			lastTrip = t;
+			YoldaLog.add("Yolculuk bitti: " + t.summary());
+			YoldaStyleToast.show(ctx, "Yolculuk bitti: " + t.summary());
+			changed();
+		} catch (Throwable ex) {
+			Log.e(ex, "Yolculuk kaydedilemedi");
+		}
+	}
+
+	/** Testler için: son kaydedilen yolculuk. */
+	public static volatile YoldaDriveCore.TripRec lastTrip;
+
+	/** Son yolculuklar (en yeni önce). */
+	public static List<YoldaDriveCore.TripRec> trips(Context ctx) {
+		List<YoldaDriveCore.TripRec> l = new ArrayList<>();
+		try {
+			JSONArray a = new JSONArray(prefs(ctx).getString("trips", "[]"));
+			for (int i = 0; i < a.length(); i++) {
+				JSONObject o = a.getJSONObject(i);
+				l.add(new YoldaDriveCore.TripRec(o.getLong("s"), o.getLong("e"), o.getInt("m"), o.getLong("mv"), o.getInt("mx"),
+						o.optInt("r")));
+			}
+		} catch (Throwable ignore) {
+		}
+		return l;
+	}
+
+	public static void clearTrips(Context ctx) {
+		prefs(ctx).edit().remove("trips").apply();
+		changed();
+	}
+
+	/** Kısa yazı: açık Yolda ekranında (arka planda yalnız ses). */
 	private static final class YoldaStyleToast {
 		static void show(Context ctx, String text) {
-			App.get().getHandler().post(() -> me.aap.fermata.ui.view.YoldaStyle.toast(ctx, text));
+			java.lang.ref.WeakReference<Context> w = ui;
+			Context c = (w != null) ? w.get() : null;
+			if (c == null) return;
+			App.get().getHandler().post(() -> me.aap.fermata.ui.view.YoldaStyle.toast(c, text));
 		}
 	}
 }

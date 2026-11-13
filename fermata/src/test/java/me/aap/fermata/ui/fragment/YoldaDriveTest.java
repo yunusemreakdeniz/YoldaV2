@@ -126,6 +126,65 @@ public class YoldaDriveTest {
 		assertEquals("2 saat 15 dakika", YoldaDriveCore.duration(135 * 60_000L));
 	}
 
+	// ---- yolculuk ----
+
+	/** 20 dk 90 km/s (30 km), sonra 12 dk duruş: yolculuk duruşun 10. dakikasında biter, bekleme sayılmaz. */
+	@Test
+	public void yolculuk() {
+		YoldaDriveCore.Trip tr = new YoldaDriveCore.Trip();
+		double mps = 90 / 3.6;
+		long wall0 = 1_700_000_000_000L;
+		YoldaDriveCore.TripRec done = null;
+		int s = 0;
+		for (; s < 20 * 60; s++) {
+			Long cam = ((s == 300) || (s == 301) || (s == 600)) ? Long.valueOf((s == 600) ? 2 : 1) : null;
+			int sp = (s == 700) ? 112 : 90;
+			assertNull(tr.update(s * 1000L, wall0 + s * 1000L, latAt(s * mps), LON0, sp, cam));
+		}
+		assertTrue(tr.isActive());
+		double end = s * mps;
+		int stopAt = s;
+		for (; (s < stopAt + 12 * 60) && (done == null); s++) done = tr.update(s * 1000L, wall0 + s * 1000L, latAt(end), LON0, 0, null);
+		assertNotNull("10 dk durunca bitmeli", done);
+		assertEquals(stopAt + 10 * 60, s - 1, 1);
+		assertFalse(tr.isActive());
+		assertEquals(30_000, done.meters(), 300);
+		assertEquals(90, done.avgKmh(), 2);
+		assertEquals(112, done.maxKmh());
+		assertEquals(2, done.radars());
+		assertEquals("bekleme sayılmaz", 20 * 60_000L, done.durationMs(), 2000);
+		assertEquals("30,0 km · 20 dakika · ort. 90 · en yüksek 112 · 2 radar", done.summary());
+	}
+
+	@Test
+	public void kisaYolculukKaydedilmez() {
+		YoldaDriveCore.Trip tr = new YoldaDriveCore.Trip();
+		for (int s = 0; s < 30; s++) tr.update(s * 1000L, s * 1000L, latAt(s * 20.0), LON0, 70, null); // 600 m
+		assertTrue(tr.isActive());
+		assertNull(tr.end());
+		assertFalse(tr.isActive());
+		// yavaş yürüyüş yolculuk başlatmaz
+		YoldaDriveCore.Trip w = new YoldaDriveCore.Trip();
+		for (int s = 0; s < 600; s++) w.update(s * 1000L, s * 1000L, latAt(s * 1.4), LON0, 5, null);
+		assertFalse(w.isActive());
+	}
+
+	@Test
+	public void aracAyrilincaBiter() {
+		YoldaDriveCore.Trip tr = new YoldaDriveCore.Trip();
+		for (int s = 0; s < 120; s++) tr.update(s * 1000L, s * 1000L, latAt(s * 25.0), LON0, 90, null); // 3 km
+		YoldaDriveCore.TripRec r = tr.end();
+		assertNotNull(r);
+		assertEquals(3000, r.meters(), 60);
+		assertNull("ikinci kez bitmez", tr.end());
+	}
+
+	@Test
+	public void uzaklikYazisi() {
+		assertEquals("350 m", YoldaDriveCore.distText(350.4));
+		assertEquals("1,2 km", YoldaDriveCore.distText(1234));
+	}
+
 	// ---- okul / hastane ----
 
 	@Test

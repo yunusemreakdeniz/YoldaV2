@@ -131,10 +131,109 @@ public final class YoldaDriveCore {
 
 	/** "2 saat 15 dakika" */
 	public static String duration(long ms) {
-		long min = ms / 60_000;
+		long min = Math.round(ms / 60_000d); // 19 dk 59 sn → 20 dakika
 		long h = min / 60, m = min % 60;
 		if (h == 0) return m + " dakika";
 		return h + " saat" + ((m > 0) ? (" " + m + " dakika") : "");
+	}
+
+	// ---- yolculuk özeti ----
+
+	/** Biten yolculuk: başlangıç / bitiş (duvar saati), metre, hareket süresi, en yüksek hız, geçilen radar. */
+	public record TripRec(long startWall, long endWall, int meters, long movingMs, int maxKmh, int radars) {
+		public int avgKmh() {
+			return (movingMs > 0) ? (int) Math.round(meters / (movingMs / 1000d) * 3.6) : 0;
+		}
+
+		public long durationMs() {
+			return endWall - startWall;
+		}
+
+		/** "42,3 km · 38 dakika · ort. 67 · en yüksek 112 · 3 radar" */
+		public String summary() {
+			return String.format(new java.util.Locale("tr"), "%.1f km", meters / 1000f) + " · " + duration(durationMs())
+					+ " · ort. " + avgKmh() + " · en yüksek " + maxKmh() + ((radars > 0) ? (" · " + radars + " radar") : "");
+		}
+	}
+
+	/**
+	 * Yolculuk: 15 km/s'yi geçince başlar; 10 dakika durunca (5 km/s altı) ya da araç bağlantısı kesilince biter.
+	 * 1 km'den kısa yolculuk kaydedilmez. Bitiş zamanı son hareket anıdır (bekleme sayılmaz).
+	 */
+	public static final class Trip {
+		public static final long STOP = 10 * 60_000L;
+		private boolean active;
+		private long startWall, lastMs = -1, stopSince = -1, lastMoveWall, movingMs;
+		private double meters, lastLat = Double.NaN, lastLon;
+		private int max;
+		private final java.util.Set<Long> radars = new java.util.HashSet<>();
+
+		/**
+		 * @param passedCam bu konumda 40 m içinden geçilen radar (yoksa null)
+		 * @return bu adımda biten yolculuk (kaydedilecekse), yoksa null
+		 */
+		public TripRec update(long nowMs, long wallMs, double lat, double lon, int speedKmh, Long passedCam) {
+			long dt = (lastMs < 0) ? 0 : Math.min(nowMs - lastMs, 60_000);
+			lastMs = nowMs;
+			TripRec done = null;
+			if (!active) {
+				if (speedKmh >= 15) {
+					active = true;
+					startWall = wallMs;
+					lastMoveWall = wallMs;
+					meters = 0;
+					movingMs = 0;
+					max = speedKmh;
+					stopSince = -1;
+					radars.clear();
+				}
+			} else {
+				if (!Double.isNaN(lastLat)) {
+					double d = YoldaRadarCore.dist(lastLat, lastLon, lat, lon);
+					if (d < 500) meters += d; // GPS sıçraması sayılmaz
+				}
+				if (speedKmh >= 5) {
+					movingMs += dt;
+					stopSince = -1;
+					lastMoveWall = wallMs;
+				} else {
+					if (stopSince < 0) stopSince = nowMs;
+					if (nowMs - stopSince >= STOP) done = finish();
+				}
+				if (active) {
+					max = Math.max(max, speedKmh);
+					if (passedCam != null) radars.add(passedCam);
+				}
+			}
+			lastLat = lat;
+			lastLon = lon;
+			return done;
+		}
+
+		/** Araç bağlantısı kesildi / hizmet kapanıyor: yolculuğu bitir. */
+		public TripRec end() {
+			return active ? finish() : null;
+		}
+
+		private TripRec finish() {
+			active = false;
+			stopSince = -1;
+			if (meters < 1000) return null;
+			return new TripRec(startWall, lastMoveWall, (int) Math.round(meters), movingMs, max, radars.size());
+		}
+
+		public boolean isActive() {
+			return active;
+		}
+
+		public int meters() {
+			return (int) Math.round(meters);
+		}
+	}
+
+	/** Park yeri: araçtan ne kadar uzaktasın ("350 m", "1,2 km"). */
+	public static String distText(double meters) {
+		return (meters >= 1000) ? String.format(new java.util.Locale("tr"), "%.1f km", meters / 1000) : (Math.round(meters) + " m");
 	}
 
 	// ---- okul / hastane bölgesi ----

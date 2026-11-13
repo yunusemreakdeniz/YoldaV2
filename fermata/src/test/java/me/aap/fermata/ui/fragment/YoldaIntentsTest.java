@@ -213,6 +213,16 @@ public class YoldaIntentsTest {
 	}
 
 	@Test
+	public void parkVeYolculuk() {
+		kind(Kind.PARK_WHERE, "arabam nerede");
+		kind(Kind.PARK_WHERE, "aracımı nereye park ettim");
+		kind(Kind.PARK_WHERE, "arabama götür");
+		kind(Kind.PARK_SET, "buraya park ettim");
+		kind(Kind.TRIP_INFO, "yolculuk özeti");
+		kind(Kind.TRIP_INFO, "kaç kilometre yaptım");
+	}
+
+	@Test
 	public void sayilar() {
 		assertEquals(35, YoldaIntents.number("otuz beş"));
 		assertEquals(90, YoldaIntents.number("doksan"));

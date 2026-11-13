@@ -228,6 +228,27 @@ public final class YoldaVoice {
 			case RADAR_ADD -> reply(a, YoldaRadar.addHere(ctx) ? "Radar eklendi, buradan geçerken uyaracağım"
 					: "Konum henüz bilinmiyor");
 			case RADAR_INFO -> reply(a, radarInfo(ctx));
+			case PARK_WHERE -> {
+				double[] pk = YoldaRadar.park(ctx);
+				if (pk == null) reply(a, "Kayıtlı park yeri yok. Park edince buraya park ettim de");
+				else {
+					String d = Double.isNaN(YoldaRadar.lat) ? ""
+							: (", " + YoldaDriveCore.distText(YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1]))
+							.replace(" km", " kilometre").replace(" m", " metre") + " uzakta");
+					reply(a, "Aracın kayıtlı" + d + ". Yürüyerek yol tarifi açılıyor");
+					YoldaRadar.walkToPark(ctx);
+				}
+			}
+			case PARK_SET -> reply(a, YoldaRadar.savePark(ctx, false) ? "Park yeri kaydedildi" : "Konum henüz bilinmiyor");
+			case TRIP_INFO -> {
+				if (YoldaRadar.trip.isActive()) reply(a, "Bu yolculukta " + YoldaDriveCore.distText(YoldaRadar.trip.meters())
+						.replace(" km", " kilometre").replace(" m", " metre") + " yol yaptın");
+				else {
+					java.util.List<YoldaDriveCore.TripRec> l = YoldaRadar.trips(ctx);
+					if (l.isEmpty()) reply(a, "Henüz kayıtlı yolculuk yok");
+					else reply(a, "Son yolculuk: " + l.get(0).summary().replace(" · ", ", ").replace("ort.", "ortalama"));
+				}
+			}
 			case HOME -> a.showFragment(R.id.home_fragment);
 			case BACK -> a.yoldaBack();
 			case OPEN_APP -> {

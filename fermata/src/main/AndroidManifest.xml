@@ -21,6 +21,7 @@
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission
         android:name="android.permission.WRITE_SETTINGS"
@@ -882,6 +883,12 @@
             android:name="me.aap.fermata.ui.fragment.YoldaWakeService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+
+        <!-- Yolda: radar ve sürüş yardımcıları Android Auto'da haritaya geçince / Yolda kapalıyken de uyarsın -->
+        <service
+            android:name="me.aap.fermata.ui.fragment.YoldaDriveService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <service
             android:name="me.aap.fermata.service.SpeechRecognitionService"

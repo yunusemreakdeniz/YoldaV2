@@ -78,6 +78,7 @@ public class YoldaUiUxTest {
 		// "Hey Yolda" varsayılan açık; emülatörde ses aygıtı yok, dinleyici testleri yavaşlatmasın (ayrı testi var)
 		InstrumentationRegistry.getInstrumentation().getTargetContext().getSharedPreferences(
 				me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE).edit().putBoolean("wake_enabled", false).commit();
+		YoldaPharmacy.select(ctx(), new YoldaPharmacy.Place("ankara", "Ankara"), null);
 		scenario = ActivityScenario.launch(MainActivity.class);
 		waitIdle(3000);
 	}

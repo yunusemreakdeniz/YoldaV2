@@ -19,7 +19,7 @@ public final class YoldaIntents {
 	public enum Kind {
 		PAUSE, PLAY, NEXT, PREV, STOP, VOL_UP, VOL_DOWN, MUTE, VOL_SET, SLEEP, SLEEP_CANCEL, TIME, WEATHER,
 		WHAT_PLAYING, FAV_ADD, FAV_OPEN, THEME_NEXT, HOME, BACK, OPEN_APP, NAV_HOME, NAV_WORK, NAV_TO, NAV_NEARBY,
-		YT_SEARCH, SONG, RADIO_SEARCH, RESUME, HELP, REPEAT, THEME_AUTO, SPEAK_ON, SPEAK_OFF, RADAR_ON, RADAR_OFF, RADAR_INFO, RADAR_ADD, CHANNEL
+		YT_SEARCH, SONG, RADIO_SEARCH, RESUME, HELP, REPEAT, THEME_AUTO, SPEAK_ON, SPEAK_OFF, RADAR_ON, RADAR_OFF, RADAR_INFO, RADAR_ADD, PARK_WHERE, PARK_SET, TRIP_INFO, CHANNEL
 	}
 
 	/** Niyet: tür, metin bağımsız değişkeni (uygulama anahtarı, hedef, arama…) ve sayı (dakika, yüzde). */
@@ -67,7 +67,7 @@ public final class YoldaIntents {
 		String t = " " + s + " ";
 		for (String[] n : NUMS) t = t.replace(" " + n[0] + " ", " " + n[1] + " ");
 		Matcher m = Pattern.compile(" ([1-9]0) ([1-9]) ").matcher(t);
-		StringBuilder b = new StringBuilder();
+		StringBuffer b = new StringBuffer(); // Android'de appendReplacement(StringBuilder) yok (çöküyordu)
 		while (m.find()) m.appendReplacement(b, " " + (Integer.parseInt(m.group(1)) + Integer.parseInt(m.group(2))) + " ");
 		m.appendTail(b);
 		return b.toString();
@@ -171,6 +171,13 @@ public final class YoldaIntents {
 			return Intent.of(Kind.RADAR_ADD);
 		if (c.matches("((önde|yakında|ileride|yolda) )?radar var mı|radar nerede|en yakın radar( nerede)?|(burada |bu yolda )?hız sınırı (kaç|ne)"
 				+ "|kaçla gidebilirim|sınır kaç")) return Intent.of(Kind.RADAR_INFO);
+
+		// park yeri, yolculuk
+		if (c.matches("(arabam|aracım|arabamı|aracımı) nerede|(arabamı|aracımı) (nereye|nerede) (park ettim|bıraktım)|arabama (git|götür)|aracıma (git|götür)|park yerim nerede"))
+			return Intent.of(Kind.PARK_WHERE);
+		if (c.matches("(buraya|burada) park ettim|park yerini kaydet|park ettim")) return Intent.of(Kind.PARK_SET);
+		if (c.matches("(son )?yolculuk (özeti|nasıldı)|ne kadar yol (yaptım|gittim)|kaç (km|kilometre) (yaptım|gittim)|yolculuğum nasıldı"))
+			return Intent.of(Kind.TRIP_INFO);
 
 		// sesli yanıt ayarı
 		if (c.matches("(sesli )?yanıt(ları)?(nı)? kapat|konuşma(yı)? kapat|sessiz yanıt|sesli yanıtı kapat|sus artık")) return Intent.of(Kind.SPEAK_OFF);

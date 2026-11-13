@@ -683,8 +683,13 @@ public class YoldaAtoZTest {
 		YoldaRadar.setOverspeedWarn(c, false); // bu testte yalnız radar uyarıları sayılsın
 		java.util.List<YoldaRadarCore.Cam> old = YoldaRadar.cams();
 		double lat0 = 40.0, lon0 = 30.0;
+		YoldaRadar.ignoreGps = true; // emülatörün (başka testin bıraktığı) konumu araya girmesin
 		try {
-			onMain(a -> a.showFragment(R.id.home_fragment));
+			onMain(a -> {
+				me.aap.fermata.ui.view.YoldaNowPlaying.hide(a); // açık oynatıcı ekranı göstergeyi gizler
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
 			waitIdle(1200);
 			onMain(a -> {
 				YoldaRadar.setEnabled(c, true);
@@ -775,6 +780,7 @@ public class YoldaAtoZTest {
 				YoldaRadar.setCams(old);
 				YoldaRadar.setEnabled(c, was);
 				YoldaRadar.setOverspeedWarn(c, overWas);
+				YoldaRadar.ignoreGps = false;
 				a.showFragment(R.id.home_fragment);
 				return null;
 			});
@@ -796,8 +802,10 @@ public class YoldaAtoZTest {
 		for (int i = 0; i < keys.length; i++) wasF[i] = YoldaRadar.feature(c, keys[i]);
 		boolean overWas = YoldaRadar.overspeedWarn(c);
 		double lat0 = 40.0, lon0 = 30.0;
+		YoldaRadar.ignoreGps = true;
 		try {
 			onMain(a -> {
+				me.aap.fermata.ui.view.YoldaNowPlaying.hide(a);
 				a.showFragment(R.id.home_fragment);
 				YoldaRadar.setEnabled(c, true);
 				YoldaRadar.setOverspeedWarn(c, false);
@@ -861,6 +869,91 @@ public class YoldaAtoZTest {
 				YoldaRadar.setPlaces(java.util.List.of());
 				YoldaRadar.avg.cancel();
 				YoldaRadar.setEnabled(c, was);
+				YoldaRadar.ignoreGps = false;
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(800);
+		}
+	}
+
+	/**
+	 * Arka plan ve araç: radar açıkken sürüş hizmeti çalışır (haritaya geçince de uyarsın); araç ayrılınca park
+	 * yeri kaydedilir ve yolculuk özeti yazılır; "arabam nerede" park yerini bilir. Kapatılınca hizmet durur.
+	 */
+	@Test
+	public void aracAyrilincaParkVeYolculuk() {
+		android.content.Context c = ctx();
+		boolean was = YoldaRadar.isEnabled(c);
+		String[] keys = {"bg", "park", "trips"};
+		boolean[] wasF = new boolean[keys.length];
+		for (int i = 0; i < keys.length; i++) wasF[i] = YoldaRadar.feature(c, keys[i]);
+		double lat0 = 40.0, lon0 = 30.0;
+		YoldaRadar.ignoreGps = true;
+		try {
+			onMain(a -> {
+				a.showFragment(R.id.home_fragment);
+				for (String k : keys) YoldaRadar.setFeature(c, k, true);
+				YoldaRadar.setEnabled(c, true);
+				YoldaRadar.clearPark(c);
+				return null;
+			});
+			boolean svc = waitFor(8000, () -> YoldaDriveService.running);
+			Log.i(TAG, "Sürüş hizmeti: " + svc + ", izin: " + YoldaRadar.hasPermission(c));
+			if (YoldaRadar.hasPermission(c)) assertTrue("Konum izni varken arka plan hizmeti çalışmalı", svc);
+
+			// Araç bağlı, 3 km yol
+			YoldaCar.set(true);
+			for (int m = 0; m <= 3000; m += 50) {
+				double la = lat0 + m / 111_195d;
+				onMain(a -> {
+					YoldaRadar.feed(la, lon0, 80, 0);
+					return null;
+				});
+			}
+			assertTrue("Yolculuk başlamalı", YoldaRadar.trip.isActive());
+			YoldaRadar.lastTrip = null;
+			// Araç ayrıldı
+			onMain(a -> {
+				YoldaCar.set(false);
+				return null;
+			});
+			waitIdle(800);
+			double[] pk = YoldaRadar.park(c);
+			assertNotNull("Park yeri kaydedilmeli", pk);
+			assertEquals(lat0 + 3000 / 111_195d, pk[0], 1e-4);
+			assertNotNull("Yolculuk kaydedilmeli", YoldaRadar.lastTrip);
+			assertEquals(3000, YoldaRadar.lastTrip.meters(), 100);
+			assertFalse(YoldaRadar.trip.isActive());
+			assertTrue("Son yolculuklarda olmalı", !YoldaRadar.trips(c).isEmpty());
+
+			// Sesli komut: arabam nerede (yol tarifi açılmadan önce yanıt)
+			YoldaSpeak.lastSpoken = null;
+			YoldaSpeak.setEnabled(c, true);
+			onMain(a -> YoldaVoice.handle(a, "yolculuk özeti"));
+			assertTrue("Yolculuk özeti söylenmeli: " + YoldaSpeak.lastSpoken,
+					(YoldaSpeak.lastSpoken != null) && YoldaSpeak.lastSpoken.startsWith("Son yolculuk: 3,0 km"));
+
+			// Radar ekranında park ve yolculuk bölümleri
+			onMain(a -> a.showFragment(R.id.yolda_radar_fragment));
+			waitIdle(1200);
+			assertNotNull(onMain(a -> byText(a.getActiveFragment().getView(), "🚶 Aracıma git")));
+			assertNotNull(onMain(a -> byText(a.getActiveFragment().getView(), "Son yolculuklar")));
+			shot("park_ve_yolculuk");
+
+			// Kapatınca hizmet durur
+			onMain(a -> {
+				YoldaRadar.setEnabled(c, false);
+				return null;
+			});
+			assertTrue("Kapatınca hizmet durmalı", waitFor(5000, () -> !YoldaDriveService.running));
+		} finally {
+			onMain(a -> {
+				for (int i = 0; i < keys.length; i++) YoldaRadar.setFeature(c, keys[i], wasF[i]);
+				YoldaRadar.clearPark(c);
+				YoldaRadar.clearTrips(c);
+				YoldaRadar.setEnabled(c, was);
+				YoldaRadar.ignoreGps = false;
 				a.showFragment(R.id.home_fragment);
 				return null;
 			});
