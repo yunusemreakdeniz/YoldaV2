@@ -157,13 +157,15 @@ public class RadarFragment extends MainActivityFragment {
 		info.addView(text(ctx, limLine, 14, false, t.muted));
 
 		// Ayarlar
-		col.addView(toggle(ctx, "Radar uyarıları", on ? "Açık · Yolda açıkken radara yaklaşınca uyarır" : "Kapalı", on, v -> {
+		col.addView(toggle(ctx, "Radar ve sürüş yardımcıları", on ? "Açık · aşağıdakiler tek tek kapatılabilir"
+				: "Hepsi kapalı · konum izlenmiyor", on, v -> {
 			if (!on && !YoldaRadar.hasPermission(ctx)) askPermission(a);
 			YoldaRadar.setEnabled(ctx, !on);
 			YoldaStyle.toast(ctx, on ? "Radar uyarıları kapatıldı" : "Radar uyarıları açıldı");
 			render();
 		}));
 		if (on && !perm) col.addView(button(ctx, "Konum iznini ver", v -> askPermission(a)));
+		col.addView(feature(ctx, "cams", "Radar uyarısı", "Radara 1000 / 500 / 150 m kala bip ve uyarı"));
 		boolean voice = YoldaRadar.voice(ctx);
 		col.addView(toggle(ctx, "Sesli uyarı", voice ? "“500 metre sonra radar, hız sınırı 70”" : "Yalnız bip ve yazı", voice,
 				v -> {
@@ -171,10 +173,17 @@ public class RadarFragment extends MainActivityFragment {
 					render();
 				}));
 		boolean over = YoldaRadar.overspeedWarn(ctx);
-		col.addView(toggle(ctx, "Hız aşımı uyarısı", over ? "Sınırın %10'u aşılınca uyarır" : "Kapalı", over, v -> {
+		col.addView(toggle(ctx, "Hız aşımı uyarısı", over ? "Sınırın %10'u aşılınca çift bip (konuşmaz), levha yanıp söner" : "Kapalı", over, v -> {
 			YoldaRadar.setOverspeedWarn(ctx, !over);
 			render();
 		}));
+		col.addView(feature(ctx, "avg", "Ortalama hız koridoru", YoldaRadar.avg.isActive()
+				? ("Koridordasın · ortalaman " + Math.max(0, YoldaRadar.avg.average()) + " km/s · " + meters(YoldaRadar.avg.meters()))
+				: "Denetim noktasından geçince ortalamanı gösterir, aşarsan uyarır"));
+		col.addView(feature(ctx, "zones", "Okul ve hastane bölgesi", "Yaklaşınca uyarır (okullar hafta içi 07:00-18:30)"));
+		col.addView(feature(ctx, "stops", "Yol üstü mola yerleri", "Önündeki akaryakıt ve dinlenme tesisleri"));
+		col.addView(feature(ctx, "fatigue", "Mola hatırlatıcısı", "2 saat ara vermeden sürünce hatırlatır · şu an "
+				+ YoldaDriveCore.duration(YoldaRadar.fatigue.drivingMs())));
 
 		LinearLayout acts = new LinearLayout(ctx);
 		acts.setOrientation(LinearLayout.HORIZONTAL);
@@ -195,6 +204,15 @@ public class RadarFragment extends MainActivityFragment {
 				render();
 			});
 		}), ulp);
+
+		// Önündeki mola yerleri
+		if (on && YoldaRadar.feature(ctx, "stops")) {
+			List<YoldaDriveCore.Stop> st = YoldaRadar.stops;
+			TextView sh = text(ctx, st.isEmpty() ? "Önünde mola yeri bulunamadı (30 km)" : "Önündeki mola yerleri", 18, true, t.ink);
+			sh.setPadding(dp(4), dp(20), dp(4), dp(8));
+			col.addView(sh);
+			for (YoldaDriveCore.Stop s : st) col.addView(stopRow(ctx, a, s));
+		}
 
 		// Yakındaki radarlar
 		List<Ahead> near = Double.isNaN(YoldaRadar.lat) ? java.util.Collections.emptyList()
@@ -254,6 +272,38 @@ public class RadarFragment extends MainActivityFragment {
 				YoldaStyle.toast(ctx, "Harita uygulaması bulunamadı");
 			}
 		});
+		return row;
+	}
+
+	private View feature(Context ctx, String key, String label, String sub) {
+		boolean f = YoldaRadar.feature(ctx, key);
+		return toggle(ctx, label, f ? sub : "Kapalı", f, v -> {
+			YoldaRadar.setFeature(ctx, key, !f);
+			YoldaStyle.toast(ctx, label + (f ? " kapatıldı" : " açıldı"));
+			render();
+		});
+	}
+
+	private View stopRow(Context ctx, MainActivityDelegate a, YoldaDriveCore.Stop s) {
+		LinearLayout row = new LinearLayout(ctx);
+		row.setOrientation(LinearLayout.HORIZONTAL);
+		row.setGravity(Gravity.CENTER_VERTICAL);
+		row.setBackground(YoldaStyle.glass(ctx, t, 16));
+		row.setPadding(dp(14), dp(10), dp(10), dp(10));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+		lp.topMargin = dp(8);
+		row.setLayoutParams(lp);
+		TextView d = text(ctx, meters(s.meters()), 16, true, t.ink);
+		d.setMinWidth(dp(72));
+		row.addView(d);
+		String name = s.place().name().isEmpty() ? s.place().label() : (s.place().name() + " · " + s.place().label());
+		TextView w = text(ctx, name, 15, false, t.ink);
+		w.setSingleLine(true);
+		w.setEllipsize(TextUtils.TruncateAt.END);
+		row.addView(w, new LinearLayout.LayoutParams(0, -2, 1f));
+		row.addView(button(ctx, "Git", v -> NavFragment.voiceGo(a, null, String.format(Locale.ROOT, "%.6f,%.6f",
+				s.place().lat(), s.place().lon()))), new LinearLayout.LayoutParams(-2, dp(42)));
+		row.setContentDescription(name + ", " + meters(s.meters()) + " ileride");
 		return row;
 	}
 

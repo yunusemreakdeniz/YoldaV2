@@ -80,7 +80,31 @@ public class YoldaSpeedRail extends LinearLayout {
 		LayoutParams rlp = new LayoutParams(dp(48), LayoutParams.WRAP_CONTENT);
 		rlp.topMargin = dp(8);
 		addView(radar, rlp);
+		avgText = badge(ctx, 0xFF2563EB);
+		zoneText = badge(ctx, 0xFFEAB308);
+		zoneText.setTextColor(0xFF111111);
 		setVisibility(GONE);
+	}
+
+	private final TextView avgText;
+	private final TextView zoneText;
+
+	private TextView badge(Context ctx, int color) {
+		TextView v = new TextView(ctx);
+		v.setGravity(Gravity.CENTER);
+		v.setTypeface(Typeface.DEFAULT_BOLD);
+		v.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+		v.setTextColor(0xFFFFFFFF);
+		v.setPadding(dp(2), dp(5), dp(2), dp(5));
+		GradientDrawable g = new GradientDrawable();
+		g.setCornerRadius(dp(12));
+		g.setColor(color);
+		v.setBackground(g);
+		v.setVisibility(GONE);
+		LayoutParams lp = new LayoutParams(dp(48), LayoutParams.WRAP_CONTENT);
+		lp.topMargin = dp(8);
+		addView(v, lp);
+		return v;
 	}
 
 	@Override
@@ -93,6 +117,10 @@ public class YoldaSpeedRail extends LinearLayout {
 	@Override
 	protected void onDetachedFromWindow() {
 		YoldaRadar.removeListener(listener);
+		if (overAnim != null) {
+			overAnim.cancel();
+			overAnim = null;
+		}
 		super.onDetachedFromWindow();
 	}
 
@@ -111,8 +139,32 @@ public class YoldaSpeedRail extends LinearLayout {
 		YoldaRadarCore.Ahead a = YoldaRadar.ahead;
 		int lim = YoldaRadar.limit;
 		int sp = YoldaRadar.speed;
-		boolean show = on && ((lim > 0) || (sp >= 3) || (a != null));
+		boolean avgOn = YoldaRadar.avg.isActive() && YoldaRadar.feature(ctx, "avg");
+		me.aap.fermata.ui.fragment.YoldaDriveCore.Place z = YoldaRadar.zone;
+		boolean show = on && ((lim > 0) || (sp >= 3) || (a != null) || avgOn || (z != null));
+		if (show) {
+			int av = YoldaRadar.avg.average();
+			if (avgOn) {
+				avgText.setVisibility(VISIBLE);
+				avgText.setText("ORT\n" + ((av > 0) ? av : "…"));
+				int al = (YoldaRadar.avg.limit() > 0) ? YoldaRadar.avg.limit() : lim;
+				((GradientDrawable) avgText.getBackground()).setColor(((av > 0) && YoldaRadarCore.overSpeed(av, al))
+						? 0xFFDC2626 : 0xFF2563EB);
+			} else {
+				avgText.setVisibility(GONE);
+			}
+			if (z != null) {
+				zoneText.setVisibility(VISIBLE);
+				zoneText.setText((z.kind() == 's') ? "OKUL" : "HAST.");
+			} else {
+				zoneText.setVisibility(GONE);
+			}
+		}
 		if (!show) {
+			if (overAnim != null) {
+				overAnim.cancel();
+				overAnim = null;
+			}
 			if (getVisibility() != GONE) setVisibility(GONE);
 			return;
 		}
@@ -120,7 +172,7 @@ public class YoldaSpeedRail extends LinearLayout {
 			sign.setVisibility(VISIBLE);
 			sign.setText(String.valueOf(lim));
 			sign.setTextSize(TypedValue.COMPLEX_UNIT_SP, (lim >= 100) ? 15 : 18);
-			sign.setAlpha(YoldaRadar.limitEstimated ? 0.75f : 1f); // tahmini sınır (etiketsiz yol) soluk
+			if (overAnim == null) sign.setAlpha(YoldaRadar.limitEstimated ? 0.75f : 1f); // tahmini sınır (etiketsiz yol) soluk
 		} else {
 			sign.setVisibility(GONE);
 		}
@@ -144,12 +196,65 @@ public class YoldaSpeedRail extends LinearLayout {
 		} else {
 			radar.setVisibility(GONE);
 		}
+		// Hız aşımı: aşım sürdükçe levha (yoksa hız) yanıp söner
+		boolean overNow = YoldaRadarCore.overSpeed(sp, lim) && !YoldaRadar.limitEstimated;
+		android.view.View overTarget = (sign.getVisibility() == VISIBLE) ? sign : speed;
+		if (overNow && (overAnim == null)) overAnim = blink(overTarget, -1);
+		else if (!overNow && (overAnim != null)) {
+			overAnim.cancel();
+			overAnim = null;
+		}
+		// Yeni uyarı: ilgili gösterge birkaç kez yanıp söner
+		long at = YoldaRadar.alertAt;
+		if (at != seenAlertAt) {
+			seenAlertAt = at;
+			if (android.os.SystemClock.elapsedRealtime() - at < 3000) {
+				android.view.View v = switch (YoldaRadar.alertKind) {
+					case 'r' -> radar;
+					case 'a' -> avgText;
+					case 'z' -> zoneText;
+					case 'f' -> this;
+					default -> null; // 'o': yukarıda sürekli
+				};
+				if ((v != null) && (v.getVisibility() == VISIBLE)) {
+					blink(v, 5);
+					blinkCount++;
+				}
+			}
+		}
 		StringBuilder d = new StringBuilder("Hız ve radar");
 		if (lim > 0) d.append(", sınır ").append(lim);
 		if (sp >= 0) d.append(", hız ").append(sp);
 		if (a != null) d.append(", radar ").append(a.meters()).append(" metre");
+		if (avgOn) d.append(", ortalama hız ").append(YoldaRadar.avg.average());
+		if (z != null) d.append((z.kind() == 's') ? ", okul bölgesi" : ", hastane bölgesi");
 		setContentDescription(d);
 		if (getVisibility() != VISIBLE) setVisibility(VISIBLE);
+	}
+
+	private android.animation.ObjectAnimator overAnim;
+	private long seenAlertAt;
+	/** Testler için: kaç uyarıda yanıp söndü. */
+	public int blinkCount;
+
+	public boolean isOverBlinking() {
+		return overAnim != null;
+	}
+
+	/** times &lt; 0: durdurulana kadar. */
+	private android.animation.ObjectAnimator blink(android.view.View v, int times) {
+		android.animation.ObjectAnimator an = android.animation.ObjectAnimator.ofFloat(v, android.view.View.ALPHA, 1f, 0.15f);
+		an.setDuration(230);
+		an.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+		an.setRepeatCount((times < 0) ? android.animation.ValueAnimator.INFINITE : (times * 2 - 1));
+		an.addListener(new android.animation.AnimatorListenerAdapter() {
+			@Override
+			public void onAnimationEnd(android.animation.Animator animation) {
+				v.setAlpha(1f);
+			}
+		});
+		an.start();
+		return an;
 	}
 
 	private int dp(int v) {

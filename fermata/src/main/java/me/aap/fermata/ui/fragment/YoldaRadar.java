@@ -85,6 +85,17 @@ public final class YoldaRadar {
 	private static long overSince, overWarnAt;
 	private static int overWarnLimit;
 
+	// ---- sürüş yardımcıları ----
+	public static final YoldaDriveCore.AvgSpeed avg = new YoldaDriveCore.AvgSpeed();
+	public static final YoldaDriveCore.Fatigue fatigue = new YoldaDriveCore.Fatigue();
+	public static volatile YoldaDriveCore.Place zone;
+	public static volatile List<YoldaDriveCore.Stop> stops = new ArrayList<>();
+	private static final Map<Long, YoldaDriveCore.Place> places = new LinkedHashMap<>();
+	private static long lastZoneId = Long.MIN_VALUE, lastZoneAt, avgWarnAt;
+	private static double placesLat = Double.NaN, placesLon = Double.NaN;
+	private static long placesAt, placesFailAt;
+	private static boolean placesFetching;
+
 	private YoldaRadar() {
 	}
 
@@ -125,6 +136,20 @@ public final class YoldaRadar {
 
 	public static void setOverspeedWarn(Context ctx, boolean on) {
 		prefs(ctx).edit().putBoolean("overspeed", on).apply();
+		changed();
+	}
+
+	/** Ayrı açılıp kapatılan özellikler: cams (radar uyarısı), avg, zones, stops, fatigue. */
+	public static boolean feature(Context ctx, String key) {
+		return prefs(ctx).getBoolean("f_" + key, true);
+	}
+
+	public static void setFeature(Context ctx, String key, boolean on) {
+		prefs(ctx).edit().putBoolean("f_" + key, on).apply();
+		YoldaLog.add("Sürüş yardımcısı " + key + ": " + (on ? "açık" : "kapalı"));
+		if (!on && "avg".equals(key)) avg.cancel();
+		if (!on && "zones".equals(key)) zone = null;
+		if (!on && "cams".equals(key)) ahead = null;
 		changed();
 	}
 
@@ -242,23 +267,24 @@ public final class YoldaRadar {
 		if ((r == null) || needFetch(la, lo)) fetchRoads(la, lo);
 
 		// radar
-		Ahead a = YoldaRadarCore.ahead(la, lo, hd, cams, 1500);
+		Ahead a = feature(ctx, "cams") ? YoldaRadarCore.ahead(la, lo, hd, cams, 1500) : null;
 		ahead = a;
 		if ((limit == 0) && (a != null) && (a.meters() < 300) && (a.cam().limit() > 0)) {
 			limit = a.cam().limit(); // yol etiketi yoksa radarın sınırı
 			limitEstimated = false;
 		}
 		int stage = alerter.update(a, Math.max(0, speedKmh));
-		if (stage > 0) alert(ctx, YoldaRadarCore.alertText(a, stage, limit), stage <= 150);
+		if (stage > 0) alert(ctx, YoldaRadarCore.alertText(a, stage, limit), stage <= 150, 'r');
+		helpers(ctx, la, lo, speedKmh, hd);
 
-		// hız aşımı: 3 sn sürerse, 45 sn'de bir (sınır değişince hemen)
+		// hız aşımı: 3 sn sürerse çift bip, sürerse 20 sn'de bir (sınır değişince hemen)
 		long now = SystemClock.elapsedRealtime();
 		if (overspeedWarn(ctx) && YoldaRadarCore.overSpeed(speedKmh, limit) && !limitEstimated) {
 			if (overSince == 0) overSince = now;
-			if ((now - overSince >= 3000) && ((now - overWarnAt > 45_000) || (overWarnLimit != limit))) {
+			if ((now - overSince >= 3000) && ((now - overWarnAt > 20_000) || (overWarnLimit != limit))) {
 				overWarnAt = now;
 				overWarnLimit = limit;
-				alert(ctx, "Hız sınırı " + limit, false);
+				overBeep(ctx); // hız sınırı: yalnız bip (sol kenarda levha yanıp söner)
 			}
 		} else {
 			overSince = 0;
@@ -266,8 +292,151 @@ public final class YoldaRadar {
 		changed();
 	}
 
-	private static void alert(Context ctx, String text, boolean urgent) {
+	/** Ortalama hız koridoru, okul / hastane bölgesi, yorgunluk, öndeki mola yerleri. */
+	private static void helpers(Context ctx, double la, double lo, int sp, double hd) {
+		long now = SystemClock.elapsedRealtime();
+		// ortalama hız
+		if (feature(ctx, "avg")) {
+			Cam passed = null;
+			for (Ahead n : YoldaRadarCore.nearby(la, lo, cams, 40, 3)) {
+				if (n.cam().kind() == 'a') {
+					passed = n.cam();
+					break;
+				}
+			}
+			boolean was = avg.isActive();
+			boolean ended = avg.update(la, lo, now, passed);
+			int lim = (avg.limit() > 0) ? avg.limit() : limit;
+			if (!was && avg.isActive()) {
+				alert(ctx, "Ortalama hız denetimi başladı" + ((lim > 0) ? (", sınır " + lim) : ""), false, 'a');
+			} else if (ended) {
+				int res = avg.lastResult();
+				alert(ctx, "Ortalama hız denetimi bitti" + ((res > 0) ? (", ortalaman " + res) : "")
+						+ (((res > 0) && (lim > 0) && YoldaRadarCore.overSpeed(res, lim)) ? ", sınırın üstünde" : ""), false, 'a');
+			} else if (avg.isActive() && (lim > 0) && YoldaRadarCore.overSpeed(avg.average(), lim) && (now - avgWarnAt > 60_000)) {
+				avgWarnAt = now;
+				alert(ctx, "Ortalaman " + avg.average() + ", sınır " + lim + ". Yavaşla", false, 'a');
+			}
+		}
+		// okul / hastane
+		List<YoldaDriveCore.Place> pl;
+		synchronized (places) {
+			pl = new ArrayList<>(places.values());
+		}
+		if (feature(ctx, "zones")) {
+			java.util.Calendar cal = java.util.Calendar.getInstance();
+			YoldaDriveCore.Place z = YoldaDriveCore.zone(la, lo, hd, pl, YoldaDriveCore.schoolHours(
+					cal.get(java.util.Calendar.DAY_OF_WEEK), cal.get(java.util.Calendar.HOUR_OF_DAY), cal.get(java.util.Calendar.MINUTE)));
+			zone = z;
+			if ((z != null) && ((z.id() != lastZoneId) || (now - lastZoneAt > 10 * 60_000L))) {
+				lastZoneId = z.id();
+				lastZoneAt = now;
+				String what = (z.kind() == 's') ? "Okul bölgesi" : "Hastane bölgesi";
+				if (sp > YoldaDriveCore.ZONE_SPEED + 10) alert(ctx, what + ", yavaşla", false, 'z');
+				else {
+					YoldaStyleToast.show(ctx, "⚠ " + what);
+					mark('z');
+				}
+			}
+		} else {
+			zone = null;
+		}
+		// mola yerleri
+		stops = feature(ctx, "stops") ? YoldaDriveCore.stopsAhead(la, lo, hd, pl, 30_000, 8) : new ArrayList<>();
+		if (feature(ctx, "zones") || feature(ctx, "stops")) fetchPlaces(la, lo);
+		// yorgunluk
+		if (feature(ctx, "fatigue") && fatigue.update(now, sp)) {
+			String t = YoldaDriveCore.duration(fatigue.drivingMs()) + "dir ara vermeden sürüyorsun. Bir mola iyi gelir";
+			List<YoldaDriveCore.Stop> st = stops;
+			if (!st.isEmpty()) t += ". En yakın " + st.get(0).place().label().toLowerCase(new Locale("tr")) + " "
+					+ RadarFragment.meters(st.get(0).meters()).replace(" km", " kilometre").replace(" m", " metre") + " ileride";
+			alert(ctx, t, false, 'f');
+		}
+	}
+
+	private static void fetchPlaces(double la, double lo) {
+		long now = SystemClock.elapsedRealtime();
+		if (placesFetching || ((placesFailAt != 0) && (now - placesFailAt < 60_000))) return;
+		boolean moved = Double.isNaN(placesLat) || (YoldaRadarCore.dist(la, lo, placesLat, placesLon) > 1000);
+		if (!moved && (now - placesAt < 10 * 60_000L)) return;
+		if ((placesAt != 0) && (now - placesAt < 20_000)) return;
+		placesFetching = true;
+		placesAt = now;
+		NET.submit(() -> {
+			String q = String.format(Locale.ROOT, "[out:json][timeout:25];(nwr(around:1500,%1$.5f,%2$.5f)[\"amenity\"~\"^(school|hospital)$\"];"
+					+ "nwr(around:20000,%1$.5f,%2$.5f)[\"amenity\"=\"fuel\"];nwr(around:30000,%1$.5f,%2$.5f)[\"highway\"~\"^(rest_area|services)$\"];"
+					+ ");out center tags;", la, lo);
+			try {
+				JSONArray el = new JSONObject(overpass(q, 30_000)).getJSONArray("elements");
+				List<YoldaDriveCore.Place> got = new ArrayList<>();
+				for (int i = 0; i < el.length(); i++) {
+					JSONObject o = el.getJSONObject(i);
+					JSONObject t = o.optJSONObject("tags");
+					if (t == null) continue;
+					JSONObject c = o.optJSONObject("center");
+					double pla = (c != null) ? c.getDouble("lat") : o.optDouble("lat", Double.NaN);
+					double plo = (c != null) ? c.getDouble("lon") : o.optDouble("lon", Double.NaN);
+					if (Double.isNaN(pla) || Double.isNaN(plo)) continue;
+					String am = t.optString("amenity"), hw = t.optString("highway");
+					char k = "school".equals(am) ? 's' : "hospital".equals(am) ? 'h' : "fuel".equals(am) ? 'f' : (!hw.isEmpty() ? 'r' : 0);
+					if (k == 0) continue;
+					String name = t.optString("name", t.optString("brand", ""));
+					String type = o.optString("type");
+					long id = o.getLong("id") * 4 + ("node".equals(type) ? 0 : "way".equals(type) ? 1 : 2);
+					got.add(new YoldaDriveCore.Place(id, pla, plo, k, name));
+				}
+				synchronized (places) {
+					for (YoldaDriveCore.Place p : got) places.put(p.id(), p);
+					while (places.size() > 4000) places.remove(places.keySet().iterator().next());
+				}
+				placesLat = la;
+				placesLon = lo;
+				placesFailAt = 0;
+			} catch (Throwable ex) {
+				placesFailAt = SystemClock.elapsedRealtime();
+				mirror++;
+				Log.d(ex, "Sürüş yardımcıları: yerler alınamadı");
+			} finally {
+				placesFetching = false;
+			}
+		});
+	}
+
+	/** Testler için: yakındaki yerleri değiştir (ağdan alma bir süre beklesin). */
+	public static void setPlaces(List<YoldaDriveCore.Place> l) {
+		synchronized (places) {
+			places.clear();
+			for (YoldaDriveCore.Place p : l) places.put(p.id(), p);
+		}
+		placesLat = lat;
+		placesLon = lon;
+		placesAt = SystemClock.elapsedRealtime();
+		lastZoneId = Long.MIN_VALUE;
+	}
+
+	/** Son uyarının zamanı ve türü (sol kenar o göstergeyi yanıp söndürür): r radar, o hız aşımı, a ortalama, z bölge, f mola. */
+	public static volatile long alertAt;
+	public static volatile char alertKind;
+	/** Testler için: son hız aşımı bipinin zamanı. */
+	public static volatile long overBeepAt;
+
+	private static void mark(char kind) {
+		alertKind = kind;
+		alertAt = SystemClock.elapsedRealtime();
+	}
+
+	/** Hız sınırı aşımı: konuşmadan, yazısız, yalnız bip. */
+	private static void overBeep(Context ctx) {
+		overBeepAt = SystemClock.elapsedRealtime();
+		YoldaLog.add("Hız sınırı aşıldı: " + speed + " / " + limit + " (bip)");
+		mark('o');
+		beep(false);
+		App.get().getHandler().postDelayed(() -> beep(false), 260); // çift bip: radardan ayırt edilsin
+	}
+
+	private static void alert(Context ctx, String text, boolean urgent, char kind) {
 		lastAlert = text;
+		mark(kind);
 		YoldaLog.add("Radar uyarısı: " + text);
 		beep(urgent);
 		YoldaStyleToast.show(ctx, "⚠ " + text);

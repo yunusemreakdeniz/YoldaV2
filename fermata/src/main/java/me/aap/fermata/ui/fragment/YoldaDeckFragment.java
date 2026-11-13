@@ -506,7 +506,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private String radarSubtitle() {
 		Context ctx = getContext();
 		if (ctx == null) return "";
-		if (!YoldaRadar.isEnabled(ctx)) return "Kapalı · açınca radara yaklaşırken uyarır, hız sınırını gösterir";
+		if (!YoldaRadar.isEnabled(ctx)) return "Kapalı · radar, hız sınırı, ortalama hız, okul bölgesi ve mola uyarıları";
 		if (!YoldaRadar.hasPermission(ctx)) return "Açık · konum izni gerekli";
 		YoldaRadarCore.Ahead a = YoldaRadar.ahead;
 		if (a != null) return "Önde " + a.cam().label().toLowerCase(new java.util.Locale("tr")) + ": "

@@ -688,6 +688,7 @@ public class YoldaAtoZTest {
 			waitIdle(1200);
 			onMain(a -> {
 				YoldaRadar.setEnabled(c, true);
+				YoldaRadar.setFeature(c, "cams", true);
 				YoldaRadar.setCams(java.util.List.of(new YoldaRadarCore.Cam(77, lat0 + 800 / 110_540d, lon0, 70, -1, 'r')));
 				return null;
 			});
@@ -711,6 +712,34 @@ public class YoldaAtoZTest {
 			assertTrue("Gösterge sınırı ve radarı söylemeli: " + rail.getContentDescription(),
 					rail.getContentDescription().toString().contains("sınır 70") && rail.getContentDescription().toString().contains("radar"));
 			shot("radar_gostergesi");
+			assertTrue("Radar uyarısında sol kenar yanıp sönmeli",
+					((me.aap.fermata.ui.view.YoldaSpeedRail) rail).blinkCount > 0);
+
+			// Hız sınırı aşımı: konuşmadan çift bip, levha aşım sürdükçe yanıp söner
+			YoldaRadar.setOverspeedWarn(c, true);
+			long beep0 = YoldaRadar.overBeepAt;
+			String alert0 = YoldaRadar.lastAlert;
+			YoldaSpeak.lastSpoken = null;
+			double laOver = lat0 + 650 / 110_540d;
+			for (int i = 0; i < 45; i++) {
+				onMain(a -> {
+					YoldaRadar.feed(laOver, lon0, 100, 0);
+					return null;
+				});
+				SystemClock.sleep(100);
+			}
+			assertTrue("Hız aşımında bip çalmalı", YoldaRadar.overBeepAt != beep0);
+			assertEquals("Hız aşımı sesli / yazılı uyarı vermemeli", alert0, YoldaRadar.lastAlert);
+			assertTrue("Konuşmamalı: " + YoldaSpeak.lastSpoken, (YoldaSpeak.lastSpoken == null)
+					|| !YoldaSpeak.lastSpoken.contains("Hız sınırı"));
+			assertTrue("Aşım sürdükçe levha yanıp sönmeli", onMain(a -> ((me.aap.fermata.ui.view.YoldaSpeedRail) rail).isOverBlinking()));
+			shot("hiz_asimi");
+			onMain(a -> {
+				YoldaRadar.feed(laOver, lon0, 60, 0);
+				return null;
+			});
+			assertFalse("Hız düşünce yanıp sönme durmalı", onMain(a -> ((me.aap.fermata.ui.view.YoldaSpeedRail) rail).isOverBlinking()));
+			YoldaRadar.setOverspeedWarn(c, false);
 
 			// Karttan kapat
 			int pos = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().indexOf(YoldaDeck.RADAR));
@@ -746,6 +775,92 @@ public class YoldaAtoZTest {
 				YoldaRadar.setCams(old);
 				YoldaRadar.setEnabled(c, was);
 				YoldaRadar.setOverspeedWarn(c, overWas);
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(800);
+		}
+	}
+
+	/**
+	 * Sürüş yardımcıları: ortalama hız koridoru başlar / biter, hastane bölgesinde hızlıyken uyarır, öndeki
+	 * akaryakıt listelenir; her biri Radar ekranından ayrı kapatılır, kapalıyken uyarmaz.
+	 */
+	@Test
+	public void surusYardimcilari() {
+		android.content.Context c = ctx();
+		boolean was = YoldaRadar.isEnabled(c);
+		java.util.List<YoldaRadarCore.Cam> old = YoldaRadar.cams();
+		String[] keys = {"cams", "avg", "zones", "stops", "fatigue"};
+		boolean[] wasF = new boolean[keys.length];
+		for (int i = 0; i < keys.length; i++) wasF[i] = YoldaRadar.feature(c, keys[i]);
+		boolean overWas = YoldaRadar.overspeedWarn(c);
+		double lat0 = 40.0, lon0 = 30.0;
+		try {
+			onMain(a -> {
+				a.showFragment(R.id.home_fragment);
+				YoldaRadar.setEnabled(c, true);
+				YoldaRadar.setOverspeedWarn(c, false);
+				for (String k : keys) YoldaRadar.setFeature(c, k, true);
+				YoldaRadar.setFeature(c, "cams", false); // yalnız yardımcıların uyarıları sayılsın
+				YoldaRadar.avg.cancel();
+				YoldaRadar.setCams(java.util.List.of(new YoldaRadarCore.Cam(901, lat0 + 100 / 110_540d, lon0, 110, -1, 'a'),
+						new YoldaRadarCore.Cam(902, lat0 + 2100 / 110_540d, lon0, 110, -1, 'a')));
+				YoldaRadar.feed(lat0, lon0, 90, 0);
+				YoldaRadar.setPlaces(java.util.List.of(
+						new YoldaDriveCore.Place(1, lat0 + 2500 / 110_540d, lon0, 'h', "Devlet Hastanesi"),
+						new YoldaDriveCore.Place(2, lat0 + 6000 / 110_540d, lon0, 'f', "Deneme Akaryakıt")));
+				return null;
+			});
+			waitIdle(800);
+			java.util.List<String> alerts = new java.util.ArrayList<>();
+			for (int m = 0; m <= 2500; m += 25) {
+				double la = lat0 + m / 110_540d;
+				onMain(a -> {
+					YoldaRadar.feed(la, lon0, 90, 0);
+					return null;
+				});
+				String al = YoldaRadar.lastAlert;
+				if ((al != null) && (alerts.isEmpty() || !alerts.get(alerts.size() - 1).equals(al))) alerts.add(al);
+				SystemClock.sleep(20);
+			}
+			Log.i(TAG, "Sürüş yardımcısı uyarıları: " + alerts);
+			assertTrue("Koridor başlamalı: " + alerts, alerts.contains("Ortalama hız denetimi başladı, sınır 110"));
+			assertTrue("Koridor bitmeli: " + alerts, alerts.stream().anyMatch(x -> x.startsWith("Ortalama hız denetimi bitti")));
+			assertTrue("Hastane bölgesi uyarısı: " + alerts, alerts.contains("Hastane bölgesi, yavaşla"));
+			assertTrue("Akaryakıt önde listelenmeli", !YoldaRadar.stops.isEmpty()
+					&& YoldaRadar.stops.get(0).place().name().equals("Deneme Akaryakıt"));
+
+			// Radar ekranından koridoru kapat
+			onMain(a -> a.showFragment(R.id.yolda_radar_fragment));
+			assertTrue(waitFor(3000, () -> onMain(MainActivityDelegate::getActiveFragmentId) == R.id.yolda_radar_fragment));
+			waitIdle(1000);
+			shot("surus_yardimcilari");
+			View avgRow = onMain(a -> byDesc(a.getActiveFragment().getView(), "Ortalama hız koridoru: açık"));
+			assertNotNull("Koridor düğmesi olmalı", avgRow);
+			onMain(a -> avgRow.performClick());
+			waitIdle(800);
+			assertFalse("Koridor kapatılmalı", YoldaRadar.feature(c, "avg"));
+			View stopsHead = onMain(a -> byText(a.getActiveFragment().getView(), "Önündeki mola yerleri"));
+			assertNotNull("Mola yerleri listesi görünmeli", stopsHead);
+
+			// Kapalıyken koridor başlamaz
+			YoldaRadar.lastAlert = null;
+			onMain(a -> {
+				YoldaRadar.feed(lat0 + 100 / 110_540d, lon0, 90, 0);
+				return null;
+			});
+			assertFalse(YoldaRadar.avg.isActive());
+			assertTrue("Kapalıyken koridor uyarısı olmamalı: " + YoldaRadar.lastAlert,
+					(YoldaRadar.lastAlert == null) || !YoldaRadar.lastAlert.startsWith("Ortalama"));
+		} finally {
+			onMain(a -> {
+				for (int i = 0; i < keys.length; i++) YoldaRadar.setFeature(c, keys[i], wasF[i]);
+				YoldaRadar.setOverspeedWarn(c, overWas);
+				YoldaRadar.setCams(old);
+				YoldaRadar.setPlaces(java.util.List.of());
+				YoldaRadar.avg.cancel();
+				YoldaRadar.setEnabled(c, was);
 				a.showFragment(R.id.home_fragment);
 				return null;
 			});

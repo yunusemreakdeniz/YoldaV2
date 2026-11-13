@@ -25,11 +25,11 @@ public class YoldaRadarTest {
 	private static final double LAT0 = 40.0, LON0 = 30.0;
 
 	private static Cam cam(long id, double dLatM, double dLonM, int limit, int dir) {
-		return new Cam(id, LAT0 + dLatM / 110_540d, LON0 + dLonM / (Math.cos(Math.toRadians(LAT0)) * 111_320d), limit, dir, 'r');
+		return new Cam(id, LAT0 + dLatM / 111_195d, LON0 + dLonM / (Math.cos(Math.toRadians(LAT0)) * 111_195d), limit, dir, 'r');
 	}
 
 	private static double latAt(double m) {
-		return LAT0 + m / 110_540d;
+		return LAT0 + m / 111_195d;
 	}
 
 	@Test
@@ -157,7 +157,7 @@ public class YoldaRadarTest {
 	public void bulundugumYol() {
 		// Kuzey-güney ana yol (sınır 82) ve onu kesen doğu-batı sokak (50)
 		Road main = new Road(1, "trunk", 82, false, true, new double[]{latAt(-500), LON0, latAt(500), LON0});
-		double dLon = 300 / (Math.cos(Math.toRadians(LAT0)) * 111_320d);
+		double dLon = 300 / (Math.cos(Math.toRadians(LAT0)) * 111_195d);
 		Road street = new Road(2, "residential", 50, true, false, new double[]{LAT0, LON0 - dLon, LAT0, LON0 + dLon});
 		List<Road> roads = List.of(main, street);
 		assertEquals(1, YoldaRadarCore.matchRoad(latAt(200), LON0, 0, roads).id());
@@ -165,7 +165,7 @@ public class YoldaRadarTest {
 		assertEquals(1, YoldaRadarCore.matchRoad(LAT0, LON0, 2, roads).id());
 		assertEquals(2, YoldaRadarCore.matchRoad(LAT0, LON0, 90, roads).id());
 		// 40 m uzakta: hiçbiri
-		assertNull(YoldaRadarCore.matchRoad(latAt(200), LON0 + 40 / (Math.cos(Math.toRadians(LAT0)) * 111_320d), 0,
+		assertNull(YoldaRadarCore.matchRoad(latAt(200), LON0 + 40 / (Math.cos(Math.toRadians(LAT0)) * 111_195d), 0,
 				List.of(main)));
 	}
 
