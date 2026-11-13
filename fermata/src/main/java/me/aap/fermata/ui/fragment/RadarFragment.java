@@ -445,14 +445,7 @@ public class RadarFragment extends MainActivityFragment {
 		s.setMaxLines(2);
 		tx.addView(s);
 		row.addView(tx, new LinearLayout.LayoutParams(0, -2, 1f));
-		TextView sw = text(ctx, on ? "AÇIK" : "KAPALI", 14, true, 0xFFFFFFFF);
-		sw.setGravity(Gravity.CENTER);
-		GradientDrawable g = new GradientDrawable();
-		g.setCornerRadius(dp(999));
-		g.setColor(on ? 0xFF16A34A : 0xFF64748B);
-		sw.setBackground(g);
-		sw.setPadding(dp(14), 0, dp(14), 0);
-		row.addView(sw, new LinearLayout.LayoutParams(-2, dp(40)));
+		row.addView(YoldaStyle.toggleSwitch(ctx, on, t.accent), new LinearLayout.LayoutParams(dp(56), dp(32)));
 		row.setContentDescription(label + ": " + (on ? "açık" : "kapalı"));
 		row.setClickable(true);
 		row.setOnClickListener(v -> {

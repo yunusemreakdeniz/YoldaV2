@@ -1589,14 +1589,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			yoldaBack.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
 					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
 		}
-		if (deckBack != null) {
-			deckBack.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
-					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
-		}
-		if (deckPrev != null) {
-			deckPrev.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
-					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
-		}
+		if (dock != null) dock.invalidate(); // kapsül camı yeni temada
 		ControlPanelView cp = getControlPanel();
 		if (cp != null) cp.rebuildYoldaBar();
 		// Sayfalar: gizlileri bırak (açılınca yeni renklerle kurulur), açık olanı yeniden kur.
@@ -1739,14 +1732,15 @@ public class MainActivityDelegate extends ActivityDelegate
 			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
 			lp.endToEnd = ConstraintLayout.LayoutParams.UNSET;
 			lp.bottomToTop = ConstraintLayout.LayoutParams.UNSET;
-			lp.leftMargin = toIntPx(ctx, 16);
-			lp.topMargin = toIntPx(ctx, 16);
+			lp.leftMargin = toIntPx(ctx, 20);
+			lp.topMargin = toIntPx(ctx, 20);
 			lp.verticalBias = 0f;
 		} else {
 			View anchor = (deckPrev != null) ? deckPrev : voiceButton;
 			lp.startToStart = anchor.getId();
 			lp.endToEnd = anchor.getId();
 			lp.bottomToTop = anchor.getId();
+			lp.bottomMargin = toIntPx(ctx, 4);
 			lp.leftMargin = 0;
 			lp.topMargin = toIntPx(ctx, 8);
 			lp.verticalBias = 1f;
@@ -1767,12 +1761,13 @@ public class MainActivityDelegate extends ActivityDelegate
 		lp.startToStart = anchor.getId();
 		lp.endToEnd = anchor.getId();
 		lp.bottomToTop = anchor.getId();
-		lp.bottomMargin = toIntPx(ctx, 12);
+		lp.bottomMargin = toIntPx(ctx, 4);
 		lp.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
 		lp.topMargin = toIntPx(ctx, 8);
 		lp.verticalBias = 1f;
 		host.addView(r, lp);
 		speedRail = r;
+		r.onChange = this::updateDock;
 	}
 
 	@Nullable
@@ -1821,14 +1816,61 @@ public class MainActivityDelegate extends ActivityDelegate
 		cp.setLayoutParams(cl);
 	}
 
+	@Nullable
+	private me.aap.fermata.ui.view.YoldaDock dock;
+
+	/**
+	 * Sol alttaki yüzen düğmeler tek bir cam kapsülde: uyarı göstergesi, geri, ana sayfa, sesli komut.
+	 * Görünenlerin çevresi sarılır; yalnız sesli komut görünürken (ana sayfa) kapsül çizilmez.
+	 */
+	private void updateDock() {
+		me.aap.fermata.ui.view.YoldaDock dk = dock;
+		if (dk == null) return;
+		if (yoldaPip) {
+			dk.setTarget(null, 0);
+			return;
+		}
+		android.graphics.RectF u = null;
+		int n = 0;
+		boolean railOn = false;
+		for (View v : new View[]{speedRail, deckPrev, deckBack, voiceButton}) {
+			if ((v == null) || (v.getVisibility() != View.VISIBLE) || (v.getWidth() == 0)) continue;
+			android.graphics.RectF r = new android.graphics.RectF(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
+			if (u == null) u = r;
+			else u.union(r);
+			n++;
+			if (v == speedRail) railOn = true;
+		}
+		if ((u == null) || ((n == 1) && !railOn)) {
+			dk.setTarget(null, 0);
+			return;
+		}
+		float pad = toIntPx(dk.getContext(), 6);
+		float w = u.width() + 2 * pad;
+		dk.setTarget(new android.graphics.RectF(u.centerX() - w / 2, u.top - pad, u.centerX() + w / 2, u.bottom + pad),
+				railOn ? speedRail.alertColor() : 0);
+	}
+
+	/** Testler için: kapsül çiziliyor mu, sınırları ve kenar rengi. */
+	@Nullable
+	public me.aap.fermata.ui.view.YoldaDock getYoldaDock() {
+		return dock;
+	}
+
 	private void addDeckBackButton(ConstraintLayout host, View voice) {
 		Context ctx = host.getContext();
+		me.aap.fermata.ui.view.YoldaDock dk = new me.aap.fermata.ui.view.YoldaDock(ctx);
+		dk.setElevation(toIntPx(ctx, 11)); // düğmelerin (12) altında, içeriğin üstünde
+		ConstraintLayout.LayoutParams dlp0 = new ConstraintLayout.LayoutParams(0, 0);
+		dlp0.startToStart = dlp0.endToEnd = dlp0.topToTop = dlp0.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
+		host.addView(dk, dlp0);
+		dock = dk;
 		AppCompatImageView v = new AppCompatImageView(ctx);
 		v.setImageResource(R.drawable.yi_home_fill);
 		v.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
 		int p = toIntPx(ctx, 14);
 		v.setPadding(p, p, p, p);
-		v.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx, me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
+		v.setBackground(dockRipple(ctx)); // cam: ortak kapsül
 		v.setContentDescription("Ana sayfa");
 		v.setClickable(true);
 		v.setFocusable(true);
@@ -1845,7 +1887,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		lp.startToStart = voice.getId();
 		lp.endToEnd = voice.getId();
 		lp.bottomToTop = voice.getId();
-		lp.bottomMargin = toIntPx(ctx, 12);
+		lp.bottomMargin = toIntPx(ctx, 6);
 		host.addView(v, lp);
 		deckBack = v;
 		if (v.getId() == View.NO_ID) v.setId(View.generateViewId());
@@ -1854,7 +1896,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		bk.setImageResource(R.drawable.yi_left);
 		bk.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
 		bk.setPadding(p, p, p, p);
-		bk.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx, me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
+		bk.setBackground(dockRipple(ctx));
 		bk.setContentDescription("Geri");
 		bk.setClickable(true);
 		bk.setFocusable(true);
@@ -1868,11 +1910,19 @@ public class MainActivityDelegate extends ActivityDelegate
 		blp.startToStart = v.getId();
 		blp.endToEnd = v.getId();
 		blp.bottomToTop = v.getId();
-		blp.bottomMargin = toIntPx(ctx, 12);
+		blp.bottomMargin = toIntPx(ctx, 2);
 		bk.setId(View.generateViewId()); // hız / radar göstergesi bunun üstüne bağlanır
 		host.addView(bk, blp);
 		deckPrev = bk;
 		updateDeckButtons();
+	}
+
+	/** Kapsüldeki düğmenin arka planı: yalnız basınca hafif dalga (camı kapsül çizer). */
+	private static android.graphics.drawable.Drawable dockRipple(Context ctx) {
+		android.graphics.drawable.GradientDrawable mask = new android.graphics.drawable.GradientDrawable();
+		mask.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+		mask.setColor(0xFFFFFFFF);
+		return new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(0x40FFFFFF), null, mask);
 	}
 
 	private final java.util.ArrayDeque<Integer> yoldaHistory = new java.util.ArrayDeque<>();
@@ -1927,6 +1977,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			if (deckBack != null) deckBack.setVisibility(GONE);
 			if (deckPrev != null) deckPrev.setVisibility(GONE);
 			if (speedRail != null) speedRail.setAllowed(false);
+			updateDock();
 			showYoldaBack(false);
 			me.aap.fermata.ui.view.VideoView vv = getBody().getVideoView();
 			if (vv != null) me.aap.fermata.ui.view.YoldaChannelRail.of(vv).hide();
@@ -1995,6 +2046,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			speedRail.setVideo(full);
 			speedRail.setAllowed(!np || full);
 		}
+		updateDock();
 	}
 
 	private static boolean yoldaSplashShown;

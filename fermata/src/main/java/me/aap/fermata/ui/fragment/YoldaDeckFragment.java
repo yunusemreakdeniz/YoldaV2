@@ -556,14 +556,38 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Kartın Açık / Kapalı düğmesi. */
 	private TextView radarToggle(Context ctx) {
 		boolean on = YoldaRadar.isEnabled(ctx);
-		TextView sw = chipBtn(ctx, on ? "● Açık" : "○ Kapalı", v -> toggleRadar(ctx));
+		TextView sw = chipBtn(ctx, on ? "Açık  ⬤" : "◯  Kapalı", v -> toggleRadar(ctx));
 		sw.setContentDescription("Radar uyarıları: " + (on ? "açık, kapatmak için dokun" : "kapalı, açmak için dokun"));
 		GradientDrawable g = new GradientDrawable();
 		g.setCornerRadius(dp(999));
-		g.setColor(on ? 0xFF16A34A : 0x33FFFFFF);
-		g.setStroke(Math.max(1, dp(1)), 0x55FFFFFF);
+		g.setColor(on ? 0x59FFFFFF : 0x1AFFFFFF);
+		g.setStroke(Math.max(1, dp(1)), on ? 0xB3FFFFFF : 0x40FFFFFF);
 		sw.setBackground(g);
+		sw.setTextColor(on ? 0xFFFFFFFF : 0xB3FFFFFF);
 		return sw;
+	}
+
+	private boolean radarUpdating;
+
+	/** Kartın "↻ Güncelle" düğmesi: radar listesini hemen OpenStreetMap'ten yeniler. */
+	private TextView radarUpdateBtn(Context ctx, boolean compact) {
+		TextView b = chipBtn(ctx, radarUpdating ? "↻ Güncelleniyor…" : (compact ? "↻" : "↻ Güncelle"), v -> {
+			if (radarUpdating) return;
+			radarUpdating = true;
+			refreshCard(YoldaDeck.RADAR);
+			YoldaStyle.toast(ctx, "Radar listesi güncelleniyor…");
+			YoldaRadar.update(ctx, r -> {
+				radarUpdating = false;
+				YoldaStyle.toast(ctx, r);
+				lastRadarSub = null;
+				refreshCard(YoldaDeck.RADAR);
+			});
+		});
+		long up = YoldaRadar.updatedAt(ctx);
+		b.setContentDescription("Radar listesini güncelle" + ((up > 0) ? (", son güncelleme "
+				+ new java.text.SimpleDateFormat("d MMMM", new java.util.Locale("tr")).format(new java.util.Date(up))) : ""));
+		if (compact && !radarUpdating) b.setPadding(dp(14), 0, dp(14), 0);
+		return b;
 	}
 
 	/** Karttan aç / kapat (izin yoksa önce sorulur). */
@@ -1362,7 +1386,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return f;
 			}
 			// Radar: alçak kartta da açıp kapatılabilsin (içerik satırı yok)
-			if (YoldaDeck.RADAR.equals(c.type())) head.addView(radarToggle(ctx), openLp(fz));
+			if (YoldaDeck.RADAR.equals(c.type())) {
+				head.addView(radarUpdateBtn(ctx, true), openLp(fz));
+				head.addView(radarToggle(ctx), openLp(fz));
+			}
 			head.addView(openButton(ctx, c, noble, accent, fz), openLp(fz));
 			return f;
 		}
@@ -1491,6 +1518,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				LinearLayout row = hrow(ctx);
 				boolean on = YoldaRadar.isEnabled(ctx);
 				row.addView(radarToggle(ctx), chipLp());
+				row.addView(radarUpdateBtn(ctx, false), chipLp());
 				if (on) row.addView(chipBtn(ctx, "＋ Buraya radar ekle", v -> YoldaStyle.toast(ctx,
 						YoldaRadar.addHere(ctx) ? "Radar eklendi" : "Konum henüz bilinmiyor")), chipLp());
 				row.addView(chipBtn(ctx, "Ayrıntılar", v -> open(c)), chipLp());

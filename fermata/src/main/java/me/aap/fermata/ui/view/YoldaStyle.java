@@ -287,6 +287,33 @@ public final class YoldaStyle {
 	}
 
 	/** Tüm sayfa başlıkları aynı ölçek (sp): araçta biraz küçük. */
+	/**
+	 * Açık / kapalı anahtarı: yuvarlak iz ve beyaz düğme; açıkken iz temanın vurgu renginde ve düğme sağda,
+	 * kapalıyken soluk cam ve düğme solda. Yazı yok (yanındaki satır söyler); erişilebilirlik için açıklamalı.
+	 */
+	public static View toggleSwitch(Context ctx, boolean on, int accent) {
+		float d = ctx.getResources().getDisplayMetrics().density;
+		android.widget.FrameLayout track = new android.widget.FrameLayout(ctx);
+		android.graphics.drawable.GradientDrawable tg = new android.graphics.drawable.GradientDrawable();
+		tg.setCornerRadius(999 * d);
+		tg.setColor(on ? accent : 0x26FFFFFF);
+		tg.setStroke(Math.max(1, Math.round(d)), on ? 0x40FFFFFF : 0x59FFFFFF);
+		track.setBackground(tg);
+		View knob = new View(ctx);
+		android.graphics.drawable.GradientDrawable kg = new android.graphics.drawable.GradientDrawable();
+		kg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+		kg.setColor(on ? 0xFFFFFFFF : 0xFFCBD1DC);
+		knob.setBackground(kg);
+		knob.setElevation(2 * d);
+		int k = Math.round(24 * d);
+		android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(k, k,
+				android.view.Gravity.CENTER_VERTICAL | (on ? android.view.Gravity.END : android.view.Gravity.START));
+		lp.leftMargin = lp.rightMargin = Math.round(4 * d);
+		track.addView(knob, lp);
+		track.setContentDescription(on ? "açık" : "kapalı");
+		return track;
+	}
+
 	public static int titleSp(Context ctx) {
 		try {
 			if (me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx).isCarActivity()) return 28;

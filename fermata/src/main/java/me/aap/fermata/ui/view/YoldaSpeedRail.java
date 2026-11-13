@@ -150,7 +150,7 @@ public class YoldaSpeedRail extends LinearLayout {
 	public void update() {
 		Context ctx = getContext();
 		YoldaStyle.Theme t = YoldaStyle.current(ctx);
-		setBackground(YoldaStyle.glass(ctx, t, 22));
+		setBackground(null); // cam: sol alttaki ortak kapsül (YoldaDock)
 		boolean on = allowed && YoldaRadar.isEnabled(ctx) && YoldaRadar.hasFix();
 		YoldaRadarCore.Ahead a = YoldaRadar.ahead;
 		int lim = YoldaRadar.limit;
@@ -186,6 +186,8 @@ public class YoldaSpeedRail extends LinearLayout {
 				overAnim = null;
 			}
 			if (getVisibility() != GONE) setVisibility(GONE);
+			alertColor = 0;
+			if (onChange != null) onChange.run();
 			return;
 		}
 		if (lim > 0) {
@@ -250,6 +252,26 @@ public class YoldaSpeedRail extends LinearLayout {
 		if (z != null) d.append((z.kind() == 's') ? ", okul bölgesi" : ", hastane bölgesi");
 		setContentDescription(d);
 		if (getVisibility() != VISIBLE) setVisibility(VISIBLE);
+		int ac = 0;
+		if (overNow || ((a != null) && (a.meters() <= 300))) ac = 0xFFEF4444;
+		else if (a != null) ac = 0xFFF97316;
+		else if (z != null) ac = 0xFFEAB308;
+		else if (avgOn) {
+			int av = YoldaRadar.avg.average(), al = (YoldaRadar.avg.limit() > 0) ? YoldaRadar.avg.limit() : lim;
+			ac = ((av > 0) && YoldaRadarCore.overSpeed(av, al)) ? 0xFFEF4444 : 0xFF3B82F6;
+		}
+		alertColor = ac;
+		if (onChange != null) onChange.run();
+	}
+
+	private int alertColor;
+	/** Durum değişince (kapsülün kenar rengi için). */
+	@androidx.annotation.Nullable
+	public Runnable onChange;
+
+	/** Uyarının rengi (kırmızı: hız aşımı / radar çok yakın, turuncu: radar, sarı: bölge, mavi: ortalama); yoksa 0. */
+	public int alertColor() {
+		return alertColor;
 	}
 
 	private android.animation.ObjectAnimator overAnim;

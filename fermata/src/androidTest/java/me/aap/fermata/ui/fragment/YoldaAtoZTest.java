@@ -719,6 +719,8 @@ public class YoldaAtoZTest {
 			shot("radar_gostergesi");
 			assertTrue("Radar uyarısında sol kenar yanıp sönmeli",
 					((me.aap.fermata.ui.view.YoldaSpeedRail) rail).blinkCount > 0);
+			int edge = onMain(a -> a.getYoldaDock().alertColor());
+			assertTrue("Radar yakınken kapsülün kenarı uyarı renginde olmalı: " + Integer.toHexString(edge), edge != 0);
 
 			// Hız sınırı aşımı: konuşmadan çift bip, levha aşım sürdükçe yanıp söner
 			YoldaRadar.setOverspeedWarn(c, true);
@@ -1067,6 +1069,49 @@ public class YoldaAtoZTest {
 				a.setVideoMode(false, null);
 				YoldaRadar.setCams(old);
 				YoldaRadar.setOverspeedWarn(c, overWas);
+				YoldaRadar.setEnabled(c, was);
+				YoldaRadar.ignoreGps = false;
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(800);
+		}
+	}
+
+	/**
+	 * Yüzen düğmeler tek cam kapsülde: iç ekranda geri, ana sayfa, sesli komut sarılır; ana sayfada yalnız
+	 * sesli komut varken kapsül çizilmez.
+	 */
+	@Test
+	public void yuzenDugmeKapsulu() {
+		android.content.Context c = ctx();
+		boolean was = YoldaRadar.isEnabled(c);
+		YoldaRadar.ignoreGps = true;
+		try {
+			onMain(a -> {
+				me.aap.fermata.ui.view.YoldaNowPlaying.hide(a);
+				YoldaRadar.setEnabled(c, false); // gösterge yok: yalnız düğmeler
+				a.showFragment(R.id.yolda_menu_fragment);
+				return null;
+			});
+			assertTrue(waitFor(3000, () -> onMain(MainActivityDelegate::getActiveFragmentId) == R.id.yolda_menu_fragment));
+			waitIdle(1200);
+			assertTrue("İç ekranda kapsül çizilmeli", onMain(a -> a.getYoldaDock().isShownDock()));
+			android.graphics.RectF b = onMain(a -> a.getYoldaDock().bounds());
+			for (String desc : new String[]{"Sesli komut", "Ana sayfa", "Geri"}) {
+				View v = onMain(a -> byDesc(((android.app.Activity) a.getContext()).getWindow().getDecorView(), desc));
+				assertNotNull(desc, v);
+				android.graphics.RectF vr = new android.graphics.RectF(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
+				assertTrue(desc + " kapsülün içinde olmalı: " + vr + " / " + b, b.contains(vr));
+			}
+			assertTrue("Kapsül dar olmalı (tek sütun): " + b.width(), b.width() < 90 * c.getResources().getDisplayMetrics().density);
+			shot("kapsul_ic_ekran");
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			waitIdle(1500);
+			assertFalse("Ana sayfada yalnız sesli komut: kapsül yok", onMain(a -> a.getYoldaDock().isShownDock()));
+			shot("kapsul_ana_sayfa");
+		} finally {
+			onMain(a -> {
 				YoldaRadar.setEnabled(c, was);
 				YoldaRadar.ignoreGps = false;
 				a.showFragment(R.id.home_fragment);
