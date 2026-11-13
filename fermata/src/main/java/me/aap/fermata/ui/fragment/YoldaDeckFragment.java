@@ -788,7 +788,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Parmağın altındaki mini kart (yoksa en yakını); değiştiyse deste hemen o karta geçer. */
 	private void jumpTo(float rawX, boolean done) {
 		LinearLayout s = jumpStrip;
-		if ((s == null) || (s.getChildCount() == 0)) return;
+		if ((s == null) || (s.getChildCount() == 0) || !isAdded()) return;
 		int best = 0;
 		float bd = Float.MAX_VALUE;
 		int[] l = new int[2];
@@ -827,10 +827,25 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private void hideJumpStrip() {
 		LinearLayout s = jumpStrip;
 		jumpStrip = null;
-		if ((s == null) || (root == null)) return;
-		s.animate().alpha(0f).translationY(dp(10)).setDuration(160).withEndAction(() -> {
-			if (root != null) root.removeView(s);
+		if (s == null) return;
+		// Gecikmeli çağrı: bu arada sayfa kapanmış olabilir (önceden burada çöküyordu)
+		android.view.ViewParent par = s.getParent();
+		if (!isAdded() || (getContext() == null) || (root == null)) {
+			if (par instanceof ViewGroup g) g.removeView(s);
+			return;
+		}
+		float d = s.getResources().getDisplayMetrics().density;
+		s.animate().alpha(0f).translationY(10 * d).setDuration(160).withEndAction(() -> {
+			if (s.getParent() instanceof ViewGroup g) g.removeView(s);
 		}).start();
+	}
+
+	@Override
+	public void onDestroyView() {
+		if (root != null) root.removeCallbacks(hideJump); // sayfa kapanırken bekleyen şerit kapatma çalışmasın
+		jumpStrip = null;
+		nowPill = null;
+		super.onDestroyView();
 	}
 
 	/** Testler için: ortadaki kartın sırası. */
