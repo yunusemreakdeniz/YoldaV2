@@ -183,6 +183,57 @@ public class YoldaGestureTest {
 		assertTrue("Şerit kapanmalı", waitFor(3000, () -> onMain(a -> rail(vv).getVisibility() != View.VISIBLE)));
 	}
 
+	/** Sayfa noktalarına basınca mini kart şeridi açılır; parmak sağa gidince son karta geçilir. */
+	@Test
+	public void noktalardanHizliKartGecisi() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(2000);
+		onMain(a -> {
+			((YoldaDeckFragment) a.getActiveFragment()).scrollToCard(0);
+			return null;
+		});
+		waitIdle(1000);
+		View dots = onMain(a -> findDesc(a.getActiveFragment().getView(), "Kartlar arasında hızlı geçiş"));
+		assertNotNull("Sayfa noktaları olmalı", dots);
+		int[] b = onMain(a -> bounds(dots));
+		int n = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().size());
+		int sw = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView().getWidth());
+		android.app.UiAutomation ui = InstrumentationRegistry.getInstrumentation().getUiAutomation();
+		long t = SystemClock.uptimeMillis();
+		float y = b[1] + b[3] / 2f;
+		inject(ui, MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, b[0] + b[2] / 2f, y, 0));
+		waitIdle(400);
+		int size = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).jumpStripSize());
+		shot("hizli_gecis_seridi");
+		assertEquals("Basınca her kart için mini kart çıkmalı", n, size);
+		for (int i = 1; i <= 10; i++) {
+			SystemClock.sleep(30);
+			inject(ui, MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_MOVE,
+					b[0] + b[2] / 2f + (sw - 8 - (b[0] + b[2] / 2f)) * i / 10f, y, 0));
+		}
+		inject(ui, MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, sw - 8, y, 0));
+		waitIdle(1200);
+		int cur = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).currentCard());
+		Log.i(TAG, "Hızlı geçiş: " + n + " kart, gelinen " + cur);
+		assertEquals("Sağ uca kaydırınca son karta geçmeli", n - 1, cur);
+		waitIdle(1800);
+		assertEquals("Şerit kendiliğinden kapanmalı", 0,
+				onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).jumpStripSize()).intValue());
+	}
+
+	private static View findDesc(View v, String prefix) {
+		if ((v == null) || (v.getVisibility() != View.VISIBLE)) return null;
+		CharSequence d = v.getContentDescription();
+		if ((d != null) && d.toString().startsWith(prefix)) return v;
+		if (v instanceof ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				View f = findDesc(g.getChildAt(i), prefix);
+				if (f != null) return f;
+			}
+		}
+		return null;
+	}
+
 	// ---- yardımcılar ----
 
 	private VideoView startTv() {

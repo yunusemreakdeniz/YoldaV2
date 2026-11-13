@@ -393,6 +393,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dots.setOrientation(LinearLayout.HORIZONTAL);
 		dots.setGravity(Gravity.CENTER);
 		dots.setPadding(0, dp(6), 0, dp(car ? 8 : 14));
+		dots.setMinimumHeight(dp(36)); // parmakla kolay basılsın
+		dots.setContentDescription("Kartlar arasında hızlı geçiş: basılı tutup kaydır");
+		dots.setOnTouchListener((v, e) -> onJumpTouch(e));
 		col.addView(dots, new LinearLayout.LayoutParams(-1, -2));
 
 		loadChannels();
@@ -700,13 +703,153 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 	}
 
+	// ---- hızlı geçiş: sayfa noktalarına basınca mini kart şeridi ----
+
+	@Nullable
+	private LinearLayout jumpStrip;
+	private int jumpSel = -1;
+	private final Runnable hideJump = this::hideJumpStrip;
+
+	/** Noktalara / şeride dokunuş: basınca şerit açılır, parmak gezdikçe deste o karta geçer, bırakınca kalır. */
+	private boolean onJumpTouch(MotionEvent e) {
+		switch (e.getActionMasked()) {
+			case MotionEvent.ACTION_DOWN -> {
+				if (editing) return false;
+				showJumpStrip();
+				jumpTo(e.getRawX(), false);
+			}
+			case MotionEvent.ACTION_MOVE -> jumpTo(e.getRawX(), false);
+			case MotionEvent.ACTION_UP -> {
+				jumpTo(e.getRawX(), true);
+				if (root != null) {
+					root.removeCallbacks(hideJump);
+					root.postDelayed(hideJump, 1400);
+				}
+			}
+			case MotionEvent.ACTION_CANCEL -> {
+				if (root != null) root.postDelayed(hideJump, 600);
+			}
+			default -> {
+			}
+		}
+		return true;
+	}
+
+	/** Şeridi kurar (her açılışta güncel deste ve tema) ve gösterir. */
+	private void showJumpStrip() {
+		if ((root == null) || (getContext() == null)) return;
+		Context ctx = requireContext();
+		root.removeCallbacks(hideJump);
+		if (jumpStrip != null) root.removeView(jumpStrip);
+		LinearLayout s = new LinearLayout(ctx);
+		s.setOrientation(LinearLayout.HORIZONTAL);
+		s.setGravity(Gravity.CENTER_VERTICAL);
+		s.setPadding(dp(8), dp(6), dp(8), dp(6));
+		s.setBackground(YoldaStyle.glass(ctx, t, 16));
+		s.setElevation(dp(24));
+		s.setOnTouchListener((v, e) -> onJumpTouch(e)); // şerit üzerinde de kaydırılır / dokunulur
+		int n = Math.max(1, deck.size());
+		int gap = dp(4);
+		int avail = root.getWidth() - dp(40) - n * gap;
+		int w = Math.max(dp(20), Math.min(dp(48), avail / n));
+		int h = dp(36);
+		boolean noble = noble();
+		for (int i = 0; i < deck.size(); i++) {
+			YoldaDeck.Card c = deck.get(i);
+			Look lk = look(c);
+			FrameLayout m = new FrameLayout(ctx);
+			GradientDrawable g = noble
+					? new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xFF22252F, 0xFF16181F})
+					: new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{lk.c1(), lk.c2()});
+			g.setCornerRadius(dp(9));
+			if (noble) g.setStroke(Math.max(1, dp(1)), YoldaStyle.alpha(YoldaStyle.nobleAccent(lk.c1()), 0.6f));
+			m.setBackground(g);
+			m.setContentDescription(c.title());
+			ImageView ic = new ImageView(ctx);
+			ic.setImageResource(lk.icon());
+			if (lk.tint()) ic.setImageTintList(ColorStateList.valueOf(noble ? YoldaStyle.nobleAccent(lk.c1()) : 0xFFFFFFFF));
+			int is = Math.min(dp(18), w - dp(6));
+			m.addView(ic, new FrameLayout.LayoutParams(is, is, Gravity.CENTER));
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(w, h);
+			if (i > 0) lp.leftMargin = gap;
+			s.addView(m, lp);
+		}
+		FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+		flp.bottomMargin = ((dots != null) ? dots.getHeight() : dp(30)) + dp(2);
+		root.addView(s, flp);
+		jumpStrip = s;
+		jumpSel = -1;
+		s.setAlpha(0f);
+		s.setTranslationY(dp(10));
+		s.animate().alpha(1f).translationY(0).setDuration(140).start();
+		highlightJump(centerPosition());
+	}
+
+	/** Parmağın altındaki mini kart (yoksa en yakını); değiştiyse deste hemen o karta geçer. */
+	private void jumpTo(float rawX, boolean done) {
+		LinearLayout s = jumpStrip;
+		if ((s == null) || (s.getChildCount() == 0)) return;
+		int best = 0;
+		float bd = Float.MAX_VALUE;
+		int[] l = new int[2];
+		for (int i = 0; i < s.getChildCount(); i++) {
+			View c = s.getChildAt(i);
+			c.getLocationOnScreen(l);
+			float cx = l[0] + c.getWidth() / 2f;
+			float d = Math.abs(rawX - cx);
+			if (d < bd) {
+				bd = d;
+				best = i;
+			}
+		}
+		if (best != jumpSel) {
+			highlightJump(best);
+			YoldaStyle.haptic(s);
+			scrollToCard(best);
+			prefs(requireContext()).edit().putInt(PREF_POS, best).apply();
+		} else if (done) {
+			scrollToCard(best);
+		}
+	}
+
+	private void highlightJump(int sel) {
+		LinearLayout s = jumpStrip;
+		if (s == null) return;
+		jumpSel = sel;
+		for (int i = 0; i < s.getChildCount(); i++) {
+			View c = s.getChildAt(i);
+			boolean on = (i == sel);
+			c.animate().scaleX(on ? 1.22f : 1f).scaleY(on ? 1.22f : 1f).alpha(on ? 1f : 0.7f).setDuration(90).start();
+			c.setElevation(on ? dp(6) : 0);
+		}
+	}
+
+	private void hideJumpStrip() {
+		LinearLayout s = jumpStrip;
+		jumpStrip = null;
+		if ((s == null) || (root == null)) return;
+		s.animate().alpha(0f).translationY(dp(10)).setDuration(160).withEndAction(() -> {
+			if (root != null) root.removeView(s);
+		}).start();
+	}
+
+	/** Testler için: ortadaki kartın sırası. */
+	public int currentCard() {
+		return centerPosition();
+	}
+
+	/** Testler için: hızlı geçiş şeridi açık mı ve kaç mini kart var. */
+	public int jumpStripSize() {
+		return (jumpStrip != null) ? jumpStrip.getChildCount() : 0;
+	}
+
 	private void setEditing(boolean on) {
 		editing = on;
 		editBtn.setImageResource(on ? R.drawable.yi_check : R.drawable.yi_edit);
 		editBtn.setContentDescription(on ? "Bitti" : "Düzenle");
 		adapter.notifyDataSetChanged();
 		list.post(this::transform);
-		if (on) UiUtils.showInfo(requireContext(), "Düzenle: ◀ ▶ sırala, 🎨 renk seç, ✕ kaldır");
+		if (on) YoldaStyle.toast(requireContext(), "Düzenle: ◀ ▶ sırala, 🎨 renk seç, ✕ kaldır");
 	}
 
 	// ---- kart görünümü ----
