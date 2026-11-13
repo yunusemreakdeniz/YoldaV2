@@ -298,8 +298,7 @@ public class YoldaGestureTest {
 		} catch (Exception ex) {
 			b.append(ex);
 		}
-		return b.toString().trim().replace('
-', ' ');
+		return b.toString().trim().replace('\n', ' ');
 	}
 
 		private void shot(String name) {
