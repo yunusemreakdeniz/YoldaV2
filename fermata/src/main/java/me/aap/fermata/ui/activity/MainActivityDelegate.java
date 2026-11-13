@@ -860,6 +860,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.ChannelsFragment();
 		} else if (id == R.id.yolda_nav_fragment) {
 			return new me.aap.fermata.ui.fragment.NavFragment();
+		} else if (id == R.id.yolda_pharmacy_fragment) {
+			return new me.aap.fermata.ui.fragment.PharmacyFragment();
 		} else if (id == R.id.yolda_menu_fragment) {
 			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
 		} else if (id == R.id.yolda_setup_fragment) {
@@ -1103,7 +1105,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		int id = getActiveFragmentId();
 		boolean yolda = (id == R.id.home_fragment) || (id == R.id.yolda_channels_fragment) || (id == R.id.yolda_music)
 				|| (id == R.id.yolda_youtube) || (id == R.id.yolda_nav_fragment) || (id == R.id.yolda_menu_fragment)
-				|| (id == R.id.yolda_setup_fragment);
+				|| (id == R.id.yolda_setup_fragment) || (id == R.id.yolda_pharmacy_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
 		int left = (me.aap.fermata.ui.view.YoldaStyle.sideRail(getContext()) && yolda && (id != R.id.home_fragment)
 				&& !videoMode)

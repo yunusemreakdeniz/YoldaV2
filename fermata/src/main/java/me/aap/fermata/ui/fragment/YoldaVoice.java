@@ -72,6 +72,9 @@ public final class YoldaVoice {
 					return true;
 				}
 				break;
+			case "eczane", "eczaneler", "nöbetçi eczane", "nöbetçi eczaneler", "nöbetçi":
+				a.showFragment(R.id.yolda_pharmacy_fragment);
+				return true;
 			case "navigasyon", "harita", "haritalar", "yol tarifi":
 				a.showFragment(R.id.yolda_nav_fragment);
 				return true;

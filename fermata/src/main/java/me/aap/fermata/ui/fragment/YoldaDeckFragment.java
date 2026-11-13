@@ -211,7 +211,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		t = YoldaStyle.current(ctx);
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
-		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER}) {
+		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -384,6 +384,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				list.setLayoutParams(llp);
 			}
 		}
+	}
+
+	/** Eczane kartının alt yazısı: seçili il / ilçe. */
+	private String pharmacySubtitle() {
+		Context ctx = getContext();
+		if (ctx == null) return "";
+		YoldaPharmacy.Place il = YoldaPharmacy.selectedIl(ctx);
+		YoldaPharmacy.Place ilce = YoldaPharmacy.selectedIlce(ctx);
+		if (il == null) return "Bugünün nöbetçi eczaneleri, en yakını önce";
+		return il.name() + ((ilce != null) ? (" · " + ilce.name()) : " · tüm ilçeler") + " · bugünün nöbetçileri";
 	}
 
 	/** Son görülen oynatıcı çubuğu yüksekliği (çubuk gizliyken de bu kadar yer ayrılır). */
@@ -754,6 +764,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.WEATHER -> new Look(0xFF38BDF8, 0xFF1E40AF, R.drawable.yi_globe, true, "HAVA DURUMU",
 					(weather == null) ? "Hava durumu alınıyor…"
 							: weather.place() + " · " + YoldaWeather.text(weather.code()) + " · rüzgâr " + weather.wind() + " km/s");
+			case YoldaDeck.PHARMACY -> new Look(0xFFF87171, 0xFFB91C1C, R.drawable.yi_pharmacy, true, "NÖBETÇİ ECZANE",
+					pharmacySubtitle());
 			case YoldaDeck.NAV -> new Look(0xFF2DD4BF, 0xFF0F766E, R.drawable.yi_nav, true, "NAVİGASYON",
 					"Yol tarifi, ev, iş ve son gidilen yerler");
 			case YoldaDeck.PHONE -> new Look(0xFF34D399, 0xFF047857, R.drawable.yi_phone, true, "TELEFON",
@@ -1008,6 +1020,36 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				row.addView(scroll(ctx, hours), new LinearLayout.LayoutParams(0, -2, 1f));
 				return row;
 			}
+			case YoldaDeck.PHARMACY -> { // yıldızlı ilçe / iller: tek dokunuşla o yerin nöbetçileri
+				LinearLayout row = hrow(ctx);
+				for (String s : YoldaPharmacy.stars(ctx, "ilce")) {
+					int bar = s.indexOf('|'), sl = s.indexOf('/');
+					if ((bar < 0) || (sl < 0) || (sl > bar) || (row.getChildCount() >= 5)) continue;
+					String ilSlug = s.substring(0, sl);
+					YoldaPharmacy.Place ilce = new YoldaPharmacy.Place(s.substring(sl + 1, bar), s.substring(bar + 1));
+					row.addView(chipBtn(ctx, "★ " + ilce.name(), v -> {
+						YoldaPharmacy.Place il = YoldaPharmacy.selectedIl(ctx);
+						if ((il == null) || !il.slug().equals(ilSlug)) il = new YoldaPharmacy.Place(ilSlug,
+								YoldaPharmacy.title(ilSlug));
+						for (String x : YoldaPharmacy.stars(ctx, "il")) {
+							YoldaPharmacy.Place p = YoldaPharmacy.Place.decode(x);
+							if ((p != null) && p.slug().equals(ilSlug)) il = p;
+						}
+						YoldaPharmacy.select(ctx, il, ilce);
+						open(c);
+					}), chipLp());
+				}
+				for (String s : YoldaPharmacy.stars(ctx, "il")) {
+					YoldaPharmacy.Place il = YoldaPharmacy.Place.decode(s);
+					if ((il == null) || (row.getChildCount() >= 6)) continue;
+					row.addView(chipBtn(ctx, "★ " + il.name(), v -> {
+						YoldaPharmacy.select(ctx, il, null);
+						open(c);
+					}), chipLp());
+				}
+				if (row.getChildCount() == 0) row.addView(chipBtn(ctx, "Yakınımdaki nöbetçiler", v -> open(c)), chipLp());
+				return scroll(ctx, row);
+			}
 			case YoldaDeck.NAV -> {
 				LinearLayout row = hrow(ctx);
 				for (String d : NavFragment.recent(ctx)) {
@@ -1141,6 +1183,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				}
 			}
 			case YoldaDeck.FAVS -> showFavorites();
+			case YoldaDeck.PHARMACY -> a.showFragment(R.id.yolda_pharmacy_fragment);
 			case YoldaDeck.WEATHER -> HomeFragment.openWeb(a, "https://www.google.com/search?q=hava+durumu");
 			case YoldaDeck.PHONE, YoldaDeck.MIRROR -> openPhoneScreen(a, ctx);
 			case YoldaDeck.WEB -> {
