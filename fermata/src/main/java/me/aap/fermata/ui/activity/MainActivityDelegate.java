@@ -846,6 +846,11 @@ public class MainActivityDelegate extends ActivityDelegate
 			id = R.id.yolda_channels_fragment;
 		BodyLayout b = getBody();
 		if (b.isVideoMode()) b.setMode(BodyLayout.Mode.BOTH);
+		int prev = getActiveFragmentId();
+		if (!yoldaGoingBack && (prev != 0) && (prev != id)) { // geri düğmesi için ekran geçmişi
+			yoldaHistory.push(prev);
+			while (yoldaHistory.size() > 20) yoldaHistory.removeLast();
+		}
 		ActivityFragment f = super.showFragment(id, input);
 		updateBodyTopPadding();
 		ControlPanelView cpv = getControlPanel();
@@ -1785,7 +1790,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		bk.setOnClickListener(x -> {
 			x.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80)
 					.withEndAction(() -> x.animate().scaleX(1f).scaleY(1f).setDuration(140).start()).start();
-			onBackPressed();
+			yoldaBack();
 		});
 		ConstraintLayout.LayoutParams blp = new ConstraintLayout.LayoutParams(s, s);
 		blp.startToStart = v.getId();
@@ -1795,6 +1800,37 @@ public class MainActivityDelegate extends ActivityDelegate
 		host.addView(bk, blp);
 		deckPrev = bk;
 		updateDeckButtons();
+	}
+
+	private final java.util.ArrayDeque<Integer> yoldaHistory = new java.util.ArrayDeque<>();
+	private boolean yoldaGoingBack;
+
+	/**
+	 * Geri düğmesi: önce açık sayfa kendi içinde geri gider (açık pencere, alt liste); yoksa bir önceki ekran,
+	 * geçmiş boşsa ana sayfa.
+	 */
+	public void yoldaBack() {
+		if (me.aap.fermata.ui.view.YoldaNowPlaying.hide(this)) return;
+		ActivityFragment af = getActiveFragment();
+		try {
+			if ((af != null) && af.onBackPressed()) return;
+		} catch (Throwable ignore) {
+		}
+		int cur = getActiveFragmentId();
+		Integer to = null;
+		while (!yoldaHistory.isEmpty()) {
+			int id = yoldaHistory.pop();
+			if (id != cur) {
+				to = id;
+				break;
+			}
+		}
+		yoldaGoingBack = true;
+		try {
+			showFragment((to != null) ? to : R.id.home_fragment);
+		} finally {
+			yoldaGoingBack = false;
+		}
 	}
 
 	/** V2: ana sayfa düğmesinin üstünde geri düğmesi. */

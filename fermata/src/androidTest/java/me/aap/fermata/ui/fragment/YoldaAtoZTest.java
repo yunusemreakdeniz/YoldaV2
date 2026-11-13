@@ -402,8 +402,12 @@ public class YoldaAtoZTest {
 			assertNotNull("Tema düğmesi olmalı", btn);
 			View edit = onMain(a -> byDesc(a.getActiveFragment().getView(), "Düzenle"));
 			assertNotNull(edit);
-			assertTrue("Tema düğmesi düzenle düğmesinin hemen solunda", onMain(a -> (btn.getParent() == edit.getParent())
-					&& (btn.getRight() <= edit.getLeft()) && (edit.getLeft() - btn.getRight() < btn.getWidth())));
+			// sıra: tema · ayarlar · düzenle (hepsi aynı satırda, yan yana)
+			View sb = onMain(a -> byDesc(a.getActiveFragment().getView(), "Ayarlar"));
+			assertNotNull(sb);
+			assertTrue("Tema, ayarlar ve düzenle yan yana", onMain(a -> (btn.getParent() == edit.getParent())
+					&& (sb.getParent() == edit.getParent()) && (btn.getRight() <= sb.getLeft())
+					&& (sb.getRight() <= edit.getLeft()) && (edit.getLeft() - btn.getRight() < 3 * btn.getWidth())));
 			View setb = onMain(a -> byDesc(a.getActiveFragment().getView(), "Ayarlar"));
 			assertNotNull("Ayarlar düğmesi tema düğmesinin yanında olmalı", setb);
 			onMain(a -> btn.performClick());
