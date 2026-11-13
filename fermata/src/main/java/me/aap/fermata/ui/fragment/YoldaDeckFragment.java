@@ -102,9 +102,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (over <= dp(1)) return;
 			int add = Math.round(over / getResources().getDisplayMetrics().density) + 2;
 			int want = base + add;
+			float dn = getResources().getDisplayMetrics().density;
+			YoldaLog.add("Deste: kart içeriği " + add + " dp taştı (kart " + Math.round(cardH / dn) + " dp, iç "
+					+ Math.round(v.getHeight() / dn) + " dp, pay " + base + "→" + want + ")");
 			if ((want <= fitSlackDp) || (want > 240)) return;
 			fitSlackDp = want;
-			YoldaLog.add("Deste: kart içeriği " + add + " dp taştı, sıkı düzen");
 			if (list != null) list.post(() -> {
 				if (adapter != null) adapter.notifyDataSetChanged();
 			});

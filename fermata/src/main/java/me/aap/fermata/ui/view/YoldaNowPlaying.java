@@ -384,6 +384,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 				&& YoldaSwipe.onHorizontalControl(this, e.getRawX(), e.getRawY())) {
 			swipe.feed(e);
 			swipe.cancel();
+			me.aap.fermata.ui.fragment.YoldaLog.add("Kaydırma: yatay öğe üzerinde başladı, sayılmadı");
 		} else {
 			int dir = swipe.feed(e);
 			if (dir != 0) {

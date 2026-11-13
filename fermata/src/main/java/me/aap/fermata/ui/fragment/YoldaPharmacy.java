@@ -274,7 +274,7 @@ public final class YoldaPharmacy {
 		SharedPreferences p = ctx.getApplicationContext().getSharedPreferences("yolda_eczane_konum", Context.MODE_PRIVATE);
 		llPrefs = p;
 		List<Pharmacy> copy = new ArrayList<>(l);
-		App.get().getExecutor().submit(() -> {
+		EXEC.submit(() -> {
 			int n = 0;
 			for (int i = 0; (i < copy.size()) && (n < 40); i++) {
 				Pharmacy ph = copy.get(i);
@@ -418,13 +418,20 @@ public final class YoldaPharmacy {
 		T run() throws Exception;
 	}
 
+	private static final java.util.concurrent.ExecutorService EXEC = java.util.concurrent.Executors.newFixedThreadPool(3, r -> {
+		Thread t = new Thread(r, "YoldaEczane");
+		t.setDaemon(true);
+		return t;
+	});
+
 	private static <T> FutureSupplier<T> async(Job<T> j) {
 		Promise<T> p = new Promise<>();
-		App.get().getExecutor().submit(() -> {
+		EXEC.submit(() -> {
 			try {
 				p.complete(j.run());
 			} catch (Throwable ex) {
 				Log.e(ex, "Nöbetçi eczane");
+				YoldaLog.add("Eczane: alınamadı (" + ex + ")");
 				p.completeExceptionally(ex);
 			}
 		});

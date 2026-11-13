@@ -53,6 +53,8 @@ public final class YoldaSwipe {
 				float dy = e.getRawY() - y0;
 				long dt = e.getEventTime() - t0;
 				if ((Math.abs(dx) >= minPx) && (Math.abs(dx) > 1.8f * Math.abs(dy)) && (dt <= 800)) return (dx < 0) ? 1 : -1;
+				if (Math.abs(dx) >= minPx / 2) android.util.Log.i("Yolda", "Kaydırma sayılmadı: dx=" + Math.round(dx)
+						+ " dy=" + Math.round(dy) + " süre=" + dt + " ms (en az " + Math.round(minPx) + ")");
 			}
 			default -> {
 			}

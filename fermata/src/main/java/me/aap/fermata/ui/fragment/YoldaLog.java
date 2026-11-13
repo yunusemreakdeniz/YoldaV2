@@ -113,6 +113,7 @@ public final class YoldaLog {
 	}
 
 	public static synchronized void add(String line) {
+		android.util.Log.i("Yolda", line); // test ve hata ayıklama kayıtlarında da görünsün
 		Context c = app;
 		if (c == null) return;
 		try {
