@@ -239,7 +239,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		t = YoldaStyle.current(ctx);
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
-		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY}) {
+		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
+				YoldaDeck.RADAR}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -402,6 +403,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		loadChannels();
 		loadExtras(car);
 		YoldaVoice.preload(getActivityDelegate()); // sesli komutta kanal adları hazır olsun ("TRT Haber aç")
+		YoldaRadar.addListener(radarListener);
 		return root;
 	}
 
@@ -501,6 +503,46 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	/** Eczane kartının alt yazısı: seçili il / ilçe. */
+	private String radarSubtitle() {
+		Context ctx = getContext();
+		if (ctx == null) return "";
+		if (!YoldaRadar.isEnabled(ctx)) return "Kapalı · açınca radara yaklaşırken uyarır, hız sınırını gösterir";
+		if (!YoldaRadar.hasPermission(ctx)) return "Açık · konum izni gerekli";
+		YoldaRadarCore.Ahead a = YoldaRadar.ahead;
+		if (a != null) return "Önde " + a.cam().label().toLowerCase(new java.util.Locale("tr")) + ": "
+				+ RadarFragment.meters(a.meters()) + ((YoldaRadar.limit > 0) ? (" · sınır " + YoldaRadar.limit) : "");
+		if (!YoldaRadar.hasFix()) return "Açık · konum bekleniyor";
+		int n = Double.isNaN(YoldaRadar.lat) ? 0
+				: YoldaRadarCore.nearby(YoldaRadar.lat, YoldaRadar.lon, YoldaRadar.cams(), 10_000, 99).size();
+		return "Açık · 10 km içinde " + n + " radar" + ((YoldaRadar.limit > 0) ? (" · sınır " + YoldaRadar.limit) : "");
+	}
+
+	private String lastRadarSub;
+	private long lastRadarRefresh;
+	/** Radar durumu değişince kart yazısı (en çok 3 sn'de bir; yazı aynıysa hiç) yenilenir. */
+	private final Runnable radarListener = () -> {
+		if (!isAdded() || isHidden()) return;
+		String s = radarSubtitle();
+		long now = android.os.SystemClock.elapsedRealtime();
+		if (s.equals(lastRadarSub) || (now - lastRadarRefresh < 3000)) return;
+		lastRadarSub = s;
+		lastRadarRefresh = now;
+		refreshCard(YoldaDeck.RADAR);
+	};
+
+	/** Karttan aç / kapat (izin yoksa önce sorulur). */
+	private void toggleRadar(Context ctx) {
+		boolean on = !YoldaRadar.isEnabled(ctx);
+		if (on && !YoldaRadar.hasPermission(ctx)) {
+			getActivityDelegate().getAppActivity().checkPermissions(android.Manifest.permission.ACCESS_COARSE_LOCATION,
+					android.Manifest.permission.ACCESS_FINE_LOCATION).onCompletion((r, err) -> YoldaRadar.permissionChanged(ctx));
+		}
+		YoldaRadar.setEnabled(ctx, on);
+		YoldaStyle.toast(ctx, on ? "Radar uyarıları açıldı" : "Radar uyarıları kapatıldı");
+		lastRadarSub = null;
+		refreshCard(YoldaDeck.RADAR);
+	}
+
 	private String pharmacySubtitle() {
 		Context ctx = getContext();
 		if (ctx == null) return "";
@@ -845,6 +887,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Override
 	public void onDestroyView() {
 		if (root != null) root.removeCallbacks(hideJump); // sayfa kapanırken bekleyen şerit kapatma çalışmasın
+		YoldaRadar.removeListener(radarListener);
 		jumpStrip = null;
 		nowPill = null;
 		super.onDestroyView();
@@ -1038,6 +1081,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 							: weather.place() + " · " + YoldaWeather.text(weather.code()) + " · rüzgâr " + weather.wind() + " km/s");
 			case YoldaDeck.PHARMACY -> new Look(0xFFF87171, 0xFFB91C1C, R.drawable.yi_pharmacy, true, "NÖBETÇİ ECZANE",
 					pharmacySubtitle());
+			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR VE HIZ",
+					radarSubtitle());
 			case YoldaDeck.NAV -> new Look(0xFF2DD4BF, 0xFF0F766E, R.drawable.yi_nav, true, "NAVİGASYON",
 					"Yol tarifi, ev, iş ve son gidilen yerler");
 			case YoldaDeck.PHONE -> new Look(0xFF34D399, 0xFF047857, R.drawable.yi_phone, true, "TELEFON",
@@ -1311,6 +1356,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				row.addView(scroll(ctx, hours), new LinearLayout.LayoutParams(0, -2, 1f));
 				return row;
 			}
+			case YoldaDeck.RADAR -> {
+				LinearLayout row = hrow(ctx);
+				boolean on = YoldaRadar.isEnabled(ctx);
+				TextView sw = chipBtn(ctx, on ? "● Açık" : "○ Kapalı", v -> toggleRadar(ctx));
+				sw.setContentDescription("Radar uyarıları: " + (on ? "açık, kapatmak için dokun" : "kapalı, açmak için dokun"));
+				GradientDrawable g = new GradientDrawable();
+				g.setCornerRadius(dp(999));
+				g.setColor(on ? 0xFF16A34A : 0x33FFFFFF);
+				g.setStroke(Math.max(1, dp(1)), 0x55FFFFFF);
+				sw.setBackground(g);
+				row.addView(sw, chipLp());
+				if (on) row.addView(chipBtn(ctx, "＋ Buraya radar ekle", v -> YoldaStyle.toast(ctx,
+						YoldaRadar.addHere(ctx) ? "Radar eklendi" : "Konum henüz bilinmiyor")), chipLp());
+				row.addView(chipBtn(ctx, "Ayrıntılar", v -> open(c)), chipLp());
+				return scroll(ctx, row);
+			}
 			case YoldaDeck.PHARMACY -> { // yıldızlı ilçe / iller: tek dokunuşla o yerin nöbetçileri
 				LinearLayout row = hrow(ctx);
 				for (String s : YoldaPharmacy.stars(ctx, "ilce")) {
@@ -1522,6 +1583,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.FAVS -> showFavorites();
 			case YoldaDeck.PHARMACY -> a.showFragment(R.id.yolda_pharmacy_fragment);
+			case YoldaDeck.RADAR -> a.showFragment(R.id.yolda_radar_fragment);
 			case YoldaDeck.WEATHER -> HomeFragment.openWeb(a, "https://www.google.com/search?q=hava+durumu");
 			case YoldaDeck.PHONE, YoldaDeck.MIRROR -> openPhoneScreen(a, ctx);
 			case YoldaDeck.WEB -> {

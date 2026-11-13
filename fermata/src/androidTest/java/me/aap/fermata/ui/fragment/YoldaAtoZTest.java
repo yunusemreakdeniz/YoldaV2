@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -671,6 +672,87 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/**
+	 * Radar: 100 km/s ile kuzeydeki radara yaklaşırken 1000 / 500 / 150 m uyarıları sırayla verilir, sol kenarda
+	 * hız sınırı ve uzaklık görünür; karttaki düğmeyle kapatılınca gösterge gizlenir, açılınca geri gelir.
+	 */
+	@Test
+	public void radarUyarisi() {
+		android.content.Context c = ctx();
+		boolean was = YoldaRadar.isEnabled(c), overWas = YoldaRadar.overspeedWarn(c);
+		YoldaRadar.setOverspeedWarn(c, false); // bu testte yalnız radar uyarıları sayılsın
+		java.util.List<YoldaRadarCore.Cam> old = YoldaRadar.cams();
+		double lat0 = 40.0, lon0 = 30.0;
+		try {
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			waitIdle(1200);
+			onMain(a -> {
+				YoldaRadar.setEnabled(c, true);
+				YoldaRadar.setCams(java.util.List.of(new YoldaRadarCore.Cam(77, lat0 + 800 / 110_540d, lon0, 70, -1, 'r')));
+				return null;
+			});
+			java.util.List<String> alerts = new java.util.ArrayList<>();
+			for (int m = 0; m <= 700; m += 25) {
+				double la = lat0 + m / 110_540d;
+				onMain(a -> {
+					YoldaRadar.feed(la, lon0, 100, 0);
+					return null;
+				});
+				String al = YoldaRadar.lastAlert;
+				if ((al != null) && (alerts.isEmpty() || !alerts.get(alerts.size() - 1).equals(al))) alerts.add(al);
+				SystemClock.sleep(40);
+			}
+			Log.i(TAG, "Radar uyarıları: " + alerts);
+			assertEquals(java.util.List.of("1 kilometre sonra radar, hız sınırı 70", "500 metre sonra radar, hız sınırı 70",
+					"Dikkat, radar, hız sınırı 70"), alerts);
+			waitIdle(500);
+			View rail = onMain(a -> byDesc(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Hız ve radar"));
+			assertNotNull("Sol kenarda hız / radar göstergesi görünmeli", rail);
+			assertTrue("Gösterge sınırı ve radarı söylemeli: " + rail.getContentDescription(),
+					rail.getContentDescription().toString().contains("sınır 70") && rail.getContentDescription().toString().contains("radar"));
+			shot("radar_gostergesi");
+
+			// Karttan kapat
+			int pos = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().indexOf(YoldaDeck.RADAR));
+			assertTrue("Radar kartı destede olmalı", pos >= 0);
+			onMain(a -> {
+				((YoldaDeckFragment) a.getActiveFragment()).scrollToCard(pos);
+				return null;
+			});
+			waitIdle(1500);
+			View sw = onMain(a -> byDesc(a.getActiveFragment().getView(), "Radar uyarıları: açık"));
+			assertNotNull("Kartta Açık / Kapalı düğmesi olmalı", sw);
+			shot("radar_karti");
+			onMain(a -> sw.performClick());
+			waitIdle(800);
+			assertFalse("Karttan kapatılmalı", YoldaRadar.isEnabled(c));
+			onMain(a -> {
+				YoldaRadar.feed(lat0 + 650 / 110_540d, lon0, 100, 0);
+				return null;
+			});
+			waitIdle(500);
+			assertNull("Kapalıyken gösterge gizli", onMain(a -> byDesc(((android.app.Activity) a.getContext()).getWindow()
+					.getDecorView(), "Hız ve radar")));
+			View sw2 = onMain(a -> byDesc(a.getActiveFragment().getView(), "Radar uyarıları: kapalı"));
+			assertNotNull("Kart kapalı göstermeli", sw2);
+
+			// Radar ekranı açılır
+			onMain(a -> a.showFragment(R.id.yolda_radar_fragment));
+			assertTrue(waitFor(3000, () -> onMain(MainActivityDelegate::getActiveFragmentId) == R.id.yolda_radar_fragment));
+			waitIdle(800);
+			shot("radar_ekrani");
+		} finally {
+			onMain(a -> {
+				YoldaRadar.setCams(old);
+				YoldaRadar.setEnabled(c, was);
+				YoldaRadar.setOverspeedWarn(c, overWas);
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(800);
+		}
+	}
+
 	/** Üstteki ayarlar düğmesi ayarlar (menü) ekranını açar. */
 	@Test
 	public void ayarlarDugmesiUstte() {
@@ -861,6 +943,23 @@ public class YoldaAtoZTest {
 
 	private static android.content.SharedPreferences prefs() {
 		return ctx().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
+	}
+
+	/** Ekran görüntüsü: CI yapıtlarında gözle kontrol için. */
+	private static void shot(String name) {
+		String dir = "/data/local/tmp/yolda-ui"; // CI bu klasörü toplar
+		try {
+			for (String cmd : new String[]{"mkdir -p " + dir, "screencap -p " + dir + "/" + name + ".png"}) {
+				try (android.os.ParcelFileDescriptor pfd = InstrumentationRegistry.getInstrumentation().getUiAutomation()
+						.executeShellCommand(cmd); java.io.FileInputStream in = new java.io.FileInputStream(pfd.getFileDescriptor())) {
+					byte[] buf = new byte[1024];
+					//noinspection StatementWithEmptyBody
+					while (in.read(buf) > 0) ;
+				}
+			}
+		} catch (Exception ex) {
+			Log.w(TAG, "Ekran görüntüsü alınamadı: " + name, ex);
+		}
 	}
 
 	private static Context ctx() {

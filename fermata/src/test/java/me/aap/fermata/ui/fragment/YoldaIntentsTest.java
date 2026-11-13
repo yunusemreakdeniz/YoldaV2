@@ -199,6 +199,20 @@ public class YoldaIntentsTest {
 	}
 
 	@Test
+	public void radar() {
+		kind(Kind.RADAR_OFF, "radarları kapat");
+		kind(Kind.RADAR_OFF, "radar uyarılarını kapat");
+		kind(Kind.RADAR_ON, "radarları aç");
+		kind(Kind.RADAR_ON, "radar uyarısını aç");
+		kind(Kind.RADAR_INFO, "önde radar var mı");
+		kind(Kind.RADAR_INFO, "hız sınırı kaç");
+		kind(Kind.RADAR_INFO, "en yakın radar nerede");
+		kind(Kind.RADAR_ADD, "burada radar var");
+		kind(Kind.RADAR_ADD, "buraya radar ekle");
+		kind(Kind.OPEN_APP, "radar", "radar ekranı");
+	}
+
+	@Test
 	public void sayilar() {
 		assertEquals(35, YoldaIntents.number("otuz beş"));
 		assertEquals(90, YoldaIntents.number("doksan"));

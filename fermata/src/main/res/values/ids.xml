@@ -36,6 +36,7 @@
     <item name="yolda_youtube" type="id" />
     <item name="yolda_nav_fragment" type="id" />
     <item name="yolda_pharmacy_fragment" type="id" />
+    <item name="yolda_radar_fragment" type="id" />
     <item name="yolda_menu_fragment" type="id" />
     <item name="yolda_setup_fragment" type="id" />
     <item name="tv_fragment" type="id" />

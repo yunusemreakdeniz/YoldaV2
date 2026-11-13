@@ -521,6 +521,10 @@ public class MainActivityDelegate extends ActivityDelegate
 	public void onActivityDestroy() {
 		super.onActivityDestroy();
 		me.aap.fermata.ui.fragment.YoldaWake.forget(this);
+		if (radarAttached) {
+			radarAttached = false;
+			me.aap.fermata.ui.fragment.YoldaRadar.detach();
+		}
 		themeTickOn = false;
 		App.get().getHandler().removeCallbacks(autoThemeTick);
 		if (themeListener != null) {
@@ -898,6 +902,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.NavFragment();
 		} else if (id == R.id.yolda_pharmacy_fragment) {
 			return new me.aap.fermata.ui.fragment.PharmacyFragment();
+		} else if (id == R.id.yolda_radar_fragment) {
+			return new me.aap.fermata.ui.fragment.RadarFragment();
 		} else if (id == R.id.yolda_menu_fragment) {
 			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
 		} else if (id == R.id.yolda_setup_fragment) {
@@ -1152,7 +1158,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		int id = getActiveFragmentId();
 		boolean yolda = (id == R.id.home_fragment) || (id == R.id.yolda_channels_fragment) || (id == R.id.yolda_music)
 				|| (id == R.id.yolda_youtube) || (id == R.id.yolda_nav_fragment) || (id == R.id.yolda_menu_fragment)
-				|| (id == R.id.yolda_setup_fragment) || (id == R.id.yolda_pharmacy_fragment);
+				|| (id == R.id.yolda_setup_fragment) || (id == R.id.yolda_pharmacy_fragment) || (id == R.id.yolda_radar_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
 		int left = (me.aap.fermata.ui.view.YoldaStyle.sideRail(getContext()) && yolda && (id != R.id.home_fragment)
 				&& !videoMode)
@@ -1707,6 +1713,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 		if (me.aap.fermata.ui.view.YoldaStyle.DECK) {
 			addDeckBackButton(host, b);
+			addSpeedRail(host);
 			yoldaFloatingBar();
 			// Tam ekran videoda ve Şimdi çalıyor açıkken gizli
 			host.getViewTreeObserver().addOnGlobalLayoutListener(this::updateDeckButtons);
@@ -1720,6 +1727,30 @@ public class MainActivityDelegate extends ActivityDelegate
 	/** V2: sesli düğmenin üstünde, kartın içindeyken desteye dönüş düğmesi. */
 	@Nullable
 	private View deckBack;
+	@Nullable
+	private me.aap.fermata.ui.view.YoldaSpeedRail speedRail;
+	private boolean radarAttached;
+
+	/** Sol kenar: hız sınırı, hız ve öndeki radar (geri / ana sayfa düğmelerinin üstünde). */
+	private void addSpeedRail(ConstraintLayout host) {
+		Context ctx = host.getContext();
+		me.aap.fermata.ui.fragment.YoldaRadar.attach(ctx);
+		radarAttached = true;
+		me.aap.fermata.ui.view.YoldaSpeedRail r = new me.aap.fermata.ui.view.YoldaSpeedRail(ctx);
+		r.setOnClickListener(v -> showFragment(R.id.yolda_radar_fragment));
+		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT,
+				ConstraintLayout.LayoutParams.WRAP_CONTENT);
+		View anchor = (deckPrev != null) ? deckPrev : voiceButton;
+		lp.startToStart = anchor.getId();
+		lp.endToEnd = anchor.getId();
+		lp.bottomToTop = anchor.getId();
+		lp.bottomMargin = toIntPx(ctx, 12);
+		lp.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+		lp.topMargin = toIntPx(ctx, 8);
+		lp.verticalBias = 1f;
+		host.addView(r, lp);
+		speedRail = r;
+	}
 
 	@Nullable
 	public View getDeckBackButton() {
@@ -1815,6 +1846,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		blp.endToEnd = v.getId();
 		blp.bottomToTop = v.getId();
 		blp.bottomMargin = toIntPx(ctx, 12);
+		bk.setId(View.generateViewId()); // hız / radar göstergesi bunun üstüne bağlanır
 		host.addView(bk, blp);
 		deckPrev = bk;
 		updateDeckButtons();
@@ -1871,6 +1903,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			if (voiceButton != null) voiceButton.setVisibility(GONE);
 			if (deckBack != null) deckBack.setVisibility(GONE);
 			if (deckPrev != null) deckPrev.setVisibility(GONE);
+			if (speedRail != null) speedRail.setAllowed(false);
 			showYoldaBack(false);
 			me.aap.fermata.ui.view.VideoView vv = getBody().getVideoView();
 			if (vv != null) me.aap.fermata.ui.view.YoldaChannelRail.of(vv).hide();
@@ -1933,6 +1966,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		int bv = (full || np || (getActiveFragmentId() == R.id.home_fragment)) ? View.GONE : View.VISIBLE;
 		if ((deckBack != null) && (deckBack.getVisibility() != bv)) deckBack.setVisibility(bv);
 		if ((deckPrev != null) && (deckPrev.getVisibility() != bv)) deckPrev.setVisibility(bv);
+		if (speedRail != null) speedRail.setAllowed(!full && !np);
 	}
 
 	private static boolean yoldaSplashShown;

@@ -19,7 +19,7 @@ public final class YoldaIntents {
 	public enum Kind {
 		PAUSE, PLAY, NEXT, PREV, STOP, VOL_UP, VOL_DOWN, MUTE, VOL_SET, SLEEP, SLEEP_CANCEL, TIME, WEATHER,
 		WHAT_PLAYING, FAV_ADD, FAV_OPEN, THEME_NEXT, HOME, BACK, OPEN_APP, NAV_HOME, NAV_WORK, NAV_TO, NAV_NEARBY,
-		YT_SEARCH, SONG, RADIO_SEARCH, RESUME, HELP, REPEAT, THEME_AUTO, SPEAK_ON, SPEAK_OFF, CHANNEL
+		YT_SEARCH, SONG, RADIO_SEARCH, RESUME, HELP, REPEAT, THEME_AUTO, SPEAK_ON, SPEAK_OFF, RADAR_ON, RADAR_OFF, RADAR_INFO, RADAR_ADD, CHANNEL
 	}
 
 	/** Niyet: tür, metin bağımsız değişkeni (uygulama anahtarı, hedef, arama…) ve sayı (dakika, yüzde). */
@@ -162,6 +162,16 @@ public final class YoldaIntents {
 		if (c.matches("tema(yı)? değiştir|renkleri değiştir|başka tema|temayı değiştir")) return Intent.of(Kind.THEME_NEXT);
 		if (c.matches("(otomatik tema|tema(yı)? otomatik( yap)?|gece gündüz tema(sı)?)")) return Intent.of(Kind.THEME_AUTO);
 
+		// radar
+		if (c.matches("radar(lar)?(ı|ları)? (uyarı(sı|ları)?(nı)? )?(kapat|durdur|sustur|devre dışı bırak)|radar uyarısını kapat"))
+			return Intent.of(Kind.RADAR_OFF);
+		if (c.matches("radar(lar)?(ı|ları)? (uyarı(sı|ları)?(nı)? )?(aç|başlat|etkinleştir)|radar uyarısını aç"))
+			return Intent.of(Kind.RADAR_ON);
+		if (c.matches("(burada|burda|şurada) radar var|buraya radar ekle|radar ekle|bunu radar olarak (ekle|kaydet)"))
+			return Intent.of(Kind.RADAR_ADD);
+		if (c.matches("((önde|yakında|ileride|yolda) )?radar var mı|radar nerede|en yakın radar( nerede)?|(burada |bu yolda )?hız sınırı (kaç|ne)"
+				+ "|kaçla gidebilirim|sınır kaç")) return Intent.of(Kind.RADAR_INFO);
+
 		// sesli yanıt ayarı
 		if (c.matches("(sesli )?yanıt(ları)?(nı)? kapat|konuşma(yı)? kapat|sessiz yanıt|sesli yanıtı kapat|sus artık")) return Intent.of(Kind.SPEAK_OFF);
 		if (c.matches("(sesli )?yanıt(ları)?(nı)? aç|konuşma(yı)? aç|sesli yanıtı aç|benimle konuş")) return Intent.of(Kind.SPEAK_ON);
@@ -231,6 +241,7 @@ public final class YoldaIntents {
 			case "menü", "menu", "ayarlar", "ayarları" -> "menu";
 			case "tarayıcı", "internet", "web", "google" -> "web";
 			case "favoriler", "favorilerim", "favorileri" -> "favs";
+			case "radar", "radarlar", "radarları", "radar ekranı", "hız sınırı" -> "radar";
 			default -> null;
 		};
 	}

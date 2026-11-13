@@ -55,6 +55,16 @@ public final class YoldaSpeak {
 		lastSpoken = text;
 		YoldaLog.add("Hey Yolda yanıtı: " + text);
 		if (!isEnabled(ctx)) return;
+		speakNow(ctx, text);
+	}
+
+	/** Uyarılar (radar): Hey Yolda yanıt ayarından bağımsız; kendi ayarı radar ekranında. */
+	public static void sayAlways(Context ctx, String text) {
+		if ((text == null) || text.isEmpty()) return;
+		speakNow(ctx, text);
+	}
+
+	private static void speakNow(Context ctx, String text) {
 		Context app = ctx.getApplicationContext();
 		App.get().getHandler().post(() -> {
 			try {

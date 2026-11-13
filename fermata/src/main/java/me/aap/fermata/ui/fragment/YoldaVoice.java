@@ -215,6 +215,19 @@ public final class YoldaVoice {
 				YoldaSpeak.setEnabled(ctx, true);
 				reply(a, "Sesli yanıt açık");
 			}
+			case RADAR_ON, RADAR_OFF -> {
+				boolean on = it.kind() == Kind.RADAR_ON;
+				YoldaRadar.setEnabled(ctx, on);
+				if (on && !YoldaRadar.hasPermission(ctx)) {
+					a.showFragment(R.id.yolda_radar_fragment);
+					reply(a, "Radar uyarıları açık; konum izni gerekli");
+				} else {
+					reply(a, on ? "Radar uyarıları açık" : "Radar uyarıları kapatıldı");
+				}
+			}
+			case RADAR_ADD -> reply(a, YoldaRadar.addHere(ctx) ? "Radar eklendi, buradan geçerken uyaracağım"
+					: "Konum henüz bilinmiyor");
+			case RADAR_INFO -> reply(a, radarInfo(ctx));
 			case HOME -> a.showFragment(R.id.home_fragment);
 			case BACK -> a.yoldaBack();
 			case OPEN_APP -> {
@@ -364,6 +377,7 @@ public final class YoldaVoice {
 				a.showFragment(R.id.web_browser_fragment);
 				a.postBroadcastEvent(me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED);
 			}
+			case "radar" -> a.showFragment(R.id.yolda_radar_fragment);
 			case "favs" -> {
 				a.showFragment(R.id.home_fragment);
 				App.get().getHandler().post(() -> {
@@ -375,6 +389,16 @@ public final class YoldaVoice {
 			}
 		}
 		return true;
+	}
+
+	static String radarInfo(Context ctx) {
+		if (!YoldaRadar.isEnabled(ctx)) return "Radar uyarıları kapalı. Açmak için radarları aç de";
+		if (!YoldaRadar.hasFix()) return "Konumun henüz bilinmiyor";
+		YoldaRadarCore.Ahead ah = YoldaRadar.ahead;
+		int lim = YoldaRadar.limit;
+		String l = (lim > 0) ? ("Hız sınırı " + lim + (YoldaRadar.limitEstimated ? ", tahmini" : "")) : "Bu yolun hız sınırını bilmiyorum";
+		if (ah == null) return "Önde radar yok. " + l;
+		return ah.meters() + " metre sonra " + ah.cam().label().toLowerCase(TR) + ". " + l;
 	}
 
 	/** Kaldığın yerden: kapatılan / son çalan; yoksa son dinlenen şarkılar. */
