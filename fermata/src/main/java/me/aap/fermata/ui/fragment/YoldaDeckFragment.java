@@ -401,6 +401,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		loadChannels();
 		loadExtras(car);
+		YoldaVoice.preload(getActivityDelegate()); // sesli komutta kanal adları hazır olsun ("TRT Haber aç")
 		return root;
 	}
 

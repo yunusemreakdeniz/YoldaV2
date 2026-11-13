@@ -584,6 +584,30 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Sesli komut "TRT Haber aç": kanal listesi yüklenmemiş olsa da kanal açılır; anlaşılmayan komut söylenir. */
+	@Test
+	public void sesliKomutKanalAcar() throws Exception {
+		java.lang.reflect.Field f = YoldaVoice.class.getDeclaredField("channels");
+		f.setAccessible(true);
+		f.set(null, new java.util.ArrayList<>()); // liste henüz yok (telefonda önceden hiç yüklenmiyordu)
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1000);
+		boolean handled = onMain(a -> YoldaVoice.handle(a, "TRT Haber aç"));
+		assertTrue("Komut işlenmeli", handled);
+		boolean opened = waitFor(15_000, () -> onMain(a -> {
+			me.aap.fermata.media.lib.MediaLib.PlayableItem o = me.aap.fermata.media.service.MediaSessionCallback.yoldaOpeningItem();
+			if (o == null) o = a.getCurrentPlayable();
+			return (o != null) && o.getName().equalsIgnoreCase("TRT Haber");
+		}));
+		Log.i(TAG, "Sesli komut kanal: " + opened);
+		assertTrue("“TRT Haber aç” TRT Haber'i açmalı", opened);
+		onMain(a -> {
+			a.getControlPanel().closePlayer();
+			return null;
+		});
+		assertFalse("Anlamsız komut işlenmiş sayılmamalı", onMain(a -> YoldaVoice.handle(a, "zxqw plor")));
+	}
+
 	/** Üstteki ayarlar düğmesi ayarlar (menü) ekranını açar. */
 	@Test
 	public void ayarlarDugmesiUstte() {

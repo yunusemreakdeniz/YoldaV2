@@ -1304,6 +1304,11 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	private void voiceSearch(View focus) {
 		startSpeechRecognizer().onSuccess(q -> {
+			if ((q == null) || q.isEmpty()) return;
+			me.aap.fermata.ui.fragment.YoldaLog.add("Sesli komut: “" + q.get(0) + "”");
+			// Önce Yolda komutu ("TRT Haber aç", "müzik", "eve git"); komut değilse odaktaki yazı kutusuna yazılır.
+			// Önceden bir arama kutusu odaktaysa komut kutuya yazılıp hiçbir şey olmuyordu.
+			if (me.aap.fermata.ui.fragment.YoldaVoice.handle(this, q.get(0))) return;
 			if (focus instanceof EditText) {
 				((EditText) focus).setText(q.get(0));
 				focus.requestFocus();
@@ -1312,7 +1317,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			} else {
 				VoiceCommandHandler h = voiceCommandHandler;
 				if (h == null) h = voiceCommandHandler = new VoiceCommandHandler(this);
-				h.handle(q);
+				if (!h.handle(q)) me.aap.fermata.ui.fragment.YoldaVoice.notUnderstood(this, q.get(0));
 			}
 		});
 	}

@@ -104,6 +104,26 @@ public final class YoldaVoice {
 		// Kanal ya da radyo adı
 		String q = norm(OBJ_SUFFIX.matcher(app).replaceAll(""));
 		if (q.length() < 2) return false;
+		if (channels.isEmpty() && AddonManager.get().hasAddon(R.id.tv_fragment)) {
+			// Kanal listesi henüz yüklenmemiş (önceden yalnız eski ana sayfa yüklüyordu: "TRT Haber aç" boşa düşüyordu):
+			// yükle, sonra aynı komutu yeniden dene
+			YoldaLog.add("Sesli komut: kanal listesi yükleniyor, sonra “" + raw + "”");
+			a.getLib().getItem("TV").main().onCompletion((r, err) -> {
+				if (!(r instanceof MediaLib.BrowsableItem br)) {
+					notUnderstood(a, raw);
+					return;
+				}
+				br.getPlayableChildren(true).main().onCompletion((list, e2) -> {
+					if ((list == null) || list.isEmpty()) {
+						notUnderstood(a, raw);
+						return;
+					}
+					channels = new ArrayList<>(list);
+					if (!handle(a, raw)) notUnderstood(a, raw);
+				});
+			});
+			return true;
+		}
 		MediaLib.PlayableItem best = null;
 		int bestScore = 0;
 		for (MediaLib.PlayableItem pi : channels) {
@@ -120,6 +140,7 @@ public final class YoldaVoice {
 			}
 		}
 		if (best != null) {
+			YoldaLog.add("Sesli komut → kanal: " + best.getName());
 			a.getBody().playItem(best);
 			if (!best.isVideo()) me.aap.fermata.ui.view.YoldaNowPlaying.show(a);
 			return true;
@@ -127,10 +148,10 @@ public final class YoldaVoice {
 		// Listede olmayan radyo: internetteki radyo dizininde ara, ilkini çal ("Kral FM aç", "Joy Türk radyosu")
 		String radio = radioQuery(c);
 		if (radio != null) {
-			me.aap.utils.ui.UiUtils.showInfo(a.getContext(), "“" + radio + "” radyosu aranıyor…");
+			me.aap.fermata.ui.view.YoldaStyle.toast(a.getContext(), "“" + radio + "” radyosu aranıyor…");
 			me.aap.fermata.media.radio.RadioBrowser.search(radio).main().onCompletion((l, err) -> {
 				if ((l == null) || l.isEmpty()) {
-					me.aap.utils.ui.UiUtils.showInfo(a.getContext(), "“" + radio + "” radyosu bulunamadı");
+					me.aap.fermata.ui.view.YoldaStyle.toast(a.getContext(), "“" + radio + "” radyosu bulunamadı");
 					return;
 				}
 				var s = l.get(0);
@@ -141,6 +162,12 @@ public final class YoldaVoice {
 			return true;
 		}
 		return false;
+	}
+
+	/** Komut anlaşılamadı: kullanıcı beklemede kalmasın, kısa yazıyla söylenir. */
+	public static void notUnderstood(MainActivityDelegate a, String raw) {
+		YoldaLog.add("Sesli komut anlaşılamadı: “" + raw + "”");
+		me.aap.fermata.ui.view.YoldaStyle.toast(a.getContext(), "“" + raw + "” anlaşılamadı");
 	}
 
 	private static final Pattern RADIO_WORDS = Pattern.compile(
@@ -180,7 +207,7 @@ public final class YoldaVoice {
 			return true;
 		}
 		if (c.matches("saat kaç.*|saat ne.*")) {
-			me.aap.utils.ui.UiUtils.showInfo(ctx, "Saat " + new java.text.SimpleDateFormat("HH:mm", TR).format(new java.util.Date()));
+			me.aap.fermata.ui.view.YoldaStyle.toast(ctx, "Saat " + new java.text.SimpleDateFormat("HH:mm", TR).format(new java.util.Date()));
 			return true;
 		}
 		if (c.matches("tema(yı)? değiştir|renkleri değiştir|başka tema")) {
@@ -207,10 +234,10 @@ public final class YoldaVoice {
 		if (c.matches("(bunu |bu şarkıyı |bu kanalı |bu radyoyu )?favori(lere|ye|lerime)? ekle|favorile")) {
 			String[] e = YoldaFavs.entryOf(a.getCurrentPlayable());
 			if (e == null) {
-				me.aap.utils.ui.UiUtils.showInfo(ctx, "Çalan bir şey yok ya da favorilere eklenemiyor");
+				me.aap.fermata.ui.view.YoldaStyle.toast(ctx, "Çalan bir şey yok ya da favorilere eklenemiyor");
 			} else {
 				YoldaFavs.add(ctx, e[0], e[1], e[2], e[3]);
-				me.aap.utils.ui.UiUtils.showInfo(ctx, "★ Favorilere eklendi: " + e[1]);
+				me.aap.fermata.ui.view.YoldaStyle.toast(ctx, "★ Favorilere eklendi: " + e[1]);
 			}
 			return true;
 		}
