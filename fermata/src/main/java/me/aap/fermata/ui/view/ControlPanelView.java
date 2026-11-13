@@ -250,6 +250,7 @@ public class ControlPanelView extends ConstraintLayout
 	/** Yolda: ✕ — çalmayı durdurur, oynatıcıyı ve video ekranını kapatır. */
 	public void closePlayer() {
 		MainActivityDelegate a = getActivity();
+		YoldaNowPlaying.rememberClosed(a.getCurrentPlayable()); // ▶ aynı kanalı / şarkıyı yeniden açsın
 		try {
 			a.getMediaSessionCallback().onPause(); // önce duraklat: bazı motorlar durdurmayı geç işler
 			a.getMediaSessionCallback().onStop();
@@ -381,23 +382,14 @@ public class ControlPanelView extends ConstraintLayout
 
 	@Override
 	public boolean onSwipeLeft(MotionEvent e1, MotionEvent e2) {
-		// Yolda: videoda sola kaydır → sonraki kanal / video (ekranda "Sonraki ›" işareti)
-		if (gestureSource instanceof VideoView v) {
-			YoldaStyle.haptic(v);
-			YoldaSwipe.skip(getActivity(), 1, v);
-			return true;
-		}
+		if (gestureSource instanceof VideoView) return true; // Yolda: videoda kaydırma onVideoViewTouch'ta
 		getActivity().getMediaServiceBinder().onPrevNextButtonClick(true);
 		return true;
 	}
 
 	@Override
 	public boolean onSwipeRight(MotionEvent e1, MotionEvent e2) {
-		if (gestureSource instanceof VideoView v) {
-			YoldaStyle.haptic(v);
-			YoldaSwipe.skip(getActivity(), -1, v);
-			return true;
-		}
+		if (gestureSource instanceof VideoView) return true;
 		getActivity().getMediaServiceBinder().onPrevNextButtonClick(false);
 		return true;
 	}
@@ -520,8 +512,21 @@ public class ControlPanelView extends ConstraintLayout
 		return true;
 	}
 
+	private YoldaSwipe videoSwipe;
+
 	public void onVideoViewTouch(VideoView view, MotionEvent e) {
 		gestureSource = view;
+		if (videoSwipe == null) videoSwipe = new YoldaSwipe(getContext());
+		int dir = videoSwipe.feed(e);
+		if (dir != 0) { // sola kaydır → sonraki kanal / video, sağa → önceki
+			YoldaStyle.haptic(view);
+			YoldaSwipe.skip(getActivity(), dir, view);
+			MotionEvent c = MotionEvent.obtain(e);
+			c.setAction(MotionEvent.ACTION_CANCEL); // dokunma sayılmasın (kontroller açılıp kapanmasın)
+			gestureDetector.onTouchEvent(c);
+			c.recycle();
+			return;
+		}
 		gestureDetector.onTouchEvent(e);
 	}
 

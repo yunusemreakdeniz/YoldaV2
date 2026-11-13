@@ -240,16 +240,23 @@ public class YoldaGestureTest {
 
 	/** Gerçek parmak hareketi gibi: basma, 8 adım kaydırma, bırakma (~200 ms). */
 	private static void swipe(float x0, float y0, float x1, float y1) {
-		Instrumentation in = InstrumentationRegistry.getInstrumentation();
+		android.app.UiAutomation ui = InstrumentationRegistry.getInstrumentation().getUiAutomation();
 		long t = SystemClock.uptimeMillis();
-		in.sendPointerSync(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, x0, y0, 0));
+		inject(ui, MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, x0, y0, 0));
 		for (int i = 1; i <= 8; i++) {
 			float f = i / 8f;
-			in.sendPointerSync(MotionEvent.obtain(t, t + i * 22L, MotionEvent.ACTION_MOVE, x0 + (x1 - x0) * f,
+			SystemClock.sleep(22);
+			inject(ui, MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_MOVE, x0 + (x1 - x0) * f,
 					y0 + (y1 - y0) * f, 0));
 		}
-		in.sendPointerSync(MotionEvent.obtain(t, t + 200, MotionEvent.ACTION_UP, x1, y1, 0));
-		in.waitForIdleSync();
+		inject(ui, MotionEvent.obtain(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, x1, y1, 0));
+		InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+	}
+
+	private static void inject(android.app.UiAutomation ui, MotionEvent e) {
+		e.setSource(android.view.InputDevice.SOURCE_TOUCHSCREEN);
+		ui.injectInputEvent(e, true);
+		e.recycle();
 	}
 
 	/** Ad verilirse o kanal; video=true ise ilk TV (video) kanalı. */

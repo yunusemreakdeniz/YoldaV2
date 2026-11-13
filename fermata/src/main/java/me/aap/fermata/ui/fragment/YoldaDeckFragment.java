@@ -90,6 +90,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if ((v.getChildCount() == 0) || (v.getHeight() <= 0)) return;
 			View last = v.getChildAt(v.getChildCount() - 1);
 			int over = last.getBottom() - (v.getHeight() - v.getPaddingBottom());
+			// satır sığsa da içindeki öğe satırdan uzun olabilir (ör. "Aç" düğmesi): o da taşmadır
+			for (int i = 0; i < v.getChildCount(); i++) {
+				if (!(v.getChildAt(i) instanceof ViewGroup g) || (g.getVisibility() != View.VISIBLE)) continue;
+				for (int k = 0; k < g.getChildCount(); k++) {
+					View cc = g.getChildAt(k);
+					if (cc.getVisibility() != View.VISIBLE) continue;
+					over = Math.max(over, Math.max(cc.getBottom() - g.getHeight(), -cc.getTop()));
+				}
+			}
 			if (over <= dp(1)) return;
 			int add = Math.round(over / getResources().getDisplayMetrics().density) + 2;
 			int want = base + add;

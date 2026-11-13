@@ -222,6 +222,17 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	 * Oynat / duraklat. Hata ya da durdurulmuş durumda aynı içeriği yeniden açar (Fermata'nın varsayılanı
 	 * "son çalınan" başka bir kanalı açabiliyordu); şarkının akış adresi süresi dolmuş olabilir, yeniden aranır.
 	 */
+	/** ✕ ile kapatılan öğe: oynatıcı unutsa da ▶ onu yeniden açar (30 dk içinde). */
+	@Nullable
+	private static volatile MediaLib.PlayableItem closedItem;
+	private static volatile long closedAt;
+
+	public static void rememberClosed(@Nullable MediaLib.PlayableItem pi) {
+		if (pi == null) return;
+		closedItem = pi;
+		closedAt = SystemClock.elapsedRealtime();
+	}
+
 	public static void togglePlay(MainActivityDelegate a) {
 		MediaSessionCallback cb = a.getMediaSessionCallback();
 		// Ses kısa süreli odak kaybıyla kapalı kaldıysa ilk dokunuş sesi geri getirir (duraklatmaz)
@@ -231,6 +242,10 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			return;
 		}
 		MediaLib.PlayableItem pi = a.getCurrentPlayable();
+		if ((pi == null) && isStopped(cb) && (closedItem != null) && (SystemClock.elapsedRealtime() - closedAt < 30 * 60_000L)) {
+			pi = closedItem;
+			closedItem = null;
+		}
 		if (isStopped(cb) && (pi != null)) {
 			if (pi instanceof YtMusicItem m) {
 				YtMusic.Track tr = m.getTrack();
