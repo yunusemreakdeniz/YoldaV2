@@ -254,6 +254,23 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		date.setTextColor(t.muted);
 		date.setPadding(dp(12), dp(4), 0, 0);
 		top.addView(date, new LinearLayout.LayoutParams(0, -2, 1f));
+		// Tema: dokun → sıradaki tema; basılı tut → otomatik (gündüz / gece) aç / kapat
+		ImageView themeBtn = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx), v -> {
+			YoldaStyle.haptic(v);
+			YoldaStyle.next(ctx); // tüm ekranlar dinleyiciyle yenilenir
+			UiUtils.showInfo(ctx, "Tema: " + YoldaStyle.label(ctx));
+		});
+		themeBtn.setOnLongClickListener(v -> {
+			YoldaStyle.haptic(v);
+			boolean on = !YoldaStyle.isAuto(ctx);
+			YoldaStyle.setAuto(ctx, on);
+			UiUtils.showInfo(ctx, on ? "Otomatik tema açık: gündüz ve gece kendiliğinden değişir"
+					: "Otomatik tema kapalı");
+			return true;
+		});
+		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(44), dp(44));
+		tlp.rightMargin = dp(10);
+		top.addView(themeBtn, tlp);
 		editBtn = roundButton(ctx, R.drawable.yi_edit, "Düzenle", v -> setEditing(!editing));
 		top.addView(editBtn, new LinearLayout.LayoutParams(dp(44), dp(44)));
 		col.addView(top);

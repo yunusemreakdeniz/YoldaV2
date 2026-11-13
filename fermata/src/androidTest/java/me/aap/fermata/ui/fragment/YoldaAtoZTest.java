@@ -386,6 +386,44 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Ana sayfada düzenle düğmesinin yanındaki tema düğmesi: dokun → sıradaki tema, basılı tut → otomatik. */
+	@Test
+	public void temaDugmesiDuzenleYaninda() {
+		android.content.SharedPreferences p = ctx().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
+		try {
+			p.edit().putInt("theme", 0).putBoolean(YoldaStyle.PREF_AUTO, false).commit();
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			waitIdle(1500);
+			View btn = onMain(a -> byDesc(a.getActiveFragment().getView(), "Tema:"));
+			assertNotNull("Tema düğmesi olmalı", btn);
+			View edit = onMain(a -> byDesc(a.getActiveFragment().getView(), "Düzenle"));
+			assertNotNull(edit);
+			assertTrue("Tema düğmesi düzenle düğmesinin hemen solunda", onMain(a -> (btn.getParent() == edit.getParent())
+					&& (btn.getRight() <= edit.getLeft()) && (edit.getLeft() - btn.getRight() < btn.getWidth())));
+			onMain(a -> btn.performClick());
+			assertTrue("Dokununca tema değişmeli", waitFor(5000, () -> YoldaStyle.index(ctx()) == 1));
+			waitIdle(1500);
+			View btn2 = onMain(a -> byDesc(a.getActiveFragment().getView(), "Tema:"));
+			onMain(a -> btn2.performLongClick());
+			assertTrue("Basılı tutunca otomatik açılmalı", waitFor(3000, () -> YoldaStyle.isAuto(ctx())));
+		} finally {
+			p.edit().putInt("theme", 0).putBoolean(YoldaStyle.PREF_AUTO, false).commit();
+		}
+	}
+
+	private static View byDesc(View v, String prefix) {
+		if (v == null) return null;
+		CharSequence d = v.getContentDescription();
+		if ((d != null) && d.toString().startsWith(prefix) && (v.getVisibility() == View.VISIBLE)) return v;
+		if (v instanceof ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				View f = byDesc(g.getChildAt(i), prefix);
+				if (f != null) return f;
+			}
+		}
+		return null;
+	}
+
 	private static long utc(int y, int m, int d, int h, int min) {
 		java.util.Calendar c = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
 		c.clear();
