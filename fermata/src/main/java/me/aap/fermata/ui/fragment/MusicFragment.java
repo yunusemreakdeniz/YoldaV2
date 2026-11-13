@@ -155,11 +155,7 @@ public class MusicFragment extends MainActivityFragment {
 		full.setPadding(dp(14), 0, dp(14), 0);
 		full.setBackground(YoldaStyle.glass(ctx, t, 999));
 		full.setOnClickListener(v -> HomeFragment.openWeb(a, HomeFragment.MUSIC_URL));
-		if (!signedIn() && !directPreferred(ctx)) { // bir kez giriş: YouTube Music hesabınla, "bot" engeli olmadan
-			full.setText("Google ile giriş");
-			full.setContentDescription("YouTube Music için Google hesabıyla giriş");
-			full.setOnClickListener(v -> HomeFragment.openWeb(a, LOGIN_URL));
-		}
+		// Giriş gerekmez: YouTube Music girişsiz de çalar (isteyen "Tam site"ten hesabına girebilir)
 		LinearLayout.LayoutParams flp = new LinearLayout.LayoutParams(-2, dp(48));
 		flp.leftMargin = dp(10);
 		top.addView(full, flp);
@@ -890,6 +886,19 @@ public class MusicFragment extends MainActivityFragment {
 		YoldaLog.add("Müzik: YouTube Music'te çalınıyor (" + (signedIn() ? "hesapla" : "giriş yapılmamış") + ")");
 		Object existing = findFragment(R.id.youtube_fragment);
 		if (existing != null) { // sayfa hazır: ekran değiştirmeden şarkıyı yükle
+			android.webkit.WebView w = (existing instanceof androidx.fragment.app.Fragment fr) ? findWeb(fr.getView()) : null;
+			String cur = (w != null) ? w.getUrl() : null;
+			if ((w != null) && (cur != null) && cur.contains("music.youtube.com")) {
+				// YouTube Music'in kendi içinde geçiş: sayfa yeniden yüklenmez, şarkı ~anında değişir
+				w.evaluateJavascript("(function(){var a=document.createElement('a');a.href='/watch?v=" + tr.id()
+						+ "';document.body.appendChild(a);a.click();a.remove();})()", null);
+				Object ex = existing;
+				me.aap.utils.app.App.get().getHandler().postDelayed(() -> { // olmadıysa sayfayı yükle
+					String u = w.getUrl();
+					if (tr.id().equals(nowId) && ((u == null) || !u.contains(tr.id()))) loadInto(ex, url);
+				}, 2500);
+				return;
+			}
 			loadInto(existing, url);
 			return;
 		}

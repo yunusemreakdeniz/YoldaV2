@@ -70,8 +70,11 @@ public final class YoldaSwipe {
 	/** Noktanın altında kendi yatay hareketi olan bir öğe var mı (ilerleme çubuğu, yatay şerit). */
 	public static boolean onHorizontalControl(View root, float rawX, float rawY) {
 		if ((root.getVisibility() != View.VISIBLE) || !hit(root, rawX, rawY)) return false;
-		if ((root instanceof YoldaSeekLine) || (root instanceof SeekBar) || (root instanceof HorizontalScrollView)
-				|| root.getClass().getName().contains("RecyclerView")) return true;
+		if ((root instanceof YoldaSeekLine) || (root instanceof SeekBar)) return true;
+		// Yatay şerit yalnız gerçekten kayabiliyorsa kendi hareketini alır; sığıyorsa kaydırma sonraki / önceki sayılır
+		// (önceden sayılmıyor, parmağın altındaki şarkıya dokunulmuş gibi o çalıyordu)
+		if (((root instanceof HorizontalScrollView) || root.getClass().getName().contains("RecyclerView"))
+				&& (root.canScrollHorizontally(1) || root.canScrollHorizontally(-1))) return true;
 		if (root instanceof ViewGroup g) {
 			for (int i = 0; i < g.getChildCount(); i++) {
 				if (onHorizontalControl(g.getChildAt(i), rawX, rawY)) return true;
