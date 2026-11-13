@@ -57,6 +57,17 @@ public final class YoldaWake {
 	private static SpeechService service;
 	@Nullable
 	private static MainActivityDelegate owner;
+	/**
+	 * Araç ekranı (açıksa): "Hey Yolda" komutu her zaman araçta işlenir. Önceden telefon ekranı bir kez öne gelince
+	 * komut telefonda işleniyor, araçta "dinliyor ama bir şey yapmıyor" oluyordu.
+	 */
+	private static MainActivityDelegate carOwner;
+
+	/** Ekran kapandı: ona bağlı dinleyici sahipliği bırakılır. */
+	public static void forget(MainActivityDelegate a) {
+		if (carOwner == a) carOwner = null;
+		if (owner == a) owner = (carOwner != null) ? carOwner : null;
+	}
 	private static boolean paused;
 	private static boolean downloading;
 	private static long lastWake;
@@ -99,6 +110,7 @@ public final class YoldaWake {
 	public static void start(MainActivityDelegate a) {
 		Context ctx = a.getContext();
 		owner = a;
+		if (a.isCarActivity()) carOwner = a;
 		paused = false;
 		if (!isEnabled(ctx) || (service != null) || starting) return;
 		if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -292,9 +304,9 @@ public final class YoldaWake {
 		long now = System.currentTimeMillis();
 		if (now - lastWake < 3000) return;
 		lastWake = now;
-		MainActivityDelegate a = owner;
+		MainActivityDelegate a = (carOwner != null) ? carOwner : owner;
 		if (a == null) return;
-		YoldaLog.add("Hey Yolda duyuldu");
+		YoldaLog.add("Hey Yolda duyuldu (" + (a.isCarActivity() ? "araç" : "telefon") + " ekranında işleniyor)");
 		pause(); // mikrofonu sesli asistana bırak
 		App.get().getHandler().postDelayed(() -> {
 			try {

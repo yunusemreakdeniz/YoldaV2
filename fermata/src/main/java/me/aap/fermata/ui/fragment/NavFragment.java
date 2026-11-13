@@ -580,6 +580,31 @@ public class NavFragment extends MainActivityFragment {
 		}
 		tries.add(new Intent(Intent.ACTION_VIEW, geo).setPackage(pkg));
 		tries.add(new Intent(Intent.ACTION_VIEW, geo));
+		// Hedef varsa rota telefondaki harita uygulamasında başlatılır: telefonda navigasyon başlayınca Android Auto
+		// onu araç ekranında kendiliğinden gösterir (araç ekranından başka uygulama açmak bazı araçlarda sessizce
+		// hiçbir şey yapmıyordu). Arkadan uygulama açmak "diğer uygulamaların üzerinde gösterme" izniyle mümkün.
+		if (has) {
+			try {
+				Intent nav = (waze ? new Intent(Intent.ACTION_VIEW, Uri.parse("https://waze.com/ul?q=" + Uri.encode(dest.trim())
+						+ "&navigate=yes")) : new Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=" + Uri.encode(dest.trim()))))
+						.setPackage(pkg).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+				ctx.getApplicationContext().startActivity(nav);
+				boolean overlay = android.provider.Settings.canDrawOverlays(ctx);
+				YoldaLog.add("Navigasyon telefonda başlatıldı (" + pkg + ")" + (overlay ? "" : " · üstte gösterme izni yok, açılmayabilir"));
+			} catch (Exception ex) {
+				YoldaLog.add("Navigasyon telefonda başlatılamadı: " + ex);
+			}
+		} else {
+			try { // hedef yok: harita uygulaması telefonda öne gelir (Android Auto navigasyon alanında gösterir)
+				Intent open = ctx.getPackageManager().getLaunchIntentForPackage(pkg);
+				if (open != null) {
+					ctx.getApplicationContext().startActivity(open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+					YoldaLog.add("Harita uygulaması telefonda açıldı (" + pkg + ")");
+				}
+			} catch (Exception ex) {
+				YoldaLog.add("Harita uygulaması açılamadı: " + ex);
+			}
+		}
 		try {
 			Object act = a.getAppActivity();
 			java.lang.reflect.Method m = act.getClass().getMethod("startCarActivity", Intent.class);

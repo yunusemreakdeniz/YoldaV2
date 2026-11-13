@@ -75,7 +75,9 @@ public final class YoldaUrlBar extends FrameLayout {
 		YoldaUrlBar b = new YoldaUrlBar(root.getContext(), web, load);
 		float d = root.getResources().getDisplayMetrics().density;
 		LayoutParams lp = new LayoutParams(-1, Math.round(YoldaStyle.VOICE_DP * d), Gravity.BOTTOM);
-		lp.setMargins(Math.round(YoldaStyle.searchLeft(root.getContext()) * d), 0, Math.round(22 * d),
+		// Tarayıcı gövdesi sol düğme sütunu kadar kaydırılmıyor (diğer ekranlar kaydırılıyor): kapsül her zaman
+		// sesli / ana sayfa / geri düğmelerinin sağından başlar (önceden araçta sesli düğmenin altında kalıyordu)
+		lp.setMargins(Math.round(YoldaStyle.searchLeftDp() * d), 0, Math.round(22 * d),
 				Math.round(YoldaStyle.VOICE_BOTTOM_DP * d));
 		root.addView(b, lp);
 		return b;

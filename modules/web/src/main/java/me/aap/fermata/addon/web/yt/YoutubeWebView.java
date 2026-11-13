@@ -276,6 +276,9 @@ public class YoutubeWebView extends FermataWebView {
 
 	@Override
 	protected void urlChanged(String url) {
+		// kullanıcı YouTube'da müzik dışı bir video açtı: Yolda Müzik bu sayfayı bırakır
+		if ((url != null) && !url.contains("music.youtube.com") && isVideoUrl(url))
+			me.aap.fermata.ui.fragment.MusicFragment.releaseYoutube(false);
 		if (isVideoUrl(url)) {
 			// Another video opened before the reopened one started
 			if ((reopening != null) && !videoId(url).equals(videoId(reopening.url()))) reopening = null;

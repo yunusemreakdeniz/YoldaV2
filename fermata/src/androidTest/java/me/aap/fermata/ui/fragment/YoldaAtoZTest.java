@@ -544,6 +544,46 @@ public class YoldaAtoZTest {
 		return null;
 	}
 
+	/** Telefon kartı: telefondaki uygulamalar eklenir, kartta görünür, düzenlenir. */
+	@Test
+	public void telefonUygulamalariEklenirDuzenlenir() {
+		String pkg = "com.android.settings";
+		YoldaDeckFragment.savePhoneApps(ctx(), new java.util.ArrayList<>(java.util.List.of(pkg)));
+		try {
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			waitIdle(1500);
+			int pos = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().indexOf(YoldaDeck.PHONE));
+			onMain(a -> {
+				((YoldaDeckFragment) a.getActiveFragment()).scrollToCard(pos);
+				return null;
+			});
+			waitIdle(1500);
+			String label = String.valueOf(ctx().getPackageManager().getApplicationLabel(ctx().getApplicationInfo().packageName
+					.equals(pkg) ? ctx().getApplicationInfo() : appInfo(pkg)));
+			assertNotNull("Eklenen uygulama kartta görünmeli: " + label, onMain(a -> byDescExact(a.getActiveFragment().getView(), label)));
+			View add = onMain(a -> byText(a.getActiveFragment().getView(), "＋ Uygulama"));
+			assertNotNull("＋ Uygulama olmalı", add);
+			assertNotNull("✎ Düzenle olmalı", onMain(a -> byText(a.getActiveFragment().getView(), "✎ Düzenle")));
+			onMain(a -> add.performClick());
+			waitIdle(1200);
+			assertNotNull("Uygulama listesi açılmalı", onMain(a -> byText(a.getActiveFragment().getView(), "Uygulama ekle")));
+			onMain(a -> {
+				a.onBackPressed();
+				return null;
+			});
+		} finally {
+			YoldaDeckFragment.savePhoneApps(ctx(), new java.util.ArrayList<>());
+		}
+	}
+
+	private static android.content.pm.ApplicationInfo appInfo(String pkg) {
+		try {
+			return ctx().getPackageManager().getApplicationInfo(pkg, 0);
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+
 	/** Üstteki ayarlar düğmesi ayarlar (menü) ekranını açar. */
 	@Test
 	public void ayarlarDugmesiUstte() {

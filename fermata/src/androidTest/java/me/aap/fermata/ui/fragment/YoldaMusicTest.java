@@ -148,6 +148,24 @@ public class YoldaMusicTest {
 		shot("muzik_sonraki");
 		assertTrue("Sonraki şarkıya geçmeli (" + first + " → " + MusicFragment.nowPlayingId() + ")", changed);
 		assertTrue("Sonraki şarkı da sesli çalmalı", waitFor(40_000, this::soundActive));
+
+		// YouTube'da müzik dışı bir video açılınca müzik sayfayı bırakır (haber açınca müzik oynatıcısı gelmesin)
+		List<YtMusic.Track> vids = YtMusic.searchVideos("trt haber").get(null, 45, TimeUnit.SECONDS);
+		if ((vids != null) && !vids.isEmpty()) {
+			String vurl = "https://m.youtube.com/watch?v=" + vids.get(0).id();
+			onMain(a -> {
+				Object f = a.showFragment(R.id.youtube_fragment);
+				try {
+					f.getClass().getMethod("loadVideo", String.class).invoke(f, vurl);
+				} catch (Exception ex) {
+					throw new RuntimeException(ex);
+				}
+				return null;
+			});
+			boolean released = waitFor(20_000, () -> !MusicFragment.playingViaYoutube());
+			Log.i(TAG, "YouTube videosu açılınca müzik bıraktı: " + released);
+			assertTrue("YouTube'da video açılınca müzik sayfayı bırakmalı", released);
+		}
 	}
 
 	/** Tek şarkılık liste (ör. favoriden): bitince benzer şarkılarla sürer, "Sonraki" boşa düşmez. */

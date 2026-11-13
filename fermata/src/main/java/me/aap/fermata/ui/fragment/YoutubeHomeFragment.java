@@ -421,6 +421,7 @@ public class YoutubeHomeFragment extends MainActivityFragment {
 
 	/** Videoyu YouTube oynatıcısında aç. */
 	private void play(YtMusic.Track tr) {
+		MusicFragment.releaseYoutube(); // haber / video: müzik oynatıcısı karışmasın
 		MainActivityDelegate a = getActivityDelegate();
 		String url = "https://m.youtube.com/watch?v=" + tr.id();
 		Object f = a.showFragment(R.id.youtube_fragment);

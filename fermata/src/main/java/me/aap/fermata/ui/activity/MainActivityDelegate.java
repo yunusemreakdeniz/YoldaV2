@@ -520,6 +520,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	public void onActivityDestroy() {
 		super.onActivityDestroy();
+		me.aap.fermata.ui.fragment.YoldaWake.forget(this);
 		themeTickOn = false;
 		App.get().getHandler().removeCallbacks(autoThemeTick);
 		if (themeListener != null) {
@@ -845,7 +846,10 @@ public class MainActivityDelegate extends ActivityDelegate
 		if ((id == R.id.tv_fragment) && !me.aap.fermata.ui.fragment.ChannelsFragment.consumeBypass())
 			id = R.id.yolda_channels_fragment;
 		BodyLayout b = getBody();
-		if (b.isVideoMode()) b.setMode(BodyLayout.Mode.BOTH);
+		// Yolda: video oynarken başka ekrana geçince gövde bölünmez (kartlar yarım ekrana düşüp küçülüyordu);
+		// ses sürer, videoya üstteki "▶ çalan" düğmesiyle dönülür. Bölünmüş ekran yalnız bilerek açılınca.
+		if (b.isVideoMode()) b.setMode(me.aap.fermata.ui.view.YoldaStyle.DECK && !BodyLayout.yoldaSplit
+				? BodyLayout.Mode.FRAME : BodyLayout.Mode.BOTH);
 		int prev = getActiveFragmentId();
 		if (!yoldaGoingBack && (prev != 0) && (prev != id)) { // geri düğmesi için ekran geçmişi
 			yoldaHistory.push(prev);

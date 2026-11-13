@@ -259,7 +259,9 @@ public class ControlPanelView extends ConstraintLayout
 		}
 		if ((mask & MASK_VIDEO_MODE) != 0) disableVideoMode();
 		BodyLayout b = a.getBody();
-		if ((b != null) && b.isVideoMode()) b.setMode(BodyLayout.Mode.FRAME);
+		// kapatınca gövde her zaman tam ekran liste (bölünmüş kalınca kartlar küçük kalıyordu)
+		BodyLayout.yoldaSplit = false;
+		if ((b != null) && (b.isVideoMode() || b.isBothMode())) b.setMode(BodyLayout.Mode.FRAME);
 		YoldaNowPlaying.clearExpected();
 		YoldaNowPlaying.hide(a);
 		setVisibility(GONE);

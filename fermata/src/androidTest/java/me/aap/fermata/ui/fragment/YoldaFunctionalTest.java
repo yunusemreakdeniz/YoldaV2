@@ -335,6 +335,66 @@ public class YoldaFunctionalTest {
 		assertTrue("Web karşılığı açılmalı: " + cur, (cur != null) && cur.contains("google.com/maps"));
 	}
 
+	/**
+	 * Tarayıcıda sayfa içi yazı (araçta klavye): çok satırlı kutu ve ChatGPT tarzı düzenlenebilir alan; kesme
+	 * işareti ve yeni satır içeren metin doğru yazılır.
+	 */
+	@Test
+	public void tarayicidaSayfaIciYazi() throws Exception {
+		Object f = onMain(a -> a.showFragment(R.id.web_browser_fragment));
+		assertNotNull(f);
+		waitIdle(1500);
+		String html = "<html><body><textarea id='t'></textarea><div id='c' contenteditable='true'></div></body></html>";
+		String url = "data:text/html;base64," + android.util.Base64.encodeToString(
+				html.getBytes(java.nio.charset.StandardCharsets.UTF_8), android.util.Base64.NO_WRAP);
+		onMain(a -> {
+			android.webkit.WebView w = findWeb(a.getActiveFragment().getView());
+			w.loadUrl(url);
+			return null;
+		});
+		waitIdle(2500);
+		String text = "Ankara'ya \"gidelim\" yarın";
+		for (String id : new String[]{"t", "c"}) {
+			String got = typeInto(id, text);
+			Log.i(TAG, "Sayfa içi yazı (" + id + "): " + got);
+			// evaluateJavascript sonucu JSON metni: tırnak içinde, " kaçışlı
+			String plain = new org.json.JSONArray("[" + got + "]").getString(0).trim();
+			assertEquals("Yazı alanına (" + id + ") metin aynen yazılmalı", text, plain);
+		}
+	}
+
+	/** Alanı odaklayıp tarayıcının araç klavyesi köprüsüyle (setTextInput) yazar; alanın değerini döner. */
+	private String typeInto(String id, String text) throws Exception {
+		java.util.concurrent.CountDownLatch l = new java.util.concurrent.CountDownLatch(1);
+		AtomicReference<String> r = new AtomicReference<>("");
+		onMain(a -> {
+			android.webkit.WebView w = findWeb(a.getActiveFragment().getView());
+			w.evaluateJavascript("document.getElementById('" + id + "').focus()", v -> {
+				try {
+					java.lang.reflect.Method m = w.getClass().getSuperclass().getDeclaredMethod("setTextInput", CharSequence.class);
+					m.setAccessible(true);
+					m.invoke(w, text);
+				} catch (Exception ex) {
+					try {
+						java.lang.reflect.Method m = w.getClass().getDeclaredMethod("setTextInput", CharSequence.class);
+						m.setAccessible(true);
+						m.invoke(w, text);
+					} catch (Exception ex2) {
+						Log.e(TAG, "setTextInput bulunamadı", ex2);
+					}
+				}
+				w.postDelayed(() -> w.evaluateJavascript("(function(){var e=document.getElementById('" + id + "');"
+						+ "return (e.value!==undefined&&e.tagName=='TEXTAREA')?e.value:e.innerText;})()", res -> {
+					r.set(res);
+					l.countDown();
+				}), 600);
+			});
+			return null;
+		});
+		l.await(10, TimeUnit.SECONDS);
+		return r.get();
+	}
+
 	@androidx.annotation.Nullable
 	private static android.webkit.WebView findWeb(@androidx.annotation.Nullable View v) {
 		if (v instanceof android.webkit.WebView w) return w;
@@ -447,6 +507,38 @@ public class YoldaFunctionalTest {
 		});
 		waitIdle(2000);
 		check.accept("kaydırıp dönünce");
+
+		// 4) TV açılınca (video) ⌂ ile ana sayfa, sonra TV kapatılınca: gövde bölünmemeli, kartlar küçülmemeli
+		me.aap.fermata.media.lib.MediaLib.PlayableItem tv = null;
+		try {
+			List<me.aap.fermata.media.lib.MediaLib.PlayableItem> l = onMain(a -> a.getLib().getItem("TV").then(r ->
+					((me.aap.fermata.media.lib.MediaLib.BrowsableItem) r).getPlayableChildren(true))).get(null, 30, TimeUnit.SECONDS);
+			if (l != null) for (me.aap.fermata.media.lib.MediaLib.PlayableItem pi : l) if (pi.isVideo()) {
+				tv = pi;
+				break;
+			}
+		} catch (Exception ex) {
+			Log.i(TAG, "Kanal listesi alınamadı: " + ex);
+		}
+		if (tv != null) {
+			me.aap.fermata.media.lib.MediaLib.PlayableItem ch = tv;
+			onMain(a -> {
+				a.getBody().playItem(ch);
+				return null;
+			});
+			waitIdle(4000);
+			onMain(a -> a.getDeckBackButton().performClick());
+			waitIdle(2000);
+			assertFalse("Video sürerken ana sayfada gövde bölünmemeli", onMain(a -> a.getBody().isBothMode()));
+			check.accept("TV açıkken ana sayfa");
+			onMain(a -> {
+				a.getControlPanel().closePlayer();
+				return null;
+			});
+			waitIdle(2000);
+			assertFalse("TV kapanınca gövde bölünmemeli", onMain(a -> a.getBody().isBothMode()));
+			check.accept("TV kapanınca");
+		}
 	}
 
 	/** Ortadaki kartın ekranda görünen eni ve boyu (ölçek dahil). */

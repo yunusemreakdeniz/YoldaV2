@@ -379,9 +379,11 @@ public class FermataWebView extends WebView
 
 		Log.d("checkTextInput");
 		loadUrl("javascript:\n" + "function checkInput() {\n" + "  var e =  document.activeElement;" +
-				"\n" + "  if (e == null) return;\n" + "  if (e instanceof HTMLInputElement) {\n" + "    " +
+				"\n" + "  if (e == null) return;\n" +
+				// Yolda: çok satırlı kutular (textarea) ve her tür düzenlenebilir alan da (ChatGPT, arama kutuları)
+				"  if ((e instanceof HTMLInputElement) || (e instanceof HTMLTextAreaElement)) {\n" + "    " +
 				JS_EVENT + '(' + JS_EDIT + ", e.value);\n" +
-				"  } else if(e.getAttribute('contenteditable') == 'true') {\n" + "    " + JS_EVENT + '(' +
+				"  } else if (e.isContentEditable) {\n" + "    " + JS_EVENT + '(' +
 				JS_EDIT + ", e.innerText);\n" + "  }\n" + "}\n" + "setTimeout(checkInput, 500);");
 	}
 
@@ -389,15 +391,18 @@ public class FermataWebView extends WebView
 		if (!BuildConfig.AUTO) return;
 
 		Log.d(text);
-		loadUrl(
-				"javascript:\n" + "var e =  document.activeElement;\n" + "var text = '" + text + "';\n" +
-						"if (e.isContentEditable) e.innerText = text;\n" + "else e.value = text;\n" +
-						"e.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));\n" +
-						"e.dispatchEvent(new KeyboardEvent('keypress', { bubbles: true }));\n" +
-						"e.dispatchEvent(new InputEvent('input', { bubbles: true, data: text, inputType: " +
-						"'insertText' }));\n" +
-						"e.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));\n" +
-						"e.dispatchEvent(new Event('change', { bubbles: true }));");
+		// Metin JSON olarak aktarılır (kesme işareti, yeni satır sayfayı bozmasın). Modern sitelerde (React,
+		// ChatGPT'nin yazı alanı) doğrudan değer atamak "yazıldı" sayılmıyor: tarayıcının kendi yazma komutu ve
+		// değer ayarlayıcısı kullanılır.
+		String q = org.json.JSONObject.quote(String.valueOf(text));
+		evaluateJavascript("(function(){var e=document.activeElement;if(!e)return;var text=" + q + ";\n" +
+				"if(e.isContentEditable){e.focus();document.execCommand('selectAll',false,null);\n" +
+				" if(!document.execCommand('insertText',false,text)){e.innerText=text;}\n" +
+				" e.dispatchEvent(new InputEvent('input',{bubbles:true,data:text,inputType:'insertText'}));return;}\n" +
+				"var proto=(e instanceof HTMLTextAreaElement)?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;\n" +
+				"var d=Object.getOwnPropertyDescriptor(proto,'value');if(d&&d.set)d.set.call(e,text);else e.value=text;\n" +
+				"e.dispatchEvent(new InputEvent('input',{bubbles:true,data:text,inputType:'insertText'}));\n" +
+				"e.dispatchEvent(new Event('change',{bubbles:true}));})()", null);
 	}
 
 

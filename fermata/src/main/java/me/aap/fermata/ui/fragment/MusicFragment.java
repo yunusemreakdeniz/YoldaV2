@@ -773,6 +773,7 @@ public class MusicFragment extends MainActivityFragment {
 	/** Şu an çalan / açılan şarkının kimliği ve yolu (testler ve tanı için). */
 	private static volatile String nowId;
 	private static volatile boolean nowYoutube;
+	private static volatile long musicStartAt;
 
 	/** Doğrudan çalma yakın zamanda (10 dk) başarısız olduysa: geçici ağ sorunu kalıcı yedeğe dönmesin. */
 	private static boolean directBroken() {
@@ -791,6 +792,25 @@ public class MusicFragment extends MainActivityFragment {
 
 	public static boolean playingViaYoutube() {
 		return nowYoutube;
+	}
+
+	/**
+	 * YouTube'da müzik dışı bir video açıldı (haber vb.): Yolda Müzik arkadaki sayfayı bırakır. Önceden şarkının
+	 * süresi dolunca "sıradaki şarkı" diyerek haberi kapatıp müzik açıyor, Şimdi çalıyor müzik gösteriyordu.
+	 */
+	public static void releaseYoutube() {
+		releaseYoutube(true);
+	}
+
+	/** @param force false ise şarkı yeni başlatıldıysa (8 sn) bırakılmaz: sayfa kurulurken eski adresini açıyor. */
+	public static void releaseYoutube(boolean force) {
+		if (!nowYoutube) return;
+		if (!force && (android.os.SystemClock.elapsedRealtime() - musicStartAt < 8000)) return;
+		nowYoutube = false;
+		nowId = null;
+		YoldaNowPlaying.setExternal(null);
+		me.aap.fermata.media.service.MediaSessionCallback.yoldaSkip = null;
+		YoldaLog.add("Müzik: YouTube'da başka bir video açıldı, müzik sayfayı bıraktı");
 	}
 
 	private void play(List<YtMusic.Track> list, int idx) {
@@ -873,6 +893,7 @@ public class MusicFragment extends MainActivityFragment {
 	private void playInYoutube(MainActivityDelegate a, YtMusic.Track tr) {
 		nowViaYoutube = true;
 		nowYoutube = true;
+		musicStartAt = android.os.SystemClock.elapsedRealtime();
 		forceSound(tr.id());
 		// çubuk ve Şimdi çalıyor bu şarkıyı göstersin (YouTube öğesi tüm şarkılarda aynı kalıyordu)
 		if (nowQueue != null) YoldaNowPlaying.setExternal(new YoldaNowPlaying.External(tr, nowQueue, nowIndex));
@@ -880,7 +901,7 @@ public class MusicFragment extends MainActivityFragment {
 		// YouTube oynatıcısı şarkı bitince kendi önerisine gitmesin: listede sıradakine geç
 		startTicker(() -> {
 			YtMusic.Track cur = nowTrack();
-			if (nowViaYoutube && (cur != null)) autoAdvance(positionMs(a.getMediaSessionCallback()), durationMs(cur));
+			if (nowViaYoutube && nowYoutube && (cur != null)) autoAdvance(positionMs(a.getMediaSessionCallback()), durationMs(cur));
 		});
 		String url = "https://music.youtube.com/watch?v=" + tr.id();
 		YoldaLog.add("Müzik: YouTube Music'te çalınıyor (" + (signedIn() ? "hesapla" : "giriş yapılmamış") + ")");
@@ -931,12 +952,13 @@ public class MusicFragment extends MainActivityFragment {
 				+ "try{if(p&&p.unMute)p.unMute();if(p&&p.setVolume)p.setVolume(100);}catch(e){}"
 				+ "var b=document.querySelector('.ytp-unmute,.ytmUnmuteButton,button.unmute-button,.ytm-unmute-button');"
 				+ "if(b)try{b.click();}catch(e){}"
-				+ "if(v){v.muted=false;if(v.volume<1)v.volume=1;if(v.paused&&!v.ended)v.play();"
+				+ "if(v){v.muted=false;if(v.volume<1)v.volume=1;if(v.paused&&!v.ended&&(v.currentTime<1))v.play();"
 				+ "return (v.muted?'sessiz':'sesli')+(v.paused?'-durgun':'-caliyor');}return 'video-yok';})()";
 		android.os.Handler h = me.aap.utils.app.App.get().getHandler();
+		boolean[] done = {false};
 		for (long d : new long[]{1500, 3000, 5000, 8000, 12000, 18000}) {
 			h.postDelayed(() -> {
-				if (!id.equals(nowId) || !nowYoutube) return;
+				if (done[0] || !id.equals(nowId) || !nowYoutube) return;
 				Object f = findFragment(R.id.youtube_fragment);
 				android.webkit.WebView w = (f instanceof androidx.fragment.app.Fragment fr) ? findWeb(fr.getView()) : null;
 				if (w == null) {
@@ -950,6 +972,8 @@ public class MusicFragment extends MainActivityFragment {
 				}
 				w.evaluateJavascript(js, r -> {
 					if ((d == 3000) || (d == 12000)) YoldaLog.add("Müzik (YouTube oynatıcısı): " + r);
+					// sesli çalmaya başladıysa bir daha dokunma: kullanıcı duraklatınca şarkı yeniden başlamasın
+					if ((r != null) && r.contains("sesli-caliyor")) done[0] = true;
 				});
 			}, d);
 		}
@@ -1142,7 +1166,7 @@ public class MusicFragment extends MainActivityFragment {
 			MediaLib.PlayableItem cur = getActivityDelegate().getCurrentPlayable();
 			// Doğrudan çalan şarkıda (YtMusicItem) önceki/sonraki oynatıcının kendisinde: liste öğenin içinde,
 			// her ekranda ve direksiyonda çalışır. Burası yalnız YouTube oynatıcısı yedeği için.
-			boolean ours = nowViaYoutube && !(cur instanceof YtMusicItem);
+			boolean ours = nowViaYoutube && nowYoutube && !(cur instanceof YtMusicItem);
 			if (!ours) return false;
 			int i = nowIndex + dir;
 			if ((i < 0) || (i >= nowQueue.size())) return false;

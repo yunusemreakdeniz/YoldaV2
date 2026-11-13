@@ -1223,8 +1223,8 @@ public class HomeFragment extends MainActivityFragment {
 			if (a.isCarActivityNotMirror()) {
 				// Telefon ekranı Yolda'nın içinde (ayrı Android Auto uygulaması açtırmak bazı araçlarda çalışmıyordu)
 				if (a.getAppActivity().yoldaShowMirror()) {
-					UiUtils.showInfo(ctx, touch ? "Telefon ekranı açılıyor. Telefonda “Şimdi başlat” çıkarsa onayla."
-							: "Telefon ekranı açılıyor. Dokunabilmek için telefonda Ayarlar → Erişilebilirlik → Yolda'yı aç.");
+					YoldaStyle.toast(ctx, touch ? "Telefon ekranı açılıyor"
+							: "Telefon ekranı açılıyor · dokunmak için Erişilebilirlik → Yolda");
 					return;
 				}
 				YoldaLog.add("Telefon ekranı Yolda içinde açılamadı");

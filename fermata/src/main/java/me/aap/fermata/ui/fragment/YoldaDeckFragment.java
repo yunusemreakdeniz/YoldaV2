@@ -2,6 +2,7 @@ package me.aap.fermata.ui.fragment;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
@@ -1359,6 +1360,44 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					row.addView(chipBtn(ctx, "⚠ " + miss.size() + " izin eksik — kurulum", v ->
 							a.showFragment(R.id.yolda_setup_fragment)), chipLp());
 				}
+				if (YoldaDeck.PHONE.equals(c.type())) { // telefondaki uygulamalar: ekle, düzenle, aç
+					int at = labeledTile(tile);
+					row.setGravity(Gravity.TOP);
+					android.content.pm.PackageManager pm = ctx.getPackageManager();
+					for (String pkg : phoneApps(ctx)) {
+						CharSequence label;
+						android.graphics.drawable.Drawable icon;
+						try {
+							android.content.pm.ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
+							label = pm.getApplicationLabel(ai);
+							icon = pm.getApplicationIcon(ai);
+						} catch (Exception ex) {
+							continue; // kaldırılmış uygulama
+						}
+						LinearLayout cell = new LinearLayout(ctx);
+						cell.setOrientation(LinearLayout.VERTICAL);
+						cell.setGravity(Gravity.CENTER_HORIZONTAL);
+						ImageView iv = new ImageView(ctx);
+						iv.setImageDrawable(icon);
+						iv.setContentDescription(label);
+						iv.setClickable(true);
+						iv.setOnClickListener(v -> openPhoneApp(a, ctx, pkg, label));
+						pressEffect(iv);
+						cell.addView(iv, new LinearLayout.LayoutParams(at, at));
+						TextView name = text(ctx, String.valueOf(label), 12, false, 0xE6FFFFFF);
+						name.setSingleLine(true);
+						name.setEllipsize(TextUtils.TruncateAt.END);
+						name.setGravity(Gravity.CENTER);
+						name.setMaxWidth(at + dp(12));
+						cell.addView(name, new LinearLayout.LayoutParams(-2, -2));
+						LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(-2, -2);
+						clp.rightMargin = dp(10);
+						row.addView(cell, clp);
+					}
+					row.addView(chipBtn(ctx, "＋ Uygulama", v -> pickPhoneApp()), chipLp());
+					if (!phoneApps(ctx).isEmpty()) row.addView(chipBtn(ctx, "✎ Düzenle", v -> editPhoneApps()), chipLp());
+					return scroll(ctx, row);
+				}
 				return row;
 			}
 			case YoldaDeck.SETTINGS -> {
@@ -1741,6 +1780,161 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			return;
 		}
 		HomeFragment.phone(ctx);
+	}
+
+	// ---- telefon kartı: telefondaki uygulamalar ----
+
+	private static final String PREF_PHONE_APPS = "phone_apps";
+
+	static List<String> phoneApps(Context ctx) {
+		String s = ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE)
+				.getString(PREF_PHONE_APPS, "");
+		List<String> l = new ArrayList<>();
+		for (String p : s.split(",")) if (!p.trim().isEmpty()) l.add(p.trim());
+		return l;
+	}
+
+	static void savePhoneApps(Context ctx, List<String> l) {
+		ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).edit()
+				.putString(PREF_PHONE_APPS, String.join(",", l)).apply();
+	}
+
+	/** Uygulamayı telefonda açar; araçtaysa telefon ekranı da Yolda'da açılır (uygulama araçta kullanılır). */
+	private void openPhoneApp(MainActivityDelegate a, Context ctx, String pkg, CharSequence label) {
+		YoldaStyle.haptic(list);
+		try {
+			Intent i = ctx.getPackageManager().getLaunchIntentForPackage(pkg);
+			if (i == null) {
+				YoldaStyle.toast(ctx, label + " açılamadı");
+				return;
+			}
+			ctx.getApplicationContext().startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+			YoldaLog.add("Telefon uygulaması açıldı: " + label);
+		} catch (Exception ex) {
+			YoldaLog.add("Telefon uygulaması açılamadı: " + label + " · " + ex);
+			YoldaStyle.toast(ctx, label + " açılamadı");
+			return;
+		}
+		if (a.isCarActivity()) openPhoneScreen(a, ctx); // telefon ekranı araçta: uygulama görünür ve dokunulur
+	}
+
+	/** Telefondaki uygulamalardan seç (eklenmiş olanlar listede yok). */
+	private void pickPhoneApp() {
+		Context ctx = requireContext();
+		FrameLayout panel = openOverlay(ctx, "Uygulama ekle");
+		LinearLayout box = (LinearLayout) panel.getChildAt(0);
+		ScrollView sv = new ScrollView(ctx);
+		LinearLayout lst = new LinearLayout(ctx);
+		lst.setOrientation(LinearLayout.VERTICAL);
+		sv.addView(lst, new ScrollView.LayoutParams(-1, -2));
+		LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, 0, 1f);
+		slp.topMargin = dp(8);
+		box.addView(sv, slp);
+		android.content.pm.PackageManager pm = ctx.getPackageManager();
+		Intent main = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+		List<android.content.pm.ResolveInfo> apps = new ArrayList<>(pm.queryIntentActivities(main, 0));
+		apps.sort((x, y) -> String.valueOf(x.loadLabel(pm)).compareToIgnoreCase(String.valueOf(y.loadLabel(pm))));
+		List<String> have = phoneApps(ctx);
+		java.util.Set<String> seen = new java.util.HashSet<>();
+		for (android.content.pm.ResolveInfo ri : apps) {
+			String pkg = ri.activityInfo.packageName;
+			if (pkg.equals(ctx.getPackageName()) || have.contains(pkg) || !seen.add(pkg)) continue;
+			LinearLayout r = hrow(ctx);
+			r.setPadding(dp(6), dp(6), dp(6), dp(6));
+			r.setMinimumHeight(dp(56));
+			r.setClickable(true);
+			ImageView iv = new ImageView(ctx);
+			iv.setImageDrawable(ri.loadIcon(pm));
+			r.addView(iv, new LinearLayout.LayoutParams(dp(40), dp(40)));
+			TextView n = text(ctx, String.valueOf(ri.loadLabel(pm)), 17, true, t.ink);
+			n.setSingleLine(true);
+			n.setEllipsize(TextUtils.TruncateAt.END);
+			n.setPadding(dp(14), 0, 0, 0);
+			r.addView(n, new LinearLayout.LayoutParams(0, -2, 1f));
+			r.setContentDescription("Ekle: " + ri.loadLabel(pm));
+			r.setOnClickListener(v -> {
+				List<String> l = phoneApps(ctx);
+				if (!l.contains(pkg)) l.add(pkg);
+				savePhoneApps(ctx, l);
+				closeOverlay();
+				refreshCard(YoldaDeck.PHONE);
+				YoldaStyle.toast(ctx, "Telefon kartına eklendi: " + ri.loadLabel(pm));
+			});
+			lst.addView(r, new LinearLayout.LayoutParams(-1, -2));
+		}
+	}
+
+	/** Telefon kartındaki uygulamaları düzenle: ▲ ▼ sırala, ✕ kaldır. */
+	private void editPhoneApps() {
+		Context ctx = requireContext();
+		FrameLayout panel = openOverlay(ctx, "Uygulamaları düzenle");
+		LinearLayout box = (LinearLayout) panel.getChildAt(0);
+		ScrollView sv = new ScrollView(ctx);
+		LinearLayout lst = new LinearLayout(ctx);
+		lst.setOrientation(LinearLayout.VERTICAL);
+		sv.addView(lst, new ScrollView.LayoutParams(-1, -2));
+		LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, 0, 1f);
+		slp.topMargin = dp(8);
+		box.addView(sv, slp);
+		fillPhoneAppsEdit(ctx, lst);
+	}
+
+	private void fillPhoneAppsEdit(Context ctx, LinearLayout lst) {
+		lst.removeAllViews();
+		android.content.pm.PackageManager pm = ctx.getPackageManager();
+		List<String> l = phoneApps(ctx);
+		for (int i = 0; i < l.size(); i++) {
+			String pkg = l.get(i);
+			CharSequence label = pkg;
+			android.graphics.drawable.Drawable icon = null;
+			try {
+				android.content.pm.ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
+				label = pm.getApplicationLabel(ai);
+				icon = pm.getApplicationIcon(ai);
+			} catch (Exception ignore) {
+			}
+			LinearLayout r = hrow(ctx);
+			r.setPadding(dp(4), dp(6), 0, dp(6));
+			ImageView iv = new ImageView(ctx);
+			if (icon != null) iv.setImageDrawable(icon);
+			r.addView(iv, new LinearLayout.LayoutParams(dp(36), dp(36)));
+			TextView n = text(ctx, String.valueOf(label), 17, true, t.ink);
+			n.setSingleLine(true);
+			n.setEllipsize(TextUtils.TruncateAt.END);
+			n.setPadding(dp(12), 0, dp(8), 0);
+			r.addView(n, new LinearLayout.LayoutParams(0, -2, 1f));
+			int idx = i;
+			CharSequence lb = label;
+			ImageView up = roundButton(ctx, R.drawable.yi_up, "Yukarı taşı: " + label, v -> {
+				List<String> m = phoneApps(ctx);
+				if (idx > 0) java.util.Collections.swap(m, idx, idx - 1);
+				savePhoneApps(ctx, m);
+				fillPhoneAppsEdit(ctx, lst);
+				refreshCard(YoldaDeck.PHONE);
+			});
+			up.setAlpha((idx > 0) ? 1f : 0.3f);
+			r.addView(up, new LinearLayout.LayoutParams(dp(44), dp(44)));
+			ImageView down = roundButton(ctx, R.drawable.yi_down, "Aşağı taşı: " + label, v -> {
+				List<String> m = phoneApps(ctx);
+				if (idx < m.size() - 1) java.util.Collections.swap(m, idx, idx + 1);
+				savePhoneApps(ctx, m);
+				fillPhoneAppsEdit(ctx, lst);
+				refreshCard(YoldaDeck.PHONE);
+			});
+			down.setAlpha((idx < l.size() - 1) ? 1f : 0.3f);
+			LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(dp(44), dp(44));
+			dlp.leftMargin = dlp.rightMargin = dp(8);
+			r.addView(down, dlp);
+			r.addView(roundButton(ctx, R.drawable.yi_close, "Kaldır: " + label, v -> {
+				List<String> m = phoneApps(ctx);
+				m.remove(pkg);
+				savePhoneApps(ctx, m);
+				YoldaStyle.toast(ctx, "Kaldırıldı: " + lb);
+				fillPhoneAppsEdit(ctx, lst);
+				refreshCard(YoldaDeck.PHONE);
+			}), new LinearLayout.LayoutParams(dp(44), dp(44)));
+			lst.addView(r, new LinearLayout.LayoutParams(-1, -2));
+		}
 	}
 
 	// ---- ekleme ----
