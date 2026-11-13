@@ -15,6 +15,7 @@ import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
@@ -357,6 +358,31 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	private String metaKey;
 	private boolean dragging;
 	private boolean logo;
+
+	/** Sola / sağa kaydırınca sonraki / önceki şarkı ya da kanal (ilerleme çubuğundaki sürükleme hariç). */
+	private YoldaSwipe swipe;
+
+	@Override
+	public boolean dispatchTouchEvent(MotionEvent e) {
+		if (swipe == null) swipe = new YoldaSwipe(getContext());
+		if ((e.getActionMasked() == MotionEvent.ACTION_DOWN)
+				&& YoldaSwipe.onHorizontalControl(this, e.getRawX(), e.getRawY())) {
+			swipe.feed(e);
+			swipe.cancel();
+		} else {
+			int dir = swipe.feed(e);
+			if (dir != 0) {
+				YoldaStyle.haptic(this);
+				YoldaSwipe.skip(MainActivityDelegate.get(getContext()), dir, this);
+				MotionEvent c = MotionEvent.obtain(e);
+				c.setAction(MotionEvent.ACTION_CANCEL); // kaydırmanın bittiği düğme tıklanmış sayılmasın
+				super.dispatchTouchEvent(c);
+				c.recycle();
+				return true;
+			}
+		}
+		return super.dispatchTouchEvent(e);
+	}
 
 	private YoldaNowPlaying(Context ctx) {
 		super(ctx);

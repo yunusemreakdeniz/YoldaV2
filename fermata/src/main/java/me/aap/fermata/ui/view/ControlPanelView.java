@@ -381,26 +381,48 @@ public class ControlPanelView extends ConstraintLayout
 
 	@Override
 	public boolean onSwipeLeft(MotionEvent e1, MotionEvent e2) {
+		// Yolda: videoda sola kaydır → sonraki kanal / video (ekranda "Sonraki ›" işareti)
+		if (gestureSource instanceof VideoView v) {
+			YoldaStyle.haptic(v);
+			YoldaSwipe.skip(getActivity(), 1, v);
+			return true;
+		}
 		getActivity().getMediaServiceBinder().onPrevNextButtonClick(true);
 		return true;
 	}
 
 	@Override
 	public boolean onSwipeRight(MotionEvent e1, MotionEvent e2) {
+		if (gestureSource instanceof VideoView v) {
+			YoldaStyle.haptic(v);
+			YoldaSwipe.skip(getActivity(), -1, v);
+			return true;
+		}
 		getActivity().getMediaServiceBinder().onPrevNextButtonClick(false);
 		return true;
 	}
 
 	@Override
 	public boolean onSwipeUp(MotionEvent e1, MotionEvent e2) {
+		if (gestureSource instanceof VideoView) return true; // Yolda: videoda dikey kaydırma yalnız ses
 		getActivity().getMediaServiceBinder().onPrevNextFolderClick(false);
 		return true;
 	}
 
 	@Override
 	public boolean onSwipeDown(MotionEvent e1, MotionEvent e2) {
+		if (gestureSource instanceof VideoView) return true;
 		getActivity().getMediaServiceBinder().onPrevNextFolderClick(true);
 		return true;
+	}
+
+	/** Kanal şeridine dokunuldukça video kontrolleri açık kalır. */
+	public void keepVideoControls() {
+		HideTimer t = hideTimer;
+		if (t == null) return;
+		MainActivityDelegate a = getActivity();
+		hideTimer = new HideTimer(a, t.delay, t.seekMode, t.views);
+		a.postDelayed(hideTimer, t.delay);
 	}
 
 	@Override
@@ -420,6 +442,9 @@ public class ControlPanelView extends ConstraintLayout
 		}
 
 		if (diff > 500) return true;
+
+		// Yolda: videoda tek parmakla yatay kaydırma sarma değil, önceki / sonraki (bırakınca onSwipe*)
+		if (horizontal && (gestureSource instanceof VideoView) && (e2.getPointerCount() == 1)) return true;
 
 		if (horizontal) {
 			FermataServiceUiBinder b = getActivity().getMediaServiceBinder();
@@ -473,18 +498,21 @@ public class ControlPanelView extends ConstraintLayout
 		View info = video.getVideoInfoView();
 		View fb = a.getFloatingButton();
 
+		YoldaChannelRail rail = YoldaChannelRail.of(video);
 		if (getVisibility() == VISIBLE) {
 			super.setVisibility(GONE);
 			fb.setVisibility(GONE);
 			if (a.getPrefs().getSysBarsOnVideoTouchPref()) a.setFullScreen(true);
 			if (info != null) info.setVisibility(GONE);
+			rail.hide();
 		} else {
 			super.setVisibility(VISIBLE);
 			fb.setVisibility(VISIBLE);
 			if (a.getPrefs().getSysBarsOnVideoTouchPref()) a.setFullScreen(false);
 			if (info != null) info.setVisibility(VISIBLE);
+			rail.showFor(a); // yayında sağda kanal listesi
 			clearFocus();
-			hideTimer = new HideTimer(a, delay, false, info, fb);
+			hideTimer = new HideTimer(a, delay, false, info, fb, rail);
 			a.postDelayed(hideTimer, delay);
 		}
 

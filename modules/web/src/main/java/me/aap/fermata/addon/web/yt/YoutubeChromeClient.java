@@ -61,11 +61,19 @@ public class YoutubeChromeClient extends FermataChromeClient {
 		return (st == STATE_PLAYING) || (st == STATE_PAUSED);
 	}
 
+	private me.aap.fermata.ui.view.YoldaSwipe swipe;
+
 	protected boolean onTouchEvent(View v, MotionEvent event) {
 		if (!isFullScreen()) return false;
 		YoutubeWebView w = (YoutubeWebView) getWebView();
 		// Leave the touches to YouTube's controls, only show the floating button
-		if (w.getAddon().youtubePlayerControls() && !w.videoFullScreen) return super.onTouchEvent(v, event);
+		if (w.getAddon().youtubePlayerControls() && !w.videoFullScreen) {
+			// Yolda: tam ekran YouTube videosunda sola / sağa kaydır → sonraki / önceki video
+			if (swipe == null) swipe = new me.aap.fermata.ui.view.YoldaSwipe(v.getContext());
+			int dir = swipe.feed(event);
+			if (dir != 0) w.yoldaSwipe(dir, (v.getParent() instanceof ViewGroup g) ? g : null);
+			return super.onTouchEvent(v, event);
+		}
 		return getFullScreenView().onTouchEvent(event);
 	}
 }

@@ -217,6 +217,38 @@ public class YoutubeWebView extends FermataWebView {
 	}
 
 	// The same pages as isPreview() in attachListeners(): keep the two in sync
+	private me.aap.fermata.ui.view.YoldaSwipe swipe;
+
+	/**
+	 * Yolda: video sayfasında oynatıcının üzerinde sola / sağa kaydır → sonraki / önceki video (sayfanın geri
+	 * kalanındaki kaydırmalar sayfaya kalır).
+	 */
+	@Override
+	public boolean dispatchTouchEvent(android.view.MotionEvent e) {
+		FermataChromeClient c = getWebChromeClient();
+		if (((c == null) || !c.isFullScreen()) && isVideoUrl(getUrl())) {
+			if (swipe == null) swipe = new me.aap.fermata.ui.view.YoldaSwipe(getContext());
+			float player = getWidth() * 9f / 16f + 24 * getResources().getDisplayMetrics().density;
+			if ((e.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) && (e.getY() > player)) {
+				swipe.feed(e);
+				swipe.cancel();
+			} else {
+				int dir = swipe.feed(e);
+				if (dir != 0) yoldaSwipe(dir, (getParent() instanceof android.view.ViewGroup g) ? g : null);
+			}
+		}
+		return super.dispatchTouchEvent(e);
+	}
+
+	/** Kaydırmayla önceki / sonraki: yalnız bu sayfanın videosu çalıyorsa (yoksa başka bir şeye geçilmesin). */
+	void yoldaSwipe(int dir, @Nullable android.view.ViewGroup host) {
+		MainActivityDelegate a = MainActivityDelegate.get(getContext());
+		MediaSessionCallback cb = a.getMediaSessionCallback();
+		boolean ours = (cb.getEngine() instanceof YoutubeMediaEngine eng) && (eng.getWebView() == this);
+		if (!ours && (MediaSessionCallback.yoldaSkip == null)) return;
+		me.aap.fermata.ui.view.YoldaSwipe.skip(a, dir, host);
+	}
+
 	private static boolean isVideoUrl(@Nullable String url) {
 		if (url == null) return false;
 		String path = Uri.parse(url).getPath();

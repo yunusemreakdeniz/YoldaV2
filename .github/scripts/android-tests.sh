@@ -8,7 +8,7 @@ code=0
 adb logcat -c || true
 adb logcat -v time -s YoldaTest:I YoldaUiUx:I AndroidRuntime:E Yolda:I > "$OUT/canli-gunluk.txt" 2>&1 &
 LOGPID=$!
-for c in YoldaWakeTest YoldaFunctionalTest YoldaAtoZTest YoldaPlaybackTest YoldaMusicTest YoldaUiUxTest; do
+for c in YoldaWakeTest YoldaFunctionalTest YoldaAtoZTest YoldaPlaybackTest YoldaMusicTest YoldaGestureTest YoldaUiUxTest; do
   echo "=== $c başlıyor $(date -u +%H:%M:%S)"
   timeout 18m ./gradlew fermata:connectedAutoDebugAndroidTest $GRADLE_ARGS \
     -Pandroid.testInstrumentationRunnerArguments.class=me.aap.fermata.ui.fragment.$c
