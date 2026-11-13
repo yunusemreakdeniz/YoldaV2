@@ -110,6 +110,8 @@ public class YoldaGestureTest {
 			assertEquals("İlerleme çubuğunda sürükleme kaydırma sayılmamalı", before, YoldaSwipe.lastAt);
 		}
 
+		shot("kaydirma_oncesi");
+		Log.i(TAG, "Odaktaki pencere: " + shellOut("dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'"));
 		String first = name(onMain(this::cur));
 		float y = box[1] + box[3] * 0.35f;
 		Log.i(TAG, "Şimdi çalıyor alanı: " + box[0] + "," + box[1] + " " + box[2] + "×" + box[3] + " · kaydırma y=" + y);
@@ -286,7 +288,21 @@ public class YoldaGestureTest {
 		return found.get();
 	}
 
-	private void shot(String name) {
+	private static String shellOut(String cmd) {
+		StringBuilder b = new StringBuilder();
+		try (ParcelFileDescriptor pfd = InstrumentationRegistry.getInstrumentation().getUiAutomation()
+				.executeShellCommand("sh -c \"" + cmd + "\"");
+				 FileInputStream in = new FileInputStream(pfd.getFileDescriptor())) {
+			byte[] buf = new byte[4096];
+			for (int n; (n = in.read(buf)) > 0; ) b.append(new String(buf, 0, n));
+		} catch (Exception ex) {
+			b.append(ex);
+		}
+		return b.toString().trim().replace('
+', ' ');
+	}
+
+		private void shot(String name) {
 		try (ParcelFileDescriptor pfd = InstrumentationRegistry.getInstrumentation().getUiAutomation()
 				.executeShellCommand("screencap -p " + SHOT_DIR + "/" + name + ".png");
 				 FileInputStream in = new FileInputStream(pfd.getFileDescriptor())) {
