@@ -904,7 +904,8 @@ public class YoldaAtoZTest {
 			Log.i(TAG, "Sürüş hizmeti: " + svc + ", izin: " + YoldaRadar.hasPermission(c));
 			if (YoldaRadar.hasPermission(c)) assertTrue("Konum izni varken arka plan hizmeti çalışmalı", svc);
 
-			// Araç bağlı, 3 km yol
+			// Araç bağlı, 3 km yol (önceki testlerin benzetilen sürüşü bitmiş sayılsın)
+			YoldaRadar.trip.end();
 			YoldaCar.set(true);
 			for (int m = 0; m <= 3000; m += 50) {
 				double la = lat0 + m / 111_195d;

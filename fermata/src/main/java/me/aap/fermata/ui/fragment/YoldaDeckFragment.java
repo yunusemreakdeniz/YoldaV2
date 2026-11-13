@@ -277,12 +277,29 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		clock.setTextSize(car ? 24 : 28);
 		clock.setTypeface(Typeface.DEFAULT_BOLD);
 		clock.setTextColor(t.ink);
-		top.addView(clock);
 		TextView date = YoldaStyle.turkishDate(ctx, "EEEE, d MMMM");
-		date.setTextSize(14);
 		date.setTextColor(t.muted);
-		date.setPadding(dp(12), dp(4), 0, 0);
-		top.addView(date, new LinearLayout.LayoutParams(0, -2, 1f));
+		date.setSingleLine(true);
+		date.setEllipsize(TextUtils.TruncateAt.END);
+		// Dar telefon (dikey): tarih ve hava saatin altında ikinci satırda; üst satırda düğmelere yer kalsın
+		narrowHeader = !car && (YoldaStyle.widthDp(ctx) < 600);
+		if (narrowHeader) {
+			LinearLayout clockCol = new LinearLayout(ctx);
+			clockCol.setOrientation(LinearLayout.VERTICAL);
+			clockCol.addView(clock);
+			dateLine = new LinearLayout(ctx);
+			dateLine.setOrientation(LinearLayout.HORIZONTAL);
+			dateLine.setGravity(Gravity.CENTER_VERTICAL);
+			date.setTextSize(12);
+			dateLine.addView(date, new LinearLayout.LayoutParams(0, -2, 1f));
+			clockCol.addView(dateLine, new LinearLayout.LayoutParams(-1, -2));
+			top.addView(clockCol, new LinearLayout.LayoutParams(0, -2, 1f));
+		} else {
+			top.addView(clock);
+			date.setTextSize(14);
+			date.setPadding(dp(12), dp(4), 0, 0);
+			top.addView(date, new LinearLayout.LayoutParams(0, -2, 1f));
+		}
 		// Çalan: destede oynatıcı çubuğu yok; çalan şeyin adı burada, dokununca Şimdi çalıyor / video
 		// Hava: saatin yanında küçük rozet (☀ 18°); dokununca hava durumu
 		wxChip = text(ctx, "", 15, true, t.ink);
@@ -295,9 +312,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaStyle.haptic(v);
 			HomeFragment.openWeb(getActivityDelegate(), "https://www.google.com/search?q=hava+durumu");
 		});
-		LinearLayout.LayoutParams wlp = new LinearLayout.LayoutParams(-2, dp(44));
-		wlp.rightMargin = dp(10);
-		top.addView(wxChip, wlp);
+		if (narrowHeader && (dateLine != null)) { // tarihin yanında sade yazı
+			wxChip.setBackground(null);
+			wxChip.setTextSize(12);
+			wxChip.setTextColor(t.muted);
+			wxChip.setPadding(dp(6), 0, 0, 0);
+			dateLine.addView(wxChip, 0, new LinearLayout.LayoutParams(-2, -2));
+		} else {
+			LinearLayout.LayoutParams wlp = new LinearLayout.LayoutParams(-2, dp(44));
+			wlp.rightMargin = dp(10);
+			top.addView(wxChip, wlp);
+		}
 		updateWeatherChip();
 		TextView playing = text(ctx, "", 15, true, 0xFFFFFFFF);
 		playing.setSingleLine(true);
@@ -331,7 +356,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		};
 		playing.post(tick);
 		// Tema: dokun → sıradaki tema; basılı tut → otomatik (gündüz / gece) aç / kapat
-		ImageView themeBtn = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx), v -> {
+		ImageView themeBtn = themeBtnView = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx), v -> {
 			YoldaStyle.haptic(v);
 			YoldaStyle.next(ctx); // tüm ekranlar dinleyiciyle yenilenir
 			YoldaStyle.toast(ctx, "Tema: " + YoldaStyle.label(ctx));
@@ -348,7 +373,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		tlp.rightMargin = dp(10);
 		top.addView(themeBtn, tlp);
 		// Ayarlar: tema düğmesinin yanında (menü / ayarlar ekranı)
-		ImageView setBtn = roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> {
+		ImageView setBtn = setBtnView = roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> {
 			YoldaStyle.haptic(v);
 			getActivityDelegate().showFragment(R.id.yolda_menu_fragment);
 		});
@@ -1017,8 +1042,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return deck.missingBuiltIns().size() + removedCards().size();
 	}
 
+	private boolean narrowHeader;
+	@androidx.annotation.Nullable
+	private LinearLayout dateLine;
+	@androidx.annotation.Nullable
+	private ImageView themeBtnView, setBtnView;
+
 	private void updateRestoreBtn() {
-		if (restoreBtn != null) restoreBtn.setVisibility((editing && (removedCount() > 0)) ? View.VISIBLE : View.GONE);
+		boolean show = editing && (removedCount() > 0);
+		if (restoreBtn != null) restoreBtn.setVisibility(show ? View.VISIBLE : View.GONE);
+		// Dar ekranda düzenlerken tema / ayarlar yerine ↺ (üst satır taşmasın)
+		int tv = (narrowHeader && editing) ? View.GONE : View.VISIBLE;
+		if (themeBtnView != null) themeBtnView.setVisibility(tv);
+		if (setBtnView != null) setBtnView.setVisibility(tv);
 	}
 
 	/** Kaldırılan kartlar: dokununca destedeki eski yerine (sabit kart) ya da "Ekle"nin önüne geri gelir. */
