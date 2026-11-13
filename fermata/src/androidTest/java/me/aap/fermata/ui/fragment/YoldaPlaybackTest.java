@@ -182,7 +182,12 @@ public class YoldaPlaybackTest {
 		Log.i(TAG, "Kanal değişince etkin ses akışı: " + active);
 		for (android.media.AudioPlaybackConfiguration c : am.getActivePlaybackConfigurations()) Log.i(TAG, "SES AKIŞI " + c);
 		for (String l : YoldaLog.read(ctx()).split("\n")) if (l.contains("Açıldı") || l.contains("hatası")) Log.i(TAG, "GÜNLÜK " + l);
-		assertTrue("Aynı anda tek ses çalmalı (eski kanal susmalı): " + active, active <= 1);
+		// Eski kanal anında susturulur; ses çıkışı, eski yayın arka planda kapanınca (takılı yayında birkaç sn) bırakılır
+		long t0 = android.os.SystemClock.elapsedRealtime();
+		boolean released = waitFor(15_000, () -> playing(am) <= 1);
+		Log.i(TAG, "Eski kanalın ses çıkışı bırakıldı: " + released + " (" + (android.os.SystemClock.elapsedRealtime() - t0)
+				+ " ms sonra, başta " + active + " akış)");
+		assertTrue("Eski kanalın ses çıkışı bırakılmalı (" + playing(am) + " akış)", released);
 		// Kapat: hiç ses kalmamalı
 		onMain(a -> {
 			a.getControlPanel().closePlayer();
