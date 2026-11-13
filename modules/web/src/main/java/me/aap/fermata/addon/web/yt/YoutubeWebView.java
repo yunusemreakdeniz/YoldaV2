@@ -51,6 +51,18 @@ public class YoutubeWebView extends FermataWebView {
 	private YoutubeJsInterface js;
 	// Reported by the page: the bare video, which has no YouTube controls, is what's in full screen
 	boolean videoFullScreen;
+	/** Yolda: bu sayfadaki video oynamaya başlayınca tam ekrana geçilsin (Yolda'nın YouTube ekranından açıldı). */
+	boolean fullOnPlay;
+
+	/** Video oynamaya başladı: istendiyse bir kez tam ekrana geç. */
+	void maybeFullScreen() {
+		if (!fullOnPlay || !isVideoUrl(getUrl())) return;
+		fullOnPlay = false;
+		FermataChromeClient c = getWebChromeClient();
+		if ((c == null) || c.isFullScreen()) return;
+		me.aap.fermata.ui.fragment.YoldaLog.add("YouTube: video tam ekran açılıyor");
+		c.enterFullScreen();
+	}
 	// The video of a page that went with its screen, for the next car screen to open again
 	private static Video closedVideo;
 	// The video this page is reopening, set as it was once it starts playing

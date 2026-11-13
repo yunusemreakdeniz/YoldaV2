@@ -358,6 +358,48 @@ public final class YoldaStyle {
 				android.view.Gravity.BOTTOM);
 	}
 
+	/**
+	 * Kısa bilgi: ekranın altında beliren yazı, ~1 sn sonra kendiliğinden kaybolur (onay kutusu yok).
+	 * Tema değişince ekran yeniden kurulsa da görünsün diye etkinliğin kök görünümüne eklenir.
+	 */
+	public static void toast(Context ctx, String text) {
+		try {
+			me.aap.fermata.ui.activity.MainActivityDelegate a = me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx);
+			View host = a.findViewById(me.aap.fermata.R.id.main_activity);
+			if (!(host instanceof androidx.constraintlayout.widget.ConstraintLayout cl)) return;
+			android.widget.TextView t = new android.widget.TextView(ctx);
+			t.setText(text);
+			t.setTextSize(16);
+			t.setTextColor(0xFFFFFFFF);
+			t.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+			t.setGravity(android.view.Gravity.CENTER);
+			t.setMaxLines(2);
+			float d = ctx.getResources().getDisplayMetrics().density;
+			t.setPadding(Math.round(22 * d), Math.round(12 * d), Math.round(22 * d), Math.round(12 * d));
+			android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+			g.setCornerRadius(999 * d);
+			g.setColor(0xE6181B24);
+			g.setStroke(Math.max(1, Math.round(d)), 0x33FFFFFF);
+			t.setBackground(g);
+			t.setElevation(60 * d);
+			androidx.constraintlayout.widget.ConstraintLayout.LayoutParams lp =
+					new androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(-2, -2);
+			lp.startToStart = lp.endToEnd = lp.bottomToBottom = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.bottomMargin = Math.round((VOICE_DP + VOICE_BOTTOM_DP + 16) * d);
+			t.setTag("yolda_toast");
+			for (int i = cl.getChildCount() - 1; i >= 0; i--) { // önceki yazı varsa hemen kalksın
+				View c = cl.getChildAt(i);
+				if ("yolda_toast".equals(c.getTag())) cl.removeView(c);
+			}
+			cl.addView(t, lp);
+			t.setAlpha(0f);
+			t.setTranslationY(12 * d);
+			t.animate().alpha(1f).translationY(0).setDuration(150).withEndAction(() ->
+					t.animate().alpha(0f).setStartDelay(1000).setDuration(220).withEndAction(() -> cl.removeView(t)).start()).start();
+		} catch (Throwable ignore) {
+		}
+	}
+
 	public static int searchLeftDp() {
 		if (DECK) return 16 + VOICE_DP + 12; // V2: sesli düğmenin sağında, aynı hizada (araçta gövde zaten kaydırılmış)
 		return railMode ? 18 : 22; // sesli asistan artık alt menünün yanında

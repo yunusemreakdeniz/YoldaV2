@@ -404,8 +404,15 @@ public class YoldaAtoZTest {
 			assertNotNull(edit);
 			assertTrue("Tema düğmesi düzenle düğmesinin hemen solunda", onMain(a -> (btn.getParent() == edit.getParent())
 					&& (btn.getRight() <= edit.getLeft()) && (edit.getLeft() - btn.getRight() < btn.getWidth())));
+			View setb = onMain(a -> byDesc(a.getActiveFragment().getView(), "Ayarlar"));
+			assertNotNull("Ayarlar düğmesi tema düğmesinin yanında olmalı", setb);
 			onMain(a -> btn.performClick());
 			assertTrue("Dokununca tema değişmeli", waitFor(5000, () -> YoldaStyle.index(ctx()) == 1));
+			// Onay kutusu yok: altta kısa yazı belirir ve ~1 sn sonra kaybolur
+			assertTrue("Tema yazısı görünmeli", waitFor(1500, () -> onMain(a -> toastShown(a))));
+			assertFalse("Onay kutusu çıkmamalı", onMain(a -> ((android.app.Activity) a.getContext()).getWindow()
+					.getDecorView().getRootView().findViewById(android.R.id.button1) != null));
+			assertTrue("Tema yazısı kendiliğinden kapanmalı", waitFor(2500, () -> !onMain(a -> toastShown(a))));
 			waitIdle(1500);
 			View btn2 = onMain(a -> byDesc(a.getActiveFragment().getView(), "Tema:"));
 			onMain(a -> btn2.performLongClick());
@@ -415,7 +422,28 @@ public class YoldaAtoZTest {
 		}
 	}
 
-	private static View byDesc(View v, String prefix) {
+	private static boolean toastShown(MainActivityDelegate a) {
+		View host = a.findViewById(R.id.main_activity);
+		if (!(host instanceof ViewGroup g)) return false;
+		for (int i = 0; i < g.getChildCount(); i++) if ("yolda_toast".equals(g.getChildAt(i).getTag())) return true;
+		return false;
+	}
+
+	/** Üstteki ayarlar düğmesi ayarlar (menü) ekranını açar. */
+	@Test
+	public void ayarlarDugmesiUstte() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1500);
+		View b = onMain(a -> byDesc(a.getActiveFragment().getView(), "Ayarlar"));
+		assertNotNull("Ayarlar düğmesi olmalı", b);
+		onMain(a -> b.performClick());
+		assertTrue("Ayarlar ekranı açılmalı", waitFor(3000, () -> onMain(MainActivityDelegate::getActiveFragmentId)
+				== R.id.yolda_menu_fragment));
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(800);
+	}
+
+		private static View byDesc(View v, String prefix) {
 		if (v == null) return null;
 		CharSequence d = v.getContentDescription();
 		if ((d != null) && d.toString().startsWith(prefix) && (v.getVisibility() == View.VISIBLE)) return v;

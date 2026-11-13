@@ -41,6 +41,7 @@ public class YoutubeJsInterface extends FermataJsInterface {
 			case JS_VIDEO_PLAYING:
 				Log.d("Video playing");
 				engine.playing(data);
+				((YoutubeWebView) getWebView()).maybeFullScreen();
 				break;
 			case JS_VIDEO_PAUSED:
 				Log.d("Video paused");

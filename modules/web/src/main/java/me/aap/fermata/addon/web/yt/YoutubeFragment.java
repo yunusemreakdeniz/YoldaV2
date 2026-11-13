@@ -160,6 +160,21 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 		if (v != null) v.loadUrl(url);
 	}
 
+	/** Yolda: videoyu açar ve oynamaya başlayınca doğrudan tam ekrana geçer (sayfa görünümü değil). */
+	public void loadVideo(String url) {
+		YoutubeWebView v = getWebView();
+		if (v == null) return;
+		v.fullOnPlay = true;
+		v.loadUrl(url);
+	}
+
+	/** Testler için: video tam ekranda mı. */
+	public boolean isVideoFullScreen() {
+		YoutubeWebView v = getWebView();
+		FermataChromeClient c = (v != null) ? v.getWebChromeClient() : null;
+		return (c != null) && c.isFullScreen();
+	}
+
 	@Override
 	public void onPlayableChanged(MediaLib.PlayableItem oldItem, MediaLib.PlayableItem newItem) {
 		if (isHidden()) return;

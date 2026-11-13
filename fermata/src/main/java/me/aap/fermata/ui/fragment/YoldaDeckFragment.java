@@ -67,6 +67,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private LinearLayout topRow;
 	@Nullable
 	private TextView nowPill;
+	private boolean pillIconOnly;
 	private TextClock clockView;
 	/** Alçak ekran (yatay telefon): üst satır ve noktalar sıkışık, kartlara daha çok yer kalır. */
 	private boolean shortScreen;
@@ -286,14 +287,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		playing.setEllipsize(TextUtils.TruncateAt.END);
 		playing.setGravity(Gravity.CENTER_VERTICAL);
 		playing.setPadding(dp(16), 0, dp(18), 0);
+		pillIconOnly = !car && (YoldaStyle.widthDp(ctx) < 600); // dar ekranda yalnız simge (üst satır taşmasın)
 		playing.setMaxWidth(dp(car ? 340 : 260));
+		if (pillIconOnly) {
+			playing.setPadding(0, 0, 0, 0);
+			playing.setGravity(Gravity.CENTER);
+			playing.setTextSize(18);
+		}
 		playing.setBackground(YoldaStyle.glass(ctx, t, 999));
 		playing.setVisibility(View.GONE);
 		playing.setOnClickListener(v -> {
 			YoldaStyle.haptic(v);
 			YoldaNowPlaying.open(getActivityDelegate());
 		});
-		LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(-2, dp(44));
+		LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(pillIconOnly ? dp(44) : -2, dp(44));
 		plp.rightMargin = dp(10);
 		top.addView(playing, plp);
 		nowPill = playing;
@@ -310,19 +317,27 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView themeBtn = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx), v -> {
 			YoldaStyle.haptic(v);
 			YoldaStyle.next(ctx); // tüm ekranlar dinleyiciyle yenilenir
-			UiUtils.showInfo(ctx, "Tema: " + YoldaStyle.label(ctx));
+			YoldaStyle.toast(ctx, "Tema: " + YoldaStyle.label(ctx));
 		});
 		themeBtn.setOnLongClickListener(v -> {
 			YoldaStyle.haptic(v);
 			boolean on = !YoldaStyle.isAuto(ctx);
 			YoldaStyle.setAuto(ctx, on);
-			UiUtils.showInfo(ctx, on ? "Otomatik tema açık: gündüz ve gece kendiliğinden değişir"
+			YoldaStyle.toast(ctx, on ? "Otomatik tema açık: gündüz ve gece kendiliğinden değişir"
 					: "Otomatik tema kapalı");
 			return true;
 		});
 		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(44), dp(44));
 		tlp.rightMargin = dp(10);
 		top.addView(themeBtn, tlp);
+		// Ayarlar: tema düğmesinin yanında (menü / ayarlar ekranı)
+		ImageView setBtn = roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> {
+			YoldaStyle.haptic(v);
+			getActivityDelegate().showFragment(R.id.yolda_menu_fragment);
+		});
+		LinearLayout.LayoutParams slp2 = new LinearLayout.LayoutParams(dp(44), dp(44));
+		slp2.rightMargin = dp(10);
+		top.addView(setBtn, slp2);
 		editBtn = roundButton(ctx, R.drawable.yi_edit, "Düzenle", v -> setEditing(!editing));
 		top.addView(editBtn, new LinearLayout.LayoutParams(dp(44), dp(44)));
 		col.addView(top);
@@ -451,7 +466,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			String mt = me.aap.fermata.ui.view.YoldaPlayerBar.isYoutube(cb) ? YoldaNowPlaying.titleOf(cb) : null;
 			name = ((mt != null) && !mt.isEmpty()) ? mt : pi.getName();
 		}
-		String txt = on ? ((pi.isVideo() ? "▶  " : "♪  ") + name) : "";
+		String txt = on ? (pillIconOnly ? (pi.isVideo() ? "▶" : "♪") : ((pi.isVideo() ? "▶  " : "♪  ") + name)) : "";
 		if (!txt.contentEquals(p.getText())) {
 			p.setText(txt);
 			p.setContentDescription(on ? ("Çalıyor: " + name) : null);

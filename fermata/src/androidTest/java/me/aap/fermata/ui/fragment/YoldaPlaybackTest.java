@@ -384,6 +384,40 @@ public class YoldaPlaybackTest {
 		Log.i(TAG, "Müzik sonraki: " + onMain(a -> a.getCurrentPlayable().getName()));
 	}
 
+	/** Yolda'nın YouTube ekranından açılan video sayfa olarak değil, doğrudan tam ekran açılır. */
+	@Test
+	public void youtubeVideosuTamEkranAcilir() throws Exception {
+		List<YtMusic.Track> l = YtMusic.searchVideos("trt haber").get(null, 45, TimeUnit.SECONDS);
+		Assume.assumeTrue("Video araması sonuç vermedi", (l != null) && !l.isEmpty());
+		String url = "https://m.youtube.com/watch?v=" + l.get(0).id();
+		onMain(a -> {
+			Object f = a.showFragment(R.id.youtube_fragment);
+			try {
+				f.getClass().getMethod("loadVideo", String.class).invoke(f, url);
+			} catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
+			return null;
+		});
+		boolean playing = waitFor(40_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+		Assume.assumeTrue("YouTube videosu bu ağdan oynamadı", playing);
+		boolean full = waitFor(10_000, () -> onMain(a -> {
+			Object f = a.getActiveFragment();
+			try {
+				return (Boolean) f.getClass().getMethod("isVideoFullScreen").invoke(f);
+			} catch (Exception ex) {
+				return false;
+			}
+		}));
+		Log.i(TAG, "YouTube tam ekran: " + full + " · " + YoldaLog.read(ctx()).contains("YouTube: video tam ekran"));
+		assertTrue("Video doğrudan tam ekran açılmalı", full);
+		onMain(a -> {
+			a.onBackPressed(); // geri: tam ekrandan sayfaya
+			return null;
+		});
+		waitIdle(1500);
+	}
+
 	/** Web sayfası işlemi çökünce uygulama kapanmaz, YouTube sayfası yeniden kurulur. */
 	@Test
 	public void webSayfasiCokunceKurtarilir() {

@@ -94,6 +94,10 @@ public class FermataWebView extends WebView
 		s.setJavaScriptEnabled(true);
 		s.setMediaPlaybackRequiresUserGesture(false);
 		s.setJavaScriptCanOpenWindowsAutomatically(true);
+		try { // Yolda: araç ekranında sayfa yazıları büyük (uzaktan okunur, bağlantılara dokunmak kolay)
+			if (MainActivityDelegate.get(getContext()).isCarActivity()) s.setTextZoom(125);
+		} catch (Throwable ignore) {
+		}
 
 		addJavascriptInterface(createJsInterface(), FermataJsInterface.NAME);
 		CookieManager.getInstance().setAcceptThirdPartyCookies(this, true);

@@ -425,8 +425,14 @@ public class YoutubeHomeFragment extends MainActivityFragment {
 		String url = "https://m.youtube.com/watch?v=" + tr.id();
 		Object f = a.showFragment(R.id.youtube_fragment);
 		if (f == null) return;
-		try {
-			f.getClass().getMethod("loadUrl", String.class).invoke(f, url);
+		try { // doğrudan tam ekran (yoksa sayfa olarak)
+			f.getClass().getMethod("loadVideo", String.class).invoke(f, url);
+		} catch (NoSuchMethodException nm) {
+			try {
+				f.getClass().getMethod("loadUrl", String.class).invoke(f, url);
+			} catch (Exception ex) {
+				Log.e(ex, "Video açılamadı");
+			}
 		} catch (Exception ex) {
 			Log.e(ex, "Video açılamadı");
 		}

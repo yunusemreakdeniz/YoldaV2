@@ -557,7 +557,7 @@ public class HomeFragment extends MainActivityFragment {
 		}), leftMargin(sq(btnDp(ctx)), 10));
 		head.addView(roundGlass(ctx, R.drawable.yi_palette, v -> {
 			YoldaStyle.next(ctx); // tüm ekranlar (telefon + araç) dinleyiciyle yenilenir
-			UiUtils.showInfo(ctx, "Tema: " + YoldaStyle.current(ctx).name);
+			YoldaStyle.toast(ctx, "Tema: " + YoldaStyle.current(ctx).name);
 		}), leftMargin(sq(btnDp(ctx)), 10));
 		head.addView(roundGlass(ctx, R.drawable.yi_settings, v -> a.showFragment(R.id.yolda_menu_fragment)),
 				leftMargin(sq(btnDp(ctx)), 10));

@@ -42,6 +42,35 @@ public final class YoldaUrlBar extends FrameLayout {
 	private boolean hidden;
 	private String lastUrl;
 
+	private ImageView roundIcon(Context ctx, int icon, String desc, OnClickListener click) {
+		ImageView b = new ImageView(ctx);
+		b.setImageResource(icon);
+		b.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		b.setPadding(dp(11), dp(11), dp(11), dp(11));
+		b.setContentDescription(desc);
+		GradientDrawable g = new GradientDrawable();
+		g.setShape(GradientDrawable.OVAL);
+		g.setColor(0x26FFFFFF);
+		b.setBackground(g);
+		b.setClickable(true);
+		b.setOnClickListener(v -> {
+			YoldaStyle.haptic(v);
+			click.onClick(v);
+		});
+		return b;
+	}
+
+	/** Sesle arama: söylenen adres ise açılır, değilse Google'da aranır. */
+	private void voice() {
+		try {
+			MainActivityDelegate.get(getContext()).startSpeechRecognizer().onSuccess(l -> {
+				if ((l != null) && !l.isEmpty()) go(l.get(0));
+			});
+		} catch (Throwable ex) {
+			startEdit();
+		}
+	}
+
 	public static YoldaUrlBar attach(FrameLayout root, WebView web, Consumer<String> load) {
 		YoldaUrlBar b = new YoldaUrlBar(root.getContext(), web, load);
 		float d = root.getResources().getDisplayMetrics().density;
@@ -74,6 +103,18 @@ public final class YoldaUrlBar extends FrameLayout {
 		idle.setPadding(dp(18), 0, dp(6), 0);
 		idle.setClickable(true);
 		idle.setOnClickListener(v -> startEdit());
+		// Geri / ileri: büyük dokunma alanı (araçta sayfa içinde küçük bağlantılarla uğraşılmasın); dar telefonda
+		// kapsüle sığmadığı için yalnız araçta ve geniş ekranda
+		boolean nav = YoldaStyle.sideRail(ctx) || (YoldaStyle.widthDp(ctx) >= 600);
+		if (nav) idle.addView(roundIcon(ctx, me.aap.fermata.R.drawable.yi_left, "Geri", v -> {
+			if (web.canGoBack()) web.goBack();
+		}), new LinearLayout.LayoutParams(dp(44), dp(44)));
+		LinearLayout.LayoutParams flp = new LinearLayout.LayoutParams(dp(44), dp(44));
+		flp.leftMargin = dp(6);
+		flp.rightMargin = dp(10);
+		if (nav) idle.addView(roundIcon(ctx, me.aap.fermata.R.drawable.yi_right, "İleri", v -> {
+			if (web.canGoForward()) web.goForward();
+		}), flp);
 		lock = new ImageView(ctx);
 		lock.setImageResource(me.aap.fermata.R.drawable.yi_globe);
 		lock.setImageTintList(ColorStateList.valueOf(0xCCFFFFFF));
@@ -98,6 +139,10 @@ public final class YoldaUrlBar extends FrameLayout {
 		reload.setBackground(rb);
 		reload.setOnClickListener(v -> web.reload());
 		idle.addView(reload, new LinearLayout.LayoutParams(dp(44), dp(44)));
+		// Sesle ara / adres söyle: araçta klavye çoğu zaman kapalı
+		LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(dp(44), dp(44));
+		mlp.leftMargin = dp(6);
+		idle.addView(roundIcon(ctx, me.aap.fermata.R.drawable.yi_mic, "Sesle ara", v -> voice()), mlp);
 		addView(idle, new LayoutParams(-1, -1));
 
 		// Yazma görünümü
