@@ -373,8 +373,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (h <= 0) return;
 		boolean wide = w > h * 1.2f;
 		// Araçta kartlar büyük: yüksekliğin neredeyse tamamı, genişliğin üçte ikisi
-		int nw = car ? Math.min(Math.round(w * 0.66f), dp(980))
-				: Math.min(Math.round(w * (wide ? 0.6f : 0.8f)), dp(620));
+		// Yatayda kartlar geniş (yanlarda komşu kartların ucu görünür kalır)
+		int nw = car ? Math.min(Math.round(w * 0.76f), dp(1100))
+				: Math.min(Math.round(w * (wide ? 0.74f : 0.8f)), dp(wide ? 820 : 620));
 		int nh = car ? (h - dp(8)) : Math.min(h - dp(12), wide ? dp(460) : dp(620));
 		if (car && (nw != cardW)) {
 			View rv = root;
@@ -663,8 +664,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			h.box.setLayoutParams(lp);
 			h.box.removeAllViews();
 			if (cardW <= 0) return;
+			// Yatay telefonda kart üstte: oynatıcı çubuğu için ayrılan yer kartın altında kalır (üstte boşluk olmaz)
+			boolean top = (getContext() != null) && !getActivityDelegate().isCarActivity()
+					&& (list != null) && (list.getWidth() > list.getHeight() * 1.2f);
 			h.box.addView(card(h.box.getContext(), deck.get(pos), pos),
-					new FrameLayout.LayoutParams(-1, cardH, Gravity.CENTER_VERTICAL));
+					new FrameLayout.LayoutParams(-1, cardH, top ? Gravity.TOP : Gravity.CENTER_VERTICAL));
 		}
 
 		@Override
@@ -1106,11 +1110,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.NAV -> {
 				LinearLayout row = hrow(ctx);
+				android.content.SharedPreferences np = prefs(ctx);
+				String home = np.getString("nav_home", null), work = np.getString("nav_work", null);
+				if (home != null) row.addView(chipBtn(ctx, "⌂ Ev", v -> NavFragment.navigateTo(ctx, home, false)), chipLp());
+				if (work != null) row.addView(chipBtn(ctx, "İş", v -> NavFragment.navigateTo(ctx, work, false)), chipLp());
+				row.addView(chipBtn(ctx, "Hedef ara", v -> a.showFragment(R.id.yolda_nav_fragment)), chipLp());
 				for (String d : NavFragment.recent(ctx)) {
-					if (row.getChildCount() >= 5) break;
+					if (row.getChildCount() >= 7) break;
 					row.addView(chipBtn(ctx, d, v -> NavFragment.navigateTo(ctx, d, true)), chipLp());
 				}
-				if (row.getChildCount() == 0) row.addView(chipBtn(ctx, "Nereye gidiyoruz?", v -> open(c)), chipLp());
 				return scroll(ctx, row);
 			}
 			case YoldaDeck.PHONE, YoldaDeck.MIRROR -> {
@@ -1228,7 +1236,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.MUSIC -> a.showFragment(R.id.yolda_music);
 			case YoldaDeck.TV -> ChannelsFragment.openSegment(a, false);
 			case YoldaDeck.RADIO -> ChannelsFragment.openSegment(a, true);
-			case YoldaDeck.NAV -> a.showFragment(R.id.yolda_nav_fragment);
+			case YoldaDeck.NAV -> {
+				// Araçta: doğrudan Android Auto'nun haritası (Yolda içinde seçildiyse ya da açılamazsa navigasyon ekranı)
+				if (!a.isCarActivityNotMirror() || NavFragment.inAppMap(ctx) || !NavFragment.carNav(a, null))
+					a.showFragment(R.id.yolda_nav_fragment);
+			}
 			case YoldaDeck.RESUME -> {
 				if (lastItem != null) playItem(a, lastItem);
 				else {

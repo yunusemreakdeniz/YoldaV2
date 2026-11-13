@@ -1023,6 +1023,19 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 		Context ctx = getContext();
 		java.util.List<String> recent = me.aap.fermata.ui.fragment.NavFragment.recent(ctx);
+		// Araçta: Android Auto'nun kendi navigasyonu (araç ekranı haritayı ve çalan medyayı birlikte gösterir);
+		// Yolda arka planda çalmaya devam eder. Web haritası yalnız "Yolda içinde" seçildiyse.
+		if (isCarActivityNotMirror() && !me.aap.fermata.ui.fragment.NavFragment.inAppMap(ctx)
+				&& me.aap.fermata.ui.fragment.NavFragment.carNav(this, null)) {
+			return;
+		}
+		// YouTube videosu web sayfasında çizilir: yanında harita açılırsa sayfa gizlenip video kararıyordu
+		var eng = getMediaSessionCallback().getEngine();
+		if ((eng != null) && eng.getClass().getName().contains("Youtube")) {
+			me.aap.utils.ui.UiUtils.showInfo(ctx, "YouTube videosunun yanında harita açılamıyor; navigasyon ayrı açılıyor");
+			me.aap.fermata.ui.fragment.NavFragment.navigateTo(ctx, recent.isEmpty() ? "" : recent.get(0), false);
+			return;
+		}
 		String url = recent.isEmpty() ? "https://www.google.com/maps"
 				: "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + Uri.encode(recent.get(0));
 		me.aap.fermata.ui.view.YoldaStyle.webNoToolbar = true;

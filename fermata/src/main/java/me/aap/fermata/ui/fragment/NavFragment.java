@@ -149,6 +149,36 @@ public class NavFragment extends MainActivityFragment {
 		}), wlp);
 		col.addView(head);
 
+		// Araçta: harita Android Auto'nun navigasyonunda mı, Yolda'nın içinde mi; tek dokunuşla haritayı aç
+		if (a.isCarActivityNotMirror()) {
+			LinearLayout mode = new LinearLayout(ctx);
+			mode.setOrientation(LinearLayout.HORIZONTAL);
+			mode.setGravity(Gravity.CENTER_VERTICAL);
+			TextView open = text(ctx, inAppMap(ctx) ? "Haritayı aç" : "Android Auto haritasını aç", 17, true);
+			open.setGravity(Gravity.CENTER);
+			open.setPadding(dp(22), 0, dp(22), 0);
+			open.setBackground(YoldaStyle.selected(ctx, 999));
+			open.setClickable(true);
+			open.setOnClickListener(v -> {
+				if (inAppMap(ctx) || !carNav(a, null)) HomeFragment.openWeb(a, "https://www.google.com/maps");
+			});
+			mode.addView(open, new LinearLayout.LayoutParams(-2, dp(56)));
+			mode.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
+			mode.addView(choice(ctx, "Android Auto", !inAppMap(ctx), v -> {
+				setInAppMap(ctx, false);
+				render();
+			}));
+			LinearLayout.LayoutParams ylp = new LinearLayout.LayoutParams(-2, -2);
+			ylp.leftMargin = dp(10);
+			mode.addView(choice(ctx, "Yolda içinde", inAppMap(ctx), v -> {
+				setInAppMap(ctx, true);
+				render();
+			}), ylp);
+			LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(-1, -2);
+			mlp.topMargin = dp(14);
+			col.addView(mode, mlp);
+		}
+
 		// Arama
 		LinearLayout search = new LinearLayout(ctx);
 		search.setOrientation(LinearLayout.HORIZONTAL);
@@ -370,8 +400,9 @@ public class NavFragment extends MainActivityFragment {
 		try {
 			MainActivityDelegate a = MainActivityDelegate.get(ctx);
 			if (a.isCarActivityNotMirror()) {
-				// Araçta harita Yolda'nın içinde açılır (rota ve konum); Android Auto haritasını açtırmak
-				// bazı araçlarda hiçbir şey göstermiyordu
+				// Araçta: Android Auto'nun kendi navigasyonu (Google Haritalar / Waze); kullanıcı "Yolda içinde"
+				// seçtiyse ya da araç açamadıysa harita Yolda'nın içinde
+				if (!inAppMap(ctx) && carNav(a, destOf(i))) return true;
 				String web = webMapUrl(i);
 				if (web != null) {
 					HomeFragment.openWeb(a, web);
@@ -499,6 +530,72 @@ public class NavFragment extends MainActivityFragment {
 		}
 		navigateTo(ctx, dest, true);
 		return true;
+	}
+
+	/** Araçta haritayı Yolda'nın içinde mi açalım (Android Auto navigasyonu bu araçta açılmıyorsa). */
+	public static boolean inAppMap(Context ctx) {
+		return ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("nav_in_app", false);
+	}
+
+	public static void setInAppMap(Context ctx, boolean on) {
+		ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("nav_in_app", on).apply();
+	}
+
+	/** Navigasyon isteğinden hedef ("Taksim", "39.9,32.8"); hedef yoksa null. */
+	@androidx.annotation.Nullable
+	static String destOf(Intent i) {
+		Uri u = i.getData();
+		if (u == null) return null;
+		String s = u.toString();
+		if (s.startsWith("google.navigation:")) {
+			String q = u.getEncodedSchemeSpecificPart();
+			if (q.startsWith("q=")) q = q.substring(2);
+			int amp = q.indexOf('&');
+			return Uri.decode(((amp >= 0) ? q.substring(0, amp) : q).replace('+', ' '));
+		}
+		if (s.startsWith("geo:")) return query(u.getEncodedSchemeSpecificPart(), "q");
+		if (s.contains("waze.com") && u.isHierarchical()) return u.getQueryParameter("q");
+		return null;
+	}
+
+	/**
+	 * Android Auto'nun navigasyon uygulamasını açar (hedef verilirse rota başlar, verilmezse harita açılır).
+	 * Araçlar farklı istekleri tanıyor: önce Android Auto'nun navigasyon isteği, sonra seçili harita
+	 * uygulamasının (Google Haritalar / Waze) kendi adresi, en son araçtaki varsayılan harita.
+	 */
+	public static boolean carNav(MainActivityDelegate a, @androidx.annotation.Nullable String dest) {
+		Context ctx = a.getContext();
+		boolean waze = ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+				.getBoolean("nav_waze", false);
+		String pkg = waze ? WAZE : MAPS;
+		boolean has = (dest != null) && !dest.trim().isEmpty();
+		Uri geo = Uri.parse(has ? ("geo:0,0?q=" + Uri.encode(dest.trim())) : "geo:0,0");
+		List<Intent> tries = new ArrayList<>();
+		tries.add(new Intent("androidx.car.app.action.NAVIGATE", geo));
+		if (has) {
+			tries.add(waze ? new Intent(Intent.ACTION_VIEW, Uri.parse("https://waze.com/ul?q=" + Uri.encode(dest.trim())
+					+ "&navigate=yes")).setPackage(WAZE)
+					: new Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=" + Uri.encode(dest.trim()))).setPackage(MAPS));
+		}
+		tries.add(new Intent(Intent.ACTION_VIEW, geo).setPackage(pkg));
+		tries.add(new Intent(Intent.ACTION_VIEW, geo));
+		try {
+			Object act = a.getAppActivity();
+			java.lang.reflect.Method m = act.getClass().getMethod("startCarActivity", Intent.class);
+			for (Intent i : tries) {
+				try {
+					m.invoke(act, i);
+					YoldaLog.add("Navigasyon Android Auto'da açıldı: " + i.getAction() + " " + i.getData()
+							+ ((i.getPackage() != null) ? (" · " + i.getPackage()) : ""));
+					return true;
+				} catch (Exception ex) {
+					YoldaLog.add("Navigasyon isteği reddedildi (" + i.getAction() + " " + i.getData() + "): " + ex.getCause());
+				}
+			}
+		} catch (Throwable ex) {
+			YoldaLog.add("Android Auto navigasyonu açılamadı: " + ex);
+		}
+		return false;
 	}
 
 	/** Yol tarifini başlat (ekrandan ve sesli komuttan). */

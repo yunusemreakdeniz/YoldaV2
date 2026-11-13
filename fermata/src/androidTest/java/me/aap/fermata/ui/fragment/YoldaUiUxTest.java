@@ -126,6 +126,27 @@ public class YoldaUiUxTest {
 		shell("wm density 420");
 		waitIdle(3000);
 		List<String> all = new ArrayList<>(deckAllCards("genis_yatay"));
+		// Yatayda kart geniş ve üstte (oynatıcı çubuğunun yeri altta)
+		int[] cw = onMain(a -> {
+			if (!(a.getActiveFragment() instanceof YoldaDeckFragment d)) return new int[]{0, 1, 0, 0};
+			androidx.recyclerview.widget.RecyclerView rv = findRv(d.getView());
+			if (rv == null) return new int[]{0, 1, 0, 0};
+			View best = null;
+			int mid = rv.getWidth() / 2, bd = Integer.MAX_VALUE;
+			for (int i = 0; i < rv.getChildCount(); i++) {
+				View c = rv.getChildAt(i);
+				int dd = Math.abs((c.getLeft() + c.getRight()) / 2 - mid);
+				if (dd < bd) {
+					bd = dd;
+					best = c;
+				}
+			}
+			View card = (best instanceof ViewGroup g && g.getChildCount() > 0) ? g.getChildAt(0) : best;
+			return (card == null) ? new int[]{0, 1, 0, 0} : new int[]{card.getWidth(), rv.getWidth(), card.getTop(), rv.getHeight()};
+		});
+		android.util.Log.i(TAG, "Yatay kart: " + cw[0] + "/" + cw[1] + " px genişlik, üstten " + cw[2] + " px");
+		assertTrue("Yatayda kart listenin en az %70'i genişliğinde olmalı: " + cw[0] + "/" + cw[1], cw[0] >= cw[1] * 0.7f);
+		assertTrue("Yatayda kart üstte olmalı: " + cw[2], cw[2] <= Math.round(8 * ctx().getResources().getDisplayMetrics().density));
 		onMain(a -> {
 			a.getControlPanel().setVisibility(View.VISIBLE);
 			return null;
@@ -388,7 +409,18 @@ public class YoldaUiUxTest {
 		}
 	}
 
-	private static boolean isScrollContainer(ViewGroup g) {
+	private static androidx.recyclerview.widget.RecyclerView findRv(View v) {
+		if (v instanceof androidx.recyclerview.widget.RecyclerView r) return r;
+		if (v instanceof ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				androidx.recyclerview.widget.RecyclerView r = findRv(g.getChildAt(i));
+				if (r != null) return r;
+			}
+		}
+		return null;
+	}
+
+		private static boolean isScrollContainer(ViewGroup g) {
 		String n = g.getClass().getName();
 		return (g instanceof ScrollView) || (g instanceof HorizontalScrollView) || (g instanceof android.widget.AbsListView)
 				|| n.contains("RecyclerView") || n.contains("ViewPager") || n.contains("NestedScrollView")

@@ -281,6 +281,18 @@ public class YoldaFunctionalTest {
 		assertTrue(geo, geo.contains("query=Ankara"));
 		assertEquals(null, NavFragment.webMapUrl(new android.content.Intent(android.content.Intent.ACTION_VIEW,
 				android.net.Uri.parse("https://example.com"))));
+		// Araçta Android Auto navigasyonuna verilecek hedef
+		assertEquals("Taksim Meydanı", NavFragment.destOf(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+				android.net.Uri.parse("google.navigation:q=Taksim+Meydan%C4%B1"))).replace('+', ' '));
+		assertEquals("Ankara", NavFragment.destOf(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+				android.net.Uri.parse("geo:0,0?q=Ankara"))));
+		assertEquals(null, NavFragment.destOf(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+				android.net.Uri.parse("geo:39.9,32.8"))));
+		// Telefonda araç navigasyonu seçeneği kalıcı
+		NavFragment.setInAppMap(ctx(), true);
+		assertTrue(NavFragment.inAppMap(ctx()));
+		NavFragment.setInAppMap(ctx(), false);
+		assertFalse(NavFragment.inAppMap(ctx()));
 	}
 
 	/**
