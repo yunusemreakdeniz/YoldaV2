@@ -236,6 +236,7 @@ public class FermataWebClient extends WebViewClientCompat {
 	@Override
 	public boolean shouldOverrideUrlLoading(@NonNull WebView view,
 																					@NonNull WebResourceRequest request) {
+		if (isAppLink(request.getUrl())) return openAppLink(view, request);
 		if (isYoutubeUri(request.getUrl())) {
 			try {
 				MainActivityDelegate a =
@@ -251,6 +252,56 @@ public class FermataWebClient extends WebViewClientCompat {
 		}
 
 		return false;
+	}
+
+	/** Web dışı adres (intent://, geo:, tel:, market:…): sayfada açılamaz, "Web sayfası mevcut değil" hatası çıkar. */
+	static boolean isAppLink(Uri u) {
+		String sc = u.getScheme();
+		if (sc == null) return false;
+		sc = sc.toLowerCase(java.util.Locale.ROOT);
+		return !(sc.equals("http") || sc.equals("https") || sc.equals("about") || sc.equals("data")
+				|| sc.equals("blob") || sc.equals("javascript") || sc.equals("file"));
+	}
+
+	/**
+	 * Yolda: sayfalar (özellikle Google Haritalar) "uygulamada aç" için intent:// adresine gider; WebView bunu
+	 * açamaz ve hata sayfası gösterirdi. Uygulama bağlantısının web karşılığı varsa (browser_fallback_url, https
+	 * verisi, geo: / google.navigation: haritası) o açılır; yoksa geçiş yok sayılır, sayfa olduğu yerde kalır.
+	 */
+	static boolean openAppLink(WebView view, WebResourceRequest request) {
+		Uri u = request.getUrl();
+		String target = webTarget(u);
+		String cur = view.getUrl();
+		boolean user = request.hasGesture();
+		me.aap.fermata.ui.fragment.YoldaLog.add("Web: uygulama bağlantısı (" + u.getScheme() + ") "
+				+ (((target != null) && user) ? "web karşılığı açıldı" : "yok sayıldı, sayfada kalındı"));
+		// Kendiliğinden yönlendirme (dokunmadan) sayfayı değiştirmez: aynı yönlendirme döngüye girmesin
+		if ((target != null) && user && request.isForMainFrame() && !target.equals(cur)) view.loadUrl(target);
+		return true;
+	}
+
+	/** Uygulama bağlantısının web adresi (yoksa null). */
+	@androidx.annotation.Nullable
+	public static String webTarget(Uri u) {
+		String sc = u.getScheme();
+		if ("intent".equalsIgnoreCase(sc)) {
+			try {
+				android.content.Intent i = android.content.Intent.parseUri(u.toString(), android.content.Intent.URI_INTENT_SCHEME);
+				String fb = i.getStringExtra("browser_fallback_url");
+				if ((fb != null) && fb.startsWith("http")) return fb;
+				String d = i.getDataString();
+				if ((d != null) && d.startsWith("http")) return d;
+				if (i.getData() != null) return me.aap.fermata.ui.fragment.NavFragment.webMapUrl(i);
+			} catch (Exception ex) {
+				Log.d(ex, "intent adresi çözülemedi");
+			}
+			return null;
+		}
+		try {
+			return me.aap.fermata.ui.fragment.NavFragment.webMapUrl(new android.content.Intent(android.content.Intent.ACTION_VIEW, u));
+		} catch (Exception ex) {
+			return null;
+		}
 	}
 
 	public static boolean isYoutubeUri(Uri uri) {

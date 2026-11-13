@@ -64,6 +64,41 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private RecyclerView list;
 	private LinearLayout dots;
 	private ImageView editBtn;
+	private LinearLayout topRow;
+	private TextClock clockView;
+	/** Alçak ekran (yatay telefon): üst satır ve noktalar sıkışık, kartlara daha çok yer kalır. */
+	private boolean shortScreen;
+
+	/**
+	 * Kartın içi kart yüksekliğine göre ölçülür: başlık, alt yazı, kutucuklar ve "Aç" düğmesi her zaman kartın içine
+	 * sığar (yatay telefonda kart alçakken alt kısım kesiliyordu). Tüm ölçüler dp, yazılar sp.
+	 */
+	private record Fit(boolean small, boolean compact, int pad, int chip, int title, int subLines, int tile, int logo,
+										 int btn, int chipH, int big) {
+	}
+
+	private Fit fit() {
+		android.content.res.Resources r = getResources();
+		float dens = r.getDisplayMetrics().density;
+		float fs = Math.max(1f, r.getConfiguration().fontScale);
+		int h = Math.round(cardH / dens);
+		boolean small = h < 330;
+		boolean compact = h < 260;
+		int pad = compact ? 14 : small ? 18 : 24;
+		int chip = compact ? 40 : small ? 46 : 54;
+		int title = compact ? 22 : small ? 26 : 32;
+		int head = Math.max(chip, Math.round((12 * 1.35f + title * 1.22f) * fs) + (noble() ? 9 : 0));
+		int avail = h - 2 * pad - head;
+		int line = Math.round(15 * 1.33f * fs);
+		int subLines = (avail - 10 - 2 * line >= 84) ? 2 : (avail - 10 - line >= 52) ? 1 : 0;
+		int bottom = avail - ((subLines == 0) ? 0 : (10 + subLines * line)) - 2;
+		int tile = Math.max(40, Math.min(small ? 70 : 84, bottom));
+		int logo = Math.max(44, Math.min(small ? 84 : 104, bottom));
+		int btn = Math.max(40, Math.min(52, bottom));
+		int chipH = Math.max(40, Math.min(48, bottom));
+		int big = compact ? 32 : small ? 40 : 52;
+		return new Fit(small, compact, pad, chip, title, subLines, tile, logo, btn, chipH, big);
+	}
 	private DeckAdapter adapter;
 	private PagerSnapHelper snap;
 	private boolean editing;
@@ -125,6 +160,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return deck;
 	}
 
+	/** Testler için: kartı ortaya getirir. */
+	public void scrollToCard(int pos) {
+		if ((list == null) || (pos < 0) || (pos >= deck.size())) return;
+		((LinearLayoutManager) list.getLayoutManager()).scrollToPositionWithOffset(pos, 0);
+		list.post(() -> {
+			transform();
+			updateDots();
+		});
+	}
+
 	/** Testler için: kartı açar (dokunmakla aynı). */
 	public void openCard(String key) {
 		int i = deck.indexOf(key);
@@ -167,10 +212,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		// Üst satır: saat ve tarih, sağda düzenle
 		LinearLayout top = new LinearLayout(ctx);
+		topRow = top;
 		top.setOrientation(LinearLayout.HORIZONTAL);
 		top.setGravity(Gravity.CENTER_VERTICAL);
 		top.setPadding(dp(22), YoldaStyle.cutoutTop(ctx) + dp(car ? 8 : 12), dp(18), 0);
 		TextClock clock = new TextClock(ctx);
+		clockView = clock;
 		clock.setFormat24Hour("HH:mm");
 		clock.setFormat12Hour("HH:mm");
 		clock.setTextSize(car ? 24 : 28);
@@ -259,6 +306,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int h = list.getHeight();
 		if ((w <= 0) || (h <= 0)) return;
 		boolean car = getActivityDelegate().isCarActivity();
+		compactChrome(car);
 		// Kart boyu oynatıcı çubuğundan bağımsız: çubuğun yeri her zaman ayrılır; çubuk açılıp kapanınca kartlar
 		// küçülüp büyümez (önceden bir şey çalınca kartlar küçülüyordu)
 		h = stableHeight(h, car);
@@ -289,6 +337,26 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				transform();
 				updateDots();
 			});
+		}
+	}
+
+	/** Yatay telefonda (alçak ekran) saat satırı ve sayfa noktaları daha az yer kaplar; kartlar büyür. */
+	private void compactChrome(boolean car) {
+		if ((root == null) || (topRow == null)) return;
+		int hdp = Math.round(root.getHeight() / getResources().getDisplayMetrics().density);
+		boolean sh = !car && (hdp > 0) && (hdp < 520);
+		if (sh == shortScreen) return;
+		shortScreen = sh;
+		Context ctx = requireContext();
+		topRow.setPadding(dp(22), YoldaStyle.cutoutTop(ctx) + dp(sh ? 2 : 12), dp(18), 0);
+		if (clockView != null) clockView.setTextSize(sh ? 22 : 28);
+		if (dots != null) dots.setPadding(0, dp(sh ? 2 : 6), 0, dp(sh ? 4 : 14));
+		if (list != null) {
+			ViewGroup.LayoutParams lp = list.getLayoutParams();
+			if (lp instanceof LinearLayout.LayoutParams llp) {
+				llp.topMargin = dp(sh ? 2 : 10);
+				list.setLayoutParams(llp);
+			}
 		}
 	}
 
@@ -734,10 +802,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		mlp.bottomMargin = -ms / 8;
 		f.addView(mark, mlp);
 
-		boolean small = cardH < dp(330);
+		Fit fz = fit();
 		LinearLayout v = new LinearLayout(ctx);
 		v.setOrientation(LinearLayout.VERTICAL);
-		int p = dp(small ? 18 : 24);
+		int p = dp(fz.pad());
 		v.setPadding(p, p, p, p);
 		f.addView(v, new FrameLayout.LayoutParams(-1, -1));
 
@@ -753,8 +821,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
 		if (lk.tint) ic.setImageTintList(ColorStateList.valueOf(accent));
-		chip.addView(ic, new FrameLayout.LayoutParams(dp(small ? 26 : 30), dp(small ? 26 : 30), Gravity.CENTER));
-		head.addView(chip, new LinearLayout.LayoutParams(dp(small ? 46 : 54), dp(small ? 46 : 54)));
+		int icn = Math.round(fz.chip() * 0.56f);
+		chip.addView(ic, new FrameLayout.LayoutParams(dp(icn), dp(icn), Gravity.CENTER));
+		head.addView(chip, new LinearLayout.LayoutParams(dp(fz.chip()), dp(fz.chip())));
 		LinearLayout names = new LinearLayout(ctx);
 		names.setOrientation(LinearLayout.VERTICAL);
 		names.setPadding(dp(14), 0, dp(8), 0);
@@ -775,10 +844,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		tag.setLetterSpacing(0.14f);
 		tagRow.addView(tag);
 		names.addView(tagRow);
-		TextView title = text(ctx, c.title(), small ? 26 : 32, true, 0xFFFFFFFF);
+		TextView title = text(ctx, c.title(), fz.title(), true, 0xFFFFFFFF);
 		title.setMaxLines(1);
 		title.setEllipsize(TextUtils.TruncateAt.END);
-		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(title, 16, small ? 26 : 32, 1,
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(title, 16, fz.title(), 1,
 				android.util.TypedValue.COMPLEX_UNIT_SP);
 		names.addView(title, new LinearLayout.LayoutParams(-1, -2));
 		if (noble) { // başlığın altında ince vurgu çizgisi
@@ -795,9 +864,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		v.addView(head);
 
 		TextView sub = text(ctx, lk.sub, 15, false, noble ? 0xFFA3A8B5 : 0xD9FFFFFF);
-		sub.setMaxLines(2);
+		sub.setMaxLines(Math.max(1, fz.subLines()));
 		sub.setEllipsize(TextUtils.TruncateAt.END);
 		sub.setPadding(0, dp(10), 0, 0);
+		if (fz.subLines() == 0) sub.setVisibility(View.GONE); // çok alçak kartta alt yazı yerine içerik
 		v.addView(sub);
 		v.addView(new View(ctx), new LinearLayout.LayoutParams(-1, 0, 1f));
 
@@ -810,7 +880,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		View content = content(ctx, c);
 		if (content != null) bottom.addView(content, new LinearLayout.LayoutParams(0, -2, 1f));
 		else bottom.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
-		TextView openBtn = text(ctx, "▶  Aç", 16, true, noble ? 0xFFF2F3F7 : 0xFF111827);
+		TextView openBtn = text(ctx, "▶  Aç", (fz.btn() < 48) ? 15 : 16, true, noble ? 0xFFF2F3F7 : 0xFF111827);
+		openBtn.setSingleLine(true);
 		openBtn.setGravity(Gravity.CENTER);
 		openBtn.setPadding(dp(18), 0, dp(20), 0);
 		GradientDrawable ob = new GradientDrawable();
@@ -825,7 +896,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		openBtn.setElevation(dp(4));
 		openBtn.setContentDescription("Aç: " + c.title());
 		openBtn.setOnClickListener(x -> open(c));
-		LinearLayout.LayoutParams olp = new LinearLayout.LayoutParams(-2, dp(52));
+		LinearLayout.LayoutParams olp = new LinearLayout.LayoutParams(-2, dp(fz.btn()));
 		olp.leftMargin = dp(10);
 		bottom.addView(openBtn, olp);
 		v.addView(bottom, new LinearLayout.LayoutParams(-1, -2));
@@ -836,8 +907,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Nullable
 	private View content(Context ctx, YoldaDeck.Card c) {
 		MainActivityDelegate a = getActivityDelegate();
-		boolean small = cardH < dp(330);
-		int tile = dp(small ? 70 : 84);
+		Fit fz = fit();
+		int tile = dp(fz.tile());
 		switch (c.type()) {
 			case YoldaDeck.TV -> {
 				return channelRow(ctx, a, pickChannels(tvChannels), tile);
@@ -889,15 +960,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				}
 				return (row.getChildCount() == 0) ? null : row;
 			}
-			case YoldaDeck.FAVS -> {
-				return favRow(ctx, a, tile);
+			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
+				return favRow(ctx, a, Math.max(dp(40), tile - dp(Math.round(17 * Math.max(1f,
+						getResources().getConfiguration().fontScale)))));
 			}
 			case YoldaDeck.WEATHER -> {
 				if (weather == null) return null;
 				LinearLayout row = hrow(ctx);
-				TextView big = text(ctx, weather.temp() + "°", small ? 40 : 52, true, 0xFFFFFFFF);
+				TextView big = text(ctx, weather.temp() + "°", fz.big(), true, 0xFFFFFFFF);
 				row.addView(big);
-				TextView em = text(ctx, YoldaWeather.emoji(weather.code()), small ? 30 : 38, false, 0xFFFFFFFF);
+				TextView em = text(ctx, YoldaWeather.emoji(weather.code()), Math.round(fz.big() * 0.72f), false, 0xFFFFFFFF);
 				em.setPadding(dp(8), 0, dp(14), 0);
 				row.addView(em);
 				LinearLayout hours = hrow(ctx);
@@ -929,7 +1001,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.SETTINGS -> {
 				LinearLayout row = hrow(ctx);
-				row.addView(chipBtn(ctx, "Tema: " + t.name, v -> YoldaStyle.next(ctx)), chipLp());
+				row.addView(chipBtn(ctx, "Tema: " + YoldaStyle.label(ctx), v -> YoldaStyle.next(ctx)), chipLp());
+				boolean autoTheme = YoldaStyle.isAuto(ctx);
+				row.addView(chipBtn(ctx, "Otomatik tema: " + (autoTheme ? "Açık" : "Kapalı"), v -> {
+					YoldaStyle.setAuto(ctx, !autoTheme);
+					adapter.notifyDataSetChanged();
+				}), chipLp());
 				boolean wake = YoldaWake.isEnabled(ctx);
 				row.addView(chipBtn(ctx, "Hey Yolda: " + (wake ? "Açık" : "Kapalı"), v -> {
 					YoldaWake.setEnabled(a, !wake);
@@ -966,8 +1043,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				LinearLayout row = hrow(ctx);
 				row.setGravity(Gravity.START | Gravity.BOTTOM);
 				View logo = imageTile(ctx, c.logo(), YoldaDeck.RADIO_STREAM.equals(c.type()) ? null : c.data(),
-						dp(small ? 84 : 104), true, null, v -> open(c));
-				row.addView(logo, new LinearLayout.LayoutParams(dp(small ? 84 : 104), dp(small ? 84 : 104)));
+						dp(fz.logo()), true, null, v -> open(c));
+				row.addView(logo, new LinearLayout.LayoutParams(dp(fz.logo()), dp(fz.logo())));
 				return row;
 			}
 			default -> {
@@ -1745,7 +1822,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private LinearLayout.LayoutParams chipLp() {
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(48));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp((cardH > 0) ? fit().chipH() : 48));
 		lp.rightMargin = dp(10);
 		return lp;
 	}

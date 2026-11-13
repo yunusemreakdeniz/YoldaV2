@@ -132,9 +132,28 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			}));
 
 		LinearLayout set = group(ctx, "AYARLAR");
-		set.addView(item(ctx, R.drawable.yi_palette, "Tema: " + t.name, 0xFFDDD6FE, 0xFF7C3AED, v -> {
+		set.addView(item(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx), 0xFFDDD6FE, 0xFF7C3AED, v -> {
 			YoldaStyle.next(ctx); // tüm ekranlar (telefon + araç) dinleyiciyle yenilenir
 		}));
+		// Otomatik tema: gündüz ve gece için ayrı tema (araçta farlara, telefonda gün batımına göre)
+		boolean autoTheme = YoldaStyle.isAuto(ctx);
+		set.addView(item(ctx, R.drawable.yi_palette, "Otomatik tema (gündüz / gece): " + (autoTheme ? "Açık" : "Kapalı"),
+				0xFFDDD6FE, 0xFF7C3AED, v -> {
+					YoldaStyle.setAuto(ctx, !autoTheme);
+					render();
+				}));
+		if (autoTheme) {
+			set.addView(item(ctx, R.drawable.yi_palette, "Gündüz teması: " + YoldaStyle.THEMES[YoldaStyle.dayTheme(ctx)].name,
+					0xFFFDE68A, 0xFFD97706, v -> {
+						YoldaStyle.setDayTheme(ctx, YoldaStyle.dayTheme(ctx) + 1);
+						render();
+					}));
+			set.addView(item(ctx, R.drawable.yi_palette, "Gece teması: " + YoldaStyle.THEMES[YoldaStyle.nightTheme(ctx)].name,
+					0xFFC7D2FE, 0xFF4338CA, v -> {
+						YoldaStyle.setNightTheme(ctx, YoldaStyle.nightTheme(ctx) + 1);
+						render();
+					}));
+		}
 		set.addView(item(ctx, R.drawable.yi_mic, "Sesli komut", 0xFFA7F3D0, 0xFF059669, v -> a.startVoiceAssistant()));
 		android.content.SharedPreferences yp = ctx.getApplicationContext()
 				.getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);

@@ -331,6 +331,84 @@ public class YoldaAtoZTest {
 
 	@Test
 	public void havaDurumuCozumlenir() throws Exception {
+		havaDurumuCozumlenir0();
+	}
+
+	/**
+	 * Otomatik tema: gündüz ve gece için ayrı tema. Gün batımı hesabı doğru; araç gece kipine geçince (farlar)
+	 * açık ekran kendiliğinden gece temasıyla yeniden kurulur, gündüze dönünce gündüz teması.
+	 */
+	@Test
+	public void otomatikTemaGunduzGece() {
+		// Ankara: 13 Kasım öğlen gündüz, akşam 20:00 ve sabah 05:00 gece; 21 Haziran 19:00 hâlâ gündüz
+		assertFalse("Öğlen gündüz", YoldaStyle.sunDown(utc(2026, 11, 13, 9, 0), 39.9, 32.85));
+		assertTrue("Akşam 20:00 gece", YoldaStyle.sunDown(utc(2026, 11, 13, 17, 0), 39.9, 32.85));
+		assertTrue("Sabah 05:00 gece", YoldaStyle.sunDown(utc(2026, 11, 13, 2, 0), 39.9, 32.85));
+		assertFalse("Yazın 19:00 gündüz", YoldaStyle.sunDown(utc(2026, 6, 21, 16, 0), 39.9, 32.85));
+		assertTrue("Yazın 21:30 gece", YoldaStyle.sunDown(utc(2026, 6, 21, 18, 30), 39.9, 32.85));
+		android.content.SharedPreferences p = ctx().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
+		try {
+			p.edit().putInt("theme", 0).putInt(YoldaStyle.PREF_DAY, 2).putInt(YoldaStyle.PREF_NIGHT, 5).commit();
+			YoldaStyle.setCarNight(false);
+			YoldaStyle.setAuto(ctx(), true);
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			waitIdle(2000);
+			assertEquals("Gündüz teması", 2, YoldaStyle.index(ctx()));
+			assertTrue("Açık ekran gündüz temasında", waitFor(8000, () -> "Gün batımı".equals(deckTheme())));
+
+			YoldaStyle.setCarNight(true); // araç gece kipine geçti
+			onMain(a -> {
+				a.yoldaAutoThemeTick();
+				return null;
+			});
+			waitIdle(1500);
+			assertEquals("Gece teması", 5, YoldaStyle.index(ctx()));
+			assertTrue("Ekran kendiliğinden gece temasına geçmeli: " + deckTheme(),
+					waitFor(8000, () -> "Asil".equals(deckTheme())));
+			assertTrue("Etiket otomatik gece", YoldaStyle.label(ctx()).contains("otomatik gece"));
+
+			YoldaStyle.next(ctx()); // otomatikte "Tema" düğmesi o dilimin temasını değiştirir
+			waitIdle(800);
+			assertEquals("Gece teması değişmeli", 6, YoldaStyle.nightTheme(ctx()));
+			assertEquals("Gündüz teması aynı kalmalı", 2, YoldaStyle.dayTheme(ctx()));
+
+			YoldaStyle.setCarNight(false);
+			onMain(a -> {
+				a.yoldaAutoThemeTick();
+				return null;
+			});
+			assertTrue("Gündüze dönünce gündüz teması: " + deckTheme(),
+					waitFor(8000, () -> "Gün batımı".equals(deckTheme())));
+		} finally {
+			YoldaStyle.setAuto(ctx(), false);
+			p.edit().putInt("theme", 0).commit();
+			YoldaStyle.setCarNight(false);
+		}
+	}
+
+	private static long utc(int y, int m, int d, int h, int min) {
+		java.util.Calendar c = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+		c.clear();
+		c.set(y, m - 1, d, h, min, 0);
+		return c.getTimeInMillis();
+	}
+
+	/** Açık destenin kurulduğu temanın adı. */
+	private String deckTheme() {
+		return onMain(a -> {
+			if (!(a.getActiveFragment() instanceof YoldaDeckFragment d)) return "?";
+			try {
+				java.lang.reflect.Field f = YoldaDeckFragment.class.getDeclaredField("t");
+				f.setAccessible(true);
+				Object t = f.get(d);
+				return (t instanceof YoldaStyle.Theme th) ? th.name : "?";
+			} catch (Exception ex) {
+				return "?" + ex;
+			}
+		});
+	}
+
+	private void havaDurumuCozumlenir0() throws Exception {
 		String json = "{\"current\":{\"temperature_2m\":12.6,\"weather_code\":61,\"wind_speed_10m\":14.2},"
 				+ "\"hourly\":{\"time\":[\"2026-11-12T19:00\",\"2026-11-12T20:00\"],\"temperature_2m\":[12.1,11.4],"
 				+ "\"weather_code\":[61,3]}}";

@@ -402,7 +402,7 @@ public class NavFragment extends MainActivityFragment {
 
 	/** Navigasyon / harita isteğini Google Haritalar web adresine çevirir. */
 	@androidx.annotation.Nullable
-	static String webMapUrl(Intent i) {
+	public static String webMapUrl(Intent i) {
 		Uri u = i.getData();
 		if (u == null) return null;
 		String s = u.toString();

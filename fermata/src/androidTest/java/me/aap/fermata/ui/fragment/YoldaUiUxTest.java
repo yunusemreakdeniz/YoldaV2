@@ -55,7 +55,7 @@ public class YoldaUiUxTest {
 	private static final String TAG = "YoldaUiUx";
 	private static final int MIN_TOUCH_DP = 36;
 	private static final int[] SCREENS = {R.id.home_fragment, R.id.yolda_channels_fragment, R.id.yolda_youtube,
-			R.id.yolda_nav_fragment, R.id.yolda_menu_fragment, R.id.yolda_setup_fragment};
+			R.id.yolda_nav_fragment, R.id.yolda_menu_fragment, R.id.yolda_setup_fragment, R.id.yolda_music};
 
 	private ActivityScenario<MainActivity> scenario;
 	private final List<String> report = new ArrayList<>();
@@ -86,6 +86,7 @@ public class YoldaUiUxTest {
 	public void stop() {
 		shell("wm size reset");
 		shell("wm density reset");
+		shell("settings put system font_scale 1.0");
 		if (scenario != null) scenario.close();
 		writeReport();
 	}
@@ -112,6 +113,69 @@ public class YoldaUiUxTest {
 		shell("wm density 320");
 		waitIdle(3000);
 		auditAll("arac");
+	}
+
+	/**
+	 * Yatay tutulan geniş telefon (2340×1080, 420 dpi ≈ 891×411 dp; kullanıcının telefonu): alçak ekranda kartın
+	 * içi kesilmemeli (önceden "Aç" düğmesi ve kutucuklar kartın altından taşıyordu). Oynatıcı çubuğu açıkken de.
+	 */
+	@Test
+	public void yatayGenisTelefon() {
+		scenario.onActivity(a -> a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+		shell("wm size 1080x2340");
+		shell("wm density 420");
+		waitIdle(3000);
+		List<String> all = new ArrayList<>(deckAllCards("genis_yatay"));
+		onMain(a -> {
+			a.getControlPanel().setVisibility(View.VISIBLE);
+			return null;
+		});
+		waitIdle(1500);
+		all.addAll(audit("genis_yatay_cubuklu_deste"));
+		onMain(a -> {
+			a.getControlPanel().setVisibility(View.GONE);
+			return null;
+		});
+		for (int id : SCREENS) {
+			onMain(a -> a.showFragment(id));
+			waitIdle(1800);
+			all.addAll(audit("genis_yatay_" + ctx().getResources().getResourceEntryName(id)));
+		}
+		assertTrue(fmt(all), all.isEmpty());
+	}
+
+	/** Büyük yazı (Erişilebilirlik → yazı boyutu %130): yatayda kartlar ve ekranlar taşmamalı. */
+	@Test
+	public void buyukYazi() {
+		shell("settings put system font_scale 1.3");
+		scenario.onActivity(a -> a.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+		waitIdle(3000);
+		onMain(a -> a.showFragment(R.id.yolda_menu_fragment));
+		waitIdle(800);
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(2000);
+		List<String> all = new ArrayList<>(deckAllCards("buyuk_yazi"));
+		assertTrue(fmt(all), all.isEmpty());
+	}
+
+	/** Destedeki her kart sırayla ortaya getirilip denetlenir (her kartın içeriği farklı). */
+	private List<String> deckAllCards(String mode) {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(2000);
+		int n = onMain(a -> (a.getActiveFragment() instanceof YoldaDeckFragment d) ? d.getDeck().size() : 0);
+		List<String> all = new ArrayList<>();
+		for (int i = 0; i < n; i++) {
+			int pos = i;
+			onMain(a -> {
+				if (a.getActiveFragment() instanceof YoldaDeckFragment d) d.scrollToCard(pos);
+				return null;
+			});
+			waitIdle(900);
+			String key = onMain(a -> (a.getActiveFragment() instanceof YoldaDeckFragment d)
+					? d.getDeck().get(pos).type() : "?");
+			all.addAll(audit(mode + "_kart_" + pos + "_" + key));
+		}
+		return all;
 	}
 
 	/** Oynatıcı çubuğu: görünür yapılıp ayrıca denetlenir (dikey ve araç boyutu). */
@@ -252,6 +316,7 @@ public class YoldaUiUxTest {
 		if (!inScroll && ((full.left < -2) || (full.right > sw + 2)) && (full.width() < sw * 2)) {
 			out.add(name + ": ekrandan taşıyor — " + desc(v));
 		}
+		clipped(v, out, d, name);
 		if ((v.isClickable() || v.hasOnClickListeners()) && v.isEnabled() && fullyVisible && !(v instanceof ViewGroup
 				&& ((ViewGroup) v).getChildCount() > 3 && full.height() > sh / 2)) {
 			int wd = Math.round(full.width() / d), hd = Math.round(full.height() / d);
@@ -292,6 +357,27 @@ public class YoldaUiUxTest {
 					return;
 				}
 			}
+		}
+	}
+
+	/**
+	 * Kabına sığmayan öğe: düğme, yazı ya da resim kendi kabının (kart, satır) dışına taşıyor ve kesik görünüyor.
+	 * Kaydırılan kaplar (liste, yatay şerit) sayılmaz; çok soluk süs simgeleri (zemin işareti) bilerek taşar.
+	 */
+	private static void clipped(View v, List<String> out, float d, String name) {
+		if (!(v.getParent() instanceof ViewGroup pg)) return;
+		if ((pg instanceof ScrollView) || (pg instanceof HorizontalScrollView) || (pg instanceof android.widget.AbsListView)
+				|| pg.getClass().getName().contains("RecyclerView") || pg.getClass().getName().contains("ViewPager")) return;
+		if ((v.getAlpha() < 0.3f) || (pg.getWidth() <= 0) || (pg.getHeight() <= 0)) return;
+		boolean leaf = (v instanceof android.widget.TextView) || (v instanceof android.widget.ImageView)
+				|| v.isClickable() || v.hasOnClickListeners();
+		if (!leaf) return;
+		int tol = Math.round(3 * d);
+		int over = Math.max(Math.max(-v.getLeft(), -v.getTop()),
+				Math.max(v.getRight() - pg.getWidth(), v.getBottom() - pg.getHeight()));
+		if (over > tol) {
+			out.add(name + ": kesik / kabına sığmıyor (" + Math.round(over / d) + " dp taşıyor) — " + desc(v)
+					+ " ⊂ " + desc(pg));
 		}
 	}
 

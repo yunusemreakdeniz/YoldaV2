@@ -767,7 +767,29 @@ public class MusicFragment extends MainActivityFragment {
 	// ---- çalma ----
 
 	/** Doğrudan çalma bu oturumda bir kez başarısız olduysa her şarkıda beklemeden YouTube oynatıcısı. */
-	private static boolean directBroken;
+	private static long directBrokenAt;
+	/** Şu an çalan / açılan şarkının kimliği ve yolu (testler ve tanı için). */
+	private static volatile String nowId;
+	private static volatile boolean nowYoutube;
+
+	/** Doğrudan çalma yakın zamanda (10 dk) başarısız olduysa: geçici ağ sorunu kalıcı yedeğe dönmesin. */
+	private static boolean directBroken() {
+		return (directBrokenAt != 0) && (android.os.SystemClock.elapsedRealtime() - directBrokenAt < 10 * 60_000L);
+	}
+
+	private static void markDirectBroken(String why) {
+		directBrokenAt = android.os.SystemClock.elapsedRealtime();
+		YoldaLog.add("Müzik: doğrudan çalınamadı (" + why + "), YouTube oynatıcısına geçildi");
+	}
+
+	@Nullable
+	public static String nowPlayingId() {
+		return nowId;
+	}
+
+	public static boolean playingViaYoutube() {
+		return nowYoutube;
+	}
 
 	private void play(List<YtMusic.Track> list, int idx) {
 		if ((idx < 0) || (idx >= list.size())) return;
@@ -778,14 +800,24 @@ public class MusicFragment extends MainActivityFragment {
 		nowQueue = queue;
 		nowIndex = idx;
 		advanced = false;
+		if (idx >= queue.size() - 2) { // liste bitmek üzere: benzer şarkılarla uzat ("Sonraki" hep çalışsın)
+			YtMusic.search(YtMusicItem.related(tr)).main().onSuccess(l -> {
+				if (nowQueue != queue) return;
+				List<YtMusic.Track> nq = YtMusicItem.extend(queue, l);
+				queue.addAll(nq.subList(queue.size(), nq.size()));
+			});
+		}
 		everPlayed = false;
-		nowViaYoutube = directBroken;
-		if (!directBroken) YoldaNowPlaying.setExternal(null);
+		boolean broken = directBroken();
+		nowViaYoutube = broken;
+		nowId = tr.id();
+		nowYoutube = broken;
+		if (!broken) YoldaNowPlaying.setExternal(null);
 		hookSkip();
 		stopTicker();
 		YoldaNowPlaying.expect(tr.title(), tr.artist(), tr.thumb()); // akış aranırken de şarkı görünsün
 		showNowPlaying();
-		if (directBroken) {
+		if (broken) {
 			status.setText("Çalıyor: " + tr.title());
 			playInYoutube(a, tr);
 			return;
@@ -797,7 +829,7 @@ public class MusicFragment extends MainActivityFragment {
 				YoldaNowPlaying.clearExpected();
 				// YouTube doğrudan ses akışı vermedi (ör. "bot değilim" doğrulaması): YouTube oynatıcısında çal
 				Log.e(err, "Doğrudan çalınamadı, YouTube oynatıcısına geçiliyor");
-				directBroken = true;
+				markDirectBroken(reason(err));
 				status.setText("YouTube oynatıcısında (" + reason(err) + ")");
 				playInYoutube(a, tr);
 				return;
@@ -824,7 +856,7 @@ public class MusicFragment extends MainActivityFragment {
 				checkStarted(a, tr, 1);
 				return;
 			}
-			directBroken = true;
+			markDirectBroken("12 sn içinde başlamadı");
 			try {
 				a.getMediaSessionCallback().onStop();
 			} catch (Throwable ignore) {
@@ -837,6 +869,8 @@ public class MusicFragment extends MainActivityFragment {
 	/** Yedek yol: şarkıyı YouTube sekmesinin oynatıcısında aç, sonra Müzik ekranına dön (ses sürer). */
 	private void playInYoutube(MainActivityDelegate a, YtMusic.Track tr) {
 		nowViaYoutube = true;
+		nowYoutube = true;
+		forceSound(tr.id());
 		// çubuk ve Şimdi çalıyor bu şarkıyı göstersin (YouTube öğesi tüm şarkılarda aynı kalıyordu)
 		if (nowQueue != null) YoldaNowPlaying.setExternal(new YoldaNowPlaying.External(tr, nowQueue, nowIndex));
 		YoldaNowPlaying.clearExpected();
@@ -866,6 +900,45 @@ public class MusicFragment extends MainActivityFragment {
 		me.aap.utils.app.App.get().getHandler().postDelayed(() -> {
 			if (a.getActiveFragmentId() == R.id.youtube_fragment) a.showFragment(R.id.yolda_music);
 		}, 4000);
+	}
+
+	/**
+	 * YouTube'un mobil sitesi sayfayı dokunmadan açınca videoyu çoğu zaman sessiz başlatır ("dokun, sesi aç"):
+	 * şarkı çalıyor görünür ama ses gelmez. Şarkı açıldıktan sonra birkaç kez sesi açıp oynatmayı sürdürür.
+	 */
+	private void forceSound(String id) {
+		String js = "(function(){var v=document.querySelector('video');var p=document.getElementById('movie_player');"
+				+ "try{if(p&&p.unMute)p.unMute();if(p&&p.setVolume)p.setVolume(100);}catch(e){}"
+				+ "var b=document.querySelector('.ytp-unmute,.ytmUnmuteButton,button.unmute-button,.ytm-unmute-button');"
+				+ "if(b)try{b.click();}catch(e){}"
+				+ "if(v){v.muted=false;if(v.volume<1)v.volume=1;if(v.paused&&!v.ended)v.play();"
+				+ "return (v.muted?'sessiz':'sesli')+(v.paused?'-durgun':'-caliyor');}return 'video-yok';})()";
+		android.os.Handler h = me.aap.utils.app.App.get().getHandler();
+		for (long d : new long[]{1500, 3000, 5000, 8000, 12000, 18000}) {
+			h.postDelayed(() -> {
+				if (!id.equals(nowId) || !nowYoutube) return;
+				Object f = findFragment(R.id.youtube_fragment);
+				android.webkit.WebView w = (f instanceof androidx.fragment.app.Fragment fr) ? findWeb(fr.getView()) : null;
+				if (w == null) return;
+				String u = w.getUrl();
+				if ((u == null) || !u.contains(id)) return; // sayfa henüz bu şarkıda değil
+				w.evaluateJavascript(js, r -> {
+					if ((d == 3000) || (d == 12000)) YoldaLog.add("Müzik (YouTube oynatıcısı): " + r);
+				});
+			}, d);
+		}
+	}
+
+	@Nullable
+	private static android.webkit.WebView findWeb(@Nullable View v) {
+		if (v instanceof android.webkit.WebView w) return w;
+		if (v instanceof ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				android.webkit.WebView w = findWeb(g.getChildAt(i));
+				if (w != null) return w;
+			}
+		}
+		return null;
 	}
 
 	@Nullable
@@ -1025,8 +1098,7 @@ public class MusicFragment extends MainActivityFragment {
 			MediaLib.PlayableItem cur = getActivityDelegate().getCurrentPlayable();
 			// Doğrudan çalan şarkıda (YtMusicItem) önceki/sonraki oynatıcının kendisinde: liste öğenin içinde,
 			// her ekranda ve direksiyonda çalışır. Burası yalnız YouTube oynatıcısı yedeği için.
-			boolean ours = nowViaYoutube && (cur != null) && !(cur instanceof YtMusicItem)
-					&& cur.getClass().getName().contains("Youtube");
+			boolean ours = nowViaYoutube && !(cur instanceof YtMusicItem);
 			if (!ours) return false;
 			int i = nowIndex + dir;
 			if ((i < 0) || (i >= nowQueue.size())) return false;

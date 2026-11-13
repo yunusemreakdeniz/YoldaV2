@@ -121,18 +121,113 @@ public final class YoldaStyle {
 	private YoldaStyle() {
 	}
 
+	/** Otomatik tema: gündüz ve gece için ayrı tema, duruma göre kendiliğinden değişir. */
+	public static final String PREF_AUTO = "theme_auto", PREF_DAY = "theme_day", PREF_NIGHT = "theme_night";
+	/** Tema seçimini etkileyen ayarlar (değişince ekranlar yenilenir). */
+	public static final java.util.Set<String> THEME_KEYS = java.util.Collections.unmodifiableSet(
+			new java.util.HashSet<>(java.util.Arrays.asList("theme", PREF_AUTO, PREF_DAY, PREF_NIGHT)));
+	public static final int DEFAULT_DAY = 1, DEFAULT_NIGHT = 5; // Gece mavi / Asil
+	/** Araç gece kipi (farlar / araç ışık algılayıcısı): araç ekranı açıkken o belirler. */
+	private static volatile boolean carNight;
+	private static volatile long carNightAt;
+
+	private static android.content.SharedPreferences prefs(Context ctx) {
+		return ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+	}
+
 	public static int index(Context ctx) {
-		return Math.floorMod(ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-				.getInt("theme", 0), THEMES.length);
+		android.content.SharedPreferences p = prefs(ctx);
+		if (p.getBoolean(PREF_AUTO, false)) {
+			boolean night = isNight(ctx);
+			return Math.floorMod(p.getInt(night ? PREF_NIGHT : PREF_DAY, night ? DEFAULT_NIGHT : DEFAULT_DAY), THEMES.length);
+		}
+		return Math.floorMod(p.getInt("theme", 0), THEMES.length);
+	}
+
+	public static boolean isAuto(Context ctx) {
+		return prefs(ctx).getBoolean(PREF_AUTO, false);
+	}
+
+	public static void setAuto(Context ctx, boolean on) {
+		android.content.SharedPreferences p = prefs(ctx);
+		android.content.SharedPreferences.Editor e = p.edit().putBoolean(PREF_AUTO, on);
+		if (on && !p.contains(PREF_DAY)) e.putInt(PREF_DAY, DEFAULT_DAY);
+		if (on && !p.contains(PREF_NIGHT)) e.putInt(PREF_NIGHT, DEFAULT_NIGHT);
+		e.apply();
+	}
+
+	public static int dayTheme(Context ctx) {
+		return Math.floorMod(prefs(ctx).getInt(PREF_DAY, DEFAULT_DAY), THEMES.length);
+	}
+
+	public static int nightTheme(Context ctx) {
+		return Math.floorMod(prefs(ctx).getInt(PREF_NIGHT, DEFAULT_NIGHT), THEMES.length);
+	}
+
+	public static void setDayTheme(Context ctx, int i) {
+		prefs(ctx).edit().putInt(PREF_DAY, Math.floorMod(i, THEMES.length)).apply();
+	}
+
+	public static void setNightTheme(Context ctx, int i) {
+		prefs(ctx).edit().putInt(PREF_NIGHT, Math.floorMod(i, THEMES.length)).apply();
+	}
+
+	/** Araç ekranı gece / gündüz kipini bildirir (Android Auto farlara göre değiştirir). */
+	public static void setCarNight(boolean night) {
+		carNight = night;
+		carNightAt = android.os.SystemClock.elapsedRealtime();
+	}
+
+	/** Şu an gece mi: araç bağlıysa aracın kipi, değilse konuma göre güneşin batıp batmadığı. */
+	public static boolean isNight(Context ctx) {
+		if ((carNightAt != 0) && (android.os.SystemClock.elapsedRealtime() - carNightAt < 120_000)) return carNight;
+		android.content.SharedPreferences p = prefs(ctx);
+		return sunDown(System.currentTimeMillis(), p.getFloat("loc_lat", 39.9f), p.getFloat("loc_lon", 32.85f));
+	}
+
+	/** Güneş batmış mı (NOAA yaklaşık hesabı; dakika duyarlılığında yeterli). Varsayılan konum Ankara. */
+	public static boolean sunDown(long utcMs, double lat, double lon) {
+		java.util.Calendar c = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"));
+		c.setTimeInMillis(utcMs);
+		double g = 2 * Math.PI / 365 * (c.get(java.util.Calendar.DAY_OF_YEAR) - 1);
+		double eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g)
+				- 0.040849 * Math.sin(2 * g));
+		double decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g)
+				+ 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+		double la = Math.toRadians(lat);
+		double x = Math.cos(Math.toRadians(90.833)) / (Math.cos(la) * Math.cos(decl)) - Math.tan(la) * Math.tan(decl);
+		if (x >= 1) return true; // kutup gecesi
+		if (x <= -1) return false; // kutup gündüzü
+		double ha = Math.toDegrees(Math.acos(x));
+		double rise = 720 - 4 * (lon + ha) - eq;
+		double set = 720 - 4 * (lon - ha) - eq;
+		double now = c.get(java.util.Calendar.HOUR_OF_DAY) * 60 + c.get(java.util.Calendar.MINUTE)
+				+ c.get(java.util.Calendar.SECOND) / 60.0;
+		// UTC dakikaları gün sınırını aşabilir: gün doğumundan itibaren geçen süreye göre karşılaştır
+		double sinceRise = ((now - rise) % 1440 + 1440) % 1440;
+		double dayLen = ((set - rise) % 1440 + 1440) % 1440;
+		return sinceRise >= dayLen;
 	}
 
 	public static Theme current(Context ctx) {
 		return THEMES[index(ctx)];
 	}
 
+	/** Sıradaki tema. Otomatikteyse şu anki dilimin (gündüz / gece) teması değişir. */
 	public static void next(Context ctx) {
-		ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-				.putInt("theme", Math.floorMod(index(ctx) + 1, THEMES.length)).apply();
+		int n = Math.floorMod(index(ctx) + 1, THEMES.length);
+		if (isAuto(ctx)) {
+			if (isNight(ctx)) setNightTheme(ctx, n);
+			else setDayTheme(ctx, n);
+			return;
+		}
+		prefs(ctx).edit().putInt("theme", n).apply();
+	}
+
+	/** Tema adı ve otomatikse hangi dilimde olduğu: "Asil (gece, otomatik)". */
+	public static String label(Context ctx) {
+		String n = current(ctx).name;
+		return isAuto(ctx) ? (n + " · otomatik " + (isNight(ctx) ? "gece" : "gündüz")) : n;
 	}
 
 	static float dp(Context ctx, float v) {

@@ -17,6 +17,7 @@ public class YoutubeWebClient extends FermataWebClient {
 
 	@Override
 	public boolean shouldOverrideUrlLoading(@NonNull WebView view, @NonNull WebResourceRequest request) {
+		if (isAppLink(request.getUrl())) return openAppLink(view, request); // intent:// vb. hata sayfası açmasın
 		if (!isYoutubeUri(request.getUrl())) {
 			MainActivityDelegate a = MainActivityDelegate.get(view.getContext());
 

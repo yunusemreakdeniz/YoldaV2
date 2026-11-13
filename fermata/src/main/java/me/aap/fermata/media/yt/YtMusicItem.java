@@ -111,7 +111,28 @@ public class YtMusicItem extends PlayableItemBase {
 	@NonNull
 	@Override
 	public FutureSupplier<PlayableItem> getNextPlayable() {
-		return create(getLib(), queue, index + 1);
+		if (index + 1 < queue.size()) return create(getLib(), queue, index + 1);
+		// Liste bitti (ör. favoriden tek şarkı): YouTube Music'teki gibi aynı sanatçı / benzer şarkılarla sürer
+		return YtMusic.search(related(track)).main().<PlayableItem>then(l -> {
+			List<YtMusic.Track> nq = extend(queue, l);
+			return (nq.size() > index + 1) ? create(getLib(), nq, index + 1) : completedNull();
+		});
+	}
+
+	/** Benzer şarkı araması: sanatçı varsa onun şarkıları, yoksa şarkının adı. */
+	public static String related(YtMusic.Track t) {
+		String a = t.artist();
+		return ((a != null) && !a.isEmpty()) ? a : t.title();
+	}
+
+	/** Listeye olmayan şarkıları ekler (yeni liste döner; eskisi değişmez). */
+	public static List<YtMusic.Track> extend(List<YtMusic.Track> q, @Nullable List<YtMusic.Track> more) {
+		List<YtMusic.Track> nq = new java.util.ArrayList<>(q);
+		if (more == null) return nq;
+		java.util.Set<String> ids = new java.util.HashSet<>();
+		for (YtMusic.Track t : nq) ids.add(t.id());
+		for (YtMusic.Track t : more) if (ids.add(t.id())) nq.add(t);
+		return nq;
 	}
 
 	@NonNull

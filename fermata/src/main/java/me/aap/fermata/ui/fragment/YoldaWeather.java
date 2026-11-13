@@ -61,7 +61,8 @@ public final class YoldaWeather {
 				Now n = parse(get(url), place);
 				cached = n;
 				cachedAt = System.currentTimeMillis();
-				prefs(app).edit().putString("weather_last", serialize(n)).apply();
+				prefs(app).edit().putString("weather_last", serialize(n))
+						.putFloat("loc_lat", (float) ll[0]).putFloat("loc_lon", (float) ll[1]).apply(); // otomatik tema (gün doğumu)
 				p.complete(n);
 			} catch (Throwable ex) {
 				Log.e(ex, "Hava durumu alınamadı");

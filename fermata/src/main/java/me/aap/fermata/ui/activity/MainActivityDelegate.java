@@ -520,6 +520,8 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	public void onActivityDestroy() {
 		super.onActivityDestroy();
+		themeTickOn = false;
+		App.get().getHandler().removeCallbacks(autoThemeTick);
 		if (themeListener != null) {
 			getContext().getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
 					Context.MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(themeListener);
@@ -1480,8 +1482,41 @@ public class MainActivityDelegate extends ActivityDelegate
 	 * Tema değişti (telefonda ya da araçta): bu ekranın zemini, menüsü, oynatıcısı, sesli düğmesi ve sayfaları
 	 * yeni renklerle yeniden kurulur. Önceden yalnız açık sayfa yenileniyor, gerisi eski renkte kalıyordu.
 	 */
+	/** Son uygulanan tema (otomatik temada dilim değişince yeniden kurmak için). */
+	private int appliedTheme = -1;
+	private final Runnable autoThemeTick = new Runnable() {
+		@Override
+		public void run() {
+			App.get().getHandler().removeCallbacks(this);
+			if (!themeTickOn) return;
+			yoldaAutoThemeTick();
+			App.get().getHandler().postDelayed(this, 30_000);
+		}
+	};
+
+	private boolean themeTickOn;
+
+	/** Otomatik tema: araç gece kipini bildirir; gündüz / gece dilimi değiştiyse ekranlar yeni temayla kurulur. */
+	public void yoldaAutoThemeTick() {
+		Context ctx = getContext();
+		if (isCarActivity()) {
+			int m = ctx.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+			me.aap.fermata.ui.view.YoldaStyle.setCarNight(m == Configuration.UI_MODE_NIGHT_YES);
+		}
+		yoldaRefreshThemeIfChanged();
+	}
+
+	private void yoldaRefreshThemeIfChanged() {
+		int i = me.aap.fermata.ui.view.YoldaStyle.index(getContext());
+		if (i == appliedTheme) return;
+		boolean first = appliedTheme < 0;
+		appliedTheme = i;
+		if (!first) yoldaRefreshTheme();
+	}
+
 	private void yoldaRefreshTheme() {
 		Context ctx = getContext();
+		appliedTheme = me.aap.fermata.ui.view.YoldaStyle.index(ctx);
 		me.aap.fermata.ui.view.YoldaStyle.refreshBackdrop(ctx);
 		try {
 			if (navBar instanceof me.aap.fermata.ui.view.FermataNavBarView nb) nb.applyYoldaPill();
@@ -1601,10 +1636,14 @@ public class MainActivityDelegate extends ActivityDelegate
 		// Tema değişince (bu ya da diğer ekrandan) bu ekran da yenilensin. Dinleyici zayıf tutulduğu için alanda saklanır.
 		if (themeListener == null) {
 			themeListener = (sp, key) -> {
-				if ("theme".equals(key)) App.get().getHandler().post(this::yoldaRefreshTheme);
+				if (me.aap.fermata.ui.view.YoldaStyle.THEME_KEYS.contains(key))
+					App.get().getHandler().post(this::yoldaRefreshThemeIfChanged);
 			};
 			ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
 					Context.MODE_PRIVATE).registerOnSharedPreferenceChangeListener(themeListener);
+			appliedTheme = me.aap.fermata.ui.view.YoldaStyle.index(ctx);
+			themeTickOn = true;
+			App.get().getHandler().postDelayed(autoThemeTick, 5_000);
 		}
 		if (me.aap.fermata.ui.view.YoldaStyle.DECK) {
 			addDeckBackButton(host, b);
