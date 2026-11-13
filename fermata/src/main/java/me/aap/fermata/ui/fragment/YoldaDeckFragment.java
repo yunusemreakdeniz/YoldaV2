@@ -294,6 +294,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			dateLine.addView(date, new LinearLayout.LayoutParams(0, -2, 1f));
 			clockCol.addView(dateLine, new LinearLayout.LayoutParams(-1, -2));
 			top.addView(clockCol, new LinearLayout.LayoutParams(0, -2, 1f));
+			// Dokunma alanı: saat + tarih + hava bloğunun tamamı (küçük hava yazısı tek başına zor basılır)
+			clockCol.setOnClickListener(v -> {
+				if (weather == null) return;
+				YoldaStyle.haptic(v);
+				HomeFragment.openWeb(getActivityDelegate(), "https://www.google.com/search?q=hava+durumu");
+			});
 		} else {
 			top.addView(clock);
 			date.setTextSize(14);
@@ -312,7 +318,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaStyle.haptic(v);
 			HomeFragment.openWeb(getActivityDelegate(), "https://www.google.com/search?q=hava+durumu");
 		});
-		if (narrowHeader && (dateLine != null)) { // tarihin yanında sade yazı
+		if (narrowHeader && (dateLine != null)) { // tarihin yanında sade yazı (dokunma: tüm saat bloğu)
+			wxChip.setOnClickListener(null);
+			wxChip.setClickable(false);
 			wxChip.setBackground(null);
 			wxChip.setTextSize(12);
 			wxChip.setTextColor(t.muted);
