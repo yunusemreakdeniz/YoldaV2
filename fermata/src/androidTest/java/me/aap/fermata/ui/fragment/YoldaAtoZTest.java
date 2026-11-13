@@ -391,6 +391,8 @@ public class YoldaAtoZTest {
 	}
 
 	/** Ana sayfada düzenle düğmesinin yanındaki tema düğmesi: dokun → sıradaki tema, basılı tut → otomatik. */
+	private android.app.Activity themeAct;
+
 	@Test
 	public void temaDugmesiDuzenleYaninda() {
 		android.content.SharedPreferences p = ctx().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
@@ -410,6 +412,7 @@ public class YoldaAtoZTest {
 					&& (sb.getRight() <= edit.getLeft()) && (edit.getLeft() - btn.getRight() < 3 * btn.getWidth())));
 			View setb = onMain(a -> byDesc(a.getActiveFragment().getView(), "Ayarlar"));
 			assertNotNull("Ayarlar düğmesi tema düğmesinin yanında olmalı", setb);
+			scenario.onActivity(x -> themeAct = x); // tıklamadan önce (sonra animasyon bitmesi beklenmesin)
 			onMain(a -> btn.performClick());
 			assertTrue("Dokununca tema değişmeli", waitFor(5000, () -> YoldaStyle.index(ctx()) == 1));
 			// Onay kutusu yok: altta kısa yazı belirir ve ~1 sn sonra kaybolur
@@ -418,14 +421,14 @@ public class YoldaAtoZTest {
 				Thread.sleep(450);
 			} catch (InterruptedException ignore) {
 			}
-			assertTrue("Tema yazısı görünmeli", onMain(a -> toastShown(a)));
+			assertTrue("Tema yazısı görünmeli", toastNow());
 			assertFalse("Onay kutusu çıkmamalı", onMain(a -> ((android.app.Activity) a.getContext()).getWindow()
 					.getDecorView().getRootView().findViewById(android.R.id.button1) != null));
 			try {
 				Thread.sleep(2500);
 			} catch (InterruptedException ignore) {
 			}
-			assertFalse("Tema yazısı kendiliğinden kapanmalı", onMain(a -> toastShown(a)));
+			assertFalse("Tema yazısı kendiliğinden kapanmalı", toastNow());
 			waitIdle(1500);
 			View btn2 = onMain(a -> byDesc(a.getActiveFragment().getView(), "Tema:"));
 			onMain(a -> btn2.performLongClick());
@@ -433,6 +436,21 @@ public class YoldaAtoZTest {
 		} finally {
 			p.edit().putInt("theme", 0).putBoolean(YoldaStyle.PREF_AUTO, false).commit();
 		}
+	}
+
+	/**
+	 * Yazı şu an görünüyor mu: ana iş parçacığında, boşta kalmayı BEKLEMEDEN bakılır (onActivity önce
+	 * animasyonların bitmesini bekliyor, o sırada yazı kayboluyordu).
+	 */
+	private boolean toastNow() {
+		AtomicReference<Boolean> r = new AtomicReference<>(false);
+		try {
+			Thread.sleep(400);
+		} catch (InterruptedException ignore) {
+		}
+		InstrumentationRegistry.getInstrumentation().runOnMainSync(() ->
+				r.set(toastShown(MainActivityDelegate.get(themeAct))));
+		return r.get();
 	}
 
 	private static boolean toastShown(MainActivityDelegate a) {
