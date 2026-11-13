@@ -895,6 +895,9 @@ public class MusicFragment extends MainActivityFragment {
 		}
 		// Sayfa ekrana getirilmeden arkada kurulur: ekran YouTube'a geçmez
 		Object f = a.ensureFragment(R.id.youtube_fragment);
+		YoldaLog.add("Müzik: arkadaki sayfa " + ((f == null) ? "kurulamadı" : ("kuruldu, görünüm "
+				+ ((f instanceof androidx.fragment.app.Fragment fr) && (fr.getView() != null) ? "var, web "
+				+ (findWeb(fr.getView()) != null ? "var" : "yok") : "yok"))));
 		if (f == null) f = a.showFragment(R.id.youtube_fragment);
 		if (f == null) return;
 		Object ff = f;
@@ -927,9 +930,15 @@ public class MusicFragment extends MainActivityFragment {
 				if (!id.equals(nowId) || !nowYoutube) return;
 				Object f = findFragment(R.id.youtube_fragment);
 				android.webkit.WebView w = (f instanceof androidx.fragment.app.Fragment fr) ? findWeb(fr.getView()) : null;
-				if (w == null) return;
+				if (w == null) {
+					if (d == 3000) YoldaLog.add("Müzik: ses açılamadı, sayfa " + ((f == null) ? "yok" : "var ama web görünümü yok"));
+					return;
+				}
 				String u = w.getUrl();
-				if ((u == null) || !u.contains(id)) return; // sayfa henüz bu şarkıda değil
+				if ((u == null) || !u.contains(id)) { // sayfa henüz bu şarkıda değil
+					if ((d == 3000) || (d == 12000)) YoldaLog.add("Müzik: sayfa adresi şarkı değil: " + u);
+					return;
+				}
 				w.evaluateJavascript(js, r -> {
 					if ((d == 3000) || (d == 12000)) YoldaLog.add("Müzik (YouTube oynatıcısı): " + r);
 				});

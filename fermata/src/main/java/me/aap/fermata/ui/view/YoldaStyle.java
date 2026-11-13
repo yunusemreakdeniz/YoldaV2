@@ -363,6 +363,11 @@ public final class YoldaStyle {
 	 * Tema değişince ekran yeniden kurulsa da görünsün diye etkinliğin kök görünümüne eklenir.
 	 */
 	public static void toast(Context ctx, String text) {
+		// tema değişince ekran yeniden kuruluyor: yazı o bittikten sonra eklensin
+		me.aap.utils.app.App.get().getHandler().postDelayed(() -> toastNow(ctx, text), 120);
+	}
+
+	private static void toastNow(Context ctx, String text) {
 		try {
 			me.aap.fermata.ui.activity.MainActivityDelegate a = me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx);
 			View host = a.findViewById(me.aap.fermata.R.id.main_activity);
@@ -396,7 +401,9 @@ public final class YoldaStyle {
 			t.setTranslationY(12 * d);
 			t.animate().alpha(1f).translationY(0).setDuration(150).withEndAction(() ->
 					t.animate().alpha(0f).setStartDelay(1000).setDuration(220).withEndAction(() -> cl.removeView(t)).start()).start();
-		} catch (Throwable ignore) {
+			android.util.Log.i("Yolda", "Bilgi yazısı: " + text);
+		} catch (Throwable ex) {
+			android.util.Log.i("Yolda", "Bilgi yazısı gösterilemedi: " + ex);
 		}
 	}
 
