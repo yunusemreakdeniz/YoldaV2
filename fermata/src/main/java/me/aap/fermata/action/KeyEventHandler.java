@@ -89,7 +89,13 @@ public class KeyEventHandler {
 																		@Nullable MainActivityDelegate activity, long timestamp) {
 		worker = null;
 		Log.i("Performing action ", action);
-		action.getHandler().handle(cb, activity, timestamp);
+		try {
+			action.getHandler().handle(cb, activity, timestamp);
+		} catch (RuntimeException ex) {
+			// Yolda: tuş işlemi gecikmeli çalışır; bu arada ekran kapanmışsa (ör. menü açılacak etkinlik yok) çökmesin
+			Log.e(ex, "Tuş işlemi yapılamadı: ", action);
+			me.aap.fermata.ui.fragment.YoldaLog.add("Tuş işlemi yapılamadı (" + action + "): " + ex);
+		}
 	}
 
 	private static final class Worker implements Runnable {

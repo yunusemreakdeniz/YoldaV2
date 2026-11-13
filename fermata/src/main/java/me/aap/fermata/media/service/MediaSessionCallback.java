@@ -747,6 +747,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 
 	@Override
 	public void onSkipToPrevious() {
+		yoldaSkipRequests++;
 		java.util.function.IntPredicate y = yoldaSkip;
 		if ((y != null) && y.test(-1)) return;
 		playerTask.cancel();
@@ -758,8 +759,12 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 		playerTask = skipTo(false, true);
 	}
 
+	/** Testler ve tanı için: gelen sonraki / önceki isteklerinin sayısı. */
+	public static volatile int yoldaSkipRequests;
+
 	@Override
 	public void onSkipToNext() {
+		yoldaSkipRequests++;
 		java.util.function.IntPredicate y = yoldaSkip;
 		if ((y != null) && y.test(1)) return;
 		playerTask.cancel();
