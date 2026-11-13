@@ -165,6 +165,62 @@ public class YoldaUiUxTest {
 		assertTrue(fmt(all), all.isEmpty());
 	}
 
+	/**
+	 * Oynatıcı çubuğu açılınca içerik itilmez: arama kutusu yerinde kalır, ızgara küçülmez; çubuk arama
+	 * kutusunun üstünde yüzer. Kart destesinde çubuk gösterilmez (kartlar tüm yüksekliği kullanır).
+	 */
+	@Test
+	public void cubukAcilincaDuzenKaymaz() {
+		onMain(a -> a.showFragment(R.id.yolda_channels_fragment));
+		waitIdle(1800);
+		int[] before = onMain(this::searchAndBody);
+		onMain(a -> {
+			a.getControlPanel().setVisibility(View.VISIBLE);
+			return null;
+		});
+		waitIdle(1500);
+		int[] after = onMain(this::searchAndBody);
+		int[] bar = onMain(a -> {
+			int[] l = new int[2];
+			a.getControlPanel().getLocationOnScreen(l);
+			return new int[]{l[1], l[1] + a.getControlPanel().getHeight(), a.getControlPanel().getVisibility()};
+		});
+		android.util.Log.i(TAG, "Arama y " + before[0] + "→" + after[0] + ", gövde " + before[1] + "→" + after[1]
+				+ ", çubuk " + bar[0] + "-" + bar[1]);
+		assertEquals("Arama kutusu yerinde kalmalı", before[0], after[0]);
+		assertEquals("İçerik küçülmemeli", before[1], after[1]);
+		assertEquals("Çubuk görünmeli", View.VISIBLE, bar[2]);
+		assertTrue("Çubuk arama kutusunun üstünde olmalı", bar[1] <= after[0] + 2);
+		screenshot("cubuk_kanallar");
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1500);
+		assertEquals("Destede çubuk gizli", View.GONE, onMain(a -> a.getControlPanel().getVisibility()).intValue());
+		onMain(a -> {
+			a.getControlPanel().setVisibility(View.GONE);
+			return null;
+		});
+	}
+
+	/** Kanallar ekranındaki arama kutusunun üst kenarı ve gövdenin yüksekliği. */
+	private int[] searchAndBody(MainActivityDelegate a) {
+		View root = a.getActiveFragment().getView();
+		View search = findEdit(root);
+		int[] l = new int[2];
+		if (search != null) search.getLocationOnScreen(l);
+		return new int[]{(search != null) ? l[1] : -1, a.getBody().getHeight()};
+	}
+
+	private static View findEdit(View v) {
+		if (v instanceof android.widget.EditText) return v;
+		if (v instanceof ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				View f = findEdit(g.getChildAt(i));
+				if (f != null) return f;
+			}
+		}
+		return null;
+	}
+
 	/** Büyük yazı (Erişilebilirlik → yazı boyutu %130): yatayda kartlar ve ekranlar taşmamalı. */
 	@Test
 	public void buyukYazi() {

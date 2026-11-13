@@ -111,7 +111,15 @@ public class YoldaPlaybackTest {
 		waitIdle(800);
 		assertFalse("Geri ile tam ekrandan çıkılmalı", onMain(a -> a.getBody().isVideoMode()));
 		assertTrue("Yayın sürmeli", onMain(a -> a.getMediaSessionCallback().isPlaying()));
-		assertEquals("Oynatıcı altta görünmeli", View.VISIBLE, onMain(a -> a.getControlPanel().getVisibility()).intValue());
+		// Ana sayfada (kart destesi) çubuk yerine üstte "▶ çalan" düğmesi; diğer ekranlarda çubuk
+		waitIdle(1800);
+		assertTrue("Çalan şey görünmeli (destede üst düğme, diğer ekranlarda çubuk)", onMain(a ->
+				(a.getActiveFragment() instanceof YoldaDeckFragment d) ? d.nowPlayingShown()
+						: (a.getControlPanel().getVisibility() == View.VISIBLE)));
+		onMain(a -> a.showFragment(R.id.yolda_channels_fragment));
+		waitIdle(800);
+		assertEquals("Diğer ekranda oynatıcı çubuğu görünmeli", View.VISIBLE,
+				onMain(a -> a.getControlPanel().getVisibility()).intValue());
 		assertEquals("Sesli düğme görünmeli", View.VISIBLE, onMain(a -> a.getYoldaVoiceButton().getVisibility()).intValue());
 
 		// Duraklat / devam

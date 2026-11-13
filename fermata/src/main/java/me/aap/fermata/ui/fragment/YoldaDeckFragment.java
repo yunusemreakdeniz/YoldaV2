@@ -65,6 +65,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private LinearLayout dots;
 	private ImageView editBtn;
 	private LinearLayout topRow;
+	@Nullable
+	private TextView nowPill;
 	private TextClock clockView;
 	/** Alçak ekran (yatay telefon): üst satır ve noktalar sıkışık, kartlara daha çok yer kalır. */
 	private boolean shortScreen;
@@ -203,6 +205,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return deck;
 	}
 
+	/** Testler için: üstteki "çalan" düğmesi görünüyor mu. */
+	public boolean nowPlayingShown() {
+		updateNowPill();
+		return (nowPill != null) && (nowPill.getVisibility() == View.VISIBLE);
+	}
+
 	/** Testler için: kartı ortaya getirir. */
 	public void scrollToCard(int pos) {
 		if ((list == null) || (pos < 0) || (pos >= deck.size())) return;
@@ -272,6 +280,32 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		date.setTextColor(t.muted);
 		date.setPadding(dp(12), dp(4), 0, 0);
 		top.addView(date, new LinearLayout.LayoutParams(0, -2, 1f));
+		// Çalan: destede oynatıcı çubuğu yok; çalan şeyin adı burada, dokununca Şimdi çalıyor / video
+		TextView playing = text(ctx, "", 15, true, 0xFFFFFFFF);
+		playing.setSingleLine(true);
+		playing.setEllipsize(TextUtils.TruncateAt.END);
+		playing.setGravity(Gravity.CENTER_VERTICAL);
+		playing.setPadding(dp(16), 0, dp(18), 0);
+		playing.setMaxWidth(dp(car ? 340 : 260));
+		playing.setBackground(YoldaStyle.glass(ctx, t, 999));
+		playing.setVisibility(View.GONE);
+		playing.setOnClickListener(v -> {
+			YoldaStyle.haptic(v);
+			YoldaNowPlaying.open(getActivityDelegate());
+		});
+		LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(-2, dp(44));
+		plp.rightMargin = dp(10);
+		top.addView(playing, plp);
+		nowPill = playing;
+		Runnable tick = new Runnable() {
+			@Override
+			public void run() {
+				if (!isAdded() || (nowPill == null)) return;
+				updateNowPill();
+				nowPill.postDelayed(this, 1500);
+			}
+		};
+		playing.post(tick);
 		// Tema: dokun → sıradaki tema; basılı tut → otomatik (gündüz / gece) aç / kapat
 		ImageView themeBtn = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx), v -> {
 			YoldaStyle.haptic(v);
@@ -402,6 +436,30 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 	}
 
+	/** Üstteki "♪ çalan" düğmesi: çalan / açılan bir şey varsa adı, yoksa gizli. */
+	private void updateNowPill() {
+		TextView p = nowPill;
+		if (p == null) return;
+		MainActivityDelegate a = getActivityDelegate();
+		var cb = a.getMediaSessionCallback();
+		MediaLib.PlayableItem pi = me.aap.fermata.media.service.MediaSessionCallback.yoldaOpeningItem();
+		if (pi == null) pi = a.getCurrentPlayable();
+		boolean on = (pi != null) && (cb.isPlaying() || (me.aap.fermata.media.service.MediaSessionCallback.yoldaOpeningItem() != null));
+		String name = null;
+		if (on) {
+			// YouTube'da sayfanın başlığı (şarkı / video adı), TV ve radyoda kanalın adı
+			String mt = me.aap.fermata.ui.view.YoldaPlayerBar.isYoutube(cb) ? YoldaNowPlaying.titleOf(cb) : null;
+			name = ((mt != null) && !mt.isEmpty()) ? mt : pi.getName();
+		}
+		String txt = on ? ((pi.isVideo() ? "▶  " : "♪  ") + name) : "";
+		if (!txt.contentEquals(p.getText())) {
+			p.setText(txt);
+			p.setContentDescription(on ? ("Çalıyor: " + name) : null);
+		}
+		int v = on ? View.VISIBLE : View.GONE;
+		if (p.getVisibility() != v) p.setVisibility(v);
+	}
+
 	/** Yatay telefonda (alçak ekran) saat satırı ve sayfa noktaları daha az yer kaplar; kartlar büyür. */
 	private void compactChrome(boolean car) {
 		if ((root == null) || (topRow == null)) return;
@@ -436,7 +494,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private int barReserve = -1;
 
 	private int stableHeight(int h, boolean car) {
-		if (car) return h; // araçta destede çubuk hiç gösterilmez
+		if (YoldaStyle.DECK) return h; // destede çubuk hiç gösterilmez: kartlar tüm yüksekliği kullanır
 		View cp = getActivityDelegate().getControlPanel();
 		boolean shown = (cp != null) && (cp.getVisibility() == View.VISIBLE);
 		if (shown && (cp.getHeight() > 0)) barReserve = cp.getHeight();

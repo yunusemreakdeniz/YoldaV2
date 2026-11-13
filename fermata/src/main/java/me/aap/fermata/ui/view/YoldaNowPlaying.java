@@ -128,6 +128,14 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		external = e;
 	}
 
+	/** Çalan şeyin görünen adı (YouTube yedeğinde şarkı adı, yoksa oturum başlığı); bilinmiyorsa null. */
+	@Nullable
+	public static String titleOf(MediaSessionCallback cb) {
+		External e = external(cb);
+		if (e != null) return e.track().title();
+		return metaTitle(cb.getYoldaMetadata());
+	}
+
 	/** İki ad aynı şarkı mı (büyük / küçük harf, Türkçe karakter, ek bilgi "(Official Video)" farkı gözetmez). */
 	static boolean sameSong(String a, String b) {
 		String x = fold(a), y = fold(b);

@@ -392,7 +392,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		return pi.getName();
 	}
 
-	static boolean isYoutube(MediaSessionCallback cb) {
+	public static boolean isYoutube(MediaSessionCallback cb) {
 		var eng = cb.getEngine();
 		return (eng != null) && eng.getClass().getName().contains("Youtube");
 	}

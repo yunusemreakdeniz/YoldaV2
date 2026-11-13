@@ -267,7 +267,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		scroll.setClipToPadding(false);
 		grid = new LinearLayout(ctx);
 		grid.setOrientation(LinearLayout.VERTICAL);
-		grid.setPadding(0, dp(car ? 10 : 14), 0, car ? dp(20) : dp(96)); // telefonda altta arama + sesli asistan
+		grid.setPadding(0, dp(car ? 10 : 14), 0, car ? dp(20) : dp(190)); // telefonda altta arama + sesli asistan ve üstünde yüzen oynatıcı
 		scroll.addView(grid, new ScrollView.LayoutParams(-1, -2));
 		if (car) { // araç: arama başlığın altında, "Kanal ara" ile açılır
 			search.setVisibility(View.GONE);

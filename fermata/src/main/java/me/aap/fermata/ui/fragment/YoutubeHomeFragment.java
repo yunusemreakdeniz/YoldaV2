@@ -149,7 +149,7 @@ public class YoutubeHomeFragment extends MainActivityFragment {
 		sv.setClipToPadding(false);
 		grid = new LinearLayout(ctx);
 		grid.setOrientation(LinearLayout.VERTICAL);
-		grid.setPadding(dp(side), dp(12), dp(side), dp(96));
+		grid.setPadding(dp(side), dp(12), dp(side), dp(190));
 		sv.addView(grid);
 		col.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
 

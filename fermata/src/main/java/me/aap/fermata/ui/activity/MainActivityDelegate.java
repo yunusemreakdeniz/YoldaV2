@@ -1660,6 +1660,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 		if (me.aap.fermata.ui.view.YoldaStyle.DECK) {
 			addDeckBackButton(host, b);
+			yoldaFloatingBar();
 			// Tam ekran videoda ve Şimdi çalıyor açıkken gizli
 			host.getViewTreeObserver().addOnGlobalLayoutListener(this::updateDeckButtons);
 			return;
@@ -1676,6 +1677,44 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Nullable
 	public View getDeckBackButton() {
 		return deckBack;
+	}
+
+	/**
+	 * Telefonda oynatıcı çubuğu gövdeyi küçültmez: gövde ekranın altına kadar uzanır, çubuk alttaki sesli
+	 * düğme ve arama satırının hemen üstünde yüzer (önceden çubuk açılınca arama kutusu yukarı kayıyor,
+	 * kartlar ve ızgaralar küçülüyordu). Videoda çubuk en altta.
+	 */
+	private void yoldaFloatingBar() {
+		if (isCarActivity()) return;
+		View body = getBody();
+		ControlPanelView cp = getControlPanel();
+		if ((body == null) || (cp == null)) return;
+		if (!(body.getLayoutParams() instanceof ConstraintLayout.LayoutParams bl)
+				|| !(cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl)) return;
+		bl.bottomToTop = ConstraintLayout.LayoutParams.UNSET;
+		bl.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
+		body.setLayoutParams(bl);
+		cl.topToBottom = ConstraintLayout.LayoutParams.UNSET;
+		cl.bottomToTop = ConstraintLayout.LayoutParams.UNSET;
+		cl.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
+		cp.setLayoutParams(cl);
+		cp.setElevation(toIntPx(getContext(), 20));
+		yoldaFloatingBarMargin();
+	}
+
+	private int floatingBarMargin = -1;
+
+	/** Çubuğun alttan uzaklığı: sesli düğme / arama satırının üstü; videoda en alt. */
+	private void yoldaFloatingBarMargin() {
+		if (isCarActivity()) return;
+		ControlPanelView cp = getControlPanel();
+		if ((cp == null) || !(cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl)) return;
+		int m = videoMode ? toIntPx(getContext(), 6) : toIntPx(getContext(),
+				me.aap.fermata.ui.view.YoldaStyle.VOICE_DP + me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP + 10);
+		if (m == floatingBarMargin) return;
+		floatingBarMargin = m;
+		cl.bottomMargin = m;
+		cp.setLayoutParams(cl);
 	}
 
 	private void addDeckBackButton(ConstraintLayout host, View voice) {
@@ -1775,6 +1814,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	private void updateDeckButtons() {
 		if (!me.aap.fermata.ui.view.YoldaStyle.DECK) return;
 		if (yoldaPip) return;
+		yoldaFloatingBarMargin();
 		boolean np = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
 		if ((navBar != null) && (navBar.getVisibility() != View.GONE)) navBar.setVisibility(View.GONE);
 		boolean full = videoMode || barsHidden;

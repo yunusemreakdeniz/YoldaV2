@@ -128,7 +128,7 @@ public class PharmacyFragment extends MainActivityFragment {
 		scroll.setVerticalScrollBarEnabled(false);
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
-		col.setPadding(dp(YoldaStyle.side(ctx)), dp(YoldaStyle.top(ctx)), dp(YoldaStyle.side(ctx)), dp(110));
+		col.setPadding(dp(YoldaStyle.side(ctx)), dp(YoldaStyle.top(ctx)), dp(YoldaStyle.side(ctx)), dp(190));
 		scroll.addView(col, new ScrollView.LayoutParams(-1, -2));
 		root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
 

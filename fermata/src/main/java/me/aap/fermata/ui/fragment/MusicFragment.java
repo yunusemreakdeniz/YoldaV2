@@ -187,7 +187,7 @@ public class MusicFragment extends MainActivityFragment {
 		sv.setClipToPadding(false);
 		content = new LinearLayout(ctx);
 		content.setOrientation(LinearLayout.VERTICAL);
-		content.setPadding(0, dp(6), 0, dp(96));
+		content.setPadding(0, dp(6), 0, dp(190));
 		sv.addView(content);
 		col.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
 
@@ -1014,7 +1014,7 @@ public class MusicFragment extends MainActivityFragment {
 		nowView = null;
 		removeMini();
 		if (search != null) search.setVisibility(View.VISIBLE);
-		if (content != null) content.setPadding(0, dp(6), 0, dp(96));
+		if (content != null) content.setPadding(0, dp(6), 0, dp(190));
 		nowQueue = null;
 		nowIndex = -1;
 		everPlayed = false;

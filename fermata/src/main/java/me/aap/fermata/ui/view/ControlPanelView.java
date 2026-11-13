@@ -265,11 +265,14 @@ public class ControlPanelView extends ConstraintLayout
 		setVisibility(GONE);
 	}
 
-	/** Araçta kart destesi açıkken oynatıcı çubuğu gösterilmez: kartlar küçülmesin. */
+	/**
+	 * Kart destesi açıkken oynatıcı çubuğu gösterilmez (araçta ve telefonda): kartlar tüm yüksekliği kullanır,
+	 * çalan şey üstteki "♪" düğmesinde ve "Kaldığın yerden" kartında.
+	 */
 	private boolean yoldaCarHome() {
 		try {
 			MainActivityDelegate a = getActivity();
-			return YoldaStyle.DECK && a.isCarActivity() && (a.getActiveFragmentId() == R.id.home_fragment);
+			return YoldaStyle.DECK && (a.getActiveFragmentId() == R.id.home_fragment);
 		} catch (Throwable ex) {
 			return false;
 		}
