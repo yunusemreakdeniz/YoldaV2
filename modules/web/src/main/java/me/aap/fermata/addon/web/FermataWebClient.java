@@ -332,11 +332,15 @@ public class FermataWebClient extends WebViewClientCompat {
 		boolean crash = (android.os.Build.VERSION.SDK_INT >= 26) && (detail != null) && detail.didCrash();
 		me.aap.fermata.ui.fragment.YoldaLog.add("Web sayfası işlemi kapandı (" + (crash ? "çöktü" : "bellek için kapatıldı")
 				+ "); sayfa yeniden kuruluyor");
-		try {
-			MainActivityDelegate.get(view.getContext()).recoverDeadWebView(view);
-		} catch (Throwable ex) {
-			Log.e(ex, "Web sayfası yeniden kurulamadı");
-		}
+		// Kurtarma bildirimden SONRA: bildirim sırasında kurulan yeni sayfa ölen işleme bağlanıp karşılanmadan
+		// kalabiliyor, Android de bu yüzden uygulamayı kapatıyordu
+		me.aap.utils.app.App.get().getHandler().post(() -> {
+			try {
+				MainActivityDelegate.get(view.getContext()).recoverDeadWebView(view);
+			} catch (Throwable ex) {
+				Log.e(ex, "Web sayfası yeniden kurulamadı");
+			}
+		});
 		return true;
 	}
 

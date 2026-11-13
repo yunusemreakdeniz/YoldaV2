@@ -180,6 +180,8 @@ public class YoldaPlaybackTest {
 		android.media.AudioManager am = (android.media.AudioManager) ctx().getSystemService(Context.AUDIO_SERVICE);
 		int active = playing(am);
 		Log.i(TAG, "Kanal değişince etkin ses akışı: " + active);
+		for (android.media.AudioPlaybackConfiguration c : am.getActivePlaybackConfigurations()) Log.i(TAG, "SES AKIŞI " + c);
+		for (String l : YoldaLog.read(ctx()).split("\n")) if (l.contains("Açıldı") || l.contains("hatası")) Log.i(TAG, "GÜNLÜK " + l);
 		assertTrue("Aynı anda tek ses çalmalı (eski kanal susmalı): " + active, active <= 1);
 		// Kapat: hiç ses kalmamalı
 		onMain(a -> {

@@ -69,12 +69,26 @@ public class FermataWebView extends WebView
 	public FermataWebView(Context context, AttributeSet attrs) {
 		super(context, attrs);
 		isCar = BuildConfig.AUTO && MainActivityDelegate.get(context).isCarActivityNotMirror();
+		setWebViewClient(SAFE_CLIENT);
 	}
 
 	public FermataWebView(Context context, AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
 		isCar = BuildConfig.AUTO && MainActivityDelegate.get(context).isCarActivityNotMirror();
+		setWebViewClient(SAFE_CLIENT);
 	}
+
+	/**
+	 * Yolda: istemcisi henüz bağlanmamış sayfa da (ör. kurtarma sırasında yeni kurulan) web işlemi çökünce bunu
+	 * karşılar. Karşılamayan tek bir sayfa bile olsa Android tüm uygulamayı kapatıyordu.
+	 */
+	private static final android.webkit.WebViewClient SAFE_CLIENT = new android.webkit.WebViewClient() {
+		@Override
+		public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+			me.aap.fermata.ui.fragment.YoldaLog.add("Web: hazırlanan sayfa da işlem kapanışını karşıladı");
+			return true;
+		}
+	};
 
 	@SuppressLint("SetJavaScriptEnabled")
 	public void init(WebBrowserAddon addon, FermataWebClient webClient,
