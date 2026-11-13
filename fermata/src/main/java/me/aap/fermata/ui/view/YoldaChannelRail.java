@@ -47,7 +47,8 @@ public final class YoldaChannelRail extends FrameLayout {
 		scroll.setVerticalFadingEdgeEnabled(true);
 		scroll.setFadingEdgeLength(dp(40));
 		scroll.setClipToPadding(false);
-		scroll.setPadding(dp(28), dp(16), dp(12), dp(16));
+		// altta oynatıcı çubuğu var: son kanallar onun üstüne kaydırılabilsin
+		scroll.setPadding(dp(28), dp(16), dp(12), dp(120));
 		list = new LinearLayout(ctx);
 		list.setOrientation(LinearLayout.VERTICAL);
 		scroll.addView(list, new ScrollView.LayoutParams(-1, -2));

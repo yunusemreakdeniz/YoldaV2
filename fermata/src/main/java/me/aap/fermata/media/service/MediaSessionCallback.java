@@ -774,17 +774,22 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	private FutureSupplier<Void> skipTo(boolean next, boolean folder) {
 		PlayableItem i;
 		MediaEngine eng = getEngine();
-		if ((eng == null) || ((i = eng.getSource()) == null)) return completedVoid();
+		if ((eng == null) || ((i = eng.getSource()) == null)) {
+			// Yolda: kanal henüz açılıyorken ("Bağlanıyor…") de önceki / sonraki çalışsın
+			i = yoldaOpeningItem();
+			if (i == null) return completedVoid();
+		}
+		PlayableItem cur = i;
 
 		FutureSupplier<PlayableItem> getItem;
 		if (folder) {
 			var parent = i.getParent();
 			getItem = parent.getPlayableChildren(false, true).main().map(children -> {
-				if (children == null || children.isEmpty()) return i;
+				if (children == null || children.isEmpty()) return cur;
 				return next ? children.get(children.size() - 1) : children.get(0);
 			});
 		} else {
-			getItem = completed(i);
+			getItem = completed(cur);
 		}
 
 		return getItem.then(

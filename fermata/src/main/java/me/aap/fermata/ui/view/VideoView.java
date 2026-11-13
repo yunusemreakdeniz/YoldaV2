@@ -136,6 +136,8 @@ public class VideoView extends FrameLayout
 		VideoInfoView d = new VideoInfoView(context, null);
 		FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
 		lp.gravity = Gravity.CENTER_HORIZONTAL | Gravity.TOP;
+		// Yolda: sol üstteki geri ve harita düğmeleri kanal logosunun / adının üstüne binmesin
+		if (YoldaStyle.DECK) lp.leftMargin = Math.round(156 * context.getResources().getDisplayMetrics().density);
 		d.setLayoutParams(lp);
 		addView(d);
 	}

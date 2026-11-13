@@ -60,6 +60,7 @@ public class YoldaGestureTest {
 	public void start() {
 		MainActivityDelegate.skipSetupThisRun = true;
 		for (String p : new String[]{"android.permission.RECORD_AUDIO", "android.permission.POST_NOTIFICATIONS",
+				"android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION",
 				"android.permission.READ_EXTERNAL_STORAGE", "android.permission.READ_MEDIA_AUDIO",
 				"android.permission.READ_MEDIA_VIDEO", "android.permission.READ_MEDIA_IMAGES"}) {
 			try {
