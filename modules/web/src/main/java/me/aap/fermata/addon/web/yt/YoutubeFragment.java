@@ -180,6 +180,7 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 	public void loadVideo(String url) {
 		YoutubeWebView v = getWebView();
 		if (v == null) return;
+		me.aap.fermata.ui.fragment.MusicFragment.releaseYoutube(); // video açıldı: Yolda Müzik bu sayfayı bırakır
 		v.fullOnPlay = true;
 		v.loadUrl(url);
 	}
