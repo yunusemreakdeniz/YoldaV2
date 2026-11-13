@@ -127,10 +127,28 @@ public final class YoldaPharmacy {
 
 	// ---- il / ilçe listeleri (saklanır) ----
 
+	/** 81 il (site erişilemezse de il seçilebilsin). */
+	private static final String[] PROVINCES = {"adana|Adana", "adiyaman|Adıyaman", "afyonkarahisar|Afyonkarahisar", "agri|Ağrı", "amasya|Amasya", "ankara|Ankara", "antalya|Antalya", "artvin|Artvin", "aydin|Aydın", "balikesir|Balıkesir", "bilecik|Bilecik", "bingol|Bingöl", "bitlis|Bitlis", "bolu|Bolu", "burdur|Burdur", "bursa|Bursa", "canakkale|Çanakkale", "cankiri|Çankırı", "corum|Çorum", "denizli|Denizli", "diyarbakir|Diyarbakır", "edirne|Edirne", "elazig|Elazığ", "erzincan|Erzincan", "erzurum|Erzurum", "eskisehir|Eskişehir", "gaziantep|Gaziantep", "giresun|Giresun", "gumushane|Gümüşhane", "hakkari|Hakkari", "hatay|Hatay", "isparta|Isparta", "mersin|Mersin", "istanbul|İstanbul", "izmir|İzmir", "kars|Kars", "kastamonu|Kastamonu", "kayseri|Kayseri", "kirklareli|Kırklareli", "kirsehir|Kırşehir", "kocaeli|Kocaeli", "konya|Konya", "kutahya|Kütahya", "malatya|Malatya", "manisa|Manisa", "kahramanmaras|Kahramanmaraş", "mardin|Mardin", "mugla|Muğla", "mus|Muş", "nevsehir|Nevşehir", "nigde|Niğde", "ordu|Ordu", "rize|Rize", "sakarya|Sakarya", "samsun|Samsun", "siirt|Siirt", "sinop|Sinop", "sivas|Sivas", "tekirdag|Tekirdağ", "tokat|Tokat", "trabzon|Trabzon", "tunceli|Tunceli", "sanliurfa|Şanlıurfa", "usak|Uşak", "van|Van", "yozgat|Yozgat", "zonguldak|Zonguldak", "aksaray|Aksaray", "bayburt|Bayburt", "karaman|Karaman", "kirikkale|Kırıkkale", "batman|Batman", "sirnak|Şırnak", "bartin|Bartın", "ardahan|Ardahan", "igdir|Iğdır", "yalova|Yalova", "karabuk|Karabük", "kilis|Kilis", "osmaniye|Osmaniye", "duzce|Düzce"};
+
+	public static List<Place> builtInProvinces() {
+		List<Place> l = new ArrayList<>();
+		for (String s : PROVINCES) {
+			Place p = Place.decode(s);
+			if (p != null) l.add(p);
+		}
+		return l;
+	}
+
 	public static FutureSupplier<List<Place>> provinces(Context ctx) {
 		SharedPreferences p = prefs(ctx);
 		List<Place> cached = decodeList(p.getString("ecz_iller", null));
 		if (cached.size() >= 81) return me.aap.utils.async.Completed.completed(cached);
+		return me.aap.utils.async.Completed.completed(builtInProvinces());
+	}
+
+	/** Sitenin il listesi (adlar güncel kalsın diye arka planda bir kez alınır). */
+	static FutureSupplier<List<Place>> fetchProvinces(Context ctx) {
+		SharedPreferences p = prefs(ctx);
 		return async(() -> {
 			String h = get(GEN + "/");
 			List<Place> l = new ArrayList<>();
@@ -148,7 +166,13 @@ public final class YoldaPharmacy {
 		List<Place> cached = decodeList(p.getString("ecz_ilceler_" + il.slug(), null));
 		if (!cached.isEmpty()) return me.aap.utils.async.Completed.completed(cached);
 		return async(() -> {
-			String h = get(GEN + "/nobetci-" + il.slug());
+			String h;
+			try {
+				h = get(GEN + "/nobetci-" + il.slug());
+			} catch (Exception ex) {
+				if (!isAnkara(il)) throw ex;
+				return ankaraDistricts(); // site erişilemezse Ankara ilçeleri odanın listesinden
+			}
 			List<Place> l = new ArrayList<>();
 			Matcher m = Pattern.compile("href=\"/nobetci-" + Pattern.quote(il.slug()) + "-([a-z0-9-]+)\"[^>]*>([^<]+)").matcher(h);
 			Set<String> seen = new java.util.HashSet<>();
@@ -165,6 +189,18 @@ public final class YoldaPharmacy {
 	public static FutureSupplier<Duty> duty(Context ctx, Place il, @Nullable Place ilce, int offset) {
 		initCache(ctx);
 		return async(() -> isAnkara(il) ? aeo(ilce, offset) : genTr(il, ilce, offset));
+	}
+
+	/** Ankara Eczacı Odası listesindeki ilçeler. */
+	private static List<Place> ankaraDistricts() throws Exception {
+		Duty d = aeo(null, 0);
+		java.util.TreeMap<String, Place> m = new java.util.TreeMap<>(java.text.Collator.getInstance(new Locale("tr", "TR")));
+		for (Pharmacy p : d.list()) {
+			String n = p.district();
+			if (n.isEmpty() || fold(n).contains("belirlenmemis")) continue;
+			m.put(n, new Place(fold(n), n));
+		}
+		return new ArrayList<>(m.values());
 	}
 
 	private static Duty aeo(@Nullable Place ilce, int offset) throws Exception {

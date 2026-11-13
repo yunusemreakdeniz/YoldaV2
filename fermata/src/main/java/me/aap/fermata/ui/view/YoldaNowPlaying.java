@@ -380,6 +380,9 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	@Override
 	public boolean dispatchTouchEvent(MotionEvent e) {
 		if (swipe == null) swipe = new YoldaSwipe(getContext());
+		if (me.aap.fermata.BuildConfig.DEBUG && (e.getActionMasked() != MotionEvent.ACTION_MOVE))
+			android.util.Log.i("Yolda", "Şimdi çalıyor dokunuş " + e.getActionMasked() + " @" + Math.round(e.getRawX()) + ","
+					+ Math.round(e.getRawY()));
 		if ((e.getActionMasked() == MotionEvent.ACTION_DOWN)
 				&& YoldaSwipe.onHorizontalControl(this, e.getRawX(), e.getRawY())) {
 			swipe.feed(e);

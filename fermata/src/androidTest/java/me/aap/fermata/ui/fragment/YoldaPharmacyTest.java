@@ -112,7 +112,14 @@ public class YoldaPharmacyTest {
 		for (Place p : iller) if (p.slug().equals("istanbul")) ist = p;
 		assertNotNull("İstanbul listede olmalı", ist);
 		assertEquals("İstanbul", ist.name());
-		List<Place> ilceler = YoldaPharmacy.districts(ctx(), ist).get(null, 40, TimeUnit.SECONDS);
+		List<Place> ilceler;
+		try {
+			ilceler = YoldaPharmacy.districts(ctx(), ist).get(null, 40, TimeUnit.SECONDS);
+		} catch (Exception ex) {
+			// eczaneler.gen.tr veri merkezi adreslerine 403 veriyor (CI); telefonda erişilir
+			org.junit.Assume.assumeFalse("Site bu ağı engelliyor: " + ex, String.valueOf(ex).contains("403"));
+			throw ex;
+		}
 		Log.i(TAG, "İstanbul ilçe sayısı: " + ilceler.size());
 		assertTrue("İstanbul'un ilçeleri", ilceler.size() >= 30);
 		Place kadikoy = null;
@@ -162,13 +169,13 @@ public class YoldaPharmacyTest {
 	/** Ekran: seçim hatırlanır, yıldızlılar kısayol olur, konumla uzaklık yazar ve en yakını önce gelir. */
 	@Test
 	public void ekranSecimYildizUzaklik() {
-		boolean mock = setMockLocation(40.9875, 29.0270); // Kadıköy iskelesi
-		YoldaPharmacy.select(ctx(), new Place("istanbul", "İstanbul"), new Place("kadikoy", "Kadıköy"));
-		YoldaPharmacy.toggleStar(ctx(), "ilce", "istanbul/kadikoy", "Kadıköy");
+		boolean mock = setMockLocation(39.9208, 32.8541); // Kızılay
+		YoldaPharmacy.select(ctx(), new Place("ankara", "Ankara"), new Place("cankaya", "Çankaya"));
+		YoldaPharmacy.toggleStar(ctx(), "ilce", "ankara/cankaya", "Çankaya");
 		YoldaPharmacy.toggleStar(ctx(), "il", "ankara", "Ankara");
 		onMain(a -> a.showFragment(R.id.yolda_pharmacy_fragment));
 		assertTrue("Liste dolmalı", waitFor(40_000, () -> onMain(a -> fragment(a).shownCount() > 0)));
-		assertTrue("Yıldızlı ilçe kısayolu görünmeli", onMain(a -> findText(a, "★ Kadıköy") != null));
+		assertTrue("Yıldızlı ilçe kısayolu görünmeli", onMain(a -> findText(a, "★ Çankaya") != null));
 		assertTrue("Yıldızlı il kısayolu görünmeli", onMain(a -> findText(a, "★ Ankara") != null));
 		if (mock) {
 			boolean dist = waitFor(40_000, () -> status().contains("en yakını"));
@@ -177,7 +184,7 @@ public class YoldaPharmacyTest {
 			Log.i(TAG, "Sahte konum kurulamadı; uzaklık denetlenmedi");
 		}
 		waitIdle(1500);
-		shot("eczane_kadikoy");
+		shot("eczane_cankaya");
 		Log.i(TAG, "Eczane ekranı: " + status());
 
 		// Ankara kısayolu: tek dokunuşla Ankara, seçim kalıcı

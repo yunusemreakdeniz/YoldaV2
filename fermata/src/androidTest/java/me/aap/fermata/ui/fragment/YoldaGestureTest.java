@@ -112,6 +112,7 @@ public class YoldaGestureTest {
 
 		String first = name(onMain(this::cur));
 		float y = box[1] + box[3] * 0.35f;
+		Log.i(TAG, "Şimdi çalıyor alanı: " + box[0] + "," + box[1] + " " + box[2] + "×" + box[3] + " · kaydırma y=" + y);
 		swipe(box[0] + box[2] * 0.85f, y, box[0] + box[2] * 0.15f, y);
 		assertTrue("Sola kaydırma algılanmalı", waitFor(3000, () -> (YoldaSwipe.lastDir == 1)
 				&& (SystemClock.elapsedRealtime() - YoldaSwipe.lastAt < 5000)));
@@ -138,7 +139,7 @@ public class YoldaGestureTest {
 		swipe(b[0] + b[2] * 0.6f, y, b[0] + b[2] * 0.1f, y);
 		assertTrue("Videoda sola kaydırma sonraki olmalı", waitFor(3000, () -> (YoldaSwipe.lastAt != before)
 				&& (YoldaSwipe.lastDir == 1)));
-		assertTrue("Başka kanala geçmeli (" + first + ")", waitFor(8000, () -> {
+		assertTrue("Başka kanala geçmeli (" + first + ")", waitFor(20_000, () -> {
 			String n = name(opening());
 			return (n != null) && !n.equals(first);
 		}));

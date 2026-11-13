@@ -74,7 +74,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * sığar (yatay telefonda kart alçakken alt kısım kesiliyordu). Tüm ölçüler dp, yazılar sp.
 	 */
 	private record Fit(boolean small, boolean compact, int pad, int chip, int title, int subLines, int tile, int logo,
-										 int btn, int chipH, int big) {
+										 int btn, int chipH, int big, boolean row) {
 	}
 
 	/**
@@ -102,10 +102,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (over <= dp(1)) return;
 			int add = Math.round(over / getResources().getDisplayMetrics().density) + 2;
 			int want = base + add;
+			if ((want <= fitSlackDp) || (want > 240)) return;
 			float dn = getResources().getDisplayMetrics().density;
 			YoldaLog.add("Deste: kart içeriği " + add + " dp taştı (kart " + Math.round(cardH / dn) + " dp, iç "
 					+ Math.round(v.getHeight() / dn) + " dp, pay " + base + "→" + want + ")");
-			if ((want <= fitSlackDp) || (want > 240)) return;
 			fitSlackDp = want;
 			if (list != null) list.post(() -> {
 				if (adapter != null) adapter.notifyDataSetChanged();
@@ -133,7 +133,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int btn = Math.max(40, Math.min(52, bottom));
 		int chipH = Math.max(40, Math.min(48, bottom));
 		int big = compact ? 32 : small ? 40 : 52;
-		return new Fit(small, compact, pad, chip, title, subLines, tile, logo, btn, chipH, big);
+		// Çok alçak kart (yatay telefon, çubuk açık): tek satır — simge, ad, "Aç" yan yana; içerik şeridi yok
+		if (h < 150) {
+			int rp = (h < 90) ? 8 : 12;
+			int inner = Math.max(36, h - 2 * rp);
+			return new Fit(true, true, rp, Math.min(44, inner), (h < 90) ? 18 : 22, 0, 0, 0, Math.min(48, inner),
+					Math.min(44, inner), 28, true);
+		}
+		return new Fit(small, compact, pad, chip, title, subLines, tile, logo, btn, chipH, big, false);
 	}
 	private DeckAdapter adapter;
 	private PagerSnapHelper snap;
@@ -873,6 +880,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		v.setOrientation(LinearLayout.VERTICAL);
 		int p = dp(fz.pad());
 		v.setPadding(p, p, p, p);
+		if (fz.row()) v.setPadding(dp(18), p, dp(18), p);
 		watchOverflow(v);
 		f.addView(v, new FrameLayout.LayoutParams(-1, -1));
 
@@ -936,6 +944,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		sub.setPadding(0, dp(10), 0, 0);
 		if (fz.subLines() == 0) sub.setVisibility(View.GONE); // çok alçak kartta alt yazı yerine içerik
 		v.addView(sub);
+		if (fz.row()) { // tek satır: düğme(ler) başlığın sağında, dikeyde ortada
+			v.setGravity(Gravity.CENTER_VERTICAL);
+			if (editing) {
+				head.addView(editBar(ctx, c, pos), new LinearLayout.LayoutParams(-2, -2));
+				return f;
+			}
+			head.addView(openButton(ctx, c, noble, accent, fz), openLp(fz));
+			return f;
+		}
 		v.addView(new View(ctx), new LinearLayout.LayoutParams(-1, 0, 1f));
 
 		if (editing) {
@@ -947,6 +964,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		View content = content(ctx, c);
 		if (content != null) bottom.addView(content, new LinearLayout.LayoutParams(0, -2, 1f));
 		else bottom.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
+		bottom.addView(openButton(ctx, c, noble, accent, fz), openLp(fz));
+		v.addView(bottom, new LinearLayout.LayoutParams(-1, -2));
+		return f;
+	}
+
+	private LinearLayout.LayoutParams openLp(Fit fz) {
+		LinearLayout.LayoutParams olp = new LinearLayout.LayoutParams(-2, dp(fz.btn()));
+		olp.leftMargin = dp(10);
+		return olp;
+	}
+
+	/** Kartın "▶ Aç" düğmesi. */
+	private TextView openButton(Context ctx, YoldaDeck.Card c, boolean noble, int accent, Fit fz) {
 		TextView openBtn = text(ctx, "▶  Aç", (fz.btn() < 48) ? 15 : 16, true, noble ? 0xFFF2F3F7 : 0xFF111827);
 		openBtn.setSingleLine(true);
 		openBtn.setGravity(Gravity.CENTER);
@@ -963,11 +993,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		openBtn.setElevation(dp(4));
 		openBtn.setContentDescription("Aç: " + c.title());
 		openBtn.setOnClickListener(x -> open(c));
-		LinearLayout.LayoutParams olp = new LinearLayout.LayoutParams(-2, dp(fz.btn()));
-		olp.leftMargin = dp(10);
-		bottom.addView(openBtn, olp);
-		v.addView(bottom, new LinearLayout.LayoutParams(-1, -2));
-		return f;
+		return openBtn;
 	}
 
 	/** Kartın alt kısmı: kanal logoları, son şarkılar, hızlı ayarlar, ekleme seçenekleri… */
@@ -1153,24 +1179,25 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Düzenle kipinde kartın altı: ◀ ▶ sırala, ✕ kaldır. */
 	private View editBar(Context ctx, YoldaDeck.Card c, int pos) {
 		LinearLayout row = hrow(ctx);
+		int eb = (cardH > 0) && fit().row() ? Math.min(44, fit().btn()) : 56;
 		row.setGravity(Gravity.CENTER);
 		row.addView(roundButton(ctx, R.drawable.yi_left, "Sola taşı", v -> {
 			int j = deck.move(pos, -1);
 			afterChange(j);
-		}), new LinearLayout.LayoutParams(dp(56), dp(56)));
-		LinearLayout.LayoutParams mid = new LinearLayout.LayoutParams(dp(56), dp(56));
-		mid.leftMargin = mid.rightMargin = dp(14);
+		}), new LinearLayout.LayoutParams(dp(eb), dp(eb)));
+		LinearLayout.LayoutParams mid = new LinearLayout.LayoutParams(dp(eb), dp(eb));
+		mid.leftMargin = mid.rightMargin = dp((eb < 56) ? 8 : 14);
 		row.addView(roundButton(ctx, R.drawable.yi_right, "Sağa taşı", v -> {
 			int j = deck.move(pos, 1);
 			afterChange(j);
 		}), mid);
-		LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(dp(56), dp(56));
-		clp.rightMargin = dp(14);
+		LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(dp(eb), dp(eb));
+		clp.rightMargin = dp((eb < 56) ? 8 : 14);
 		row.addView(roundButton(ctx, R.drawable.yi_palette, "Rengi değiştir", v -> pickColor(c, pos)), clp);
 		if (c.isRemovable()) {
 			row.addView(roundButton(ctx, R.drawable.yi_close, "Kaldır", v -> {
 				if (deck.remove(pos)) afterChange(Math.max(0, pos - 1));
-			}), new LinearLayout.LayoutParams(dp(56), dp(56)));
+			}), new LinearLayout.LayoutParams(dp(eb), dp(eb)));
 		}
 		return row;
 	}
