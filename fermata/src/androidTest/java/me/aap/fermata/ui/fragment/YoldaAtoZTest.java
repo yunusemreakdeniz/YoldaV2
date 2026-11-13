@@ -421,7 +421,9 @@ public class YoldaAtoZTest {
 				Thread.sleep(450);
 			} catch (InterruptedException ignore) {
 			}
-			assertTrue("Tema yazısı görünmeli", toastNow());
+			long clickAt = android.os.SystemClock.elapsedRealtime() - 1000;
+			assertTrue("Tema yazısı gösterilmeli: " + YoldaStyle.lastToast, waitFor(3000, () ->
+					(YoldaStyle.lastToastAt >= clickAt) && String.valueOf(YoldaStyle.lastToast).startsWith("Tema:")));
 			assertFalse("Onay kutusu çıkmamalı", onMain(a -> ((android.app.Activity) a.getContext()).getWindow()
 					.getDecorView().getRootView().findViewById(android.R.id.button1) != null));
 			try {

@@ -362,6 +362,10 @@ public final class YoldaStyle {
 	 * Kısa bilgi: ekranın altında beliren yazı, ~1 sn sonra kendiliğinden kaybolur (onay kutusu yok).
 	 * Tema değişince ekran yeniden kurulsa da görünsün diye etkinliğin kök görünümüne eklenir.
 	 */
+	/** Testler için: son gösterilen bilgi yazısı ve zamanı. */
+	public static volatile String lastToast;
+	public static volatile long lastToastAt;
+
 	public static void toast(Context ctx, String text) {
 		// tema değişince ekran yeniden kuruluyor: yazı o bittikten sonra eklensin
 		me.aap.utils.app.App.get().getHandler().postDelayed(() -> toastNow(ctx, text), 120);
@@ -402,6 +406,8 @@ public final class YoldaStyle {
 			t.animate().alpha(1f).translationY(0).setDuration(150).withEndAction(() ->
 					t.animate().alpha(0f).setStartDelay(1000).setDuration(220).withEndAction(() -> cl.removeView(t)).start()).start();
 			android.util.Log.i("Yolda", "Bilgi yazısı: " + text);
+			lastToast = text;
+			lastToastAt = android.os.SystemClock.elapsedRealtime();
 		} catch (Throwable ex) {
 			android.util.Log.i("Yolda", "Bilgi yazısı gösterilemedi: " + ex);
 		}

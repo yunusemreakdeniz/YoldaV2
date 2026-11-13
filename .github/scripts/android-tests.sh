@@ -6,7 +6,7 @@ OUT=test-sonuclari
 mkdir -p "$OUT"
 code=0
 adb logcat -c || true
-adb logcat -v time -s YoldaTest:I YoldaUiUx:I AndroidRuntime:E Yolda:I > "$OUT/canli-gunluk.txt" 2>&1 &
+adb logcat -v time -s YoldaTest:I YoldaUiUx:I AndroidRuntime:E Yolda:I chromium:E cr_AwContents:W DEBUG:F libc:F > "$OUT/canli-gunluk.txt" 2>&1 &
 LOGPID=$!
 for c in YoldaWakeTest YoldaFunctionalTest YoldaAtoZTest YoldaPlaybackTest YoldaMusicTest YoldaGestureTest YoldaPharmacyTest YoldaUiUxTest; do
   echo "=== $c başlıyor $(date -u +%H:%M:%S)"
