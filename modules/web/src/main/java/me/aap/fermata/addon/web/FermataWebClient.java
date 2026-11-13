@@ -268,15 +268,24 @@ public class FermataWebClient extends WebViewClientCompat {
 	 * açamaz ve hata sayfası gösterirdi. Uygulama bağlantısının web karşılığı varsa (browser_fallback_url, https
 	 * verisi, geo: / google.navigation: haritası) o açılır; yoksa geçiş yok sayılır, sayfa olduğu yerde kalır.
 	 */
+	private static String lastAppTarget;
+	private static long lastAppTargetAt;
+
 	static boolean openAppLink(WebView view, WebResourceRequest request) {
 		Uri u = request.getUrl();
 		String target = webTarget(u);
 		String cur = view.getUrl();
-		boolean user = request.hasGesture();
+		long now = android.os.SystemClock.elapsedRealtime();
+		// Aynı web karşılığına 15 sn içinde yeniden yönlendiriliyorsa döngüdür: sayfada kalınır
+		boolean loop = (target != null) && target.equals(lastAppTarget) && (now - lastAppTargetAt < 15_000);
+		boolean open = (target != null) && request.isForMainFrame() && !target.equals(cur) && !loop;
 		me.aap.fermata.ui.fragment.YoldaLog.add("Web: uygulama bağlantısı (" + u.getScheme() + ") "
-				+ (((target != null) && user) ? "web karşılığı açıldı" : "yok sayıldı, sayfada kalındı"));
-		// Kendiliğinden yönlendirme (dokunmadan) sayfayı değiştirmez: aynı yönlendirme döngüye girmesin
-		if ((target != null) && user && request.isForMainFrame() && !target.equals(cur)) view.loadUrl(target);
+				+ (open ? "web karşılığı açıldı" : (loop ? "döngü, sayfada kalındı" : "yok sayıldı, sayfada kalındı")));
+		if (open) {
+			lastAppTarget = target;
+			lastAppTargetAt = now;
+			view.loadUrl(target);
+		}
 		return true;
 	}
 

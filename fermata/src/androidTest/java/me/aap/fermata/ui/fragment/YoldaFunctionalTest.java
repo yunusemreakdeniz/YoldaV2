@@ -284,6 +284,58 @@ public class YoldaFunctionalTest {
 	}
 
 	/**
+	 * Sayfa (Google Haritalar gibi) "uygulamada aç" için intent:// adresine giderse "Web sayfası mevcut değil"
+	 * hatası çıkmaz: web karşılığı (https) açılır.
+	 */
+	@Test
+	public void uygulamaBaglantisiHataSayfasiAcmaz() {
+		Object f = onMain(a -> a.showFragment(R.id.web_browser_fragment));
+		assertNotNull("Tarayıcı açılmalı", f);
+		waitIdle(1500);
+		String html = "<html><body><a id='a' href='intent://www.google.com/maps?yolda=1#Intent;scheme=https;"
+				+ "package=com.google.android.apps.maps;end;'>harita</a><script>setTimeout(function(){"
+				+ "location.href=document.getElementById('a').href;},500);</script></body></html>";
+		String url = "data:text/html;base64," + android.util.Base64.encodeToString(
+				html.getBytes(java.nio.charset.StandardCharsets.UTF_8), android.util.Base64.NO_WRAP);
+		onMain(a -> {
+			try {
+				Object fr = a.getActiveFragment();
+				fr.getClass().getMethod("loadUrl", String.class).invoke(fr, url);
+			} catch (Exception ex) {
+				throw new RuntimeException(ex);
+			}
+			return null;
+		});
+		long end = android.os.SystemClock.elapsedRealtime() + 20_000;
+		String cur = null;
+		while (android.os.SystemClock.elapsedRealtime() < end) {
+			waitIdle(500);
+			cur = onMain(a -> {
+				android.webkit.WebView w = findWeb(a.getActiveFragment().getView());
+				return (w != null) ? w.getUrl() : null;
+			});
+			if ((cur != null) && cur.contains("google.com/maps")) break;
+		}
+		String log = YoldaLog.read(ctx());
+		Log.i(TAG, "Uygulama bağlantısı sonrası adres: " + cur);
+		assertTrue("intent:// yakalanmalı: " + log, log.contains("uygulama bağlantısı (intent) web karşılığı açıldı"));
+		assertFalse("Hata sayfası açılmamalı: " + cur, (cur != null) && cur.startsWith("intent:"));
+		assertTrue("Web karşılığı açılmalı: " + cur, (cur != null) && cur.contains("google.com/maps"));
+	}
+
+	@androidx.annotation.Nullable
+	private static android.webkit.WebView findWeb(@androidx.annotation.Nullable View v) {
+		if (v instanceof android.webkit.WebView w) return w;
+		if (v instanceof android.view.ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				android.webkit.WebView w = findWeb(g.getChildAt(i));
+				if (w != null) return w;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Uzun kullanım: kartlara tekrar tekrar girip çıkılır; bellek sürekli büyümemeli (sızıntı), uygulama
 	 * yanıt vermeye devam etmeli.
 	 */
