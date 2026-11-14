@@ -1717,7 +1717,6 @@ public class MainActivityDelegate extends ActivityDelegate
 			addDeckBackButton(host, b);
 			addSpeedRail(host);
 			yoldaFloatingBar();
-			if (isCarActivity()) yoldaCarBar();
 			// Tam ekran videoda ve Şimdi çalıyor açıkken gizli
 			host.getViewTreeObserver().addOnGlobalLayoutListener(this::updateDeckButtons);
 			return;
@@ -1791,7 +1790,6 @@ public class MainActivityDelegate extends ActivityDelegate
 	 * kartlar ve ızgaralar küçülüyordu). Videoda çubuk en altta.
 	 */
 	private void yoldaFloatingBar() {
-		if (isCarActivity()) return;
 		View body = getBody();
 		ControlPanelView cp = getControlPanel();
 		if ((body == null) || (cp == null)) return;
@@ -1812,10 +1810,6 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	/** Çubuğun alttan uzaklığı: sesli düğme / arama satırının üstü; videoda en alt. */
 	private void yoldaFloatingBarMargin() {
-		if (isCarActivity()) {
-			yoldaCarBar();
-			return;
-		}
 		ControlPanelView cp = getControlPanel();
 		if ((cp == null) || !(cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl)) return;
 		Context ctx = getContext();
@@ -1868,30 +1862,6 @@ public class MainActivityDelegate extends ActivityDelegate
 		cl.matchConstraintMaxWidth = maxW;
 		cl.horizontalBias = 0f;
 		cp.setLayoutParams(cl);
-	}
-
-	/**
-	 * Araç: kapsül (geri / ⌂ / sesli) sol altta sabit, oynatıcı çubuğu onun sağında en altta. Önceden kapsül
-	 * çubuğun üstüne bağlıydı, çubuk kapsülün altına uzanıyordu.
-	 */
-	private void yoldaCarBar() {
-		try {
-			ControlPanelView cp = getControlPanel();
-			if ((cp == null) || !(cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl)) return;
-			Context ctx = getContext();
-			if ((voiceButton != null) && (voiceButton.getLayoutParams() instanceof ConstraintLayout.LayoutParams vl)
-					&& (vl.bottomToBottom != ConstraintLayout.LayoutParams.PARENT_ID)) {
-				vl.bottomToTop = ConstraintLayout.LayoutParams.UNSET;
-				vl.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
-				voiceButton.setLayoutParams(vl);
-			}
-			int left = videoMode ? 0 : toIntPx(ctx, me.aap.fermata.ui.view.YoldaStyle.searchLeftDp() - 4);
-			if (cl.leftMargin == left) return;
-			cl.leftMargin = left;
-			cp.setLayoutParams(cl);
-		} catch (Throwable ex) {
-			Log.e(ex, "Araç çubuğu yerleştirilemedi");
-		}
 	}
 
 	@Nullable

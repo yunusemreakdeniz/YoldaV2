@@ -284,13 +284,13 @@ public class ControlPanelView extends ConstraintLayout
 
 	/** Yatay ekran (telefon): oynatıcı sol kapsülden açılıp kapanır. */
 	public boolean yoldaLandscape() {
-		if (!YoldaStyle.DECK || (getResources().getConfiguration().orientation
-				!= android.content.res.Configuration.ORIENTATION_LANDSCAPE)) return false;
+		if (!YoldaStyle.DECK) return false;
 		try {
-			return !getActivity().isCarActivity(); // araçta kapsüle inme yok: çubuk eskisi gibi
-		} catch (Throwable ex) {
-			return false;
+			if (getActivity().isCarActivity()) return true; // araç ekranı telefonun yatay görünümüyle aynı
+		} catch (Throwable ignore) {
 		}
+		return getResources().getConfiguration().orientation
+				== android.content.res.Configuration.ORIENTATION_LANDSCAPE;
 	}
 
 	/** Çalan / bekleyen bir şey var mı (çubuk gizli olsa da). */
