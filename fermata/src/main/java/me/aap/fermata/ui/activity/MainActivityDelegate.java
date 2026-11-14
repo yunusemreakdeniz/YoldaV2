@@ -1833,11 +1833,21 @@ public class MainActivityDelegate extends ActivityDelegate
 		me.aap.fermata.ui.view.YoldaMiniOrb o = orb;
 		if (land && !videoMode && (o != null) && (o.getVisibility() == View.VISIBLE) && (o.getHeight() > 0)
 				&& (cp.getParent() instanceof View host)) {
-			// Yatay: çubuk küçük oynatıcının hizasında, hemen sağında (yuvarlaktan dışarı açılır gibi)
+			// Yatay: çubuk kapsülün hemen sağında, altta. Altta arama / yazı kutusu olan ekranda kutunun hemen
+			// üstünde (üstüne binmesin), yoksa en altta mikrofonun hizasında (havada kalmasın).
 			int barH = (cp.getHeight() > 0) ? cp.getHeight()
 					: toIntPx(ctx, me.aap.fermata.ui.view.YoldaPlayerBar.heightDp(ctx));
-			int center = o.getTop() + o.getHeight() / 2;
-			m = Math.max(toIntPx(ctx, 6), host.getHeight() - host.getPaddingBottom() - (center + barH / 2));
+			int inputTop = bottomInputTop(host);
+			int hostBottom = host.getHeight() - host.getPaddingBottom();
+			if (inputTop > 0) {
+				m = hostBottom - inputTop + toIntPx(ctx, 8);
+			} else {
+				View vb = voiceButton;
+				int center = (vb != null) && (vb.getHeight() > 0) ? (vb.getTop() + vb.getHeight() / 2)
+						: (hostBottom - toIntPx(ctx, me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP
+						+ me.aap.fermata.ui.view.YoldaStyle.VOICE_DP / 2));
+				m = Math.max(toIntPx(ctx, 6), hostBottom - (center + barH / 2));
+			}
 			left = o.getRight() - host.getPaddingLeft() + toIntPx(ctx, 16);
 			maxW = toIntPx(ctx, 760);
 		}
@@ -1874,8 +1884,44 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	/**
-	 * Küçük oynatıcıya dokunuş: çubuk yuvarlağın sağında açılır (yuvarlaktan dışarı uzanır gibi) ya da
-	 * yuvarlağın içine geri kayar. Kapsül yerinden oynamaz.
+	 * Açık sayfanın altta duran arama / yazı kutusunun üst kenarı (kök görünümde); yoksa -1. Kutu, çevresindeki
+	 * kapsülüyle (en çok 100 dp yüksekliğindeki ebeveyn) birlikte ölçülür.
+	 */
+	private int bottomInputTop(View host) {
+		ActivityFragment f = getActiveFragment();
+		View fv = (f != null) ? f.getView() : null;
+		if (fv == null) return -1;
+		int[] h = new int[2];
+		host.getLocationInWindow(h);
+		int hostBottom = h[1] + host.getHeight() - host.getPaddingBottom();
+		int limit = toIntPx(getContext(), 140);
+		int[] best = {-1};
+		java.util.ArrayDeque<View> q = new java.util.ArrayDeque<>();
+		q.add(fv);
+		while (!q.isEmpty()) {
+			View v = q.poll();
+			if ((v.getVisibility() != View.VISIBLE) || (v.getHeight() == 0)) continue;
+			if (v instanceof EditText) {
+				View box = v;
+				while ((box.getParent() instanceof View pv) && (pv != fv) && (pv.getHeight() <= toIntPx(getContext(), 100))) box = pv;
+				int[] xy = new int[2];
+				box.getLocationInWindow(xy);
+				int bottom = xy[1] + box.getHeight();
+				if ((bottom >= hostBottom - limit) && (bottom <= hostBottom + toIntPx(getContext(), 8))) {
+					int top = xy[1] - h[1];
+					if ((best[0] < 0) || (top < best[0])) best[0] = top;
+				}
+				continue;
+			}
+			if (v instanceof android.view.ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) q.add(g.getChildAt(i));
+		}
+		return best[0];
+	}
+
+	/**
+	 * Küçük oynatıcıya dokunuş: kapalıysa çubuk yuvarlağın sağında açılır (yuvarlaktan dışarı uzanır gibi);
+	 * açıksa çalanın ekranına gider (Şimdi çalıyor / YouTube) ve çubuk yuvarlağın içine geri kayar.
+	 * Kapsül yerinden oynamaz; basılı tutunca kapanır.
 	 */
 	private void toggleDockedPlayer() {
 		ControlPanelView cp = getControlPanel();
@@ -1899,6 +1945,8 @@ public class MainActivityDelegate extends ActivityDelegate
 						cp.setScaleX(1f);
 						cp.setAlpha(1f);
 					}).start();
+			// çalanın ekranına git (uygulama gibi)
+			if (!me.aap.fermata.ui.view.YoldaNowPlaying.hide(this)) me.aap.fermata.ui.view.YoldaNowPlaying.open(this);
 		}
 	}
 
