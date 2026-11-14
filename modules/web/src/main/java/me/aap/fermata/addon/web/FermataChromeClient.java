@@ -96,7 +96,10 @@ public class FermataChromeClient extends WebChromeClient {
 
 	@Override
 	public boolean onJsBeforeUnload(WebView view, String url, String message, JsResult result) {
-		return onJsConfirm(view, url, message, result);
+		// Yolda: "Yaptığınız değişiklikler kaydedilmemiş olabilir" sorulmaz. YouTube Music sayfası şarkı
+		// geçişinde sayfadan ayrılırken bunu soruyordu, pencere ekranda kalıyordu (araçta form doldurulmaz).
+		result.confirm();
+		return true;
 	}
 
 	@Override

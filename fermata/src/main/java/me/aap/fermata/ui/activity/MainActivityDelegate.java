@@ -575,6 +575,13 @@ public class MainActivityDelegate extends ActivityDelegate
 		return (FermataActivity) super.getAppActivity();
 	}
 
+	/** Video ekranda mı (tam ekran video ya da YouTube sayfası): radar uyarısı videonun üstünde gösterilir. */
+	public boolean yoldaVideoOnScreen() {
+		if (videoMode) return true;
+		int id = getActiveFragmentId();
+		return id == R.id.youtube_fragment;
+	}
+
 	public boolean isCarActivity() {
 		return AUTO && getAppActivity().isCarActivity() || FermataApplication.get().isMirroringMode();
 	}

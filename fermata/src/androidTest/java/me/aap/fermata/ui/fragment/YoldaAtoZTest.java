@@ -1073,8 +1073,19 @@ public class YoldaAtoZTest {
 			});
 			float d = c.getResources().getDisplayMetrics().density;
 			assertTrue("Videoda sol üstte olmalı: y=" + top, top < 140 * d);
+			// Radar uyarısı videonun üstünde kırmızı kartla; ✕ ile kapanır
+			assertTrue("Videoda radar uyarısı kartı görünmeli",
+					waitFor(2000, () -> onMain(me.aap.fermata.ui.view.YoldaAlertOverlay::isShown)));
+			shot("video_radar_uyarisi");
+			View x = onMain(a -> byDesc(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Uyarıyı kapat"));
+			assertNotNull("Uyarıda kapat düğmesi olmalı", x);
+			onMain(a -> x.performClick());
+			assertTrue("✕ ile kapanmalı", waitFor(1500, () -> !onMain(me.aap.fermata.ui.view.YoldaAlertOverlay::isShown)));
 		} finally {
 			onMain(a -> {
+				View host = a.findViewById(R.id.main_activity);
+				if (host instanceof android.view.ViewGroup g) for (int i = g.getChildCount() - 1; i >= 0; i--)
+					if (g.getChildAt(i) instanceof me.aap.fermata.ui.view.YoldaAlertOverlay o) o.dismiss();
 				a.setVideoMode(false, null);
 				YoldaRadar.setCams(old);
 				YoldaRadar.setOverspeedWarn(c, overWas);
