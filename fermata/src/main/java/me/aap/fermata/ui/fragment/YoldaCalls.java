@@ -90,6 +90,11 @@ public final class YoldaCalls {
 		save(ctx, l);
 	}
 
+	/** Kişileri bu sırayla kaydet (Düzenle penceresi: sıralama ve silme). */
+	public static void setFavorites(Context ctx, List<Contact> l) {
+		save(ctx, new ArrayList<>(l));
+	}
+
 	public static void removeFavorite(Context ctx, String number) {
 		List<Contact> l = favorites(ctx);
 		l.removeIf(x -> norm(x.number()).equals(norm(number)));

@@ -474,6 +474,14 @@ public class NavFragment extends MainActivityFragment {
 	}
 
 	/** Son gidilen yerler (en yenisi başta). */
+	/** Son gidilenlerden yalnız bunları bırak (sırası değişmez). */
+	public static void keepRecent(Context ctx, List<String> keep) {
+		JSONArray arr = new JSONArray();
+		for (String d : recent(ctx)) if (keep.contains(d)) arr.put(d);
+		ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+				.putString("nav_recent", arr.toString()).apply();
+	}
+
 	public static List<String> recent(Context ctx) {
 		List<String> l = new ArrayList<>();
 		try {

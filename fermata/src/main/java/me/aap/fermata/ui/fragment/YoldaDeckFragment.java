@@ -744,9 +744,23 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaStyle.toast(ctx, "Kanal listesi henüz yüklenmedi");
 			return;
 		}
-		FrameLayout panel = openOverlay(ctx, radio ? "Radyoları sırala" : "Kanalları sırala");
+		orderEditor(ctx, radio ? "Radyoları sırala" : "Kanalları sırala", "en üstteki kartta ilk görünür", work,
+				MediaLib.PlayableItem::getName, l -> saveOrder(ctx, radio, l), null);
+	}
+
+	/**
+	 * Sıralama penceresi (kanallar, kişiler, navigasyon kısayolları): ≡ tutup ya da satıra basılı tutup sürükle,
+	 * ▲ ▼ ile taşı; isteğe bağlı 🗑 ile sil. Her değişiklikte {@code save} yeni sırayla çağrılır.
+	 *
+	 * @param canDelete null değilse: o öğe silinebilir mi (silinince listeden çıkar, save çağrılır)
+	 */
+	private <T> void orderEditor(Context ctx, String title, String hintTail, List<T> work,
+															 java.util.function.Function<T, String> name, java.util.function.Consumer<List<T>> save,
+															 @Nullable java.util.function.Predicate<T> canDelete) {
+		FrameLayout panel = openOverlay(ctx, title);
 		LinearLayout box = (LinearLayout) panel.getChildAt(0);
-		TextView hint = text(ctx, "≡ tutup sürükle ya da ▲ ▼ ile taşı · en üstteki kartta ilk görünür", 14, false, t.muted);
+		TextView hint = text(ctx, "≡ tutup sürükle ya da ▲ ▼ ile taşı"
+				+ ((canDelete != null) ? " · 🗑 kaldırır" : "") + " · " + hintTail, 14, false, t.muted);
 		hint.setPadding(dp(4), dp(4), 0, dp(6));
 		box.addView(hint);
 		RecyclerView rv = new RecyclerView(ctx);
@@ -772,42 +786,57 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			public void onBindViewHolder(@NonNull RecyclerView.ViewHolder h, int i) {
 				LinearLayout r = (LinearLayout) h.itemView;
 				r.removeAllViews();
-				MediaLib.PlayableItem pi = work.get(i);
+				T it = work.get(i);
+				String nm = name.apply(it);
 				// ≡ tutamak: basınca sürükleme başlar
 				TextView grip = text(ctx, "≡", 26, true, t.muted);
 				grip.setGravity(Gravity.CENTER);
-				grip.setContentDescription("Sürükle: " + pi.getName());
+				grip.setContentDescription("Sürükle: " + nm);
 				grip.setOnTouchListener((v, e) -> {
 					if (e.getActionMasked() == MotionEvent.ACTION_DOWN) th[0].startDrag(h);
 					return false;
 				});
 				r.addView(grip, new LinearLayout.LayoutParams(dp(44), dp(48)));
-				TextView n = text(ctx, (i + 1) + ".  " + pi.getName(), 16, i < 8, t.ink);
+				TextView n = text(ctx, (i + 1) + ".  " + nm, 16, i < 8, t.ink);
 				n.setSingleLine(true);
 				n.setEllipsize(TextUtils.TruncateAt.END);
 				r.addView(n, new LinearLayout.LayoutParams(0, -2, 1f));
 				LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(dp(48), dp(48));
 				bl.leftMargin = dp(6);
-				ImageView up = roundButton(ctx, R.drawable.yi_up, "Yukarı: " + pi.getName(), v -> {
+				ImageView up = roundButton(ctx, R.drawable.yi_up, "Yukarı: " + nm, v -> {
 					int idx = h.getBindingAdapterPosition();
 					if (idx <= 0) return;
 					YoldaChannelOrder.move(work, idx, -1);
-					saveOrder(ctx, radio, work);
+					save.accept(work);
 					notifyItemMoved(idx, idx - 1);
 					notifyItemRangeChanged(idx - 1, 2);
 				});
 				up.setAlpha((i == 0) ? 0.3f : 1f);
 				r.addView(up, bl);
-				ImageView dn = roundButton(ctx, R.drawable.yi_down, "Aşağı: " + pi.getName(), v -> {
+				ImageView dn = roundButton(ctx, R.drawable.yi_down, "Aşağı: " + nm, v -> {
 					int idx = h.getBindingAdapterPosition();
 					if ((idx < 0) || (idx >= work.size() - 1)) return;
 					YoldaChannelOrder.move(work, idx, 1);
-					saveOrder(ctx, radio, work);
+					save.accept(work);
 					notifyItemMoved(idx, idx + 1);
 					notifyItemRangeChanged(idx, 2);
 				});
 				dn.setAlpha((i == work.size() - 1) ? 0.3f : 1f);
 				r.addView(dn, bl);
+				if (canDelete != null) {
+					ImageView del = roundButton(ctx, R.drawable.yi_close, "Kaldır: " + nm, v -> {
+						int idx = h.getBindingAdapterPosition();
+						if ((idx < 0) || (idx >= work.size())) return;
+						work.remove(idx);
+						save.accept(work);
+						notifyItemRemoved(idx);
+						notifyItemRangeChanged(idx, work.size() - idx);
+					});
+					boolean ok = canDelete.test(it);
+					del.setEnabled(ok);
+					del.setAlpha(ok ? 1f : 0.15f);
+					r.addView(del, bl);
+				}
 			}
 
 			@Override
@@ -854,12 +883,78 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				vh.itemView.setBackground(null);
 				if (moved) {
 					moved = false;
-					saveOrder(ctx, radio, work);
+					save.accept(work);
 					r.post(ad::notifyDataSetChanged); // sıra numaraları yenilensin
 				}
 			}
 		});
 		th[0].attachToRecyclerView(rv);
+	}
+
+	/** Kartın içeriği + sağında "Sırala" düğmesi. */
+	private View withEditButton(Context ctx, View row, String desc, Runnable edit) {
+		LinearLayout h = hrow(ctx);
+		h.setGravity(Gravity.CENTER_VERTICAL);
+		h.addView(row, new LinearLayout.LayoutParams(0, -2, 1f));
+		ImageView b = roundButton(ctx, R.drawable.yi_list, desc, v -> edit.run());
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
+		lp.leftMargin = dp(8);
+		h.addView(b, lp);
+		return h;
+	}
+
+	// ---- Kişiler kartı sırası ----
+
+	private void showContactsEditor(Context ctx) {
+		List<YoldaCalls.Contact> work = YoldaCalls.favorites(ctx);
+		if (work.isEmpty()) {
+			YoldaStyle.toast(ctx, "Önce kişi ekle");
+			return;
+		}
+		orderEditor(ctx, "Kişileri düzenle", "kartta bu sırayla", work, YoldaCalls.Contact::name, l -> {
+			YoldaCalls.setFavorites(ctx, l);
+			refreshCard(YoldaDeck.CALLS);
+		}, x -> true);
+	}
+
+	// ---- Navigasyon kartı sırası ----
+
+	/** Navigasyon kartındaki kısayol: anahtar (sıra için) ve ad. */
+	private record NavItem(String key, String label) {
+	}
+
+	private static final String NAV_ORDER = "nav_order";
+
+	/** Kartta gösterilecek kısayollar, kayıtlı sırayla: Ev, İş, Hedef ara, Aracım, son gidilenler. */
+	private List<NavItem> navItems(Context ctx) {
+		List<NavItem> l = new ArrayList<>();
+		l.add(new NavItem("home", "⌂ Ev"));
+		l.add(new NavItem("work", "İş"));
+		l.add(new NavItem("search", "Hedef ara"));
+		if (YoldaRadar.feature(ctx, "park") && (YoldaRadar.park(ctx) != null)) l.add(new NavItem("park", "🅿 Aracım"));
+		for (String d : NavFragment.recent(ctx)) l.add(new NavItem("r:" + d, d));
+		List<String> order = new ArrayList<>();
+		try {
+			org.json.JSONArray a = new org.json.JSONArray(prefs(ctx).getString(NAV_ORDER, "[]"));
+			for (int i = 0; i < a.length(); i++) order.add(a.getString(i));
+		} catch (Throwable ignore) {
+		}
+		YoldaChannelOrder.sort(l, order, NavItem::key);
+		return l;
+	}
+
+	private void showNavEditor(Context ctx) {
+		List<NavItem> work = navItems(ctx);
+		orderEditor(ctx, "Navigasyon kısayolları", "kartta bu sırayla", work, NavItem::label, l -> {
+			org.json.JSONArray a = new org.json.JSONArray();
+			for (NavItem n : l) a.put(n.key());
+			prefs(ctx).edit().putString(NAV_ORDER, a.toString()).apply();
+			// son gidilenlerden kaldırılanlar listeden de silinir
+			List<String> keep = new ArrayList<>();
+			for (NavItem n : l) if (n.key().startsWith("r:")) keep.add(n.key().substring(2));
+			NavFragment.keepRecent(ctx, keep);
+			refreshCard(YoldaDeck.NAV);
+		}, n -> n.key().startsWith("r:")); // yalnız son gidilenler silinir
 	}
 
 	/** Testler için: kanal sırasını kaydet (sıralama penceresinin yaptığı). */
@@ -2160,7 +2255,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				int ts = Math.max(dp(48), Math.min(tile, dp(84)));
 				for (YoldaCalls.Contact ct : YoldaCalls.favorites(ctx)) row.addView(contactTile(ctx, a, ct, ts), contactLp(ts));
 				row.addView(contactTile(ctx, a, null, ts), contactLp(ts));
-				return scroll(ctx, row);
+				if (YoldaCalls.favorites(ctx).isEmpty()) return scroll(ctx, row);
+				return withEditButton(ctx, scroll(ctx, row), "Kişileri düzenle", () -> showContactsEditor(ctx));
 			}
 			case YoldaDeck.PHARMACY -> { // yıldızlı ilçe / iller: tek dokunuşla o yerin nöbetçileri
 				LinearLayout row = hrow(ctx);
@@ -2203,16 +2299,23 @@ public class YoldaDeckFragment extends MainActivityFragment {
 						"%.6f,%.6f", g[0], g[1]) : null;
 				String workQ = (work != null) ? work : ((g != null) && !Double.isNaN(g[2])) ? String.format(java.util.Locale.ROOT,
 						"%.6f,%.6f", g[2], g[3]) : null;
-				row.addView(placeChip(ctx, a, "⌂ Ev", "nav_home", homeQ, (home == null) && (homeQ != null)), chipLp());
-				row.addView(placeChip(ctx, a, "İş", "nav_work", workQ, (work == null) && (workQ != null)), chipLp());
-				row.addView(chipBtn(ctx, "Hedef ara", v -> a.showFragment(R.id.yolda_nav_fragment)), chipLp());
-				if (YoldaRadar.feature(ctx, "park") && (YoldaRadar.park(ctx) != null))
-					row.addView(chipBtn(ctx, "🅿 Aracım", v -> YoldaRadar.walkToPark(ctx)), chipLp());
-				for (String d : NavFragment.recent(ctx)) {
-					if (row.getChildCount() >= 7) break;
-					row.addView(chipBtn(ctx, d, v -> NavFragment.navigateTo(ctx, d, true)), chipLp());
+				// Kısayollar kullanıcının sırasıyla (kartın sağındaki düğmeden düzenlenir)
+				for (NavItem n : navItems(ctx)) {
+					if (row.getChildCount() >= 8) break;
+					String k = n.key();
+					if (k.equals("home"))
+						row.addView(placeChip(ctx, a, "⌂ Ev", "nav_home", homeQ, (home == null) && (homeQ != null)), chipLp());
+					else if (k.equals("work"))
+						row.addView(placeChip(ctx, a, "İş", "nav_work", workQ, (work == null) && (workQ != null)), chipLp());
+					else if (k.equals("search"))
+						row.addView(chipBtn(ctx, "Hedef ara", v -> a.showFragment(R.id.yolda_nav_fragment)), chipLp());
+					else if (k.equals("park")) row.addView(chipBtn(ctx, "🅿 Aracım", v -> YoldaRadar.walkToPark(ctx)), chipLp());
+					else {
+						String d = n.label();
+						row.addView(chipBtn(ctx, d, v -> NavFragment.navigateTo(ctx, d, true)), chipLp());
+					}
 				}
-				return scroll(ctx, row);
+				return withEditButton(ctx, scroll(ctx, row), "Navigasyon kısayollarını düzenle", () -> showNavEditor(ctx));
 			}
 			case YoldaDeck.PHONE, YoldaDeck.MIRROR -> {
 				LinearLayout row = hrow(ctx);
