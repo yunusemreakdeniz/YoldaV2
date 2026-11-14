@@ -412,9 +412,8 @@ public final class YoldaIntents {
 			case "tuvalet", "wc", "lavabo" -> "tuvalet";
 			case "dinlenme tesisi", "mola yeri", "tesis" -> "dinlenme tesisi";
 			case "şarj istasyonu", "şarj" -> "elektrikli araç şarj istasyonu";
-			case "restoran", "lokanta", "yemek yeri" -> "restoran";
-			case "kafe", "kahveci" -> "kafe";
 			case "restoran", "lokanta", "yemek yeri", "restaurant", "yemek" -> "restoran";
+			case "kafe", "kahveci" -> "kafe";
 			case "atm", "bankamatik" -> "atm";
 			case "cami" -> "cami";
 			default -> null;
