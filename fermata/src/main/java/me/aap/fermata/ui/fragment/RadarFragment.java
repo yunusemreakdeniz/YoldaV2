@@ -196,9 +196,9 @@ public class RadarFragment extends MainActivityFragment {
 		tests.setOrientation(LinearLayout.HORIZONTAL);
 		LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, dp(48), 1f);
 		tests.addView(button(ctx, "▶ Uyarıyı dene", v -> YoldaRadar.testAlert(ctx, false)), tl);
-		LinearLayout.LayoutParams tr = new LinearLayout.LayoutParams(0, dp(48), 1f);
-		tr.leftMargin = dp(10);
-		tests.addView(button(ctx, "▶ Acil uyarıyı dene", v -> YoldaRadar.testAlert(ctx, true)), tr);
+		LinearLayout.LayoutParams tr2 = new LinearLayout.LayoutParams(0, dp(48), 1f);
+		tr2.leftMargin = dp(10);
+		tests.addView(button(ctx, "▶ Acil uyarıyı dene", v -> YoldaRadar.testAlert(ctx, true)), tr2);
 		LinearLayout.LayoutParams tsl = new LinearLayout.LayoutParams(-1, -2);
 		tsl.topMargin = dp(6);
 		tsl.bottomMargin = dp(6);
