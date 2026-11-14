@@ -591,7 +591,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		lastRadarSub = s;
 		lastRadarRefresh = now;
 		// Kart yeniden kurulmaz (kurulunca titriyordu): yalnız alt yazı yerinde değişir
-		java.lang.ref.WeakReference<TextView> w = radarSubView;
+		java.lang.ref.WeakReference<TextView> w = this.radarSubView;
 		TextView tv = (w != null) ? w.get() : null;
 		if ((tv != null) && tv.isAttachedToWindow()) tv.setText(s);
 	};
