@@ -118,11 +118,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		});
 	}
 
-	/** Kart alt yazısının boyu (sp): dikey telefonda daha büyük. */
-	private int subSp() {
-		return portrait ? 17 : 15;
-	}
-
 	private Fit fit() {
 		android.content.res.Resources r = getResources();
 		float dens = r.getDisplayMetrics().density;
@@ -135,16 +130,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int title = compact ? 22 : small ? 26 : 32;
 		int head = Math.max(chip, Math.round((12 * 1.35f + title * 1.22f) * fs) + (noble() ? 9 : 0));
 		int avail = h - 2 * pad - head;
-		int line = Math.round(subSp() * 1.33f * fs);
+		int line = Math.round(15 * 1.33f * fs);
 		int subLines = (avail - 10 - 2 * line >= 84) ? 2 : (avail - 10 - line >= 52) ? 1 : 0;
-		if (portrait) { // dikey telefonda yer çok: alt yazı 4 satıra kadar (içerik şeridine en az 84 dp kalır)
-			for (int k = 4; k > subLines; k--) {
-				if (avail - 10 - k * line >= 84) {
-					subLines = k;
-					break;
-				}
-			}
-		}
 		int bottom = avail - ((subLines == 0) ? 0 : (10 + subLines * line)) - 2;
 		int tile = Math.max(40, Math.min(small ? 70 : 84, bottom));
 		int logo = Math.max(44, Math.min(small ? 84 : 104, bottom));
@@ -167,12 +154,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private boolean lowFx;
 	private int cardW;
 	private int cardH;
-	/**
-	 * Telefon dikey (araç değil, deste yüksekliği genişliğinin 1.2 katından fazla): kart bilgileri daha
-	 * okunur — alt yazı büyük ve çok satırlı, yazılarda gölge, arka simge soluk, altta koyu geçiş.
-	 * Araç ve yatay telefon bu kipten etkilenmez.
-	 */
-	private boolean portrait;
 	private final List<MediaLib.PlayableItem> tvChannels = new ArrayList<>();
 	private final List<MediaLib.PlayableItem> radioChannels = new ArrayList<>();
 	@Nullable
@@ -624,8 +605,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		// Araçta kartlar büyük: yüksekliğin neredeyse tamamı, genişliğin üçte ikisi
 		// Yatayda kartlar geniş (yanlarda komşu kartların ucu görünür kalır)
 		// Araçta da telefonun yatay görünümüyle aynı ölçüler (araç ekranı yatay telefon gibi)
-		portrait = !car && (h > w * 1.2f);
-		int nw = Math.min(Math.round(w * (wide ? 0.74f : portrait ? 0.86f : 0.8f)), dp(wide ? 820 : 620));
+		int nw = Math.min(Math.round(w * (wide ? 0.74f : 0.8f)), dp(wide ? 820 : 620));
 		int nh = Math.min(h - dp(12), wide ? dp(460) : dp(620));
 		if (car && (nw != cardW)) {
 			View rv = root;
@@ -2149,7 +2129,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView mark = new ImageView(ctx);
 		mark.setImageResource(lk.icon);
 		if (lk.tint) mark.setImageTintList(ColorStateList.valueOf(accent));
-		mark.setAlpha(noble ? 0.06f : (portrait ? 0.08f : 0.13f)); // dikeyde yazıların arkası sakin
+		mark.setAlpha(noble ? 0.06f : 0.13f);
 		int ms = Math.round(cardH * 0.62f);
 		FrameLayout.LayoutParams mlp = new FrameLayout.LayoutParams(ms, ms, Gravity.END | Gravity.BOTTOM);
 		mlp.rightMargin = -ms / 6;
@@ -2157,12 +2137,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		f.addView(mark, mlp);
 
 		Fit fz = fit();
-		if (portrait && !noble) { // kartın alt yarısında hafif koyu geçiş: kutucuk adları ve düğmeler okunsun
-			View scrim = new View(ctx);
-			scrim.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-					new int[]{0x00000000, 0x1F000000, 0x47000000}));
-			f.addView(scrim, new FrameLayout.LayoutParams(-1, Math.round(cardH * 0.55f), Gravity.BOTTOM));
-		}
 		LinearLayout v = new LinearLayout(ctx);
 		v.setOrientation(LinearLayout.VERTICAL);
 		int p = dp(fz.pad());
@@ -2205,14 +2179,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			tagRow.addView(dot, dlp);
 		}
 		boolean homeCard = c.key().equals(prefs(ctx).getString("home_card", null));
-		TextView tag = text(ctx, (homeCard ? "⌂ ANA KART · " : "") + lk.tag, portrait ? 13 : 12, true,
-				noble ? accent : (portrait ? 0xFFFFFFFF : 0xE6FFFFFF));
+		TextView tag = text(ctx, (homeCard ? "⌂ ANA KART · " : "") + lk.tag, 12, true, noble ? accent : 0xE6FFFFFF);
 		tag.setLetterSpacing(0.14f);
-		if (portrait && !noble) tag.setShadowLayer(dp(3), 0, dp(1), 0x59000000);
 		tagRow.addView(tag);
 		names.addView(tagRow);
 		TextView title = text(ctx, c.title(), fz.title(), true, 0xFFFFFFFF);
-		if (portrait && !noble) title.setShadowLayer(dp(4), 0, dp(1), 0x66000000);
 		title.setMaxLines(1);
 		title.setEllipsize(TextUtils.TruncateAt.END);
 		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(title, 16, fz.title(), 1,
@@ -2231,10 +2202,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		head.addView(names, new LinearLayout.LayoutParams(0, -2, 1f));
 		v.addView(head);
 
-		TextView sub = text(ctx, lk.sub, subSp(), portrait, noble ? (portrait ? 0xFFC9CDD6 : 0xFFA3A8B5)
-				: (portrait ? 0xFAFFFFFF : 0xD9FFFFFF));
-		if (portrait && !noble) sub.setShadowLayer(dp(3), 0, dp(1), 0x59000000);
-		if (portrait) sub.setLineSpacing(dp(2), 1f);
+		TextView sub = text(ctx, lk.sub, 15, false, noble ? 0xFFA3A8B5 : 0xD9FFFFFF);
 		sub.setMaxLines(Math.max(1, fz.subLines()));
 		sub.setEllipsize(TextUtils.TruncateAt.END);
 		sub.setPadding(0, dp(10), 0, 0);
@@ -3542,8 +3510,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private TextView chipBtn(Context ctx, String s, View.OnClickListener click) {
-		TextView c = text(ctx, s, portrait ? 16 : 15, true, 0xFFFFFFFF);
-		if (portrait) c.setShadowLayer(dp(2), 0, dp(1), 0x40000000);
+		TextView c = text(ctx, s, 15, true, 0xFFFFFFFF);
 		c.setGravity(Gravity.CENTER);
 		c.setPadding(dp(18), 0, dp(18), 0);
 		GradientDrawable g = new GradientDrawable();
