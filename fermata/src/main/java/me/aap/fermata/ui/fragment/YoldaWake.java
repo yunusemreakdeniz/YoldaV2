@@ -134,7 +134,10 @@ public final class YoldaWake {
 			try {
 				LibVosk.setLogLevel(LogLevel.WARNINGS);
 				if (model == null) model = new Model(dir);
-				if (recognizer == null) recognizer = new Recognizer(model, 16000.0f, GRAMMAR);
+				if (recognizer == null) {
+					recognizer = new Recognizer(model, 16000.0f, GRAMMAR);
+					recognizer.setWords(true); // sözcük güveni: yanlış uyanmayı ayıklamak için
+				}
 				else recognizer.reset();
 				s = new SpeechService(recognizer, 16000.0f);
 			} catch (Throwable ex) {
@@ -285,29 +288,75 @@ public final class YoldaWake {
 		}
 	};
 
-	/** Tanınan metinde "hey yolda" geçiyorsa (yalnız "yolda" yetmez: konuşmada sık geçer) asistanı aç. */
 	static boolean isWake(String json) {
+		return isWake(json, false);
+	}
+
+	private static final java.util.Set<String> STRONG = new java.util.HashSet<>(java.util.Arrays.asList(
+			"hey yolda", "ey yolda", "hey yol da", "hey yola", "ey yola", "heyolda", "eyolda"));
+
+	/**
+	 * Uyandırma sözcüğü mü. Yanlış uyanmalara karşı (müzik, radyo, konuşma):
+	 * <ul>
+	 * <li>cümle yalnız "hey yolda" olmalı (en çok bir bilinmeyen sözcük önde); "yola çıkalım" gibi devamı olan
+	 * cümleler uyandırmaz,</li>
+	 * <li>"hey"siz tek "yolda" yalnız kesin sonuçta (ara sonuçta değil) ve bir şey çalmıyorken kabul edilir,</li>
+	 * <li>sözcük güveni (varsa) düşükse kabul edilmez.</li>
+	 * </ul>
+	 *
+	 * @param playing hoparlörden ses geliyor: yalnız açıkça "hey yolda" kabul
+	 */
+	static boolean isWake(String json, boolean playing) {
 		if (json == null) return false;
 		String s = json.toLowerCase(new Locale("tr"));
-		if (s.contains("hey yolda") || s.contains("ey yolda") || s.contains("hey yol da") || s.contains("hey yola")
-				|| s.contains("ey yola") || s.contains("heyolda") || s.contains("eyolda")) return true;
-		// Vosk sonucu: {"text" : "[unk] yolda"} ya da {"partial" : "yolda"} — söylenen yalnız "(hey) yolda" ise
-		int q = s.lastIndexOf(':');
-		if (q < 0) return false;
-		String[] words = s.substring(q + 1).replaceAll("[\"{}]+", " ").trim().split("\\s+");
-		int unk = 0;
-		StringBuilder rest = new StringBuilder();
-		for (String w : words) {
-			if (w.equals("[unk]")) unk++;
-			else if (!w.isEmpty()) rest.append(rest.length() > 0 ? " " : "").append(w);
+		boolean partial = s.contains("\"partial\"");
+		String text;
+		java.util.Map<String, Double> conf = new java.util.HashMap<>();
+		try {
+			org.json.JSONObject o = new org.json.JSONObject(s);
+			text = o.optString(partial ? "partial" : "text", "");
+			org.json.JSONArray r = o.optJSONArray("result");
+			if (r != null) for (int i = 0; i < r.length(); i++) {
+				org.json.JSONObject w = r.getJSONObject(i);
+				conf.merge(w.optString("word"), w.optDouble("conf", 1), Math::min);
+			}
+		} catch (Throwable ex) {
+			int q = s.lastIndexOf(':');
+			if (q < 0) return false;
+			text = s.substring(q + 1).replaceAll("[\"{}]+", " ");
 		}
-		// "yolda" ya da "<bilinmeyen tek sözcük> yolda" (ör. modelde olmayan "hey")
-		return (unk <= 1) && (rest.toString().equals("yolda") || rest.toString().equals("yola"));
+		String[] words = text.trim().split("\\s+");
+		int lead = 0;
+		while ((lead < words.length) && words[lead].equals("[unk]")) lead++;
+		if (lead > 1) return false; // önünde birden çok bilinmeyen sözcük: uzun cümlenin içi
+		StringBuilder b = new StringBuilder();
+		for (int i = lead; i < words.length; i++) {
+			if (words[i].equals("[unk]")) return false; // ardından konuşma sürüyor ("yola çıkalım")
+			if (!words[i].isEmpty()) b.append(b.length() > 0 ? " " : "").append(words[i]);
+		}
+		String r = b.toString();
+		for (String w : new String[]{"yolda", "yola"}) {
+			Double c = conf.get(w);
+			if ((c != null) && (c < 0.6)) return false;
+		}
+		if (STRONG.contains(r)) return (lead == 0) || !playing;
+		if (r.equals("yolda") || r.equals("yola")) return !partial && !playing;
+		return false;
 	}
 
 	private static void check(String json) {
-		if ((json != null) && json.contains("yolda")) YoldaLog.add("Hey Yolda: duyulan " + json.replaceAll("\\s+", " "));
-		if (!isWake(json)) return;
+		if ((json != null) && json.contains("yol")) YoldaLog.add("Hey Yolda: duyulan " + json.replaceAll("\\s+", " "));
+		boolean playing = false;
+		try {
+			MainActivityDelegate o = (carOwner != null) ? carOwner : owner;
+			playing = (o != null) && o.getMediaSessionCallback().isPlaying();
+		} catch (Throwable ignore) {
+		}
+		if (!isWake(json, playing)) return;
+		if (YoldaSpeak.recentlySpoke()) { // Yolda'nın kendi sesi ("Ben Yolda…")
+			YoldaLog.add("Hey Yolda: kendi sesi, sayılmadı");
+			return;
+		}
 		long now = System.currentTimeMillis();
 		if (now - lastWake < 3000) return;
 		lastWake = now;

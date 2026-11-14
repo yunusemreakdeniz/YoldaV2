@@ -455,6 +455,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			sa.setSupportsChangeAnimations(false); // kart güncellenince soluklaşıp yeniden belirmesin (titreme)
 		snap = new PagerSnapHelper();
 		snap.attachToRecyclerView(list);
+		dragHelper = new androidx.recyclerview.widget.ItemTouchHelper(new DragCallback());
+		dragHelper.attachToRecyclerView(list);
 		list.setChildDrawingOrderCallback(this::drawingOrder);
 		list.addOnScrollListener(new RecyclerView.OnScrollListener() {
 			@Override
@@ -532,9 +534,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		boolean wide = w > h * 1.2f;
 		// Araçta kartlar büyük: yüksekliğin neredeyse tamamı, genişliğin üçte ikisi
 		// Yatayda kartlar geniş (yanlarda komşu kartların ucu görünür kalır)
-		int nw = car ? Math.min(Math.round(w * 0.76f), dp(1100))
-				: Math.min(Math.round(w * (wide ? 0.74f : 0.8f)), dp(wide ? 820 : 620));
-		int nh = car ? (h - dp(8)) : Math.min(h - dp(12), wide ? dp(460) : dp(620));
+		// Araçta da telefonun yatay görünümüyle aynı ölçüler (araç ekranı yatay telefon gibi)
+		int nw = Math.min(Math.round(w * (wide ? 0.74f : 0.8f)), dp(wide ? 820 : 620));
+		int nh = Math.min(h - dp(12), wide ? dp(460) : dp(620));
 		if (car && (nw != cardW)) {
 			View rv = root;
 			me.aap.fermata.ui.fragment.YoldaLog.add("Araç destesi: liste " + Math.round(w / getResources().getDisplayMetrics().density)
@@ -592,7 +594,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private void compactChrome(boolean car) {
 		if ((root == null) || (topRow == null)) return;
 		int hdp = Math.round(root.getHeight() / getResources().getDisplayMetrics().density);
-		boolean sh = !car && (hdp > 0) && (hdp < 520);
+		boolean sh = (hdp > 0) && (hdp < 520); // alçak ekran (yatay telefon ve araç): üst satır sıkı
 		if (sh == shortScreen) return;
 		shortScreen = sh;
 		Context ctx = requireContext();
@@ -744,24 +746,42 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 		FrameLayout panel = openOverlay(ctx, radio ? "Radyoları sırala" : "Kanalları sırala");
 		LinearLayout box = (LinearLayout) panel.getChildAt(0);
-		TextView hint = text(ctx, "▲ ▼ ile taşı · en üstteki kartta ilk görünür", 14, false, t.muted);
+		TextView hint = text(ctx, "≡ tutup sürükle ya da ▲ ▼ ile taşı · en üstteki kartta ilk görünür", 14, false, t.muted);
 		hint.setPadding(dp(4), dp(4), 0, dp(6));
 		box.addView(hint);
-		ScrollView sv = new ScrollView(ctx);
-		LinearLayout rows = new LinearLayout(ctx);
-		rows.setOrientation(LinearLayout.VERTICAL);
-		sv.addView(rows);
-		box.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
-		Runnable[] render = new Runnable[1];
-		render[0] = () -> {
-			rows.removeAllViews();
-			for (int i = 0; i < work.size(); i++) {
-				MediaLib.PlayableItem pi = work.get(i);
-				int idx = i;
+		RecyclerView rv = new RecyclerView(ctx);
+		rv.setLayoutManager(new LinearLayoutManager(ctx));
+		rv.setOverScrollMode(View.OVER_SCROLL_NEVER);
+		box.addView(rv, new LinearLayout.LayoutParams(-1, 0, 1f));
+		androidx.recyclerview.widget.ItemTouchHelper[] th = new androidx.recyclerview.widget.ItemTouchHelper[1];
+		RecyclerView.Adapter<RecyclerView.ViewHolder> ad = new RecyclerView.Adapter<>() {
+			@NonNull
+			@Override
+			public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
 				LinearLayout r = new LinearLayout(ctx);
 				r.setOrientation(LinearLayout.HORIZONTAL);
 				r.setGravity(Gravity.CENTER_VERTICAL);
-				r.setPadding(dp(12), dp(6), dp(6), dp(6));
+				r.setPadding(dp(4), dp(6), dp(6), dp(6));
+				r.setLayoutParams(new RecyclerView.LayoutParams(-1, -2));
+				return new RecyclerView.ViewHolder(r) {
+				};
+			}
+
+			@android.annotation.SuppressLint("ClickableViewAccessibility")
+			@Override
+			public void onBindViewHolder(@NonNull RecyclerView.ViewHolder h, int i) {
+				LinearLayout r = (LinearLayout) h.itemView;
+				r.removeAllViews();
+				MediaLib.PlayableItem pi = work.get(i);
+				// ≡ tutamak: basınca sürükleme başlar
+				TextView grip = text(ctx, "≡", 26, true, t.muted);
+				grip.setGravity(Gravity.CENTER);
+				grip.setContentDescription("Sürükle: " + pi.getName());
+				grip.setOnTouchListener((v, e) -> {
+					if (e.getActionMasked() == MotionEvent.ACTION_DOWN) th[0].startDrag(h);
+					return false;
+				});
+				r.addView(grip, new LinearLayout.LayoutParams(dp(44), dp(48)));
 				TextView n = text(ctx, (i + 1) + ".  " + pi.getName(), 16, i < 8, t.ink);
 				n.setSingleLine(true);
 				n.setEllipsize(TextUtils.TruncateAt.END);
@@ -769,23 +789,77 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(dp(48), dp(48));
 				bl.leftMargin = dp(6);
 				ImageView up = roundButton(ctx, R.drawable.yi_up, "Yukarı: " + pi.getName(), v -> {
+					int idx = h.getBindingAdapterPosition();
+					if (idx <= 0) return;
 					YoldaChannelOrder.move(work, idx, -1);
 					saveOrder(ctx, radio, work);
-					render[0].run();
+					notifyItemMoved(idx, idx - 1);
+					notifyItemRangeChanged(idx - 1, 2);
 				});
-				up.setAlpha((idx == 0) ? 0.3f : 1f);
+				up.setAlpha((i == 0) ? 0.3f : 1f);
 				r.addView(up, bl);
 				ImageView dn = roundButton(ctx, R.drawable.yi_down, "Aşağı: " + pi.getName(), v -> {
+					int idx = h.getBindingAdapterPosition();
+					if ((idx < 0) || (idx >= work.size() - 1)) return;
 					YoldaChannelOrder.move(work, idx, 1);
 					saveOrder(ctx, radio, work);
-					render[0].run();
+					notifyItemMoved(idx, idx + 1);
+					notifyItemRangeChanged(idx, 2);
 				});
-				dn.setAlpha((idx == work.size() - 1) ? 0.3f : 1f);
+				dn.setAlpha((i == work.size() - 1) ? 0.3f : 1f);
 				r.addView(dn, bl);
-				rows.addView(r, new LinearLayout.LayoutParams(-1, -2));
+			}
+
+			@Override
+			public int getItemCount() {
+				return work.size();
 			}
 		};
-		render[0].run();
+		rv.setAdapter(ad);
+		th[0] = new androidx.recyclerview.widget.ItemTouchHelper(new androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
+				androidx.recyclerview.widget.ItemTouchHelper.UP | androidx.recyclerview.widget.ItemTouchHelper.DOWN, 0) {
+			boolean moved;
+
+			@Override
+			public boolean onMove(@NonNull RecyclerView r, @NonNull RecyclerView.ViewHolder a, @NonNull RecyclerView.ViewHolder b) {
+				int from = a.getBindingAdapterPosition(), to = b.getBindingAdapterPosition();
+				if ((from < 0) || (to < 0)) return false;
+				work.add(to, work.remove(from));
+				ad.notifyItemMoved(from, to);
+				moved = true;
+				return true;
+			}
+
+			@Override
+			public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
+			}
+
+			@Override
+			public boolean isLongPressDragEnabled() {
+				return true; // satıra basılı tutmak da sürükler
+			}
+
+			@Override
+			public void onSelectedChanged(@Nullable RecyclerView.ViewHolder vh, int state) {
+				super.onSelectedChanged(vh, state);
+				if ((vh != null) && (state == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG)) {
+					vh.itemView.setBackground(YoldaStyle.glass(ctx, t, 14));
+					YoldaStyle.haptic(vh.itemView);
+				}
+			}
+
+			@Override
+			public void clearView(@NonNull RecyclerView r, @NonNull RecyclerView.ViewHolder vh) {
+				super.clearView(r, vh);
+				vh.itemView.setBackground(null);
+				if (moved) {
+					moved = false;
+					saveOrder(ctx, radio, work);
+					r.post(ad::notifyDataSetChanged); // sıra numaraları yenilensin
+				}
+			}
+		});
+		th[0].attachToRecyclerView(rv);
 	}
 
 	/** Testler için: kanal sırasını kaydet (sıralama penceresinin yaptığı). */
@@ -1052,11 +1126,87 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	// ---- yığılmış görünüm ----
 
 	/** Ortadaki kart tam boy ve önde; uzaklaştıkça küçülür, solar, merkeze doğru çekilip arkasına yığılır. */
+	// ---- Düzenle kipinde sürükle bırak ----
+
+	private androidx.recyclerview.widget.ItemTouchHelper dragHelper;
+	/** Sürüklenen kart (yığılmış görünüm onu kaydırmasın). */
+	@Nullable
+	private View dragging;
+	private int dragFrom = -1, dragTo = -1;
+
+	/** Düzenle kipinde karta basılı tutup sağa / sola sürükleyerek sıralama. */
+	private final class DragCallback extends androidx.recyclerview.widget.ItemTouchHelper.Callback {
+		@Override
+		public int getMovementFlags(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh) {
+			return editing ? makeMovementFlags(androidx.recyclerview.widget.ItemTouchHelper.LEFT
+					| androidx.recyclerview.widget.ItemTouchHelper.RIGHT, 0) : 0;
+		}
+
+		@Override
+		public boolean isLongPressDragEnabled() {
+			return false; // kartın kendi basılı tutması başlatır (startDrag)
+		}
+
+		@Override
+		public boolean isItemViewSwipeEnabled() {
+			return false;
+		}
+
+		@Override
+		public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder from, @NonNull RecyclerView.ViewHolder to) {
+			int a = from.getBindingAdapterPosition(), b = to.getBindingAdapterPosition();
+			if ((a < 0) || (b < 0) || (Math.abs(a - b) != 1)) return false;
+			if (deck.move(a, b - a) != b) return false;
+			adapter.notifyItemMoved(a, b);
+			dragTo = b;
+			YoldaStyle.haptic(rv);
+			return true;
+		}
+
+		@Override
+		public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
+		}
+
+		@Override
+		public void onSelectedChanged(@Nullable RecyclerView.ViewHolder vh, int state) {
+			super.onSelectedChanged(vh, state);
+			if ((state == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) && (vh != null)) {
+				dragging = vh.itemView;
+				dragFrom = dragTo = vh.getBindingAdapterPosition();
+				vh.itemView.animate().scaleX(1.04f).scaleY(1.04f).setDuration(120).start();
+				vh.itemView.setTranslationZ(dp(24));
+			}
+		}
+
+		@Override
+		public void clearView(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh) {
+			super.clearView(rv, vh);
+			dragging = null;
+			int to = dragTo;
+			boolean moved = (to >= 0) && (to != dragFrom);
+			dragFrom = dragTo = -1;
+			if (moved) {
+				YoldaLog.add("Deste: kart sürüklenerek " + (to + 1) + ". sıraya taşındı");
+				afterChange(to); // kartlardaki konumlar (düğmeler) yenilensin
+			} else {
+				rv.post(YoldaDeckFragment.this::transform);
+			}
+		}
+	}
+
+	/** Düzenle kipinde basılı tutulan kartı sürüklemeye başlat. */
+	private void startDrag(View card) {
+		if ((dragHelper == null) || (list == null)) return;
+		RecyclerView.ViewHolder vh = list.findContainingViewHolder(card);
+		if (vh != null) dragHelper.startDrag(vh);
+	}
+
 	private void transform() {
 		if ((list == null) || !isAdded() || (getContext() == null)) return;
 		float center = list.getWidth() / 2f;
 		for (int i = 0; i < list.getChildCount(); i++) {
 			View c = list.getChildAt(i);
+			if (c == dragging) continue;
 			float cc = (c.getLeft() + c.getRight()) / 2f;
 			float d = (cc - center) / Math.max(1f, cardW);
 			float ad = Math.min(Math.abs(d), 2f);
@@ -1205,7 +1355,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		Context ctx = requireContext();
 		dots.removeAllViews();
 		int cur = centerPosition();
+		int home = homeCardIndex();
 		for (int i = 0; i < deck.size(); i++) {
+			if (i == home) { // ana kart: nokta yerine ev simgesi (ortadaysa parlak, değilse soluk)
+				android.widget.ImageView hv = new android.widget.ImageView(ctx);
+				hv.setImageResource(R.drawable.yi_home_fill);
+				hv.setImageTintList(android.content.res.ColorStateList.valueOf((i == cur) ? 0xFFFFFFFF : 0x99FFFFFF));
+				hv.setContentDescription("Ana kart");
+				LinearLayout.LayoutParams hl = new LinearLayout.LayoutParams(dp((i == cur) ? 15 : 12), dp((i == cur) ? 15 : 12));
+				hl.leftMargin = hl.rightMargin = dp(3);
+				hl.gravity = Gravity.CENTER_VERTICAL;
+				dots.addView(hv, hl);
+				continue;
+			}
 			View d = new View(ctx);
 			GradientDrawable g = new GradientDrawable();
 			g.setCornerRadius(dp(4));
@@ -1213,6 +1375,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			d.setBackground(g);
 			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp((i == cur) ? 22 : 7), dp(7));
 			lp.leftMargin = lp.rightMargin = dp(3);
+			lp.gravity = Gravity.CENTER_VERTICAL;
 			dots.addView(d, lp);
 		}
 	}
@@ -1482,7 +1645,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		editBtn.setContentDescription(on ? "Bitti" : "Düzenle");
 		adapter.notifyDataSetChanged();
 		list.post(this::transform);
-		if (on) YoldaStyle.toast(requireContext(), "Düzenle: ◀ ▶ sırala, 🎨 renk, ✕ kaldır, ↺ kaldırılanlar");
+		if (on) YoldaStyle.toast(requireContext(), "Düzenle: kartı basılı tutup sürükle ya da ◀ ▶ ile sırala · sağ üstteki ✕ kaldırır");
 	}
 
 	// ---- kart görünümü ----
@@ -1518,8 +1681,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			h.box.removeAllViews();
 			if (cardW <= 0) return;
 			// Yatay telefonda kart üstte: oynatıcı çubuğu için ayrılan yer kartın altında kalır (üstte boşluk olmaz)
-			boolean top = (getContext() != null) && !getActivityDelegate().isCarActivity()
-					&& (list != null) && (list.getWidth() > list.getHeight() * 1.2f);
+			boolean top = (getContext() != null) && (list != null) && (list.getWidth() > list.getHeight() * 1.2f);
 			h.box.addView(card(h.box.getContext(), deck.get(pos), pos),
 					new FrameLayout.LayoutParams(-1, cardH, top ? Gravity.TOP : Gravity.CENTER_VERTICAL));
 		}
@@ -1723,9 +1885,24 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			open(c);
 		});
 		f.setOnLongClickListener(v -> {
-			setEditing(true);
+			if (editing) startDrag(v); // düzenlerken: basılı tut ve sürükle
+			else setEditing(true);
 			return true;
 		});
+		if (editing && c.isRemovable()) { // kaldır: kartın sağ üst köşesinde
+			ImageView rm = roundButton(ctx, R.drawable.yi_close, "Kaldır", x -> removeCard(c, pos));
+			GradientDrawable rb = new GradientDrawable();
+			rb.setShape(GradientDrawable.OVAL);
+			rb.setColor(0xE6E53935);
+			rb.setStroke(dp(2), 0xFFFFFFFF);
+			rm.setBackground(rb);
+			rm.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+			rm.setElevation(dp(6));
+			FrameLayout.LayoutParams rl = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP | Gravity.END);
+			rl.topMargin = rl.rightMargin = dp(10);
+			rm.setTranslationZ(dp(20)); // içeriğin üstünde çizilir ve dokunuşu önce alır
+			f.addView(rm, rl);
+		}
 
 		// Arkada büyük, soluk simge
 		ImageView mark = new ImageView(ctx);
@@ -1744,6 +1921,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int p = dp(fz.pad());
 		v.setPadding(p, p, p, p);
 		if (fz.row()) v.setPadding(dp(18), p, dp(18), p);
+		if (editing && c.isRemovable()) // sağ üstteki ✕ başlığın / düğmelerin üstüne binmesin
+			v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight() + dp(fz.row() ? 50 : 40), v.getPaddingBottom());
 		watchOverflow(v);
 		f.addView(v, new FrameLayout.LayoutParams(-1, -1));
 
@@ -2168,16 +2347,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(dp(eb), dp(eb));
 		hlp.rightMargin = dp((eb < 56) ? 8 : 14);
 		row.addView(hb, hlp);
-		if (c.isRemovable()) {
-			row.addView(roundButton(ctx, R.drawable.yi_close, "Kaldır", v -> {
-				if (!deck.remove(pos)) return;
-				if (!c.isBuiltIn()) stashRemoved(c); // kendi eklediğin kart da geri getirilebilsin
-				YoldaStyle.toast(ctx, "Kaldırıldı: " + c.title() + " · ↺ ile geri getirebilirsin");
-				afterChange(Math.max(0, pos - 1));
-				updateRestoreBtn();
-			}), new LinearLayout.LayoutParams(dp(eb), dp(eb)));
-		}
 		return row;
+	}
+
+	/** Kartı kaldır (sağ üstteki ✕). */
+	private void removeCard(YoldaDeck.Card c, int pos) {
+		Context ctx = getContext();
+		if ((ctx == null) || !deck.remove(pos)) return;
+		if (!c.isBuiltIn()) stashRemoved(c); // kendi eklediğin kart da geri getirilebilsin
+		YoldaStyle.toast(ctx, "Kaldırıldı: " + c.title() + " · ↺ ile geri getirebilirsin");
+		afterChange(Math.max(0, pos - 1));
+		updateRestoreBtn();
 	}
 
 	private void afterChange(int focus) {

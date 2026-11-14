@@ -117,10 +117,23 @@ public class YoldaLogicTest {
 		assertTrue(YoldaWake.isWake("{\"text\" : \"HEY YOLDA\"}"));
 		// sözlükte "hey" yoksa: bilinmeyen sözcük + yolda, ya da yalnız "yolda"
 		assertTrue(YoldaWake.isWake("{\"text\" : \"[unk] yolda\"}"));
-		assertTrue(YoldaWake.isWake("{\"partial\" : \"yolda\"}"));
+		assertTrue(YoldaWake.isWake("{\"text\" : \"yolda\"}"));
+		// tek "yolda" / "yola" ara sonuçta uyandırmaz ("yola çıkalım" henüz bitmemiş olabilir)
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"partial\" : \"yolda\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"yola [unk]\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"hey yolda [unk]\"}"));
+		// bir şey çalarken yalnız açıkça "hey yolda"
+		assertTrue(YoldaWake.isWake("{\"partial\" : \"hey yolda\"}", true));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"yolda\"}", true));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"[unk] yolda\"}", true));
+		// sözcük güveni düşük: uyandırmaz
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"result\" : [{\"conf\" : 0.31, \"word\" : \"hey\"}, "
+				+ "{\"conf\" : 0.42, \"word\" : \"yolda\"}], \"text\" : \"hey yolda\"}"));
+		assertTrue(YoldaWake.isWake("{\"result\" : [{\"conf\" : 1.0, \"word\" : \"hey\"}, "
+				+ "{\"conf\" : 0.97, \"word\" : \"yolda\"}], \"text\" : \"hey yolda\"}"));
 		assertTrue(YoldaWake.isWake("{\"text\" : \"ey yolda\"}"));
 		assertTrue(YoldaWake.isWake("{\"text\" : \"hey yola\"}"));
-		assertTrue(YoldaWake.isWake("{\"partial\" : \"yola\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"partial\" : \"yola\"}"));
 		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"[unk] [unk] yola [unk]\"}"));
 		// uzun cümle içinde geçen "yolda" uyandırmaz
 		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"[unk] [unk] yolda [unk]\"}"));

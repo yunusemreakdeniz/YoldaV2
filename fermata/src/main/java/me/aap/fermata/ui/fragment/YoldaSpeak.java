@@ -98,15 +98,20 @@ public final class YoldaSpeak {
 			tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
 				@Override
 				public void onStart(String id) {
+					speaking = true;
 				}
 
 				@Override
 				public void onDone(String id) {
+					speaking = false;
+					spokeAt = android.os.SystemClock.elapsedRealtime();
 					abandon(app);
 				}
 
 				@Override
 				public void onError(String id) {
+					speaking = false;
+					spokeAt = android.os.SystemClock.elapsedRealtime();
 					abandon(app);
 				}
 			});
@@ -135,6 +140,14 @@ public final class YoldaSpeak {
 		focus = null;
 		AudioManager am = (AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
 		if ((am != null) && (f != null)) am.abandonAudioFocusRequest(f);
+	}
+
+	private static volatile boolean speaking;
+	private static volatile long spokeAt;
+
+	/** Yolda şu an konuşuyor ya da az önce konuştu ("Ben Yolda…" kendi sesiyle "Hey Yolda"yı açmasın). */
+	public static boolean recentlySpoke() {
+		return speaking || (android.os.SystemClock.elapsedRealtime() - spokeAt < 1500);
 	}
 
 	/** "Hey Yolda" duyulunca kısa bip: dinlemeye başladığını ekrana bakmadan anla. */

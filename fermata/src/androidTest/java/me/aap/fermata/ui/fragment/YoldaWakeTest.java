@@ -83,18 +83,22 @@ public class YoldaWakeTest {
 			}
 			tried++;
 			try (Recognizer r = new Recognizer(m, 16000.0f, YoldaWake.GRAMMAR)) {
+				r.setWords(true); // uygulamadaki gibi (sözcük güveni)
 				StringBuilder all = new StringBuilder();
+				boolean w = false;
 				int off = 44; // WAV başlığı
 				while (off < wav.length) {
 					int n = Math.min(3200, wav.length - off);
 					byte[] chunk = new byte[n];
 					System.arraycopy(wav, off, chunk, 0, n);
-					if (r.acceptWaveForm(chunk, n)) all.append(r.getResult());
-					else all.append(r.getPartialResult());
+					String res = r.acceptWaveForm(chunk, n) ? r.getResult() : r.getPartialResult();
+					all.append(res);
+					w |= YoldaWake.isWake(res); // uygulama her sonucu ayrı denetler
 					off += n;
 				}
-				all.append(r.getFinalResult());
-				boolean w = YoldaWake.isWake(all.toString());
+				String fin = r.getFinalResult();
+				all.append(fin);
+				w |= YoldaWake.isWake(fin);
 				Log.i(TAG, "Vosk " + f + ": " + all.toString().replaceAll("\\s+", " ") + " → uyandırma=" + w);
 				if (w) woke++;
 			}
