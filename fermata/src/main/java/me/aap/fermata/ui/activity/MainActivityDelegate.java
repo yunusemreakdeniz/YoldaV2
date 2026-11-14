@@ -968,6 +968,7 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	@Override
 	public void onBackPressed() {
+		if (me.aap.fermata.ui.view.YoldaThemePicker.hide(this)) return; // açık tema seçimi önce kapanır
 		if (me.aap.fermata.ui.view.YoldaNowPlaying.hide(this)) return; // önce "Şimdi çalıyor" kapanır
 		BodyLayout b = getBody();
 		if ((b != null) && (b.isVideoMode() || b.isBothMode())) { // tam ekran / bölünmüş videodan çık: yayın sürer
@@ -2150,6 +2151,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	 * geçmiş boşsa ana sayfa.
 	 */
 	public void yoldaBack() {
+		if (me.aap.fermata.ui.view.YoldaThemePicker.hide(this)) return;
 		if (me.aap.fermata.ui.view.YoldaNowPlaying.hide(this)) return;
 		ActivityFragment af = getActiveFragment();
 		try {

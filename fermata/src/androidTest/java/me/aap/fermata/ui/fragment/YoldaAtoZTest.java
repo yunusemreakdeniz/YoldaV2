@@ -414,8 +414,14 @@ public class YoldaAtoZTest {
 			View setb = onMain(a -> byDesc(a.getActiveFragment().getView(), "Ayarlar"));
 			assertNotNull("Ayarlar düğmesi tema düğmesinin yanında olmalı", setb);
 			scenario.onActivity(x -> themeAct = x); // tıklamadan önce (sonra animasyon bitmesi beklenmesin)
+			// Dokununca tema seçimi açılır; basılı tutunca sıradaki tema
 			onMain(a -> btn.performClick());
-			assertTrue("Dokununca tema değişmeli", waitFor(5000, () -> YoldaStyle.index(ctx()) == 1));
+			assertTrue("Dokununca tema seçimi açılmalı", waitFor(3000, () -> onMain(a ->
+					byDesc(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Tema: Gece mavi") != null)));
+			onMain(a -> me.aap.fermata.ui.view.YoldaThemePicker.hide(a));
+			waitIdle(600);
+			onMain(a -> btn.performLongClick());
+			assertTrue("Basılı tutunca tema değişmeli", waitFor(5000, () -> YoldaStyle.index(ctx()) == 1));
 			// Onay kutusu yok: altta kısa yazı belirir ve ~1 sn sonra kaybolur
 			// animasyon sürerken boşta beklemeden bak (yazı ~1,4 sn görünür)
 			try {
@@ -433,9 +439,17 @@ public class YoldaAtoZTest {
 			}
 			assertFalse("Tema yazısı kendiliğinden kapanmalı", toastNow());
 			waitIdle(1500);
-			View btn2 = onMain(a -> byDesc(a.getActiveFragment().getView(), "Tema:"));
-			onMain(a -> btn2.performLongClick());
-			assertTrue("Basılı tutunca otomatik açılmalı", waitFor(3000, () -> YoldaStyle.isAuto(ctx())));
+			// Gündüz / gece otomatik: seçim ekranındaki kip düğmesi
+			onMain(a -> {
+				me.aap.fermata.ui.view.YoldaThemePicker.show(a);
+				return null;
+			});
+			waitIdle(800);
+			View auto = onMain(a -> byText(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "☀ / 🌙 Otomatik"));
+			assertNotNull("Otomatik kip düğmesi olmalı", auto);
+			onMain(a -> auto.performClick());
+			assertTrue("Otomatik açılmalı", waitFor(3000, () -> YoldaStyle.isAuto(ctx())));
+			onMain(a -> me.aap.fermata.ui.view.YoldaThemePicker.hide(a));
 		} finally {
 			p.edit().putInt("theme", 0).putBoolean(YoldaStyle.PREF_AUTO, false).commit();
 		}

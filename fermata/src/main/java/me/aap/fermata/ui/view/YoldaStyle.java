@@ -69,6 +69,16 @@ public final class YoldaStyle {
 			// Sakin temalar: kartlar koyu cam (renk yalnız vurgu) ya da yarı doygun; zemin ışıkları soluk
 			new Theme("Asil", 0xFF0B0D12, new int[]{0xFF2A2740, 0xFF1C2433, 0xFF262230, 0xFF0B0D12}, 0xFFE6E8EE, CARDS_NOBLE),
 			new Theme("Yumuşak", 0xFF0E0F15, new int[]{0xFF3E3566, 0xFF4A3340, 0xFF2D3F4A, 0xFF0E0F15}, 0xFFD6D1EA, CARDS_SOFT),
+			// Yeni temalar (sona eklenir: kayıtlı seçimlerin sırası değişmesin)
+			new Theme("Akdeniz", 0xFF04162B, new int[]{0xFF0EA5E9, 0xFF14B8A6, 0xFFFDE68A, 0xFF0C4A6E}, 0xFF67E8F9),
+			new Theme("Kuzey ışıkları", 0xFF06121F, new int[]{0xFF22D3A5, 0xFF7C3AED, 0xFF38BDF8, 0xFF0B3B4A}, 0xFF5EEAD4),
+			new Theme("Lavanta", 0xFF140F24, new int[]{0xFFA78BFA, 0xFFF0ABFC, 0xFF818CF8, 0xFF3B2A6B}, 0xFFE9D5FF),
+			new Theme("Orman", 0xFF08140E, new int[]{0xFF16A34A, 0xFF84CC16, 0xFF0D9488, 0xFF14361F}, 0xFFBEF264),
+			new Theme("Kehribar", 0xFF1A1206, new int[]{0xFFF59E0B, 0xFFEA580C, 0xFFFDE047, 0xFF5C3310}, 0xFFFCD34D),
+			new Theme("Kiraz", 0xFF1C0710, new int[]{0xFFE11D48, 0xFFFB7185, 0xFFF97316, 0xFF4C0519}, 0xFFFDA4AF),
+			new Theme("Pastel", 0xFF101218, new int[]{0xFF6366F1, 0xFFEC4899, 0xFF14B8A6, 0xFF101218}, 0xFFC7D2FE, CARDS_SOFT),
+			new Theme("Gece yarısı", 0xFF07080D, new int[]{0xFF1E293B, 0xFF0F172A, 0xFF1F2937, 0xFF07080D}, 0xFF93C5FD, CARDS_NOBLE),
+			new Theme("Grafit", 0xFF0E0F11, new int[]{0xFF2B2D31, 0xFF1F2124, 0xFF34373C, 0xFF0E0F11}, 0xFFF4B860, CARDS_NOBLE),
 	};
 
 	/** Rengi sakinleştirir: doygunluğu sat, parlaklığı val katıyla çarpar (HSV). */
@@ -214,6 +224,23 @@ public final class YoldaStyle {
 	}
 
 	/** Sıradaki tema. Otomatikteyse şu anki dilimin (gündüz / gece) teması değişir. */
+	/** Temayı seç: otomatikse şu anki dilimin (gündüz / gece) teması, değilse tek tema. */
+	public static void setTheme(Context ctx, int i) {
+		if (isAuto(ctx)) {
+			if (isNight(ctx)) setNightTheme(ctx, i);
+			else setDayTheme(ctx, i);
+			return;
+		}
+		prefs(ctx).edit().putInt("theme", Math.floorMod(i, THEMES.length)).apply();
+	}
+
+	/** Bütün temaların adları ("gece, gece mavi, …"). */
+	public static String names() {
+		StringBuilder b = new StringBuilder();
+		for (Theme t : THEMES) b.append((b.length() > 0) ? ", " : "").append(t.name.toLowerCase(new java.util.Locale("tr")));
+		return b.toString();
+	}
+
 	/** Adıyla tema seç ("okyanus", "gece mavi"); bulunamazsa -1, bulunursa sırası. */
 	public static int setByName(Context ctx, String spoken) {
 		java.util.Locale tr = new java.util.Locale("tr");

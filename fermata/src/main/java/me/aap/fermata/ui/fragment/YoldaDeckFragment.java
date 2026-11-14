@@ -471,18 +471,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 		};
 		playing.post(tick);
-		// Tema: dokun → sıradaki tema; basılı tut → otomatik (gündüz / gece) aç / kapat
+		// Tema: dokun → temalar (renk örnekleri, gündüz / gece); basılı tut → sıradaki tema
 		ImageView themeBtn = themeBtnView = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx), v -> {
 			YoldaStyle.haptic(v);
-			YoldaStyle.next(ctx); // tüm ekranlar dinleyiciyle yenilenir
-			YoldaStyle.toast(ctx, "Tema: " + YoldaStyle.label(ctx));
+			me.aap.fermata.ui.view.YoldaThemePicker.show(getActivityDelegate());
 		});
 		themeBtn.setOnLongClickListener(v -> {
 			YoldaStyle.haptic(v);
-			boolean on = !YoldaStyle.isAuto(ctx);
-			YoldaStyle.setAuto(ctx, on);
-			YoldaStyle.toast(ctx, on ? "Otomatik tema açık: gündüz ve gece kendiliğinden değişir"
-					: "Otomatik tema kapalı");
+			YoldaStyle.next(ctx); // tüm ekranlar dinleyiciyle yenilenir
+			YoldaStyle.toast(ctx, "Tema: " + YoldaStyle.label(ctx));
 			return true;
 		});
 		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(44), dp(44));
@@ -2501,7 +2498,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.SETTINGS -> {
 				LinearLayout row = hrow(ctx);
-				row.addView(chipBtn(ctx, "Tema: " + YoldaStyle.label(ctx), v -> YoldaStyle.next(ctx)), chipLp());
+				row.addView(chipBtn(ctx, "Tema: " + YoldaStyle.label(ctx),
+						v -> me.aap.fermata.ui.view.YoldaThemePicker.show(getActivityDelegate())), chipLp());
 				boolean autoTheme = YoldaStyle.isAuto(ctx);
 				row.addView(chipBtn(ctx, "Otomatik tema: " + (autoTheme ? "Açık" : "Kapalı"), v -> {
 					YoldaStyle.setAuto(ctx, !autoTheme);

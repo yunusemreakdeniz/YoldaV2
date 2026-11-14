@@ -393,7 +393,7 @@ public final class YoldaVoice {
 			});
 			case THEME_SET -> {
 				int i = YoldaStyle.setByName(ctx, it.arg());
-				if (i < 0) reply(a, "“" + it.arg() + "” adında tema yok. Temalar: gece, gece mavi, gün batımı, okyanus, gül, asil, yumuşak");
+				if (i < 0) reply(a, "“" + it.arg() + "” adında tema yok. Temalar: " + YoldaStyle.names());
 				else toast(a, "Tema: " + YoldaStyle.THEMES[i].name);
 			}
 			case TEST_ALERT -> YoldaRadar.testAlert(ctx, false);
