@@ -1165,12 +1165,15 @@ public class YoldaAtoZTest {
 			return null;
 		});
 		waitIdle(1200);
-		View card = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).cardView(pos));
-		assertNotNull(card);
+		// dokunuşu kartın kendisi dinler (taşıyıcı kutunun içindeki ilk görünüm)
+		View box = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).cardView(pos));
+		assertNotNull(box);
+		View card = (box instanceof ViewGroup g && (g.getChildCount() > 0)) ? g.getChildAt(0) : box;
 		onMain(a -> card.performClick()); // kenardaysa önce ortaya gelir
 		waitIdle(1200);
 		if (onMain(MainActivityDelegate::getActiveFragmentId) != R.id.yolda_weather_fragment) {
-			View c2 = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).cardView(pos));
+			View b2 = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).cardView(pos));
+			View c2 = (b2 instanceof ViewGroup g2 && (g2.getChildCount() > 0)) ? g2.getChildAt(0) : b2;
 			if (c2 != null) onMain(a -> c2.performClick()); // ortadaki karta dokununca açılır
 		}
 		assertTrue("Hava ekranı uygulama içinde açılmalı", waitFor(4000,
