@@ -39,7 +39,7 @@ jobs:
         run: |
           chmod +x gradlew
           # Yalnız Yolda testleri (Fermata'nın eski altyazı testi CI'da takılıyor)
-          ./gradlew fermata:testAutoDebugUnitTest --tests 'me.aap.fermata.ui.fragment.YoldaLogicTest' --tests 'me.aap.fermata.ui.fragment.YoldaDeckTest' --tests 'me.aap.fermata.ui.fragment.YoldaIntentsTest' --tests 'me.aap.fermata.ui.fragment.YoldaRadarTest' --tests 'me.aap.fermata.ui.fragment.YoldaDriveTest'             web:testAutoDebugUnitTest --tests 'me.aap.fermata.addon.web.AdFilterTest' $GRADLE_ARGS
+          ./gradlew fermata:testAutoDebugUnitTest --tests 'me.aap.fermata.ui.fragment.YoldaLogicTest' --tests 'me.aap.fermata.ui.fragment.YoldaDeckTest' --tests 'me.aap.fermata.ui.fragment.YoldaIntentsTest' --tests 'me.aap.fermata.ui.fragment.YoldaRadarTest' --tests 'me.aap.fermata.ui.fragment.YoldaDriveTest' --tests 'me.aap.fermata.ui.fragment.YoldaCallsTest'             web:testAutoDebugUnitTest --tests 'me.aap.fermata.addon.web.AdFilterTest' $GRADLE_ARGS
       - name: Sonuçlar
         if: always()
         uses: actions/upload-artifact@v4

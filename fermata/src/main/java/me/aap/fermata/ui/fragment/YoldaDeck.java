@@ -23,6 +23,7 @@ public final class YoldaDeck {
 	public static final String WEATHER = "weather";
 	public static final String PHARMACY = "pharmacy";
 	public static final String RADAR = "radar";
+	public static final String CALLS = "calls";
 	public static final String PHONE = "phone";
 	public static final String MIRROR = "mirror";
 	public static final String WEB = "web";
@@ -35,7 +36,7 @@ public final class YoldaDeck {
 	public static final String YT_CHANNEL = "ytch";
 	public static final String URL = "url";
 
-	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, WEATHER, PHARMACY, PHONE, MIRROR, WEB, SETTINGS,
+	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, WEATHER, PHARMACY, PHONE, CALLS, MIRROR, WEB, SETTINGS,
 			ADD};
 	private static final char FIELD = '\u001F';
 	private static final char RECORD = '\u001E';
@@ -91,6 +92,7 @@ public final class YoldaDeck {
 			case PHARMACY -> "Nöbetçi eczane";
 			case RADAR -> "Sürüş";
 			case PHONE -> "Telefon";
+			case CALLS -> "Kişiler";
 			case MIRROR -> "Ekran yansıtma";
 			case WEB -> "Tarayıcı";
 			case SETTINGS -> "Ayarlar";

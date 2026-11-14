@@ -2570,6 +2570,20 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 	}
 
+	/** Testler için: asistan panelinde gösterilen son sonuç. */
+	@Nullable
+	public static volatile String lastVoiceResult;
+
+	/** Sesli asistan panelinde, bulunduğun ekrana göre dokunulabilir örnek komutlar. */
+	private java.util.List<String> voiceSuggestions() {
+		int id = getActiveFragmentId();
+		if (id == R.id.yolda_music) return java.util.List.of("Tarkan çal", "Sonraki", "Ne çalıyor", "Sesi aç");
+		if (id == R.id.yolda_channels_fragment) return java.util.List.of("TRT Haber aç", "Kral FM aç", "Sonraki kanal", "Sesi kıs");
+		if (id == R.id.yolda_youtube) return java.util.List.of("YouTube'da haber ara", "Duraklat", "Sonraki");
+		if (id == R.id.yolda_radar_fragment) return java.util.List.of("Radar var mı", "Hız sınırı kaç", "Buraya park ettim");
+		return java.util.List.of("Eve git", "Hava nasıl", "Annemi ara", "En yakın benzinlik", "Ne yapabilirsin");
+	}
+
 	private final class SpeechListener implements RecognitionListener {
 		private final Promise<List<String>> promise;
 		private final boolean textInput;
@@ -2615,16 +2629,18 @@ public class MainActivityDelegate extends ActivityDelegate
 		private void addHints(Intent i) {
 			i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
 			i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+			// Kısa komutlar: konuşma bitince çabuk sonuçlansın (destekleyen motorlarda)
+			i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1100L);
+			i.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 900L);
 			if (VERSION.SDK_INT < 33) return;
-			ArrayList<String> hints = new ArrayList<>();
-			for (String s : new String[]{"aç", "oynat", "durdur", "devam et", "favoriler", "YouTube", "radyo",
-					"ileri sar", "geri sar", "sonraki kanal", "önceki kanal"}) hints.add(s);
+			// Kanal, kişi ve komut adları: "TRT Haber", "Ahmet" daha doğru duyulsun
+			ArrayList<String> hints = me.aap.fermata.ui.fragment.YoldaVoice.hintNames(getContext());
 			try {
 				java.io.File f = new java.io.File(getContext().getFilesDir(), "yolda.m3u");
 				if (f.isFile()) {
 					for (String line : new String(java.nio.file.Files.readAllBytes(f.toPath()),
 							java.nio.charset.StandardCharsets.UTF_8).split("\n")) {
-						if (line.startsWith("#EXTINF") && line.contains(",") && (hints.size() < 120))
+						if (line.startsWith("#EXTINF") && line.contains(",") && (hints.size() < 180))
 							hints.add(line.substring(line.lastIndexOf(',') + 1).trim());
 					}
 				}
@@ -2675,10 +2691,18 @@ public class MainActivityDelegate extends ActivityDelegate
 			View host = findViewById(R.id.main_activity);
 			if (!(host instanceof ConstraintLayout cl)) return false;
 			Context ctx = getContext();
-			glow = new me.aap.fermata.ui.view.VoiceGlowView(ctx, me.aap.fermata.ui.view.YoldaStyle.current(ctx), text);
+			glow = new me.aap.fermata.ui.view.VoiceGlowView(ctx, me.aap.fermata.ui.view.YoldaStyle.current(ctx), text,
+					voiceSuggestions());
 			statusText = glow.status;
 			statusText.setText(onDevice ? "DİNLİYORUM · İNTERNETSİZ" : "DİNLİYORUM");
-			text.setText("“TRT Haber'i aç” · “eve git” · “müzik aç”");
+			text.setText("Söyle, dinliyorum…");
+			glow.onCancel = this::destroy;
+			glow.onSuggestion = cmd -> { // örnek komuta dokunmak = onu söylemek
+				destroy();
+				me.aap.fermata.ui.fragment.YoldaLog.add("Sesli komut (dokunuşla): “" + cmd + "”");
+				if (!me.aap.fermata.ui.fragment.YoldaVoice.handle(MainActivityDelegate.this, cmd))
+					me.aap.fermata.ui.fragment.YoldaVoice.notUnderstood(MainActivityDelegate.this, cmd);
+			};
 			glow.setOnClickListener(v -> destroy()); // dokununca vazgeç
 			ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(0, 0);
 			lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
@@ -2782,11 +2806,14 @@ public class MainActivityDelegate extends ActivityDelegate
 		public void onResults(Bundle b) {
 			List<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
 			if ((r != null) && !r.isEmpty()) text.setText(r.get(0));
-			if (glow != null) {
-				if (statusText != null) statusText.setText("ANLAŞILDI");
-				postDelayed(this::removeGlow, 700);
-			} else postDelayed(MainActivityDelegate.this::hideActiveMenu, 1000);
 			promise.complete(r);
+			// Komut çalıştı: ne yapıldığı panelde ("✓ TRT Haber açılıyor"), sonra kapanır
+			String fb = me.aap.fermata.ui.fragment.YoldaVoice.consumeFeedback();
+			if (glow != null) {
+				glow.showResult(fb);
+				lastVoiceResult = fb;
+				postDelayed(this::removeGlow, (fb != null) ? 1600 : 900);
+			} else postDelayed(MainActivityDelegate.this::hideActiveMenu, 1000);
 		}
 
 		@Override

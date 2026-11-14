@@ -46,6 +46,20 @@ public final class YoldaVoice {
 	private YoldaVoice() {
 	}
 
+	/** Tanıma motoruna önceden bildirilecek adlar: kanallar, seçili kişiler, komutlar ("TRT Haber" daha doğru duyulsun). */
+	public static ArrayList<String> hintNames(Context ctx) {
+		ArrayList<String> l = new ArrayList<>();
+		for (String s : new String[]{"Hey Yolda", "aç", "kapat", "duraklat", "devam et", "sonraki", "önceki", "sesi aç", "sesi kıs",
+				"ara", "eve git", "işe git", "en yakın benzinlik", "en yakın eczane", "hava nasıl", "saat kaç", "ne çalıyor",
+				"YouTube", "YouTube Music", "radyo", "favoriler", "radar", "park", "yolculuk özeti", "otuz dakika sonra kapat"}) l.add(s);
+		for (YoldaCalls.Contact c : YoldaCalls.favorites(ctx)) l.add(c.name());
+		for (MediaLib.PlayableItem pi : channels) {
+			if (l.size() >= 140) break;
+			l.add(pi.getName());
+		}
+		return l;
+	}
+
 	/** Kanal listesini önceden yükle (ana ekran açılırken). */
 	public static void preload(MainActivityDelegate a) {
 		YoldaSpeak.warmUp(a.getContext());
@@ -74,6 +88,38 @@ public final class YoldaVoice {
 		List<String> raws = new ArrayList<>(alts.size());
 		for (String s : alts) if ((s != null) && !s.trim().isEmpty() && (raws.size() < 5)) raws.add(s.trim());
 		if (raws.isEmpty()) return false;
+		lastFeedback = null;
+
+		// "Hangisi?" sorusunun cevabı ("birinci", "Ahmet Yılmaz")
+		if (YoldaCalls.pending != null) {
+			for (String r : raws) if (YoldaCalls.answer(a, r)) return true;
+		}
+
+		// İki komut birden: "sesi aç ve TRT Haber aç", "duraklat sonra hava nasıl"
+		String c0 = YoldaIntents.clean(raws.get(0));
+		String[] parts = c0.split(" (?:ve|sonra|ardından|daha sonra) ");
+		if (parts.length >= 2) {
+			List<Intent> its = new ArrayList<>();
+			boolean ok = true;
+			for (int i = 0; i < parts.length; i++) {
+				Intent it = YoldaIntents.parse(parts[i]);
+				if ((it == null) || ((it.kind() == Kind.CHANNEL) && (i < parts.length - 1))) {
+					ok = false;
+					break;
+				}
+				its.add(it);
+			}
+			if (ok && (its.get(0).kind() != Kind.CHANNEL)) {
+				YoldaLog.add("Sesli komut: " + its.size() + " komut birden");
+				for (int i = 0; i < its.size(); i++) {
+					Intent it = its.get(i);
+					String part = parts[i];
+					if (i == 0) run(a, it, part);
+					else App.get().getHandler().postDelayed(() -> run(a, it, part), 700L * i);
+				}
+				return true;
+			}
+		}
 
 		// En olası tahmin bir komutsa ("eve git", "sesi kıs") doğrudan
 		Intent first = YoldaIntents.parse(raws.get(0));
@@ -228,6 +274,7 @@ public final class YoldaVoice {
 			case RADAR_ADD -> reply(a, YoldaRadar.addHere(ctx) ? "Radar eklendi, buradan geçerken uyaracağım"
 					: "Konum henüz bilinmiyor");
 			case RADAR_INFO -> reply(a, radarInfo(ctx));
+			case CALL -> YoldaCalls.voiceCall(a, it.arg());
 			case PARK_WHERE -> {
 				double[] pk = YoldaRadar.park(ctx);
 				if (pk == null) reply(a, "Kayıtlı park yeri yok. Park edince buraya park ettim de");
@@ -460,7 +507,18 @@ public final class YoldaVoice {
 
 	// ---- yanıt ----
 
+	/** Asistan penceresinde gösterilecek son yanıt ("TRT Haber açılıyor"); komut başında sıfırlanır. */
+	public static volatile String lastFeedback;
+
+	/** Son yanıtı al ve sıfırla. */
+	public static String consumeFeedback() {
+		String s = lastFeedback;
+		lastFeedback = null;
+		return s;
+	}
+
 	private static void toast(MainActivityDelegate a, String text) {
+		lastFeedback = text;
 		YoldaStyle.toast(a.getContext(), text);
 	}
 
@@ -477,6 +535,7 @@ public final class YoldaVoice {
 	/** Komut anlaşılamadı: kullanıcı beklemede kalmasın, kısa yazıyla (ve sesle) söylenir. */
 	public static void notUnderstood(MainActivityDelegate a, String raw) {
 		YoldaLog.add("Sesli komut anlaşılamadı: “" + raw + "”");
+		lastFeedback = "Anlayamadım";
 		toast(a, "“" + raw + "” anlaşılamadı");
 		YoldaSpeak.say(a.getContext(), "Anlayamadım, tekrar söyler misin?");
 	}

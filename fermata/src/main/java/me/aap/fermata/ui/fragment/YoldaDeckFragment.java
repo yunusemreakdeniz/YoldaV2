@@ -241,7 +241,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -626,6 +626,96 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(60), dp(34));
 		lp.leftMargin = dp(10);
 		return lp;
+	}
+
+	// ---- Kişiler kartı ----
+
+	/** Telefonun kişi seçicisi (rehber izni gerekmez; yalnız seçilen kişi okunur). */
+	private final androidx.activity.result.ActivityResultLauncher<android.content.Intent> pickContact =
+			registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(), res -> {
+				if ((res.getResultCode() != android.app.Activity.RESULT_OK) || (res.getData() == null)
+						|| (res.getData().getData() == null) || (getContext() == null)) return;
+				YoldaCalls.Contact c = YoldaCalls.fromPicked(requireContext(), res.getData().getData());
+				if (c == null) {
+					YoldaStyle.toast(requireContext(), "Kişi eklenemedi");
+					return;
+				}
+				YoldaCalls.addFavorite(requireContext(), c);
+				YoldaStyle.toast(requireContext(), "Eklendi: " + c.name());
+				refreshCard(YoldaDeck.CALLS);
+			});
+
+	private LinearLayout.LayoutParams contactLp(int ts) {
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ts + dp(16), -2);
+		lp.rightMargin = dp(6);
+		return lp;
+	}
+
+	/** Kişi kutucuğu: renkli yuvarlakta baş harfler (ya da fotoğraf), altında ad. c null: "+ Ekle". */
+	private View contactTile(Context ctx, MainActivityDelegate a, @Nullable YoldaCalls.Contact c, int ts) {
+		LinearLayout col = new LinearLayout(ctx);
+		col.setOrientation(LinearLayout.VERTICAL);
+		col.setGravity(Gravity.CENTER_HORIZONTAL);
+		FrameLayout circle = new FrameLayout(ctx);
+		GradientDrawable g = new GradientDrawable();
+		g.setShape(GradientDrawable.OVAL);
+		int[] pal = {0xFF22C55E, 0xFF3B82F6, 0xFFF97316, 0xFFA855F7, 0xFFEF4444, 0xFF14B8A6, 0xFFEAB308, 0xFFEC4899};
+		g.setColor((c == null) ? 0x33FFFFFF : pal[Math.abs(c.name().hashCode()) % pal.length]);
+		g.setStroke(Math.max(1, dp(2)), 0x66FFFFFF);
+		circle.setBackground(g);
+		circle.setClipToOutline(true);
+		circle.setOutlineProvider(new android.view.ViewOutlineProvider() {
+			@Override
+			public void getOutline(View v, android.graphics.Outline o) {
+				o.setOval(0, 0, v.getWidth(), v.getHeight());
+			}
+		});
+		if ((c != null) && (c.photo() != null)) {
+			ImageView iv = new ImageView(ctx);
+			iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+			try {
+				iv.setImageURI(android.net.Uri.parse(c.photo()));
+			} catch (Throwable ignore) {
+			}
+			circle.addView(iv, new FrameLayout.LayoutParams(-1, -1));
+		}
+		TextView in = text(ctx, (c == null) ? "+" : c.initials(), (c == null) ? 30 : 22, true, 0xFFFFFFFF);
+		in.setGravity(Gravity.CENTER);
+		if ((c == null) || (c.photo() == null)) circle.addView(in, new FrameLayout.LayoutParams(-1, -1));
+		col.addView(circle, new LinearLayout.LayoutParams(ts, ts));
+		TextView nm = text(ctx, (c == null) ? "Kişi ekle" : c.name().split("\\s+")[0], 13, true, 0xFFFFFFFF);
+		nm.setSingleLine(true);
+		nm.setEllipsize(TextUtils.TruncateAt.END);
+		nm.setGravity(Gravity.CENTER);
+		nm.setPadding(0, dp(4), 0, 0);
+		col.addView(nm, new LinearLayout.LayoutParams(-1, -2));
+		col.setClickable(true);
+		pressEffect(col);
+		if (c == null) {
+			col.setContentDescription("Kişi ekle");
+			col.setOnClickListener(v -> {
+				try {
+					pickContact.launch(new android.content.Intent(android.content.Intent.ACTION_PICK,
+							android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI));
+				} catch (Throwable ex) {
+					YoldaStyle.toast(ctx, "Kişi seçici açılamadı");
+				}
+			});
+		} else {
+			col.setContentDescription(c.name() + " ara");
+			col.setOnClickListener(v -> {
+				YoldaStyle.haptic(v);
+				YoldaStyle.toast(ctx, c.name() + " aranıyor");
+				YoldaCalls.call(a, c);
+			});
+			col.setOnLongClickListener(v -> {
+				YoldaCalls.removeFavorite(ctx, c.number());
+				YoldaStyle.toast(ctx, "Kaldırıldı: " + c.name());
+				refreshCard(YoldaDeck.CALLS);
+				return true;
+			});
+		}
+		return col;
 	}
 
 	/** Kartın simge düğmeleri (yazısız, diğer düğmeler kadar büyük): güncelle, park et, radar ekle. */
@@ -1392,6 +1482,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					radarSubtitle());
 			case YoldaDeck.NAV -> new Look(0xFF2DD4BF, 0xFF0F766E, R.drawable.yi_nav, true, "NAVİGASYON",
 					"Yol tarifi, ev, iş ve son gidilen yerler");
+			case YoldaDeck.CALLS -> new Look(0xFF4ADE80, 0xFF15803D, R.drawable.yi_phone, true, "ARAMA",
+					YoldaCalls.favorites(requireContext()).isEmpty() ? "Sık aradıklarını ekle · sesle: “Annemi ara”"
+							: "Dokun, ara · basılı tut: kaldır · sesle: “Annemi ara”");
 			case YoldaDeck.PHONE -> new Look(0xFF34D399, 0xFF047857, R.drawable.yi_phone, true, "TELEFON",
 					"Telefondaki uygulamaları araçta kullan");
 			case YoldaDeck.MIRROR -> new Look(0xFF818CF8, 0xFF3730A3, R.drawable.yi_tv, true, "EKRAN YANSITMA",
@@ -1679,6 +1772,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.RADAR -> {
 				return radarActions(ctx, fit());
 			}
+			case YoldaDeck.CALLS -> { // seçilen kişiler: büyük yuvarlak, adı altında; sonda "+"
+				LinearLayout row = hrow(ctx);
+				int ts = Math.max(dp(48), Math.min(tile, dp(84)));
+				for (YoldaCalls.Contact ct : YoldaCalls.favorites(ctx)) row.addView(contactTile(ctx, a, ct, ts), contactLp(ts));
+				row.addView(contactTile(ctx, a, null, ts), contactLp(ts));
+				return scroll(ctx, row);
+			}
 			case YoldaDeck.PHARMACY -> { // yıldızlı ilçe / iller: tek dokunuşla o yerin nöbetçileri
 				LinearLayout row = hrow(ctx);
 				for (String s : YoldaPharmacy.stars(ctx, "ilce")) {
@@ -1896,6 +1996,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.FAVS -> showFavorites();
 			case YoldaDeck.PHARMACY -> a.showFragment(R.id.yolda_pharmacy_fragment);
+			case YoldaDeck.CALLS -> {
+				try {
+					pickContact.launch(new android.content.Intent(android.content.Intent.ACTION_PICK,
+							android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI));
+				} catch (Throwable ex) {
+					YoldaStyle.toast(ctx, "Kişi seçici açılamadı");
+				}
+			}
 			case YoldaDeck.RADAR -> a.showFragment(R.id.yolda_radar_fragment);
 			case YoldaDeck.WEATHER -> a.showFragment(R.id.yolda_weather_fragment); // uygulama içi ekran
 			case YoldaDeck.PHONE, YoldaDeck.MIRROR -> openPhoneScreen(a, ctx);

@@ -180,7 +180,7 @@ public class YoldaFunctionalTest {
 			int h = ((android.app.Activity) a.getContext()).getWindow().getDecorView().getHeight();
 			return l[1] > h / 2;
 		}));
-		assertEquals("Destede 15 kart olmalı", 15, onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().size()).intValue());
+		assertEquals("Destede 16 kart olmalı", 16, onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().size()).intValue());
 		assertEquals("Ana ekranda geri düğmesi gizli", View.GONE, onMain(a -> a.getDeckBackButton().getVisibility()).intValue());
 		assertEquals("Menü şeridi olmamalı (kart alanı tam ekran)", View.GONE, onMain(a -> a.getNavBar().getVisibility()).intValue());
 		String[] keys = {YoldaDeck.YOUTUBE, YoldaDeck.MUSIC, YoldaDeck.TV, YoldaDeck.RADIO, YoldaDeck.NAV, YoldaDeck.WEB,

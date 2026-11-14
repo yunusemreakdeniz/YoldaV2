@@ -1,6 +1,8 @@
 package me.aap.fermata.ui.fragment;
 
 import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,7 +21,7 @@ public final class YoldaIntents {
 	public enum Kind {
 		PAUSE, PLAY, NEXT, PREV, STOP, VOL_UP, VOL_DOWN, MUTE, VOL_SET, SLEEP, SLEEP_CANCEL, TIME, WEATHER,
 		WHAT_PLAYING, FAV_ADD, FAV_OPEN, THEME_NEXT, HOME, BACK, OPEN_APP, NAV_HOME, NAV_WORK, NAV_TO, NAV_NEARBY,
-		YT_SEARCH, SONG, RADIO_SEARCH, RESUME, HELP, REPEAT, THEME_AUTO, SPEAK_ON, SPEAK_OFF, RADAR_ON, RADAR_OFF, RADAR_INFO, RADAR_ADD, PARK_WHERE, PARK_SET, TRIP_INFO, CHANNEL
+		YT_SEARCH, SONG, RADIO_SEARCH, RESUME, HELP, REPEAT, THEME_AUTO, SPEAK_ON, SPEAK_OFF, RADAR_ON, RADAR_OFF, RADAR_INFO, RADAR_ADD, PARK_WHERE, PARK_SET, TRIP_INFO, CALL, CHANNEL
 	}
 
 	/** Niyet: tür, metin bağımsız değişkeni (uygulama anahtarı, hedef, arama…) ve sayı (dakika, yüzde). */
@@ -47,11 +49,39 @@ public final class YoldaIntents {
 	public static String clean(String raw) {
 		if (raw == null) return "";
 		String c = raw.trim().toLowerCase(TR).replace('’', '\'').replaceAll("[.!?,;:]+", " ").replaceAll("\\s+", " ").trim();
+		c = fixMisheard(c);
 		c = WAKE.matcher(c).replaceFirst("");
 		c = POLITE_HEAD.matcher(c).replaceFirst("");
 		c = POLITE_TAIL.matcher(c).replaceFirst("");
 		c = c.replaceAll(" (açar|açabilir|açsana|açın)( mı| mi)?$", " aç").replaceAll(" (çalar|çalsana|çalabilir)( mı| mi)?$", " çal");
 		return c.trim();
+	}
+
+	/** Tanıma motorunun sık yanlış yazdıkları (Türkçe telaffuz): "tirete" → trt, "yutup" → youtube, "ef em" → fm. */
+	private static final String[][] MISHEARD = {{"tirete", "trt"}, {"te re te", "trt"}, {"te ar te", "trt"},
+			{"yutup", "youtube"}, {"yutub", "youtube"}, {"yu tüp", "youtube"}, {"you tube", "youtube"}, {"yu tub", "youtube"},
+			{"ef em", "fm"}, {"efem", "fm"}, {"en tivi", "ntv"}, {"en te ve", "ntv"}, {"a tivi", "atv"}, {"a te ve", "atv"},
+			{"haber türk", "habertürk"}, {"teve", "tv"}, {"tivi", "tv"}, {"hey yoldaş", "hey yolda"}, {"hey yollar", "hey yolda"}};
+
+	static String fixMisheard(String c) {
+		String t = " " + c + " ";
+		for (String[] m : MISHEARD) t = t.replace(" " + m[0] + " ", " " + m[1] + " ");
+		return t.trim();
+	}
+
+	/**
+	 * Söylenen kişi adının denenecek biçimleri: "annemi" → annemi, annem, anne; "Ahmet'e" → ahmet'e, ahmet;
+	 * "babamı" → babam, baba. Kesme işareti atılır.
+	 */
+	public static List<String> nameForms(String spoken) {
+		java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
+		String s = (spoken == null) ? "" : spoken.trim().toLowerCase(TR);
+		if (s.isEmpty()) return new ArrayList<>(out);
+		out.add(s.replace("'", "").replace("’", ""));
+		String base = s.replaceAll("['’]?(yı|yi|yu|yü|nı|ni|nu|nü|ya|ye|na|ne|ı|i|u|ü|a|e)$", "").replace("'", "").replace("’", "");
+		if (base.length() >= 2) out.add(base);
+		if ((base.length() >= 4) && base.endsWith("m")) out.add(base.substring(0, base.length() - 1)); // annem → anne
+		return new ArrayList<>(out);
 	}
 
 	// ---- sayılar ----
@@ -104,6 +134,8 @@ public final class YoldaIntents {
 					+ "|^(.+?) videosu(?:nu)? (?:aç|izle|göster|bul)$");
 	private static final Pattern FAV_OPEN = Pattern.compile(
 			"^favori(?:lerimden|lerden|mden|den) (.+?)(?:['’]?(?:yi|yı|yu|yü|i|ı|u|ü))? (?:aç|çal|başlat)$|^(.+?) favorimi (?:aç|çal)$");
+	private static final Pattern CALL = Pattern.compile(
+			"^(.+?) (?:ara|arar|arar mısın|arasana|telefonla ara|çaldır|bir ara)$|^(.+?) (?:telefon et|ile görüş|ile konuş|ile görüşmek istiyorum)$");
 	private static final Pattern ACTION_TAIL = Pattern.compile(
 			" (aç|ac|izle|izlet|dinle|oynat|koy|başlat|getir|göster|goster|bul|aç bakalım)$");
 	private static final Pattern PLAY_SONG = Pattern.compile(
@@ -213,6 +245,14 @@ public final class YoldaIntents {
 		if ((m = YT.matcher(c)).matches()) {
 			String q = ((m.group(1) != null) ? m.group(1) : m.group(2)).trim();
 			if (!q.isEmpty()) return Intent.of(Kind.YT_SEARCH, q);
+		}
+
+		// telefonla arama: "annemi ara", "Ahmet'e telefon et", "Ahmet Yılmaz'ı ara"
+		if ((m = CALL.matcher(c)).matches()) {
+			String who = ((m.group(1) != null) ? m.group(1) : m.group(2)).trim();
+			if (!who.isEmpty() && !who.matches("(kanal|kanalı|radyo|radyoyu|şarkı|şarkıyı|video|videoyu|müzik|müziği|youtube|"
+					+ "internet|google|haber|haberleri|eczane|benzinlik|yer|adres|bir şey|birşey|.* kanal|.* radyo)"))
+				return Intent.of(Kind.CALL, who);
 		}
 
 		// radyo araması ("Kral FM", "Joy Türk radyosunu çal")

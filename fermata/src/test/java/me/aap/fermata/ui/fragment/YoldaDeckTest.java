@@ -32,7 +32,7 @@ public class YoldaDeckTest {
 	@Test
 	public void varsayilanSira() {
 		YoldaDeck d = new YoldaDeck();
-		String[] want = {"resume", "youtube", "music", "tv", "radio", "favs", "nav", "radar", "weather", "pharmacy", "phone", "mirror", "web",
+		String[] want = {"resume", "youtube", "music", "tv", "radio", "favs", "nav", "radar", "weather", "pharmacy", "phone", "calls", "mirror", "web",
 				"settings", "add"};
 		assertEquals(want.length, d.size());
 		for (int i = 0; i < want.length; i++) assertEquals(want[i], d.get(i).type());
@@ -41,7 +41,7 @@ public class YoldaDeckTest {
 		assertEquals("Sürüş", d.get(7).title());
 		assertEquals("Hava durumu", d.get(8).title());
 		assertEquals("Nöbetçi eczane", d.get(9).title());
-		assertEquals("Ekle", d.get(14).title());
+		assertEquals("Ekle", d.get(15).title());
 	}
 
 	@Test
@@ -51,7 +51,7 @@ public class YoldaDeckTest {
 		assertEquals("youtube", d.get(0).type());
 		assertEquals("resume", d.get(1).type());
 		assertEquals(0, d.move(0, -1)); // en baştan sola gidilmez
-		assertEquals(14, d.move(14, 1)); // en sondan sağa gidilmez
+		assertEquals(15, d.move(15, 1)); // en sondan sağa gidilmez
 	}
 
 	@Test
@@ -69,11 +69,11 @@ public class YoldaDeckTest {
 	public void eklemeEkleKartininOnune() {
 		YoldaDeck d = new YoldaDeck();
 		int at = d.add(YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null);
-		assertEquals(14, at);
-		assertEquals("add", d.get(15).type());
-		assertEquals("TRT 1", d.get(14).title());
-		assertEquals("Aynı kanal ikinci kez eklenmez", 14, d.add(YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null));
-		assertEquals(16, d.size());
+		assertEquals(15, at);
+		assertEquals("add", d.get(16).type());
+		assertEquals("TRT 1", d.get(15).title());
+		assertEquals("Aynı kanal ikinci kez eklenmez", 15, d.add(YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null));
+		assertEquals(17, d.size());
 	}
 
 	@Test
@@ -90,9 +90,9 @@ public class YoldaDeckTest {
 
 	@Test
 	public void bozukKayitVarsayilanaDoner() {
-		assertEquals(15, YoldaDeck.decode(null).size());
-		assertEquals(15, YoldaDeck.decode("").size());
-		assertEquals(15, YoldaDeck.decode("çöp").size());
+		assertEquals(16, YoldaDeck.decode(null).size());
+		assertEquals(16, YoldaDeck.decode("").size());
+		assertEquals(16, YoldaDeck.decode("çöp").size());
 		// "Ekle" kaydı kaybolsa da eklenir
 		YoldaDeck d = YoldaDeck.decode("tv\u001Ftv\u001FTV\u001F\u001F");
 		assertEquals(2, d.size());
