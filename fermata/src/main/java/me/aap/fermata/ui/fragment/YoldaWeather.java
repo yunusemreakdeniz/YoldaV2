@@ -49,7 +49,8 @@ public final class YoldaWeather {
 	/** Güncel hava (saklanan taze ise hemen). */
 	public static FutureSupplier<Now> get(Context ctx) {
 		Context app = ctx.getApplicationContext();
-		if ((cached != null) && (System.currentTimeMillis() - cachedAt < CACHE_MS)) return Completed.completed(cached);
+		if ((cached != null) && (System.currentTimeMillis() - cachedAt < CACHE_MS) && !moved(app, cachedLl))
+			return Completed.completed(cached);
 		Promise<Now> p = new Promise<>();
 		App.get().getExecutor().submit(() -> {
 			try {
@@ -61,6 +62,7 @@ public final class YoldaWeather {
 				Now n = parse(get(url), place);
 				cached = n;
 				cachedAt = System.currentTimeMillis();
+				cachedLl = ll;
 				prefs(app).edit().putString("weather_last", serialize(n))
 						.putFloat("loc_lat", (float) ll[0]).putFloat("loc_lon", (float) ll[1]).apply(); // otomatik tema (gün doğumu)
 				p.complete(n);
@@ -74,9 +76,36 @@ public final class YoldaWeather {
 		return p;
 	}
 
-	/** Son bilinen konum (ağ, GPS, pasif); izin ya da konum yoksa İstanbul. */
+	private static double[] cachedLl;
+
+	/** Saklanan hava başka bir yerin mi (3 km'den fazla uzaklaşıldı). */
+	private static boolean moved(Context ctx, @Nullable double[] at) {
+		if (at == null) return true;
+		double[] now = location(ctx);
+		return YoldaRadarCore.dist(at[0], at[1], now[0], now[1]) > 3000;
+	}
+
+	/**
+	 * Konum: sürüşteki canlı konum, yoksa telefonun en yeni bilinen konumu, yoksa son kullanılan konum; hiçbiri
+	 * yoksa İstanbul. (Önceden bilinen konum o an alınamayınca doğrudan İstanbul'a düşüyor, sesli asistan
+	 * "Fatih" diyordu.)
+	 */
 	@SuppressLint("MissingPermission")
 	private static double[] location(Context ctx) {
+		try {
+			if (YoldaRadar.hasFix() && !Double.isNaN(YoldaRadar.lat)) return new double[]{YoldaRadar.lat, YoldaRadar.lon};
+		} catch (Throwable ignore) {
+		}
+		double[] l = lastKnown(ctx);
+		if (l != null) return l;
+		SharedPreferences p = prefs(ctx);
+		if (p.contains("loc_lat")) return new double[]{p.getFloat("loc_lat", 41.01f), p.getFloat("loc_lon", 28.98f)};
+		return new double[]{41.01, 28.98};
+	}
+
+	@SuppressLint("MissingPermission")
+	@Nullable
+	private static double[] lastKnown(Context ctx) {
 		try {
 			if ((ctx.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
 					== PackageManager.PERMISSION_GRANTED) || (ctx.checkSelfPermission(
@@ -92,7 +121,7 @@ public final class YoldaWeather {
 		} catch (Throwable ex) {
 			Log.e(ex, "Konum alınamadı");
 		}
-		return new double[]{41.01, 28.98};
+		return null;
 	}
 
 	private static String placeName(Context ctx, double[] ll) {

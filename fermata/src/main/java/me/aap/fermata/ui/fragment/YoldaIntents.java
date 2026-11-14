@@ -21,7 +21,15 @@ public final class YoldaIntents {
 	public enum Kind {
 		PAUSE, PLAY, NEXT, PREV, STOP, VOL_UP, VOL_DOWN, MUTE, VOL_SET, SLEEP, SLEEP_CANCEL, TIME, WEATHER,
 		WHAT_PLAYING, FAV_ADD, FAV_OPEN, THEME_NEXT, HOME, BACK, OPEN_APP, NAV_HOME, NAV_WORK, NAV_TO, NAV_NEARBY,
-		YT_SEARCH, SONG, RADIO_SEARCH, RESUME, HELP, REPEAT, THEME_AUTO, SPEAK_ON, SPEAK_OFF, RADAR_ON, RADAR_OFF, RADAR_INFO, RADAR_ADD, PARK_WHERE, PARK_SET, TRIP_INFO, CALL, CHANNEL
+		YT_SEARCH, SONG, RADIO_SEARCH, RESUME, HELP, REPEAT, THEME_AUTO, SPEAK_ON, SPEAK_OFF, RADAR_ON, RADAR_OFF, RADAR_INFO, RADAR_ADD, PARK_WHERE, PARK_SET, TRIP_INFO, CALL, CHANNEL,
+		/** Kısa sohbet (arg: temizlenmiş cümle; yanıtı {@link YoldaChat} verir). */
+		CHAT,
+		DATE, CALC, TIMER, TIMER_CANCEL, BATTERY, SPEED, FORECAST, WHERE_AM_I, WIKI
+	}
+
+	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
+	static Intent of(Kind k, String arg, int n) {
+		return new Intent(k, arg, n);
 	}
 
 	/** Niyet: tür, metin bağımsız değişkeni (uygulama anahtarı, hedef, arama…) ve sayı (dakika, yüzde). */
@@ -136,6 +144,43 @@ public final class YoldaIntents {
 			"^favori(?:lerimden|lerden|mden|den) (.+?)(?:['’]?(?:yi|yı|yu|yü|i|ı|u|ü))? (?:aç|çal|başlat)$|^(.+?) favorimi (?:aç|çal)$");
 	private static final Pattern CALL = Pattern.compile(
 			"^(.+?) (?:ara|arar|arar mısın|arasana|telefonla ara|çaldır|bir ara)$|^(.+?) (?:telefon et|ile görüş|ile konuş|ile görüşmek istiyorum)$");
+	private static final Pattern REMIND = Pattern.compile(
+			"^(.+? (?:dakika|dk|saat)) (?:sonra|içinde) (?:(.+?) )?(?:hatırlat|uyar|haber ver|söyle)$");
+	private static final Pattern TIMER = Pattern.compile(
+			"^(.+? (?:dakika|dk|saat))(?:lık|lik|luk|lük) (?:bir )?(?:zamanlayıcı|sayaç|alarm) (?:kur|başlat|ayarla)$"
+					+ "|^(?:zamanlayıcı|sayaç|alarm)(?:ı|yı)? (.+? (?:dakika|dk|saat))(?:ya| için)? (?:kur|ayarla|başlat)$");
+	private static final Pattern WIKI = Pattern.compile(
+			"^(.+?) (?:nedir|ne demek|ne demektir|kimdir|kim|neresidir|nerededir|nerede bulunur)$"
+					+ "|^(.+?) hakkında (?:bilgi ver|bilgi|ne biliyorsun|bir şey söyle|anlat)$");
+	private static final Pattern CALC_P = Pattern.compile(
+			"^(\\d+(?:[.,]\\d+)?) (artı|eksi|çarpı|kere|kez|bölü) (\\d+(?:[.,]\\d+)?)(?: kaç| kaç eder| eder| nedir| kaçtır| ediyor)?$");
+
+	/** "15 çarpı 4 kaç" → "15 çarpı 4 = 60"; hesap değilse null. */
+	static String calc(String c) {
+		String t = words(c.replaceAll("^(hesapla|hesap yap|söyle) ", "")).trim().replaceAll("\\s+", " ");
+		Matcher m = CALC_P.matcher(t);
+		if (!m.matches()) return null;
+		double a = Double.parseDouble(m.group(1).replace(',', '.')), b = Double.parseDouble(m.group(3).replace(',', '.'));
+		String op = m.group(2);
+		double r;
+		switch (op) {
+			case "artı" -> r = a + b;
+			case "eksi" -> r = a - b;
+			case "bölü" -> {
+				if (b == 0) return "Sıfıra bölünmez";
+				r = a / b;
+			}
+			default -> r = a * b;
+		}
+		String rs = (Math.abs(r - Math.rint(r)) < 1e-9) ? String.valueOf((long) Math.rint(r))
+				: String.format(TR, "%.2f", r).replaceAll("0+$", "");
+		return fmt(a) + " " + op + " " + fmt(b) + " = " + rs;
+	}
+
+	private static String fmt(double v) {
+		return (Math.abs(v - Math.rint(v)) < 1e-9) ? String.valueOf((long) Math.rint(v)) : String.valueOf(v).replace('.', ',');
+	}
+
 	private static final Pattern ACTION_TAIL = Pattern.compile(
 			" (aç|ac|izle|izlet|dinle|oynat|koy|başlat|getir|göster|goster|bul|aç bakalım)$");
 	private static final Pattern PLAY_SONG = Pattern.compile(
@@ -151,6 +196,26 @@ public final class YoldaIntents {
 		// yardım, tekrar
 		if (c.matches("(yardım|ne yapabilirsin|neler yapabilirsin|komutlar|ne diyebilirim|nasıl kullanılır)")) return Intent.of(Kind.HELP);
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
+
+		// hatırlatıcı / zamanlayıcı ("10 dakika sonra hatırlat", "5 dakikalık zamanlayıcı kur")
+		if (c.matches("(hatırlatma(yı|ları)?|hatırlatıcı(yı)?) (iptal et|sil|kapat)|zamanlayıcı(yı)? iptal et ve hatırlatmayı sil"))
+			return Intent.of(Kind.TIMER_CANCEL);
+		if ((m = REMIND.matcher(c)).matches()) {
+			int min = minutes(m.group(1));
+			String what = (m.group(2) == null) ? "" : m.group(2).replaceAll("^(bana|beni)( |$)", "").replaceAll(" (diye|olarak)$", "").trim();
+			if (min > 0) return of(Kind.TIMER, what, min);
+		}
+		if ((m = TIMER.matcher(c)).matches()) {
+			int min = minutes((m.group(1) != null) ? m.group(1) : m.group(2));
+			if (min > 0) return of(Kind.TIMER, "", min);
+		}
+
+		// kısa sohbet ("merhaba", "nasılsın", "teşekkürler", "acıktım")
+		if (YoldaChat.is(c)) return Intent.of(Kind.CHAT, c);
+
+		// hesap ("15 çarpı 4 kaç", "100 bölü 8")
+		String calc = calc(c);
+		if (calc != null) return Intent.of(Kind.CALC, calc);
 
 		// uyku zamanlayıcısı
 		if (c.matches("(uyku )?zamanlayıcı(yı|sını)? (iptal et|kapat|durdur|sil)|kapatmayı iptal et")) return Intent.of(Kind.SLEEP_CANCEL);
@@ -180,6 +245,18 @@ public final class YoldaIntents {
 
 		// bilgi
 		if (c.matches("saat kaç.*|saat ne.*|saati söyle")) return Intent.of(Kind.TIME);
+		if (c.matches("(bugün )?(ayın kaçı|günlerden ne|hangi gün|tarih(i)? (ne|kaç|söyle)|bugün ne günü|bugünün tarihi( ne)?|bugün tarih ne)|tarih"))
+			return Intent.of(Kind.DATE);
+		if (c.matches("(şarj(ım)?|pil(im)?|batarya(m)?|telefonun şarjı|şarj durumu|pil durumu)( kaç| ne durumda| ne kadar| yüzde kaç)?|kaç şarjım var"))
+			return Intent.of(Kind.BATTERY);
+		if (c.matches("(kaçla|kaç km ile|kaç kilometreyle|ne hızla|kaç hızla|hangi hızla) gidiyorum|hızım (kaç|ne)|hızımı söyle|ne kadar hızlı gidiyorum"))
+			return Intent.of(Kind.SPEED);
+		if (c.matches("(şu an |şimdi )?(neredeyim|nerdeyim|konumum ne|konumum nerede|neresi burası|burası neresi|hangi ilçedeyiz|neredeyiz|hangi şehirdeyiz)"))
+			return Intent.of(Kind.WHERE_AM_I);
+		if (c.matches("yarın (hava )?(nasıl|nasıl olacak|kaç derece|yağmur var mı|yağmurlu mu|yağacak mı)( olacak)?|yarınki hava( durumu)?|yarın için hava( durumu)?|yarın hava durumu"))
+			return Intent.of(Kind.FORECAST, "yarın");
+		if (c.matches("(bugün )?(yağmur|kar) (yağacak mı|var mı|yağar mı|yağıyor mu)|şemsiye (alayım mı|lazım mı)|yağış var mı|haftalık hava( durumu)?|hafta(lık)? hava nasıl|bu hafta hava( nasıl)?"))
+			return Intent.of(Kind.FORECAST, c.contains("hafta") ? "hafta" : "yağış");
 		if (c.matches("(bugün |yarın )?hava (nasıl|durumu|ne durumda|kaç derece).*|hava durumu.*|dışarısı kaç derece.*|kaç derece"))
 			return Intent.of(Kind.WEATHER);
 		if (c.matches("(şimdi )?ne çalıyor|bu ne şarkı|bu şarkı ne|bu hangi şarkı|hangi kanal(dayız)?|ne dinliyoruz"))
@@ -233,6 +310,10 @@ public final class YoldaIntents {
 		if (c.matches("(eve|evime) (git|götür|gidelim|yol tarifi( ver)?|dönelim)")) return Intent.of(Kind.NAV_HOME);
 		if (c.matches("(işe|işyerine|iş yerine|ofise) (git|götür|gidelim|yol tarifi( ver)?)")) return Intent.of(Kind.NAV_WORK);
 		if ((m = NEARBY.matcher(c)).matches()) return Intent.of(Kind.NAV_NEARBY, nearbyQuery(m.group(1)));
+		if ((m = WIKI.matcher(c)).matches()) {
+			String q = ((m.group(1) != null) ? m.group(1) : m.group(2)).replaceAll("['’](nin|nın|nun|nün|in|ın|un|ün)$", "").trim();
+			if ((q.length() >= 2) && !q.matches("(bu|şu|o|bu şarkı|bu kanal|saat|hava|tarih)")) return Intent.of(Kind.WIKI, q);
+		}
 		if ((m = NAV_DEST.matcher(c)).matches()) {
 			String d = m.group(1).replaceAll("['’]$", "").trim();
 			String k = appKey(d.replaceAll("['’]?(y?[ae]|n[ae])$", ""));
@@ -333,6 +414,7 @@ public final class YoldaIntents {
 			case "şarj istasyonu", "şarj" -> "elektrikli araç şarj istasyonu";
 			case "restoran", "lokanta", "yemek yeri" -> "restoran";
 			case "kafe", "kahveci" -> "kafe";
+			case "restoran", "lokanta", "yemek yeri", "restaurant", "yemek" -> "restoran";
 			case "atm", "bankamatik" -> "atm";
 			case "cami" -> "cami";
 			default -> null;

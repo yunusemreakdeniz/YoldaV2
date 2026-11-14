@@ -159,7 +159,34 @@ public final class YoldaVoice {
 
 		switch (it.kind()) {
 			case HELP -> reply(a, "Örneğin: TRT Haber aç, Tarkan çal, eve git, en yakın benzinlik, sesi yüzde elli yap, "
-					+ "otuz dakika sonra kapat, hava nasıl, ne çalıyor.");
+					+ "yarın hava nasıl, on dakika sonra su içmeyi hatırlat, neredeyim, şarjım kaç, on beş çarpı dört, "
+					+ "Atatürk kimdir, annemi ara. Sohbet de edebiliriz: nasılsın, şaka yap, acıktım.");
+			case CHAT -> reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
+			case DATE -> reply(a, YoldaAnswers.date());
+			case CALC -> reply(a, it.arg());
+			case BATTERY -> reply(a, YoldaAnswers.battery(ctx));
+			case SPEED -> reply(a, YoldaAnswers.speed());
+			case WHERE_AM_I -> {
+				toast(a, "Konum bulunuyor…");
+				YoldaAnswers.whereAmI(ctx, t -> reply(a, t));
+			}
+			case FORECAST -> {
+				toast(a, "Hava tahmini alınıyor…");
+				YoldaAnswers.forecast(ctx, it.arg(), t -> reply(a, t));
+			}
+			case TIMER -> {
+				YoldaAnswers.remind(ctx, it.num(), it.arg());
+				reply(a, "Tamam, " + it.num() + " dakika sonra " + (((it.arg() == null) || it.arg().isEmpty())
+						? "haber vereceğim" : "hatırlatacağım"));
+			}
+			case TIMER_CANCEL -> {
+				int n = YoldaAnswers.cancelReminders();
+				reply(a, (n > 0) ? "Hatırlatmalar silindi" : "Kurulu bir hatırlatma yok");
+			}
+			case WIKI -> {
+				toast(a, "“" + it.arg() + "” aranıyor…");
+				YoldaAnswers.wiki(it.arg(), t -> reply(a, t));
+			}
 			case REPEAT -> {
 				Intent l = lastIntent;
 				if (l == null) reply(a, "Tekrarlanacak bir komut yok");
@@ -198,7 +225,7 @@ public final class YoldaVoice {
 				reply(a, "Tamam, " + it.num() + " dakika sonra kapatacağım");
 			}
 			case SLEEP_CANCEL -> {
-				boolean was = sleepAt != 0;
+				boolean was = (sleepAt != 0) | (YoldaAnswers.cancelReminders() > 0);
 				cancelSleep();
 				reply(a, was ? "Uyku zamanlayıcısı iptal edildi" : "Kurulu bir zamanlayıcı yok");
 			}
