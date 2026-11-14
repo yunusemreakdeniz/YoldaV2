@@ -55,6 +55,23 @@ public class YoldaChatTest {
 	}
 
 	@Test
+	public void kartaGec() {
+		Intent i = p("Hey Yolda radyo kartına geç");
+		assertEquals(Kind.CARD, i.kind());
+		assertEquals("radyo", i.arg());
+		assertEquals("hava durumu", p("hava durumu kartını göster").arg());
+		assertEquals("kişiler", p("kişiler kartı").arg());
+		kind(Kind.HOME, "ana kartına geç");
+		YoldaDeck d = new YoldaDeck();
+		assertEquals(d.indexOf(YoldaDeck.RADIO), d.find("radyo"));
+		assertEquals(d.indexOf(YoldaDeck.WEATHER), d.find("hava"));
+		assertEquals(d.indexOf(YoldaDeck.NAV), d.find("harita"));
+		assertEquals(d.indexOf(YoldaDeck.RADAR), d.find("radar"));
+		assertEquals(d.indexOf(YoldaDeck.CALLS), d.find("Kişiler"));
+		assertEquals(-1, d.find("uzay gemisi"));
+	}
+
+	@Test
 	public void hesap() {
 		Intent i = p("15 çarpı 4 kaç");
 		assertEquals(Kind.CALC, i.kind());

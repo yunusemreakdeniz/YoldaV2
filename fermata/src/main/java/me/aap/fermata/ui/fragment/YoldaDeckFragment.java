@@ -230,6 +230,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return (hc >= 0) && (list != null) && (centerPosition() != hc);
 	}
 
+	/** Sesle: söylenen adı taşıyan karta kayarak geç. @return kartın başlığı; bulunamadıysa null. */
+	@Nullable
+	public String goToCard(String spoken) {
+		if ((deck == null) || (list == null)) return null;
+		int i = deck.find(spoken);
+		if (i < 0) return null;
+		list.smoothScrollToPosition(i);
+		return deck.get(i).title();
+	}
+
 	/** Ana karta kayarak dön. @return ana kart varsa true. */
 	public boolean goHomeCard() {
 		int hc = homeCardIndex();

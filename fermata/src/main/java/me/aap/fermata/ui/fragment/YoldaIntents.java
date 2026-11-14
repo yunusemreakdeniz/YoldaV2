@@ -24,6 +24,8 @@ public final class YoldaIntents {
 		YT_SEARCH, SONG, RADIO_SEARCH, RESUME, HELP, REPEAT, THEME_AUTO, SPEAK_ON, SPEAK_OFF, RADAR_ON, RADAR_OFF, RADAR_INFO, RADAR_ADD, PARK_WHERE, PARK_SET, TRIP_INFO, CALL, CHANNEL,
 		/** Kısa sohbet (arg: temizlenmiş cümle; yanıtı {@link YoldaChat} verir). */
 		CHAT,
+		/** Destede o karta geç ("radyo kartına geç"); arg: söylenen kart adı. */
+		CARD,
 		DATE, CALC, TIMER, TIMER_CANCEL, BATTERY, SPEED, FORECAST, WHERE_AM_I, WIKI
 	}
 
@@ -144,6 +146,8 @@ public final class YoldaIntents {
 			"^favori(?:lerimden|lerden|mden|den) (.+?)(?:['’]?(?:yi|yı|yu|yü|i|ı|u|ü))? (?:aç|çal|başlat)$|^(.+?) favorimi (?:aç|çal)$");
 	private static final Pattern CALL = Pattern.compile(
 			"^(.+?) (?:ara|arar|arar mısın|arasana|telefonla ara|çaldır|bir ara)$|^(.+?) (?:telefon et|ile görüş|ile konuş|ile görüşmek istiyorum)$");
+	private static final Pattern CARD = Pattern.compile(
+			"^(.+?) kart(?:ı|ına|ını|a|ına doğru)?(?: (?:geç|git|gel|dön|göster|getir|aç|kaydır|bul))?$");
 	private static final Pattern REMIND = Pattern.compile(
 			"^(.+? (?:dakika|dk|saat)) (?:sonra|içinde) (?:(.+?) )?(?:hatırlat|uyar|haber ver|söyle)$");
 	private static final Pattern TIMER = Pattern.compile(
@@ -196,6 +200,13 @@ public final class YoldaIntents {
 		// yardım, tekrar
 		if (c.matches("(yardım|ne yapabilirsin|neler yapabilirsin|komutlar|ne diyebilirim|nasıl kullanılır)")) return Intent.of(Kind.HELP);
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
+
+		// kart: "radyo kartına geç", "hava durumu kartı", "kişiler kartını göster"
+		if ((m = CARD.matcher(c)).matches()) {
+			String n = m.group(1).replaceAll("^(ana sayfada|destede|kartlarda) ", "").trim();
+			if (n.matches("ana|ana sayfa|ev")) return Intent.of(Kind.HOME);
+			if (!n.isEmpty()) return Intent.of(Kind.CARD, n);
+		}
 
 		// hatırlatıcı / zamanlayıcı ("10 dakika sonra hatırlat", "5 dakikalık zamanlayıcı kur")
 		if (c.matches("(hatırlatma(yı|ları)?|hatırlatıcı(yı)?) (iptal et|sil|kapat)|zamanlayıcı(yı)? iptal et ve hatırlatmayı sil"))

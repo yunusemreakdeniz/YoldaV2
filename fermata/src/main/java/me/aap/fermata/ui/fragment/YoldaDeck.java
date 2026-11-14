@@ -79,6 +79,54 @@ public final class YoldaDeck {
 	}
 
 	/** Sabit kartın varsayılan adı. */
+	/** Söylenen kart adı → kart türü ("radyo", "hava", "harita", "kişiler"…); bilinmiyorsa null. */
+	@Nullable
+	static String typeOfSpoken(String s) {
+		return switch (s) {
+			case "radyo", "radyolar" -> RADIO;
+			case "tv", "televizyon", "canlı yayın", "kanallar", "tv kanalları" -> TV;
+			case "müzik", "müzikler", "şarkılar" -> MUSIC;
+			case "youtube", "yutup", "video" -> YOUTUBE;
+			case "navigasyon", "harita", "haritalar", "yol tarifi", "nav" -> NAV;
+			case "hava", "hava durumu" -> WEATHER;
+			case "radar", "sürüş", "hız", "radar ve hız" -> RADAR;
+			case "kişiler", "kişi", "arama", "rehber", "aramalar" -> CALLS;
+			case "eczane", "nöbetçi eczane", "eczaneler" -> PHARMACY;
+			case "favori", "favoriler", "favorilerim" -> FAVS;
+			case "telefon", "uygulamalar" -> PHONE;
+			case "yansıtma", "ekran yansıtma", "ayna" -> MIRROR;
+			case "tarayıcı", "internet", "web" -> WEB;
+			case "ayar", "ayarlar" -> SETTINGS;
+			case "ekle", "ekleme" -> ADD;
+			case "kaldığım yer", "kaldığın yer", "kaldığın yerden", "kaldığım yerden", "devam" -> RESUME;
+			default -> null;
+		};
+	}
+
+	/**
+	 * "Radyo kartına geç": söylenen ada en uygun kartın sırası; yoksa -1. Önce bilinen adlar (radyo, hava,
+	 * harita…), sonra kart başlıkları (kendi eklediğin "TRT Haber" kartı gibi) telaffuza dayanıklı karşılaştırılır.
+	 */
+	public int find(String spoken) {
+		if (spoken == null) return -1;
+		String s = spoken.trim().toLowerCase(new java.util.Locale("tr")).replaceAll("['’]", "");
+		if (s.isEmpty()) return -1;
+		String type = typeOfSpoken(s);
+		if (type == null) type = typeOfSpoken(s.replaceAll("(y?[ae]|n[ae]|y?[ıiuü]|n[ıiuü])$", ""));
+		if (type != null) {
+			for (int i = 0; i < cards.size(); i++) if (cards.get(i).type().equals(type)) return i;
+		}
+		int best = -1, score = 0;
+		for (int i = 0; i < cards.size(); i++) {
+			int sc = YoldaIntents.channelScore(cards.get(i).title(), s);
+			if (sc > score) {
+				score = sc;
+				best = i;
+			}
+		}
+		return (score >= 50) ? best : -1;
+	}
+
 	public static String titleOf(String type) {
 		return switch (type) {
 			case YOUTUBE -> "YouTube";

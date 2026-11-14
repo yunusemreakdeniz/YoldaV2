@@ -330,6 +330,15 @@ public final class YoldaVoice {
 					if (a.getActiveFragment() instanceof YoldaDeckFragment d) d.goHomeCard();
 				}, 120);
 			}
+			case CARD -> {
+				a.showFragment(R.id.home_fragment);
+				App.get().getHandler().postDelayed(() -> {
+					if (!(a.getActiveFragment() instanceof YoldaDeckFragment d)) return;
+					String title = d.goToCard(it.arg());
+					if (title == null) reply(a, "“" + it.arg() + "” adında bir kart bulamadım");
+					else toast(a, title + " kartı");
+				}, 150);
+			}
 			case BACK -> a.yoldaBack();
 			case OPEN_APP -> {
 				if (!openApp(a, it.arg())) return false;
