@@ -89,7 +89,7 @@ public final class YoldaDeck {
 			case FAVS -> "Favoriler";
 			case WEATHER -> "Hava durumu";
 			case PHARMACY -> "Nöbetçi eczane";
-			case RADAR -> "Radar ve hız";
+			case RADAR -> "Sürüş";
 			case PHONE -> "Telefon";
 			case MIRROR -> "Ekran yansıtma";
 			case WEB -> "Tarayıcı";
@@ -101,6 +101,18 @@ public final class YoldaDeck {
 
 	static Card builtIn(String type) {
 		return new Card(type, type, titleOf(type), "", null);
+	}
+
+	/** Sabit kartın eski varsayılan adını yenisiyle değiştirir (kayıtlı destelerde). @return değişti mi. */
+	public boolean retitle(String type, String from, String to) {
+		for (int i = 0; i < cards.size(); i++) {
+			Card c = cards.get(i);
+			if (c.isBuiltIn() && c.type().equals(type) && c.title().equals(from)) {
+				cards.set(i, new Card(c.key(), c.type(), to, c.data(), c.logo()));
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Kartı bir sola (dir = -1) ya da sağa (dir = 1) taşır; yeni konumu döner. */

@@ -1835,7 +1835,10 @@ public class MainActivityDelegate extends ActivityDelegate
 		boolean railOn = false;
 		for (View v : new View[]{speedRail, deckPrev, deckBack, voiceButton}) {
 			if ((v == null) || (v.getVisibility() != View.VISIBLE) || (v.getWidth() == 0)) continue;
-			android.graphics.RectF r = new android.graphics.RectF(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
+			// Kapsülün kendi koordinatında: kök görünümün kenar boşluğu (yatayda kamera çentiği) çıkarılır;
+			// önceden çentikli telefonda cam düğmelerden çentik kadar sağa kayıyordu
+			android.graphics.RectF r = new android.graphics.RectF(v.getLeft() - dk.getLeft(), v.getTop() - dk.getTop(),
+					v.getRight() - dk.getLeft(), v.getBottom() - dk.getTop());
 			if (u == null) u = r;
 			else u.union(r);
 			n++;

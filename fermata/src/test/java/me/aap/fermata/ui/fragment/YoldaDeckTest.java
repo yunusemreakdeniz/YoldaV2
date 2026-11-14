@@ -12,6 +12,15 @@ import java.util.List;
 public class YoldaDeckTest {
 
 	@Test
+	public void eskiAdGuncellenir() {
+		YoldaDeck d = YoldaDeck.decode(new YoldaDeck().encode().replace("Sürüş", "Radar ve hız"));
+		assertEquals("Radar ve hız", d.get(d.indexOf("radar")).title());
+		assertTrue(d.retitle("radar", "Radar ve hız", "Sürüş"));
+		assertEquals("Sürüş", d.get(d.indexOf("radar")).title());
+		assertFalse(d.retitle("radar", "Radar ve hız", "Sürüş"));
+	}
+
+	@Test
 	public void kaldirilanKartlarKaydi() {
 		java.util.List<YoldaDeck.Card> l = java.util.List.of(new YoldaDeck.Card("tvch:1", YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null),
 				new YoldaDeck.Card("url:2", YoldaDeck.URL, "Haber", "https://x", "https://x/logo.png"));
@@ -29,7 +38,7 @@ public class YoldaDeckTest {
 		for (int i = 0; i < want.length; i++) assertEquals(want[i], d.get(i).type());
 		assertEquals("Kaldığın yerden", d.get(0).title());
 		assertEquals("YouTube", d.get(1).title());
-		assertEquals("Radar ve hız", d.get(7).title());
+		assertEquals("Sürüş", d.get(7).title());
 		assertEquals("Hava durumu", d.get(8).title());
 		assertEquals("Nöbetçi eczane", d.get(9).title());
 		assertEquals("Ekle", d.get(14).title());

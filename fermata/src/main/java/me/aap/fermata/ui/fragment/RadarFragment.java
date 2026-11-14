@@ -44,7 +44,7 @@ public class RadarFragment extends MainActivityFragment {
 
 	@Override
 	public CharSequence getTitle() {
-		return "Radar ve hız";
+		return "Sürüş";
 	}
 
 	@Override
@@ -115,7 +115,7 @@ public class RadarFragment extends MainActivityFragment {
 		int sy = scrollY;
 		scroll.post(() -> scroll.scrollTo(0, sy));
 
-		TextView title = text(ctx, "Radar ve hız", YoldaStyle.titleSp(ctx), true, t.ink);
+		TextView title = text(ctx, "Sürüş", YoldaStyle.titleSp(ctx), true, t.ink);
 		title.setSingleLine(true);
 		col.addView(title);
 

@@ -1107,6 +1107,29 @@ public class YoldaAtoZTest {
 			}
 			assertTrue("Kapsül dar olmalı (tek sütun): " + b.width(), b.width() < 90 * c.getResources().getDisplayMetrics().density);
 			shot("kapsul_ic_ekran");
+			// Çentikli telefon yatayda: kök görünümün solunda boşluk olur; cam yine düğmeleri sarmalı (kaymamalı)
+			onMain(a -> {
+				View root = ((android.app.Activity) a.getContext()).findViewById(R.id.main_activity);
+				root.setPadding(110, root.getPaddingTop(), root.getPaddingRight(), root.getPaddingBottom());
+				return null;
+			});
+			waitIdle(1200);
+			try {
+				android.graphics.RectF b2 = onMain(a -> a.getYoldaDock().bounds());
+				View home = onMain(a -> byDesc(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Ana sayfa"));
+				View dk = onMain(a -> a.getYoldaDock());
+				android.graphics.RectF hr = new android.graphics.RectF(home.getLeft() - dk.getLeft(), home.getTop() - dk.getTop(),
+						home.getRight() - dk.getLeft(), home.getBottom() - dk.getTop());
+				assertTrue("Sol boşlukta da cam düğmeyi sarmalı: " + hr + " / " + b2, b2.contains(hr));
+				shot("kapsul_centik");
+			} finally {
+				onMain(a -> {
+					View root = ((android.app.Activity) a.getContext()).findViewById(R.id.main_activity);
+					root.setPadding(0, root.getPaddingTop(), root.getPaddingRight(), root.getPaddingBottom());
+					return null;
+				});
+				waitIdle(800);
+			}
 			onMain(a -> a.showFragment(R.id.home_fragment));
 			waitIdle(1500);
 			assertFalse("Ana sayfada yalnız sesli komut: kapsül yok", onMain(a -> a.getYoldaDock().isShownDock()));
