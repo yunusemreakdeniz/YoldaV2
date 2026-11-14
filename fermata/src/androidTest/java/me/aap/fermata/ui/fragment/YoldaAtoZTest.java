@@ -1073,7 +1073,12 @@ public class YoldaAtoZTest {
 			});
 			float d = c.getResources().getDisplayMetrics().density;
 			assertTrue("Videoda sol üstte olmalı: y=" + top, top < 140 * d);
-			// Radar uyarısı videonun üstünde kırmızı kartla; ✕ ile kapanır
+			// Radar uyarısı videonun üstünde kırmızı kartla; ✕ ile kapanır (600 m / 60 km/s'de uyarı yok:
+			// 1000 m uyarısı 70 km/s üstünde; burada Sürüş ekranındaki "Uyarıyı dene"nin yolu)
+			onMain(a -> {
+				YoldaRadar.testAlert(c, false);
+				return null;
+			});
 			assertTrue("Videoda radar uyarısı kartı görünmeli",
 					waitFor(2000, () -> onMain(me.aap.fermata.ui.view.YoldaAlertOverlay::isShown)));
 			shot("video_radar_uyarisi");
