@@ -348,7 +348,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		if ((nb != null) && !YoldaStyle.DECK) nb.setVisibility(INVISIBLE); // sesli düğme menüyle birlikte gizlenir
 		View body = a.getBody();
 		if (body != null) v.postDelayed(() -> {
-			if (v.getTag(TAG_KEY) != null) body.setVisibility(INVISIBLE);
+			if ((v.getTag(TAG_KEY) != null) && v.isAttachedToWindow()) body.setVisibility(INVISIBLE);
 		}, 300);
 		v.setAlpha(0f);
 		v.setTranslationY(v.dp(48));
@@ -673,6 +673,14 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	@Override
 	protected void onDetachedFromWindow() {
 		removeCallbacks(ticker);
+		if (getTag(TAG_KEY) != null) { // hide() çağrılmadan kaldırıldı: arkadaki ekran boş kalmasın
+			setTag(TAG_KEY, null);
+			try {
+				View b = MainActivityDelegate.get(getContext()).getBody();
+				if (b != null) b.setVisibility(VISIBLE);
+			} catch (Throwable ignore) {
+			}
+		}
 		ring.setBusy(false);
 		try {
 			cb().removeBroadcastListener(this);
