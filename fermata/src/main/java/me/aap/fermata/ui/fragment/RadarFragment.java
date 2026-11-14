@@ -89,10 +89,40 @@ public class RadarFragment extends MainActivityFragment {
 		if (!hidden) render();
 	}
 
-	/** Konum her saniye değişir: ekran 3 sn'de bir yenilensin (kaydırırken zıplamasın). */
+	/**
+	 * Konum her saniye gelir: ekran yeniden kurulmaz (kurulunca içindeyken sürekli kıpırdıyordu); yalnız üstteki
+	 * hız / sınır / önde radar satırları yerinde güncellenir. Listeler ekran açılınca ve bir ayar değişince yenilenir.
+	 */
 	private void onRadar() {
-		if (isHidden() || (root == null)) return;
-		if (System.currentTimeMillis() - renderedAt > 3000) render();
+		if (isHidden() || (root == null) || (liveSpeed == null)) return;
+		Context ctx = getContext();
+		if (ctx == null) return;
+		setIf(liveSign, (YoldaRadar.limit > 0) ? String.valueOf(YoldaRadar.limit) : "–");
+		setIf(liveSpeed, speedLine(ctx));
+		setIf(liveLimit, limLine());
+	}
+
+	@Nullable
+	private TextView liveSign, liveSpeed, liveLimit;
+
+	private static void setIf(@Nullable TextView t, String s) {
+		if ((t != null) && !android.text.TextUtils.equals(t.getText(), s)) t.setText(s);
+	}
+
+	private String speedLine(Context ctx) {
+		if (!YoldaRadar.isEnabled(ctx)) return "Radar uyarıları kapalı";
+		if (!YoldaRadar.hasPermission(ctx)) return "Konum izni gerekli";
+		if (!YoldaRadar.hasFix()) return "Konum bekleniyor (GPS)…";
+		return (YoldaRadar.speed >= 0) ? (YoldaRadar.speed + " km/s") : "Hız bilinmiyor";
+	}
+
+	private String limLine() {
+		int lim = YoldaRadar.limit;
+		String l = (lim > 0) ? ("Hız sınırı " + lim + (YoldaRadar.limitEstimated ? " (yol türüne göre tahmini)" : ""))
+				: "Bu yolun hız sınırı bilinmiyor";
+		Ahead ah = YoldaRadar.ahead;
+		if (ah != null) l += "\nÖnde " + ah.cam().label().toLowerCase(new Locale("tr")) + ": " + meters(ah.meters());
+		return l;
 	}
 
 	private void render() {
@@ -144,17 +174,12 @@ public class RadarFragment extends MainActivityFragment {
 		info.setOrientation(LinearLayout.VERTICAL);
 		info.setPadding(dp(16), 0, 0, 0);
 		now.addView(info, new LinearLayout.LayoutParams(0, -2, 1f));
-		String speedLine;
-		if (!on) speedLine = "Radar uyarıları kapalı";
-		else if (!perm) speedLine = "Konum izni gerekli";
-		else if (!YoldaRadar.hasFix()) speedLine = "Konum bekleniyor (GPS)…";
-		else speedLine = ((YoldaRadar.speed >= 0) ? (YoldaRadar.speed + " km/s") : "Hız bilinmiyor");
-		info.addView(text(ctx, speedLine, 22, true, t.ink));
-		String limLine = (lim > 0) ? ("Hız sınırı " + lim + (YoldaRadar.limitEstimated ? " (yol türüne göre tahmini)" : ""))
-				: "Bu yolun hız sınırı bilinmiyor";
-		Ahead ah = YoldaRadar.ahead;
-		if (ah != null) limLine += "\nÖnde " + ah.cam().label().toLowerCase(new Locale("tr")) + ": " + meters(ah.meters());
-		info.addView(text(ctx, limLine, 14, false, t.muted));
+		liveSign = sign;
+		liveSpeed = text(ctx, speedLine(ctx), 22, true, t.ink);
+		info.addView(liveSpeed);
+		liveLimit = text(ctx, limLine(), 14, false, t.muted);
+		liveLimit.setMinLines(2); // önde radar satırı gelip gidince ekran kaymasın
+		info.addView(liveLimit);
 
 		// Ayarlar
 		col.addView(toggle(ctx, "Radar ve sürüş yardımcıları", on ? "Açık · aşağıdakiler tek tek kapatılabilir"
