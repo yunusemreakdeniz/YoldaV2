@@ -514,6 +514,14 @@ public final class YoldaRadar {
 		App.get().getHandler().postDelayed(() -> beep(false), 260); // çift bip: radardan ayırt edilsin
 	}
 
+	/** Sürüş ekranındaki "Uyarıyı dene": gerçek radar uyarısının aynısı (500 m ya da acil 150 m). */
+	public static void testAlert(Context ctx, boolean urgent) {
+		int lim = (limit > 0) ? limit : 90;
+		YoldaLog.add("Deneme uyarısı (" + (urgent ? "acil" : "normal") + ")");
+		alert(ctx, (urgent ? "150 metre sonra radar" : "500 metre sonra radar") + ", hız sınırı " + lim, urgent, 'r');
+		changed(); // sol kenar göstergesi de yanıp sönsün
+	}
+
 	private static void alert(Context ctx, String text, boolean urgent, char kind) {
 		lastAlert = text;
 		mark(kind);

@@ -191,6 +191,18 @@ public class RadarFragment extends MainActivityFragment {
 		}));
 		if (on && !perm) col.addView(button(ctx, "Konum iznini ver", v -> askPermission(a)));
 		col.addView(feature(ctx, "cams", "Radar uyarısı", "Radara 1000 / 500 / 150 m kala bip ve uyarı"));
+		// Uyarıyı dene: gerçek uyarının aynısı (kırmızı kart, bip, sesli uyarı, sol kenar)
+		LinearLayout tests = new LinearLayout(ctx);
+		tests.setOrientation(LinearLayout.HORIZONTAL);
+		LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, dp(48), 1f);
+		tests.addView(button(ctx, "▶ Uyarıyı dene", v -> YoldaRadar.testAlert(ctx, false)), tl);
+		LinearLayout.LayoutParams tr = new LinearLayout.LayoutParams(0, dp(48), 1f);
+		tr.leftMargin = dp(10);
+		tests.addView(button(ctx, "▶ Acil uyarıyı dene", v -> YoldaRadar.testAlert(ctx, true)), tr);
+		LinearLayout.LayoutParams tsl = new LinearLayout.LayoutParams(-1, -2);
+		tsl.topMargin = dp(6);
+		tsl.bottomMargin = dp(6);
+		col.addView(tests, tsl);
 		String rs = YoldaRouteRadars.status;
 		col.addView(feature(ctx, "official", "Rotadaki resmi radarlar",
 				"Hedef girince İçişleri Bakanlığı'ndan · " + ((rs != null) ? rs : "hedef yok: OpenStreetMap radarları")));
