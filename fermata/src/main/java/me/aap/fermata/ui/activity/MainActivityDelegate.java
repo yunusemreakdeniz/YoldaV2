@@ -2355,6 +2355,28 @@ public class MainActivityDelegate extends ActivityDelegate
 			}
 		}
 
+		if ((VERSION.SDK_INT < VERSION_CODES.VANILLA_ICE_CREAM) && !a.isCarActivity()) {
+			// Android 14 ve öncesi: Yolda tam ekran çalıştığı için klavye açılınca pencere küçülmüyor (tam ekranda
+			// adjustResize işlemez); alttaki yazı kutuları klavyenin altında kalıyordu. Klavyenin kapladığı yeri
+			// ölç, kökün altına o kadar boşluk bırak (pencere zaten küçüldüyse ölçülen 0 olur, çift boşluk olmaz).
+			View rootV = a.findViewById(R.id.main_activity);
+			if (rootV != null) {
+				int basePad = rootV.getPaddingBottom();
+				android.graphics.Rect vis = new android.graphics.Rect();
+				int[] loc = new int[2];
+				rootV.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+					rootV.getWindowVisibleDisplayFrame(vis);
+					rootV.getLocationOnScreen(loc);
+					int rootBottom = loc[1] + rootV.getHeight();
+					int covered = rootBottom - vis.bottom;
+					// gezinme çubuğu kadar küçük farklar klavye değildir
+					int pad = (covered > rootV.getRootView().getHeight() / 6) ? covered : basePad;
+					if (rootV.getPaddingBottom() != pad)
+						rootV.setPadding(rootV.getPaddingLeft(), rootV.getPaddingTop(), rootV.getPaddingRight(), pad);
+				});
+			}
+		}
+
 		if (VERSION.SDK_INT >= VERSION_CODES.VANILLA_ICE_CREAM && !a.isCarActivity()) {
 			// Yolda: dinleyici kök görünümde; üst çubuk gizli (tam ekran sayfalar) olsa da boşluk uygulanır
 			ViewCompat.setOnApplyWindowInsetsListener(a.findViewById(R.id.main_activity), (v, insets) -> {
