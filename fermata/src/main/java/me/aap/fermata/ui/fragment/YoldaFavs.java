@@ -70,6 +70,11 @@ public final class YoldaFavs {
 		prefs(ctx).edit().putString(PREF, encode(l)).apply();
 	}
 
+	/** Favorileri bu sırayla kaydet (düzenleme penceresi: sıralama ve silme). */
+	public static void setAll(Context ctx, List<YoldaDeck.Card> l) {
+		save(ctx, new java.util.ArrayList<>(l));
+	}
+
 	public static boolean contains(Context ctx, String type, String data) {
 		for (YoldaDeck.Card c : load(ctx)) if (c.type().equals(type) && c.data().equals(data)) return true;
 		return false;

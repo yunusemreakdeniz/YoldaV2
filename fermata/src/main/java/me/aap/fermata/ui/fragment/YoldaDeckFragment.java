@@ -757,6 +757,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private <T> void orderEditor(Context ctx, String title, String hintTail, List<T> work,
 															 java.util.function.Function<T, String> name, java.util.function.Consumer<List<T>> save,
 															 @Nullable java.util.function.Predicate<T> canDelete) {
+		orderEditor(ctx, title, hintTail, work, name, save, canDelete, null);
+	}
+
+	/**
+	 * @param onName null değilse ada dokununca çağrılır (ör. adını değiştir); ikinci bağımsız değişkenle öğenin
+	 *               yeni hali listeye konur.
+	 */
+	private <T> void orderEditor(Context ctx, String title, String hintTail, List<T> work,
+															 java.util.function.Function<T, String> name, java.util.function.Consumer<List<T>> save,
+															 @Nullable java.util.function.Predicate<T> canDelete,
+															 @Nullable java.util.function.BiConsumer<T, java.util.function.Consumer<T>> onName) {
 		FrameLayout panel = openOverlay(ctx, title);
 		LinearLayout box = (LinearLayout) panel.getChildAt(0);
 		TextView hint = text(ctx, "≡ tutup sürükle ya da ▲ ▼ ile taşı"
@@ -800,6 +811,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				TextView n = text(ctx, (i + 1) + ".  " + nm, 16, i < 8, t.ink);
 				n.setSingleLine(true);
 				n.setEllipsize(TextUtils.TruncateAt.END);
+				if (onName != null) {
+					n.setMinHeight(dp(48));
+					n.setGravity(Gravity.CENTER_VERTICAL);
+					n.setContentDescription("Adını değiştir: " + nm);
+					n.setOnClickListener(v -> onName.accept(it, nw -> {
+						int idx = h.getBindingAdapterPosition();
+						if ((idx < 0) || (idx >= work.size())) return;
+						work.set(idx, nw);
+						notifyItemChanged(idx);
+					}));
+				}
 				r.addView(n, new LinearLayout.LayoutParams(0, -2, 1f));
 				LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(dp(48), dp(48));
 				bl.leftMargin = dp(6);
@@ -2655,81 +2677,24 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				any ? "Favorileri düzenle" : null, any ? this::editFavorites : null);
 	}
 
-	/** Favorileri düzenle: ▲ ▼ ile sırala, ada dokunup değiştir, ✕ ile kaldır. Değişiklik hemen kaydedilir. */
+	/** Favorileri düzenle: sürükle ya da ▲ ▼ ile sırala, ada dokunup değiştir, ✕ ile kaldır. Hemen kaydedilir. */
 	private void editFavorites() {
 		Context ctx = requireContext();
-		FrameLayout panel = openOverlay(ctx, "Favorileri düzenle");
-		LinearLayout box = (LinearLayout) panel.getChildAt(0);
-		ScrollView sv = new ScrollView(ctx);
-		sv.setVerticalScrollBarEnabled(true);
-		LinearLayout lst = new LinearLayout(ctx);
-		lst.setOrientation(LinearLayout.VERTICAL);
-		sv.addView(lst, new ScrollView.LayoutParams(-1, -2));
-		LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, 0, 1f);
-		slp.topMargin = dp(8);
-		box.addView(sv, slp);
-		fillFavEdit(ctx, lst);
-	}
-
-	private void fillFavEdit(Context ctx, LinearLayout lst) {
-		lst.removeAllViews();
-		List<YoldaDeck.Card> l = YoldaFavs.load(ctx);
-		if (l.isEmpty()) {
-			lst.addView(text(ctx, "Favori yok. Kartta \"＋ Favori ekle\" ile ekleyebilirsin.", 16, false, t.muted));
+		List<YoldaDeck.Card> work = YoldaFavs.load(ctx);
+		if (work.isEmpty()) {
+			YoldaStyle.toast(ctx, "Favori yok; ＋ ile ekleyebilirsin");
+			return;
 		}
-		for (int i = 0; i < l.size(); i++) {
-			YoldaDeck.Card f = l.get(i);
-			LinearLayout r = hrow(ctx);
-			r.setPadding(dp(4), dp(6), 0, dp(6));
-			ImageView ic = new ImageView(ctx);
-			ic.setImageResource(favIcon(f.type()));
-			ic.setImageTintList(ColorStateList.valueOf(t.ink));
-			r.addView(ic, new LinearLayout.LayoutParams(dp(24), dp(24)));
-			LinearLayout names = new LinearLayout(ctx);
-			names.setOrientation(LinearLayout.VERTICAL);
-			names.setPadding(dp(12), 0, dp(8), 0);
-			TextView n = text(ctx, f.title(), 17, true, t.ink);
-			n.setSingleLine(true);
-			n.setEllipsize(TextUtils.TruncateAt.END);
-			names.addView(n);
-			names.addView(text(ctx, favKind(f.type()) + " · adı değiştirmek için dokun", 12, false, t.muted));
-			names.setMinimumHeight(dp(48));
-			names.setGravity(Gravity.CENTER_VERTICAL);
-			names.setClickable(true);
-			names.setContentDescription("Adını değiştir: " + f.title());
-			names.setOnClickListener(v -> UiUtils.queryText(ctx, R.string.yolda_fav_name, R.drawable.yi_edit, f.title())
-					.onSuccess(s -> {
-						if (s == null) return;
-						YoldaFavs.rename(ctx, f.key(), s);
-						fillFavEdit(ctx, lst);
-						refreshCard(YoldaDeck.FAVS);
-					}));
-			r.addView(names, new LinearLayout.LayoutParams(0, -2, 1f));
-			int idx = i;
-			ImageView up = roundButton(ctx, R.drawable.yi_up, "Yukarı taşı: " + f.title(), v -> {
-				YoldaFavs.move(ctx, f.key(), -1);
-				fillFavEdit(ctx, lst);
-				refreshCard(YoldaDeck.FAVS);
-			});
-			up.setAlpha((idx > 0) ? 1f : 0.3f);
-			r.addView(up, new LinearLayout.LayoutParams(dp(44), dp(44)));
-			ImageView down = roundButton(ctx, R.drawable.yi_down, "Aşağı taşı: " + f.title(), v -> {
-				YoldaFavs.move(ctx, f.key(), 1);
-				fillFavEdit(ctx, lst);
-				refreshCard(YoldaDeck.FAVS);
-			});
-			down.setAlpha((idx < l.size() - 1) ? 1f : 0.3f);
-			LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(dp(44), dp(44));
-			dlp.leftMargin = dlp.rightMargin = dp(8);
-			r.addView(down, dlp);
-			r.addView(roundButton(ctx, R.drawable.yi_close, "Kaldır: " + f.title(), v -> {
-				YoldaFavs.remove(ctx, f.key());
-				YoldaStyle.toast(ctx, "Favorilerden çıkarıldı: " + f.title());
-				fillFavEdit(ctx, lst);
-				refreshCard(YoldaDeck.FAVS);
-			}), new LinearLayout.LayoutParams(dp(44), dp(44)));
-			lst.addView(r, new LinearLayout.LayoutParams(-1, -2));
-		}
+		orderEditor(ctx, "Favorileri düzenle", "ada dokun: adını değiştir", work, YoldaDeck.Card::title, l -> {
+			YoldaFavs.setAll(ctx, l);
+			refreshCard(YoldaDeck.FAVS);
+		}, f -> true, (f, replace) -> UiUtils.queryText(ctx, R.string.yolda_fav_name, R.drawable.yi_edit, f.title())
+				.onSuccess(nn -> {
+					if ((nn == null) || nn.trim().isEmpty()) return;
+					YoldaFavs.rename(ctx, f.key(), nn);
+					for (YoldaDeck.Card x : YoldaFavs.load(ctx)) if (x.key().equals(f.key())) replace.accept(x);
+					refreshCard(YoldaDeck.FAVS);
+				}));
 	}
 
 	/** Favorilerin tam listesi (dokun: çal / aç); başta ekleme. */
@@ -2889,77 +2854,23 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 	}
 
-	/** Telefon kartındaki uygulamaları düzenle: ▲ ▼ sırala, ✕ kaldır. */
+	/** Telefon kartındaki uygulamaları düzenle: sürükle ya da ▲ ▼ ile sırala, ✕ kaldır. */
 	private void editPhoneApps() {
 		Context ctx = requireContext();
-		FrameLayout panel = openOverlay(ctx, "Uygulamaları düzenle");
-		LinearLayout box = (LinearLayout) panel.getChildAt(0);
-		ScrollView sv = new ScrollView(ctx);
-		LinearLayout lst = new LinearLayout(ctx);
-		lst.setOrientation(LinearLayout.VERTICAL);
-		sv.addView(lst, new ScrollView.LayoutParams(-1, -2));
-		LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, 0, 1f);
-		slp.topMargin = dp(8);
-		box.addView(sv, slp);
-		fillPhoneAppsEdit(ctx, lst);
-	}
-
-	private void fillPhoneAppsEdit(Context ctx, LinearLayout lst) {
-		lst.removeAllViews();
+		List<String> work = phoneApps(ctx);
+		if (work.isEmpty()) return;
 		android.content.pm.PackageManager pm = ctx.getPackageManager();
-		List<String> l = phoneApps(ctx);
-		for (int i = 0; i < l.size(); i++) {
-			String pkg = l.get(i);
-			CharSequence label = pkg;
-			android.graphics.drawable.Drawable icon = null;
+		java.util.function.Function<String, String> label = pkg -> {
 			try {
-				android.content.pm.ApplicationInfo ai = pm.getApplicationInfo(pkg, 0);
-				label = pm.getApplicationLabel(ai);
-				icon = pm.getApplicationIcon(ai);
-			} catch (Exception ignore) {
+				return String.valueOf(pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)));
+			} catch (Exception ex) {
+				return pkg;
 			}
-			LinearLayout r = hrow(ctx);
-			r.setPadding(dp(4), dp(6), 0, dp(6));
-			ImageView iv = new ImageView(ctx);
-			if (icon != null) iv.setImageDrawable(icon);
-			r.addView(iv, new LinearLayout.LayoutParams(dp(36), dp(36)));
-			TextView n = text(ctx, String.valueOf(label), 17, true, t.ink);
-			n.setSingleLine(true);
-			n.setEllipsize(TextUtils.TruncateAt.END);
-			n.setPadding(dp(12), 0, dp(8), 0);
-			r.addView(n, new LinearLayout.LayoutParams(0, -2, 1f));
-			int idx = i;
-			CharSequence lb = label;
-			ImageView up = roundButton(ctx, R.drawable.yi_up, "Yukarı taşı: " + label, v -> {
-				List<String> m = phoneApps(ctx);
-				if (idx > 0) java.util.Collections.swap(m, idx, idx - 1);
-				savePhoneApps(ctx, m);
-				fillPhoneAppsEdit(ctx, lst);
-				refreshCard(YoldaDeck.PHONE);
-			});
-			up.setAlpha((idx > 0) ? 1f : 0.3f);
-			r.addView(up, new LinearLayout.LayoutParams(dp(44), dp(44)));
-			ImageView down = roundButton(ctx, R.drawable.yi_down, "Aşağı taşı: " + label, v -> {
-				List<String> m = phoneApps(ctx);
-				if (idx < m.size() - 1) java.util.Collections.swap(m, idx, idx + 1);
-				savePhoneApps(ctx, m);
-				fillPhoneAppsEdit(ctx, lst);
-				refreshCard(YoldaDeck.PHONE);
-			});
-			down.setAlpha((idx < l.size() - 1) ? 1f : 0.3f);
-			LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(dp(44), dp(44));
-			dlp.leftMargin = dlp.rightMargin = dp(8);
-			r.addView(down, dlp);
-			r.addView(roundButton(ctx, R.drawable.yi_close, "Kaldır: " + label, v -> {
-				List<String> m = phoneApps(ctx);
-				m.remove(pkg);
-				savePhoneApps(ctx, m);
-				YoldaStyle.toast(ctx, "Kaldırıldı: " + lb);
-				fillPhoneAppsEdit(ctx, lst);
-				refreshCard(YoldaDeck.PHONE);
-			}), new LinearLayout.LayoutParams(dp(44), dp(44)));
-			lst.addView(r, new LinearLayout.LayoutParams(-1, -2));
-		}
+		};
+		orderEditor(ctx, "Uygulamaları düzenle", "kartta bu sırayla", work, label, l -> {
+			savePhoneApps(ctx, new ArrayList<>(l));
+			refreshCard(YoldaDeck.PHONE);
+		}, x -> true);
 	}
 
 	// ---- ekleme ----
