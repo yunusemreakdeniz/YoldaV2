@@ -230,6 +230,35 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return (hc >= 0) && (list != null) && (centerPosition() != hc);
 	}
 
+	/**
+	 * Ana ekranın sağ altında el yazısıyla "Akdeniz" imzası: soluk, hafif eğik, dokunuşları geçirir
+	 * (yazı tipi Great Vibes, SIL Open Font License; lisans assets/licenses içinde).
+	 */
+	private TextView signature(Context ctx) {
+		TextView s = new TextView(ctx);
+		s.setText("Akdeniz");
+		try {
+			s.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(ctx, R.font.yolda_signature));
+		} catch (Throwable ignore) {
+		}
+		s.setTextSize(28);
+		s.setTextColor(0x66FFFFFF);
+		s.setShadowLayer(dp(3), 0, dp(1), 0x40000000);
+		s.setRotation(-6f);
+		s.setIncludeFontPadding(false);
+		s.setClickable(false);
+		s.setFocusable(false);
+		s.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+		return s;
+	}
+
+	private FrameLayout.LayoutParams signatureLp() {
+		FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
+		lp.rightMargin = dp(22);
+		lp.bottomMargin = dp(10);
+		return lp;
+	}
+
 	/** Sesle: sonraki (1) / önceki (-1) karta geç. @return yeni kartın başlığı; uçtaysa null. */
 	@Nullable
 	public String stepCard(int dir) {
@@ -542,6 +571,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dots.setContentDescription("Kartlar arasında hızlı geçiş: basılı tutup kaydır");
 		dots.setOnTouchListener((v, e) -> onJumpTouch(e));
 		col.addView(dots, new LinearLayout.LayoutParams(-1, -2));
+
+		root.addView(signature(ctx), signatureLp());
 
 		loadChannels();
 		loadExtras(car);
