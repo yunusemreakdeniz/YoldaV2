@@ -111,6 +111,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaLog.add("Deste: kart içeriği " + add + " dp taştı (kart " + Math.round(cardH / dn) + " dp, iç "
 					+ Math.round(v.getHeight() / dn) + " dp, pay " + base + "→" + want + ")");
 			fitSlackDp = want;
+			rebuildReason = "içerik taştı " + add + " dp";
 			if (list != null) list.post(() -> {
 				if (adapter != null) adapter.notifyDataSetChanged();
 			});
@@ -413,6 +414,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		lowFx = car;
 		adapter = new DeckAdapter();
 		list.setAdapter(adapter);
+		if (list.getItemAnimator() instanceof androidx.recyclerview.widget.SimpleItemAnimator sa)
+			sa.setSupportsChangeAnimations(false); // kart güncellenince soluklaşıp yeniden belirmesin (titreme)
 		snap = new PagerSnapHelper();
 		snap.attachToRecyclerView(list);
 		list.setChildDrawingOrderCallback(this::drawingOrder);
@@ -500,7 +503,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					+ getResources().getDisplayMetrics().density);
 		}
 		boolean changed = (nw != cardW) || (nh != cardH);
-		if (changed) fitSlackDp = 0;
+		if (changed) {
+			fitSlackDp = 0;
+			rebuildReason = "kart boyu " + cardW + "×" + cardH + " → " + nw + "×" + nh;
+		}
 		cardW = nw;
 		cardH = nh;
 		int pad = (w - cardW) / 2;
@@ -593,7 +599,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		// Kart yeniden kurulmaz (kurulunca titriyordu): yalnız alt yazı yerinde değişir
 		java.lang.ref.WeakReference<TextView> w = this.radarSubView;
 		TextView tv = (w != null) ? w.get() : null;
-		if ((tv != null) && tv.isAttachedToWindow()) tv.setText(s);
+		// alçak kartta alt yazı gizli: yazmak bile kartı yeniden yerleştiriyordu
+		if ((tv != null) && tv.isAttachedToWindow() && (tv.getVisibility() == View.VISIBLE)
+				&& !android.text.TextUtils.equals(tv.getText(), s)) tv.setText(s);
 	};
 
 	@androidx.annotation.Nullable
@@ -1230,6 +1238,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		@Override
 		public void onBindViewHolder(@NonNull Holder h, int pos) {
+			if ((pos >= 0) && (pos < deck.size()) && YoldaDeck.RADAR.equals(deck.get(pos).type())) {
+				radarBinds++;
+				if (radarBinds > 1) YoldaLog.add("Deste: Sürüş kartı yeniden kuruldu (" + rebuildReason + ")");
+			}
 			ViewGroup.LayoutParams lp = h.box.getLayoutParams();
 			lp.width = Math.max(1, cardW);
 			h.box.setLayoutParams(lp);
@@ -2639,8 +2651,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 	}
 
+	/** Testler / tanı için: Sürüş kartı kaç kez kuruldu ve son yeniden kurmanın nedeni. */
+	public int radarBinds;
+	private String rebuildReason = "ilk";
+
+	public int radarBinds() {
+		return radarBinds;
+	}
+
 	private void refreshCard(String type) {
 		if ((adapter == null) || !isAdded()) return;
+		rebuildReason = "kart yenileme: " + type;
 		int i = deck.indexOf(type);
 		if (i >= 0) adapter.notifyItemChanged(i);
 		if (list != null) list.post(this::transform);

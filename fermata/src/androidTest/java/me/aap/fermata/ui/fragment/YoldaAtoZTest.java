@@ -1237,6 +1237,51 @@ public class YoldaAtoZTest {
 		return null;
 	}
 
+	/** Sürüş kartı ortadayken konum her saniye gelse de kart yeniden kurulmamalı (titreme). */
+	@Test
+	public void surusKartiTitremez() {
+		android.content.Context c = ctx();
+		boolean was = YoldaRadar.isEnabled(c);
+		YoldaRadar.ignoreGps = true;
+		try {
+			onMain(a -> {
+				YoldaRadar.setEnabled(c, true);
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(1200);
+			int pos = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().indexOf(YoldaDeck.RADAR));
+			assertTrue(pos >= 0);
+			onMain(a -> {
+				((YoldaDeckFragment) a.getActiveFragment()).scrollToCard(pos);
+				return null;
+			});
+			waitIdle(2000);
+			int b0 = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).radarBinds());
+			double lat0 = 40.0, lon0 = 30.0;
+			for (int i = 0; i < 20; i++) {
+				double la = lat0 + i * 25 / 111_195d;
+				int sp = 60 + (i % 5) * 7;
+				onMain(a -> {
+					YoldaRadar.feed(la, lon0, sp, 0);
+					return null;
+				});
+				SystemClock.sleep(500);
+			}
+			waitIdle(800);
+			int b1 = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).radarBinds());
+			Log.i(TAG, "Sürüş kartı 10 sn'de " + (b1 - b0) + " kez yeniden kuruldu");
+			assertTrue("Sürüş kartı konum güncellemelerinde yeniden kurulmamalı: " + (b1 - b0), (b1 - b0) <= 1);
+		} finally {
+			onMain(a -> {
+				YoldaRadar.setEnabled(c, was);
+				YoldaRadar.ignoreGps = false;
+				return null;
+			});
+			waitIdle(500);
+		}
+	}
+
 	private static View clickableOf(View v) {
 		while ((v != null) && !v.isClickable()) v = (v.getParent() instanceof View p) ? p : null;
 		return v;
