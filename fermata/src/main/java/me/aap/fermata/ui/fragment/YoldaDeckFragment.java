@@ -1523,6 +1523,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (fz.subLines() == 0) sub.setVisibility(View.GONE); // çok alçak kartta alt yazı yerine içerik
 		v.addView(sub);
 		if (YoldaDeck.RADAR.equals(c.type())) {
+			// Satır sayısı sabit: yazı uzayıp kısalınca kart boyu değişmesin (değişince deste yeniden kurulup titriyordu)
+			if (fz.subLines() > 0) sub.setLines(fz.subLines());
 			radarSubView = new java.lang.ref.WeakReference<>(sub);
 			if (!editing) head.addView(radarSwitch(ctx), switchLp()); // Açık / Kapalı: kartın içinde, başlığın sağında
 		}

@@ -776,14 +776,53 @@ public final class YoldaRadar {
 	/** Park yeri: {lat, lon, zaman (ms)}; yoksa null. */
 	@androidx.annotation.Nullable
 	public static double[] park(Context ctx) {
-		SharedPreferences p = prefs(ctx);
-		if (!p.contains("park_lat")) return null;
-		return new double[]{Double.longBitsToDouble(p.getLong("park_lat", 0)), Double.longBitsToDouble(p.getLong("park_lon", 0)),
-				p.getLong("park_at", 0)};
+		List<double[]> l = parks(ctx);
+		return l.isEmpty() ? null : l.get(0);
 	}
 
-	public static void clearPark(Context ctx) {
-		prefs(ctx).edit().remove("park_lat").remove("park_lon").remove("park_at").apply();
+	/**
+	 * Park yerleri (en yeni önce): {lat, lon, zaman (ms), otomatik mi (1 / 0)}. En yenisi "aracım". Eski tek
+	 * kayıtlı sürümden geçişte o kayıt listeye alınır.
+	 */
+	public static synchronized List<double[]> parks(Context ctx) {
+		List<double[]> l = new ArrayList<>();
+		SharedPreferences p = prefs(ctx);
+		try {
+			JSONArray a = new JSONArray(p.getString("parks", "[]"));
+			for (int i = 0; i < a.length(); i++) {
+				JSONObject o = a.getJSONObject(i);
+				l.add(new double[]{o.getDouble("la"), o.getDouble("lo"), o.getLong("at"), o.optBoolean("auto") ? 1 : 0});
+			}
+		} catch (Throwable ignore) {
+		}
+		if (l.isEmpty() && p.contains("park_lat")) {
+			l.add(new double[]{Double.longBitsToDouble(p.getLong("park_lat", 0)), Double.longBitsToDouble(p.getLong("park_lon", 0)),
+					p.getLong("park_at", 0), 1});
+			saveParks(ctx, l);
+			p.edit().remove("park_lat").remove("park_lon").remove("park_at").apply();
+		}
+		return l;
+	}
+
+	private static void saveParks(Context ctx, List<double[]> l) {
+		try {
+			JSONArray a = new JSONArray();
+			for (double[] d : l) a.put(new JSONObject().put("la", d[0]).put("lo", d[1]).put("at", (long) d[2]).put("auto", d[3] != 0));
+			prefs(ctx).edit().putString("parks", a.toString()).apply();
+		} catch (Throwable ignore) {
+		}
+	}
+
+	/** Tek park yerini sil (zamanıyla); en yenisi silinirse bir öncekisi "aracım" olur. */
+	public static synchronized void deletePark(Context ctx, long at) {
+		List<double[]> l = parks(ctx);
+		l.removeIf(d -> (long) d[2] == at);
+		saveParks(ctx, l);
+		changed();
+	}
+
+	public static synchronized void clearPark(Context ctx) {
+		prefs(ctx).edit().remove("parks").remove("park_lat").remove("park_lon").remove("park_at").apply();
 		changed();
 	}
 
@@ -810,8 +849,14 @@ public final class YoldaRadar {
 			YoldaLog.add("Park yeri kaydedilemedi: konum yok");
 			return false;
 		}
-		prefs(ctx).edit().putLong("park_lat", Double.doubleToLongBits(la)).putLong("park_lon", Double.doubleToLongBits(lo))
-				.putLong("park_at", System.currentTimeMillis()).apply();
+		synchronized (YoldaRadar.class) {
+			List<double[]> l = parks(ctx);
+			// Aynı yerde (30 m) yeniden kaydedilince yeni kayıt açılmaz, zamanı güncellenir
+			if (!l.isEmpty() && (YoldaRadarCore.dist(la, lo, l.get(0)[0], l.get(0)[1]) < 30)) l.remove(0);
+			l.add(0, new double[]{la, lo, System.currentTimeMillis(), notify ? 1 : 0});
+			while (l.size() > 20) l.remove(l.size() - 1);
+			saveParks(ctx, l);
+		}
 		YoldaLog.add(String.format(Locale.ROOT, "Park yeri kaydedildi: %.5f,%.5f", la, lo));
 		if (notify) notifyPark(ctx, la, lo);
 		changed();
@@ -827,7 +872,12 @@ public final class YoldaRadar {
 
 	public static void walkToPark(Context ctx) {
 		double[] p = park(ctx);
-		if (p == null) return;
+		if (p != null) walkTo(ctx, p[0], p[1]);
+	}
+
+	/** Bir park yerine yürüyerek yol tarifi. */
+	public static void walkTo(Context ctx, double la, double lo) {
+		double[] p = {la, lo};
 		try {
 			ctx.startActivity(walkIntent(p[0], p[1]));
 		} catch (Throwable ex) {

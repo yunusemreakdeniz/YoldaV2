@@ -249,6 +249,7 @@ public class ControlPanelView extends ConstraintLayout
 
 	/** Yolda: ✕ — çalmayı durdurur, oynatıcıyı ve video ekranını kapatır. */
 	public void closePlayer() {
+		yoldaDocked = true;
 		MainActivityDelegate a = getActivity();
 		YoldaNowPlaying.rememberClosed(a.getCurrentPlayable()); // ▶ aynı kanalı / şarkıyı yeniden açsın
 		try {
@@ -271,9 +272,26 @@ public class ControlPanelView extends ConstraintLayout
 	 * Kart destesi açıkken oynatıcı çubuğu gösterilmez (araçta ve telefonda): kartlar tüm yüksekliği kullanır,
 	 * çalan şey üstteki "♪" düğmesinde ve "Kaldığın yerden" kartında.
 	 */
+	/**
+	 * Yatay ekranda oynatıcı çubuğu sol alttaki kapsüle iner (küçük yuvarlak); yuvarlağa dokununca açılır,
+	 * çubuktaki "Küçült" ile geri iner. Dikeyde çubuk her zamanki gibi.
+	 */
+	public static volatile boolean yoldaDocked = true;
+
+	public boolean yoldaDockedNow() {
+		return yoldaDocked && YoldaStyle.DECK && (getResources().getConfiguration().orientation
+				== android.content.res.Configuration.ORIENTATION_LANDSCAPE);
+	}
+
+	/** Çalan / bekleyen bir şey var mı (çubuk gizli olsa da). */
+	public boolean yoldaHasMedia() {
+		return (mask & MASK_VISIBLE) != 0;
+	}
+
 	private boolean yoldaCarHome() {
 		try {
 			MainActivityDelegate a = getActivity();
+			if (yoldaDockedNow()) return true; // kapsülde
 			return YoldaStyle.DECK && (a.getActiveFragmentId() == R.id.home_fragment);
 		} catch (Throwable ex) {
 			return false;

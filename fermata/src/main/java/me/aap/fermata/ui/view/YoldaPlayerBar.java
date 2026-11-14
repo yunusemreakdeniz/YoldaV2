@@ -31,9 +31,18 @@ import me.aap.fermata.ui.activity.MainActivityDelegate;
  * durumundan güncellenir (TV, müzik, YouTube hangi motor çalıyorsa).
  */
 public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.Listener {
-	public static final int HEIGHT_DP = 72;
+	public static final int HEIGHT_DP = 76;
 	/** Araçta daha ince (Android Auto'nun kendi medya çubuğu da altta). */
-	public static final int HEIGHT_CAR_DP = 58;
+	public static final int HEIGHT_CAR_DP = 64;
+	/** Her güncellemeden sonra (kapsüldeki küçük oynatıcı kapağı ve durumu alsın). */
+	@Nullable
+	public Runnable onUpdate;
+
+	/** Görünen kapak (yüklenmediyse null). */
+	@Nullable
+	public android.graphics.drawable.Drawable coverDrawable() {
+		return (cover.getAlpha() > 0.5f) ? cover.getDrawable() : null;
+	}
 
 	public static int heightDp(Context ctx) {
 		try {
@@ -67,13 +76,13 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		YoldaStyle.Theme t = YoldaStyle.current(ctx);
 		GradientDrawable bg = new GradientDrawable();
 		bg.setColor((t.base & 0x00FFFFFF) | 0xF2000000);
-		bg.setCornerRadius(dp(22));
+		bg.setCornerRadius(dp(999));
 		// Kapağın renginde ışıklı cam: soldan kapak renginde, sağa doğru koyu zemine erir
 		tintBg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0x00000000, 0x00000000});
-		tintBg.setCornerRadius(dp(26));
-		bg.setCornerRadius(dp(26));
+		tintBg.setCornerRadius(dp(999)); // tam yuvarlak uçlu kapsül
+		bg.setCornerRadius(dp(999));
 		setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{bg, tintBg,
-				YoldaStyle.glass(ctx, t, 26)}));
+				YoldaStyle.glass(ctx, t, 999)}));
 		setElevation(dp(8));
 		setClickable(true); // boş alana dokunuş alttaki eski düğmelere gitmesin
 		boolean car = false;
@@ -86,19 +95,19 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		LinearLayout row = new LinearLayout(ctx);
 		row.setOrientation(LinearLayout.HORIZONTAL);
 		row.setGravity(Gravity.CENTER_VERTICAL);
-		row.setPadding(dp(10), dp(6), dp(6), dp(12)); // altta ilerleme çizgisine yer
+		row.setPadding(dp(10), dp(6), dp(14), dp(12)); // altta ilerleme çizgisine yer
 		addView(row, new LayoutParams(-1, -1));
 
 		// Kapak
 		FrameLayout art = new FrameLayout(ctx);
 		GradientDrawable ab = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{t.blobs[0], t.blobs[2]});
-		ab.setCornerRadius(dp(14));
+		ab.setShape(GradientDrawable.OVAL);
 		art.setBackground(ab);
 		art.setClipToOutline(true);
 		art.setOutlineProvider(new android.view.ViewOutlineProvider() {
 			@Override
 			public void getOutline(View v, android.graphics.Outline o) {
-				o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), dp(14));
+				o.setOval(0, 0, v.getWidth(), v.getHeight()); // kapsülün ucuna oturan yuvarlak kapak
 			}
 		});
 		coverPh = new ImageView(ctx);
@@ -112,7 +121,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		art.addView(cover, new LayoutParams(-1, -1));
 		art.setOnClickListener(v -> openCurrent());
 		art.setElevation(dp(4));
-		row.addView(art, new LinearLayout.LayoutParams(dp(compact ? 50 : 56), dp(compact ? 50 : 56)));
+		row.addView(art, new LinearLayout.LayoutParams(dp(compact ? 52 : 58), dp(compact ? 52 : 58)));
 
 		// Ad + alt bilgi
 		LinearLayout txt = new LinearLayout(ctx);
@@ -156,34 +165,44 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		row.addView(txt, new LinearLayout.LayoutParams(0, -1, 1f)); // tüm yükseklik dokunulabilir
 
 		// Düğmeler (her biri en az 44dp dokunma alanı)
-		if (!compact) row.addView(button(ctx, R.drawable.yi_prev, "Önceki", v -> cb().onSkipToPrevious()), btnLp(44));
+		if (!compact) row.addView(button(ctx, R.drawable.yi_prev, "Önceki", v -> cb().onSkipToPrevious()), btnLp(52));
 		play = button(ctx, R.drawable.yi_pause, "Oynat / duraklat", v -> togglePlay());
 		play.setColorFilter(0xFF0B0E2A);
 		GradientDrawable pc = new GradientDrawable();
 		pc.setShape(GradientDrawable.OVAL);
 		pc.setColor(0xFFFFFFFF);
 		play.setBackground(pc);
-		play.setPadding(dp(12), dp(12), dp(12), dp(12));
+		play.setPadding(dp(13), dp(13), dp(13), dp(13));
 		// bağlanırken / tamponlarken oynat düğmesinin çevresinde dönen halka
 		FrameLayout pf = new FrameLayout(ctx);
 		ring = new YoldaNowPlaying.BusyRing(ctx);
 		pf.addView(ring, new LayoutParams(-1, -1));
-		pf.addView(play, new LayoutParams(dp(46), dp(46), Gravity.CENTER));
-		LinearLayout.LayoutParams plp = btnLp(56);
+		pf.addView(play, new LayoutParams(dp(54), dp(54), Gravity.CENTER));
+		LinearLayout.LayoutParams plp = btnLp(64);
 		plp.leftMargin = dp(2);
 		plp.rightMargin = dp(2);
 		row.addView(pf, plp);
-		row.addView(button(ctx, R.drawable.yi_next, "Sonraki", v -> cb().onSkipToNext()), btnLp(44));
+		row.addView(button(ctx, R.drawable.yi_next, "Sonraki", v -> cb().onSkipToNext()), btnLp(52));
 		if (!compact) row.addView(button(ctx, R.drawable.more, "Diğer", v -> clickOriginal(R.id.control_menu_button)),
 				btnLp(40));
+		// Yatayda: sol kapsüle küçült (dokununca yeniden açılır)
+		boolean land = getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+		if (land && YoldaStyle.DECK) row.addView(button(ctx, R.drawable.yi_left, "Küçült", v -> {
+			ControlPanelView.yoldaDocked = true;
+			if (getParent() instanceof ControlPanelView cp) cp.yoldaRefreshVisibility();
+			try {
+				MainActivityDelegate.get(getContext()).yoldaDockChanged();
+			} catch (Throwable ignore) {
+			}
+		}), btnLp(48));
 		row.addView(button(ctx, R.drawable.yi_close, "Kapat", v -> {
 			if (getParent() instanceof ControlPanelView cp) cp.closePlayer();
-		}), btnLp(40));
+		}), btnLp(48));
 
 		// Üstte ilerleme çizgisi
 		// İlerleme: çubuğun içinde, alt kenara oturan ince çizgi; sürüklenerek sarılır
 		progress = new YoldaSeekLine(ctx);
-		progress.setLine(0.7f, dp(26), dp(3));
+		progress.setLine(0.7f, dp(40), dp(3)); // kapsülün yuvarlak uçlarından içeride
 		progress.setListener(new YoldaSeekLine.Listener() {
 			@Override
 			public void onDrag(float f) {
@@ -249,6 +268,14 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 	}
 
 	private void update() {
+		try {
+			updateBar();
+		} finally {
+			if (onUpdate != null) onUpdate.run();
+		}
+	}
+
+	private void updateBar() {
 		hideOriginals();
 		MainActivityDelegate a = MainActivityDelegate.get(getContext());
 		MediaSessionCallback cb = a.getMediaSessionCallback();

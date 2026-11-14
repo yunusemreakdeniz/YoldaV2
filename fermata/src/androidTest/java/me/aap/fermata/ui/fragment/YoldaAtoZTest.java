@@ -940,7 +940,15 @@ public class YoldaAtoZTest {
 			// Radar ekranında park ve yolculuk bölümleri
 			onMain(a -> a.showFragment(R.id.yolda_radar_fragment));
 			waitIdle(1200);
-			assertNotNull(onMain(a -> byText(a.getActiveFragment().getView(), "🚶 Aracıma git")));
+			assertNotNull(onMain(a -> byText(a.getActiveFragment().getView(), "Park yerleri · en üstteki aracın")));
+			assertEquals("Araç ayrılınca otomatik kayıt", 1.0, YoldaRadar.parks(c).get(0)[3], 0);
+			// Park yeri listeden silinir
+			View del = onMain(a -> byText(a.getActiveFragment().getView(), "Sil"));
+			assertNotNull("Park yerinde Sil olmalı", del);
+			int before = YoldaRadar.parks(c).size();
+			onMain(a -> del.performClick());
+			waitIdle(800);
+			assertEquals("Park yeri silinmeli", before - 1, YoldaRadar.parks(c).size());
 			assertNotNull(onMain(a -> byText(a.getActiveFragment().getView(), "Son yolculuklar")));
 			shot("park_ve_yolculuk");
 

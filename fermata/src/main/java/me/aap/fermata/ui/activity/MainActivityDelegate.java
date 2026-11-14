@@ -1736,7 +1736,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			lp.topMargin = toIntPx(ctx, 20);
 			lp.verticalBias = 0f;
 		} else {
-			View anchor = (deckPrev != null) ? deckPrev : voiceButton;
+			View anchor = (orb != null) ? orb : (deckPrev != null) ? deckPrev : voiceButton;
 			lp.startToStart = anchor.getId();
 			lp.endToEnd = anchor.getId();
 			lp.bottomToTop = anchor.getId();
@@ -1757,7 +1757,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		r.setOnClickListener(v -> showFragment(R.id.yolda_radar_fragment));
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT,
 				ConstraintLayout.LayoutParams.WRAP_CONTENT);
-		View anchor = (deckPrev != null) ? deckPrev : voiceButton;
+		View anchor = (orb != null) ? orb : (deckPrev != null) ? deckPrev : voiceButton;
 		lp.startToStart = anchor.getId();
 		lp.endToEnd = anchor.getId();
 		lp.bottomToTop = anchor.getId();
@@ -1818,6 +1818,39 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	@Nullable
 	private me.aap.fermata.ui.view.YoldaDock dock;
+	@Nullable
+	private me.aap.fermata.ui.view.YoldaMiniOrb orb;
+
+	/** Kapsüldeki küçük oynatıcı: yatayda çubuk kapsüldeyken ve çalan bir şey varken görünür. */
+	private void updateOrb() {
+		me.aap.fermata.ui.view.YoldaMiniOrb o = orb;
+		ControlPanelView cp = getControlPanel();
+		if ((o == null) || (cp == null)) return;
+		me.aap.fermata.ui.view.YoldaPlayerBar b0 = cp.getYoldaBar();
+		if ((b0 != null) && (b0.onUpdate == null)) b0.onUpdate = this::updateOrb; // kapak / durum değişince
+		boolean np = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
+		boolean show = !yoldaPip && !videoMode && !np && cp.yoldaDockedNow() && cp.yoldaHasMedia();
+		int vis = show ? View.VISIBLE : View.GONE;
+		if (o.getVisibility() != vis) o.setVisibility(vis);
+		if (show) {
+			me.aap.fermata.ui.view.YoldaPlayerBar bar = cp.getYoldaBar();
+			o.set((bar != null) ? bar.coverDrawable() : null, getMediaSessionCallback().isPlaying());
+		}
+	}
+
+	/** Oynatıcı kapsüle indi / açıldı. */
+	public void yoldaDockChanged() {
+		ControlPanelView cp = getControlPanel();
+		if (cp != null) cp.yoldaRefreshVisibility();
+		updateOrb();
+		updateDeckButtons();
+	}
+
+	/** Testler için. */
+	@Nullable
+	public me.aap.fermata.ui.view.YoldaMiniOrb getYoldaOrb() {
+		return orb;
+	}
 
 	/**
 	 * Sol alttaki yüzen düğmeler tek bir cam kapsülde: uyarı göstergesi, geri, ana sayfa, sesli komut.
@@ -1833,7 +1866,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		android.graphics.RectF u = null;
 		int n = 0;
 		boolean railOn = false;
-		for (View v : new View[]{speedRail, deckPrev, deckBack, voiceButton}) {
+		for (View v : new View[]{speedRail, orb, deckPrev, deckBack, voiceButton}) {
 			if ((v == null) || (v.getVisibility() != View.VISIBLE) || (v.getWidth() == 0)) continue;
 			// Kapsülün kendi koordinatında: kök görünümün kenar boşluğu (yatayda kamera çentiği) çıkarılır;
 			// önceden çentikli telefonda cam düğmelerden çentik kadar sağa kayıyordu
@@ -1917,6 +1950,28 @@ public class MainActivityDelegate extends ActivityDelegate
 		bk.setId(View.generateViewId()); // hız / radar göstergesi bunun üstüne bağlanır
 		host.addView(bk, blp);
 		deckPrev = bk;
+		// Küçük oynatıcı (yatayda çubuk buraya iner): geri düğmesinin üstünde
+		me.aap.fermata.ui.view.YoldaMiniOrb ob = new me.aap.fermata.ui.view.YoldaMiniOrb(ctx);
+		ob.setId(View.generateViewId());
+		ob.setVisibility(View.GONE);
+		ob.setOnClickListener(x -> {
+			ControlPanelView.yoldaDocked = false; // çubuk açılsın
+			yoldaDockChanged();
+		});
+		ob.setOnLongClickListener(x -> {
+			ControlPanelView cp = getControlPanel();
+			if (cp != null) cp.closePlayer();
+			updateOrb();
+			return true;
+		});
+		int os = toIntPx(ctx, 56);
+		ConstraintLayout.LayoutParams olp = new ConstraintLayout.LayoutParams(os, os);
+		olp.startToStart = bk.getId();
+		olp.endToEnd = bk.getId();
+		olp.bottomToTop = bk.getId();
+		olp.bottomMargin = toIntPx(ctx, 4);
+		host.addView(ob, olp);
+		orb = ob;
 		updateDeckButtons();
 	}
 
@@ -2049,6 +2104,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			speedRail.setVideo(full);
 			speedRail.setAllowed(!np || full);
 		}
+		updateOrb();
 		updateDock();
 	}
 

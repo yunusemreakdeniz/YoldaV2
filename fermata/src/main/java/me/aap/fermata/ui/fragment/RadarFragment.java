@@ -189,35 +189,53 @@ public class RadarFragment extends MainActivityFragment {
 		col.addView(feature(ctx, "park", "Park yerimi hatırla", "Araç bağlantısı kesilince aracın yeri kaydedilir"));
 		col.addView(feature(ctx, "trips", "Yolculuk özeti", "Her yolculuğun km, süre, ortalama ve en yüksek hızı"));
 
-		// Aracım nerede
+		// Park yerleri: en yenisi "aracım"; her biri "Git" ve "Sil" (araç ayrılınca kendiliğinden eklenir)
 		if (YoldaRadar.feature(ctx, "park")) {
-			double[] pk = YoldaRadar.park(ctx);
-			TextView ph = text(ctx, "Aracım nerede", 18, true, t.ink);
-			ph.setPadding(dp(4), dp(20), dp(4), dp(8));
+			List<double[]> pks = YoldaRadar.parks(ctx);
+			TextView ph = text(ctx, pks.isEmpty() ? "Park yerleri" : "Park yerleri · en üstteki aracın", 18, true, t.ink);
+			ph.setPadding(dp(4), dp(20), dp(4), dp(4));
 			col.addView(ph);
-			String pl;
-			if (pk == null) pl = "Henüz kayıt yok · araç bağlantısı kesilince kendiliğinden kaydedilir";
-			else {
-				pl = "Kaydedildi: " + new java.text.SimpleDateFormat("d MMM HH:mm", new Locale("tr")).format(new java.util.Date((long) pk[2]));
-				if (!Double.isNaN(YoldaRadar.lat))
-					pl += " · " + YoldaDriveCore.distText(YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1])) + " uzakta";
-			}
-			TextView pt = text(ctx, pl, 14, false, t.muted);
+			TextView pt = text(ctx, "Araç bağlantısı (Android Auto) kesilince kendiliğinden kaydedilir; 🅿 ile elle de eklenir",
+					13, false, t.muted);
 			pt.setPadding(dp(4), 0, dp(4), dp(6));
 			col.addView(pt);
-			LinearLayout pr = new LinearLayout(ctx);
-			pr.setOrientation(LinearLayout.HORIZONTAL);
-			col.addView(pr, new LinearLayout.LayoutParams(-1, -2));
-			if (pk != null) {
-				pr.addView(button(ctx, "🚶 Aracıma git", v -> YoldaRadar.walkToPark(ctx)), new LinearLayout.LayoutParams(0, dp(52), 1f));
+			java.text.SimpleDateFormat pdf = new java.text.SimpleDateFormat("d MMM EEE HH:mm", new Locale("tr"));
+			for (int i = 0; i < Math.min(10, pks.size()); i++) {
+				double[] pk = pks.get(i);
+				LinearLayout row = new LinearLayout(ctx);
+				row.setOrientation(LinearLayout.HORIZONTAL);
+				row.setGravity(Gravity.CENTER_VERTICAL);
+				row.setBackground(YoldaStyle.glass(ctx, t, 16));
+				row.setPadding(dp(14), dp(8), dp(8), dp(8));
+				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
+				rlp.topMargin = dp(8);
+				LinearLayout tx = new LinearLayout(ctx);
+				tx.setOrientation(LinearLayout.VERTICAL);
+				String when = pdf.format(new java.util.Date((long) pk[2])) + ((pk[3] != 0) ? " · otomatik" : " · elle");
+				tx.addView(text(ctx, (i == 0) ? ("🅿 Aracın · " + when) : when, 14, i == 0, (i == 0) ? t.ink : t.muted));
+				String far = Double.isNaN(YoldaRadar.lat) ? "Uzaklık bilinmiyor"
+						: (YoldaDriveCore.distText(YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1])) + " uzakta");
+				tx.addView(text(ctx, far, 13, false, t.muted));
+				row.addView(tx, new LinearLayout.LayoutParams(0, -2, 1f));
+				row.addView(button(ctx, "Git", v -> YoldaRadar.walkTo(ctx, pk[0], pk[1])), new LinearLayout.LayoutParams(-2, dp(42)));
+				LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(-2, dp(42));
+				dl.leftMargin = dp(8);
+				row.addView(button(ctx, "Sil", v -> {
+					YoldaRadar.deletePark(ctx, (long) pk[2]);
+					YoldaStyle.toast(ctx, "Park yeri silindi");
+					render();
+				}), dl);
+				row.setContentDescription("Park yeri " + when + ", " + far);
+				col.addView(row, rlp);
 			}
-			LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(0, dp(52), 1f);
-			if (pk != null) hp.leftMargin = dp(10);
-			pr.addView(button(ctx, "🅿 Buraya park ettim", v -> {
+			LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-2, dp(46));
+			hp.topMargin = dp(10);
+			col.addView(button(ctx, "🅿 Buraya park ettim", v -> {
 				YoldaStyle.toast(ctx, YoldaRadar.savePark(ctx, false) ? "Park yeri kaydedildi" : "Konum henüz bilinmiyor");
 				render();
 			}), hp);
 		}
+
 
 		LinearLayout acts = new LinearLayout(ctx);
 		acts.setOrientation(LinearLayout.HORIZONTAL);

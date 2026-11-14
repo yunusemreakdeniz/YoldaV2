@@ -166,7 +166,7 @@ public class YoldaSpeedRail extends LinearLayout {
 			int av = YoldaRadar.avg.average();
 			if (avgOn) {
 				avgText.setVisibility(VISIBLE);
-				avgText.setText("ORT\n" + ((av > 0) ? av : "…"));
+				setIf(avgText, "ORT\n" + ((av > 0) ? av : "…"));
 				int al = (YoldaRadar.avg.limit() > 0) ? YoldaRadar.avg.limit() : lim;
 				((GradientDrawable) avgText.getBackground()).setColor(((av > 0) && YoldaRadarCore.overSpeed(av, al))
 						? 0xFFDC2626 : 0xFF2563EB);
@@ -175,7 +175,7 @@ public class YoldaSpeedRail extends LinearLayout {
 			}
 			if (z != null) {
 				zoneText.setVisibility(VISIBLE);
-				zoneText.setText((z.kind() == 's') ? "OKUL" : "HAST.");
+				setIf(zoneText, (z.kind() == 's') ? "OKUL" : "HAST.");
 			} else {
 				zoneText.setVisibility(GONE);
 			}
@@ -192,7 +192,7 @@ public class YoldaSpeedRail extends LinearLayout {
 		}
 		if (lim > 0) {
 			sign.setVisibility(VISIBLE);
-			sign.setText(String.valueOf(lim));
+			setIf(sign, String.valueOf(lim));
 			sign.setTextSize(TypedValue.COMPLEX_UNIT_SP, (lim >= 100) ? 15 : 18);
 			if (overAnim == null) sign.setAlpha(YoldaRadar.limitEstimated ? 0.75f : 1f); // tahmini sınır (etiketsiz yol) soluk
 		} else {
@@ -204,7 +204,7 @@ public class YoldaSpeedRail extends LinearLayout {
 		boolean compact = (parent != null) && (parent.getHeight() > 0) && (parent.getHeight() < dp(470));
 		if ((sp >= 0) && ((!compact && !video) || (lim == 0) || over)) {
 			speed.setVisibility(VISIBLE);
-			speed.setText(sp + "\nkm/s");
+			setIf(speed, sp + "\nkm/s");
 			speed.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
 			speed.setTextColor(YoldaRadarCore.overSpeed(sp, lim) ? 0xFFEF4444 : over ? 0xFFFBBF24 : t.ink);
 		} else {
@@ -212,7 +212,7 @@ public class YoldaSpeedRail extends LinearLayout {
 		}
 		if (a != null) {
 			radar.setVisibility(VISIBLE);
-			radarText.setText(a.meters() >= 1000 ? String.format(java.util.Locale.ROOT, "%.1f\nkm", a.meters() / 1000f)
+			setIf(radarText, a.meters() >= 1000 ? String.format(java.util.Locale.ROOT, "%.1f\nkm", a.meters() / 1000f)
 					: (a.meters() + "\nm"));
 			((GradientDrawable) radar.getBackground()).setColor((a.meters() <= 300) ? 0xFFDC2626 : 0xFFF97316);
 		} else {
@@ -297,6 +297,11 @@ public class YoldaSpeedRail extends LinearLayout {
 		});
 		an.start();
 		return an;
+	}
+
+	/** Metin değiştiyse yaz (aynı metni yazmak bile yeniden yerleşime yol açıyor). */
+	private static void setIf(TextView t, CharSequence s) {
+		if (!android.text.TextUtils.equals(t.getText(), s)) t.setText(s);
 	}
 
 	private int dp(int v) {
