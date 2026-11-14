@@ -467,8 +467,7 @@ public final class YoldaVoice {
 			case "pharmacy" -> a.showFragment(R.id.yolda_pharmacy_fragment);
 			case "nav" -> {
 				Context ctx = a.getContext();
-				if (!a.isCarActivityNotMirror() || NavFragment.inAppMap(ctx) || !NavFragment.carNav(a, null))
-					a.showFragment(R.id.yolda_nav_fragment);
+				a.showFragment(R.id.yolda_nav_fragment); // her zaman Yolda'nın navigasyon ekranı
 			}
 			case "channels" -> a.showFragment(R.id.yolda_channels_fragment);
 			case "phone" -> HomeFragment.phone(a.getContext());

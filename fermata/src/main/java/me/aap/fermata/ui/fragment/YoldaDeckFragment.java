@@ -2388,8 +2388,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.RADIO -> ChannelsFragment.openSegment(a, true);
 			case YoldaDeck.NAV -> {
 				// Araçta: doğrudan Android Auto'nun haritası (Yolda içinde seçildiyse ya da açılamazsa navigasyon ekranı)
-				if (!a.isCarActivityNotMirror() || NavFragment.inAppMap(ctx) || !NavFragment.carNav(a, null))
-					a.showFragment(R.id.yolda_nav_fragment);
+				// Her zaman önce Yolda'nın navigasyon ekranı: araç başka uygulamaya geçişi sessizce yok sayabiliyor
+				// (önceden "açıldı" sanılıp hiçbir şey görünmüyordu). Rota oradan telefondaki haritada başlar.
+				a.showFragment(R.id.yolda_nav_fragment);
 			}
 			case YoldaDeck.RESUME -> {
 				if (lastItem != null) playItem(a, lastItem);

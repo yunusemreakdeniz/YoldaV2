@@ -177,6 +177,7 @@ public class NavFragment extends MainActivityFragment {
 			LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(-1, -2);
 			mlp.topMargin = dp(14);
 			col.addView(mode, mlp);
+			col.addView(carNavStatus(ctx), new LinearLayout.LayoutParams(-1, -2));
 		}
 
 		// Arama
@@ -584,6 +585,39 @@ public class NavFragment extends MainActivityFragment {
 	 * Araçlar farklı istekleri tanıyor: önce Android Auto'nun navigasyon isteği, sonra seçili harita
 	 * uygulamasının (Google Haritalar / Waze) kendi adresi, en son araçtaki varsayılan harita.
 	 */
+	/**
+	 * Araçta rota nasıl başlar: telefondaki harita uygulamasında başlatılır, Android Auto haritayı kendisi
+	 * öne getirir. Bunun için telefonda "Diğer uygulamaların üzerinde göster" izni gerekir (yoksa Android
+	 * arka plandan uygulama açmayı engelliyor); izin yoksa uyarı ve izin düğmesi.
+	 */
+	private View carNavStatus(Context ctx) {
+		LinearLayout box = new LinearLayout(ctx);
+		box.setOrientation(LinearLayout.VERTICAL);
+		box.setPadding(dp(4), dp(10), dp(4), 0);
+		boolean ok = YoldaPhonePerms.overlay(ctx);
+		TextView info = text(ctx, ok ? "Hedefi seç: rota telefondaki haritada başlar, harita birkaç saniyede araç ekranına gelir. "
+				+ "Gelmezse alttaki çubuktan harita düğmesine dokun."
+				: "⚠ Rota başlatılamıyor: telefonda “Diğer uygulamaların üzerinde göster” izni kapalı. "
+				+ "Araç dururken telefonda Yolda'yı açıp izni ver.", 15, !ok);
+		info.setTextColor(ok ? 0xC7FFFFFF : 0xFFFFD166);
+		box.addView(info);
+		if (!ok) {
+			TextView btn = text(ctx, "İzni aç (telefonda)", 16, true);
+			btn.setGravity(Gravity.CENTER);
+			btn.setPadding(dp(22), 0, dp(22), 0);
+			btn.setBackground(YoldaStyle.selected(ctx, 999));
+			btn.setClickable(true);
+			btn.setOnClickListener(v -> {
+				YoldaPhonePerms.openOverlay(ctx.getApplicationContext());
+				YoldaStyle.toast(ctx, "İzin ekranı telefonda açılıyor; açılmazsa telefonda Yolda → Kurulum");
+			});
+			LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(-2, dp(52));
+			bl.topMargin = dp(8);
+			box.addView(btn, bl);
+		}
+		return box;
+	}
+
 	public static boolean carNav(MainActivityDelegate a, @androidx.annotation.Nullable String dest) {
 		Context ctx = a.getContext();
 		boolean waze = ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -612,6 +646,8 @@ public class NavFragment extends MainActivityFragment {
 				ctx.getApplicationContext().startActivity(nav);
 				boolean overlay = android.provider.Settings.canDrawOverlays(ctx);
 				YoldaLog.add("Navigasyon telefonda başlatıldı (" + pkg + ")" + (overlay ? "" : " · üstte gösterme izni yok, açılmayabilir"));
+				YoldaStyle.toast(ctx, overlay ? ("Rota başlatıldı: " + dest.trim() + " · harita gelmezse alttaki harita düğmesine dokun")
+						: "Rota başlatılamayabilir: telefonda “üstte göster” izni kapalı (Navigasyon ekranından aç)");
 			} catch (Exception ex) {
 				YoldaLog.add("Navigasyon telefonda başlatılamadı: " + ex);
 			}
