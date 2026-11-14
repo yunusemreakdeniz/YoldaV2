@@ -242,7 +242,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Sesle: karta geç ve aç ("radyo kartını aç"). @return kartın başlığı; bulunamadıysa null. */
 	@Nullable
-	public String openCard(String spoken) {
+	public String openCardByName(String spoken) {
 		if ((deck == null) || (list == null)) return null;
 		int i = deck.find(spoken);
 		if (i < 0) return null;

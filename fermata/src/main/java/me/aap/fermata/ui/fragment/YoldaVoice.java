@@ -353,7 +353,7 @@ public final class YoldaVoice {
 				a.showFragment(R.id.home_fragment);
 				App.get().getHandler().postDelayed(() -> {
 					if (!(a.getActiveFragment() instanceof YoldaDeckFragment d)) return;
-					String title = d.openCard(it.arg());
+					String title = d.openCardByName(it.arg());
 					if (title == null) reply(a, "“" + it.arg() + "” adında bir kart bulamadım");
 					else toast(a, title + " açılıyor");
 				}, 150);
