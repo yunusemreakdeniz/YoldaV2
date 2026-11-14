@@ -801,12 +801,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		refreshCard(radio ? YoldaDeck.RADIO : YoldaDeck.TV);
 	}
 
-	/** Telefonun kişi seçicisi (rehber izni gerekmez; yalnız seçilen kişi okunur). */
-	private final androidx.activity.result.ActivityResultLauncher<android.content.Intent> pickContact =
-			registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(), res -> {
-				if ((res.getResultCode() != android.app.Activity.RESULT_OK) || (res.getData() == null)
-						|| (res.getData().getData() == null) || (getContext() == null)) return;
-				YoldaCalls.Contact c = YoldaCalls.fromPicked(requireContext(), res.getData().getData());
+	/**
+	 * Telefonun kişi seçicisi (rehber izni gerekmez; yalnız seçilen kişi okunur). Uygulamanın kendi sonuç
+	 * yolu kullanılır: alan olarak registerForActivityResult araç ekranında (CarActivity bir ComponentActivity
+	 * değil) deste açılırken uygulamayı çökertiyordu. Araçta seçici yok: telefondan eklenir.
+	 */
+	private void pickContact(Context ctx) {
+		MainActivityDelegate a = getActivityDelegate();
+		if (a.isCarActivity()) {
+			YoldaStyle.toast(ctx, "Kişiyi telefondan ekle");
+			return;
+		}
+		try {
+			a.startActivityForResult(() -> new android.content.Intent(android.content.Intent.ACTION_PICK,
+					android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI)).onCompletion((data, err) -> {
+				if ((err != null) || (data == null) || (data.getData() == null) || (getContext() == null)) return;
+				YoldaCalls.Contact c = YoldaCalls.fromPicked(requireContext(), data.getData());
 				if (c == null) {
 					YoldaStyle.toast(requireContext(), "Kişi eklenemedi");
 					return;
@@ -815,6 +825,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				YoldaStyle.toast(requireContext(), "Eklendi: " + c.name());
 				refreshCard(YoldaDeck.CALLS);
 			});
+		} catch (Throwable ex) {
+			YoldaStyle.toast(ctx, "Kişi seçici açılamadı");
+		}
+	}
 
 	private LinearLayout.LayoutParams contactLp(int ts) {
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ts + dp(16), -2);
@@ -865,12 +879,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (c == null) {
 			col.setContentDescription("Kişi ekle");
 			col.setOnClickListener(v -> {
-				try {
-					pickContact.launch(new android.content.Intent(android.content.Intent.ACTION_PICK,
-							android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI));
-				} catch (Throwable ex) {
-					YoldaStyle.toast(ctx, "Kişi seçici açılamadı");
-				}
+				pickContact(ctx);
 			});
 		} else {
 			col.setContentDescription(c.name() + " ara");
@@ -2213,12 +2222,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FAVS -> showFavorites();
 			case YoldaDeck.PHARMACY -> a.showFragment(R.id.yolda_pharmacy_fragment);
 			case YoldaDeck.CALLS -> {
-				try {
-					pickContact.launch(new android.content.Intent(android.content.Intent.ACTION_PICK,
-							android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI));
-				} catch (Throwable ex) {
-					YoldaStyle.toast(ctx, "Kişi seçici açılamadı");
-				}
+				pickContact(ctx);
 			}
 			case YoldaDeck.RADAR -> a.showFragment(R.id.yolda_radar_fragment);
 			case YoldaDeck.WEATHER -> a.showFragment(R.id.yolda_weather_fragment); // uygulama içi ekran
