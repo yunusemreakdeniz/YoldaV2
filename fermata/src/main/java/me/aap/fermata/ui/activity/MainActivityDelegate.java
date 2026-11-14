@@ -2909,6 +2909,9 @@ public class MainActivityDelegate extends ActivityDelegate
 
 			if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
 				showAlert(getContext(), R.string.err_no_audio_record_perm);
+			} else if (!textInput && (error == SpeechRecognizer.ERROR_NO_MATCH)) {
+				// konuşuldu ama sözcük çıkarılamadı: yeniden "Hey Yolda" demeden tekrar dinle
+				me.aap.fermata.ui.fragment.YoldaVoice.listenAgain(MainActivityDelegate.this);
 			}
 		}
 

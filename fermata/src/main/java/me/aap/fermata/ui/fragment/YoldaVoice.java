@@ -156,6 +156,7 @@ public final class YoldaVoice {
 		var cb = a.getMediaSessionCallback();
 		AudioManager am = (AudioManager) ctx.getSystemService(Context.AUDIO_SERVICE);
 		if ((it.kind() != Kind.REPEAT) && (it.kind() != Kind.HELP)) lastIntent = it;
+		retries = 0;
 
 		switch (it.kind()) {
 			case HELP -> reply(a, "Örneğin: TRT Haber aç, Tarkan çal, eve git, en yakın benzinlik, sesi yüzde elli yap, "
@@ -569,7 +570,37 @@ public final class YoldaVoice {
 		YoldaLog.add("Sesli komut anlaşılamadı: “" + raw + "”");
 		lastFeedback = "Anlayamadım";
 		toast(a, "“" + raw + "” anlaşılamadı");
-		YoldaSpeak.say(a.getContext(), "Anlayamadım, tekrar söyler misin?");
+		listenAgain(a);
+	}
+
+	/** Art arda yeniden dinleme sayısı; bir komut çalışınca sıfırlanır. */
+	private static int retries;
+	private static final int MAX_RETRIES = 2;
+
+	/**
+	 * Anlaşılmadı ya da hiçbir şey duyulmadı: "Anlayamadım, tekrar söyler misin?" deyip mikrofonu yeniden açar
+	 * (yeniden "Hey Yolda" demek gerekmez). Art arda en çok iki kez; sonra vazgeçer, "Hey Yolda" dinlemesi sürer.
+	 */
+	public static void listenAgain(MainActivityDelegate a) {
+		Context ctx = a.getContext();
+		if (retries >= MAX_RETRIES) {
+			retries = 0;
+			YoldaSpeak.say(ctx, "Anlayamadım. Hazır olunca Hey Yolda de.");
+			return;
+		}
+		retries++;
+		YoldaWake.assistantBusy = true; // bekleme arasında "Hey Yolda" mikrofonu almasın
+		YoldaSpeak.say(ctx, "Anlayamadım, tekrar söyler misin?");
+		long wait = YoldaSpeak.isEnabled(ctx) ? 2400 : 600; // soru bitsin, mikrofon kendi sesini duymasın
+		App.get().getHandler().postDelayed(() -> {
+			try {
+				YoldaLog.add("Sesli komut: yeniden dinleniyor (" + retries + ". deneme)");
+				a.startVoiceAssistant();
+			} catch (Throwable ex) {
+				YoldaWake.assistantBusy = false;
+				YoldaLog.add("Yeniden dinleme açılamadı: " + ex);
+			}
+		}, wait);
 	}
 
 	// ---- eski yardımcılar (birim testleri kullanıyor) ----
