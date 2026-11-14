@@ -296,7 +296,12 @@ public final class YoldaVoice {
 					else reply(a, "Son yolculuk: " + l.get(0).summary().replace(" · ", ", ").replace("ort.", "ortalama"));
 				}
 			}
-			case HOME -> a.showFragment(R.id.home_fragment);
+			case HOME -> {
+				a.showFragment(R.id.home_fragment);
+				App.get().getHandler().postDelayed(() -> {
+					if (a.getActiveFragment() instanceof YoldaDeckFragment d) d.goHomeCard();
+				}, 120);
+			}
 			case BACK -> a.yoldaBack();
 			case OPEN_APP -> {
 				if (!openApp(a, it.arg())) return false;

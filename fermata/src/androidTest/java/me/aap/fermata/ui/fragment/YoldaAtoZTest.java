@@ -1282,6 +1282,44 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Ana kart: başka karttayken kapsülde ⌂ çıkar, basınca ana karta kayılır. */
+	@Test
+	public void anaKart() {
+		android.content.SharedPreferences p = ctx().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
+				android.content.Context.MODE_PRIVATE);
+		String old = p.getString("home_card", null);
+		try {
+			p.edit().putString("home_card", YoldaDeck.WEATHER).commit();
+			onMain(a -> {
+				me.aap.fermata.ui.view.YoldaNowPlaying.hide(a);
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(1200);
+			int hc = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).homeCardIndex());
+			assertTrue("Ana kart destede", hc >= 0);
+			onMain(a -> {
+				((YoldaDeckFragment) a.getActiveFragment()).scrollToCard(0);
+				return null;
+			});
+			waitIdle(1500);
+			onMain(a -> {
+				a.yoldaDockChanged();
+				return null;
+			});
+			waitIdle(500);
+			View home = onMain(a -> byDescExact(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Ana sayfa"));
+			assertNotNull("Ana karttan uzakken ⌂ görünmeli", home);
+			shot("ana_kart_dugmesi");
+			onMain(a -> home.performClick());
+			assertTrue("⌂ ile ana karta dönülmeli", waitFor(4000,
+					() -> onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).currentCard()) == hc));
+		} finally {
+			if (old == null) p.edit().remove("home_card").commit();
+			else p.edit().putString("home_card", old).commit();
+		}
+	}
+
 	private static View clickableOf(View v) {
 		while ((v != null) && !v.isClickable()) v = (v.getParent() instanceof View p) ? p : null;
 		return v;

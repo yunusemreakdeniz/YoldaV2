@@ -215,6 +215,43 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	/** Testler için: kartı ortaya getirir. */
+	// ---- ana kart ----
+
+	/** Ana kartın destedeki yeri; seçilmediyse -1. */
+	public int homeCardIndex() {
+		if ((deck == null) || (getContext() == null)) return -1;
+		String k = prefs(getContext()).getString("home_card", null);
+		return (k == null) ? -1 : deck.indexOf(k);
+	}
+
+	/** Ortadaki kart ana kart değilse (ve ana kart seçildiyse) true: kapsülde ⌂ görünsün. */
+	public boolean awayFromHomeCard() {
+		int hc = homeCardIndex();
+		return (hc >= 0) && (list != null) && (centerPosition() != hc);
+	}
+
+	/** Ana karta kayarak dön. @return ana kart varsa true. */
+	public boolean goHomeCard() {
+		int hc = homeCardIndex();
+		if ((hc < 0) || (list == null)) return false;
+		list.smoothScrollToPosition(hc);
+		return true;
+	}
+
+	/** Ana kart yap: destenin ortasına alınır (sağında da solunda da kart olsun, iki yöne kaydırılsın). */
+	private void setHomeCard(YoldaDeck.Card c, int pos) {
+		prefs(requireContext()).edit().putString("home_card", c.key()).apply();
+		int target = Math.max(0, (deck.size() - 1) / 2);
+		int p = pos;
+		while (p != target) {
+			int np = deck.move(p, (target > p) ? 1 : -1);
+			if (np == p) break;
+			p = np;
+		}
+		afterChange(p);
+		YoldaStyle.toast(requireContext(), "Ana kart: " + c.title() + " · ⌂ ile hep buraya dönersin");
+	}
+
 	public void scrollToCard(int pos) {
 		if ((list == null) || (pos < 0) || (pos >= deck.size())) return;
 		((LinearLayoutManager) list.getLayoutManager()).scrollToPositionWithOffset(pos, 0);
@@ -431,6 +468,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					int p = centerPosition();
 					if (p >= 0) prefs(rv.getContext()).edit().putInt(PREF_POS, p).apply();
 					updateDots();
+					try {
+						getActivityDelegate().yoldaDockChanged(); // ⌂ düğmesi: ana karttan uzaktaysa görünür
+					} catch (Throwable ignore) {
+					}
 				}
 			}
 		});
@@ -513,7 +554,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		list.setPadding(pad, 0, pad, 0);
 		if (changed) {
 			adapter.notifyDataSetChanged();
-			int pos = Math.max(0, Math.min(deck.size() - 1, prefs(requireContext()).getInt(PREF_POS, 0)));
+			int hc = homeCardIndex();
+			int pos = (hc >= 0) ? hc : Math.max(0, Math.min(deck.size() - 1, prefs(requireContext()).getInt(PREF_POS, 0)));
 			((LinearLayoutManager) list.getLayoutManager()).scrollToPositionWithOffset(pos, 0);
 			list.post(() -> {
 				transform();
@@ -1727,7 +1769,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			dlp.rightMargin = dp(6);
 			tagRow.addView(dot, dlp);
 		}
-		TextView tag = text(ctx, lk.tag, 12, true, noble ? accent : 0xE6FFFFFF);
+		boolean homeCard = c.key().equals(prefs(ctx).getString("home_card", null));
+		TextView tag = text(ctx, (homeCard ? "⌂ ANA KART · " : "") + lk.tag, 12, true, noble ? accent : 0xE6FFFFFF);
 		tag.setLetterSpacing(0.14f);
 		tagRow.addView(tag);
 		names.addView(tagRow);
@@ -2102,6 +2145,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(dp(eb), dp(eb));
 		clp.rightMargin = dp((eb < 56) ? 8 : 14);
 		row.addView(roundButton(ctx, R.drawable.yi_palette, "Rengi değiştir", v -> pickColor(c, pos)), clp);
+		boolean isHome = c.key().equals(prefs(ctx).getString("home_card", null));
+		ImageView hb = roundButton(ctx, R.drawable.yi_home_fill, isHome ? "Ana kart (kaldırmak için dokun)" : "Ana kart yap", v -> {
+			if (isHome) {
+				prefs(ctx).edit().remove("home_card").apply();
+				YoldaStyle.toast(ctx, "Ana kart kaldırıldı");
+				afterChange(pos);
+			} else {
+				setHomeCard(c, pos);
+			}
+		});
+		hb.setAlpha(isHome ? 1f : 0.6f);
+		LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(dp(eb), dp(eb));
+		hlp.rightMargin = dp((eb < 56) ? 8 : 14);
+		row.addView(hb, hlp);
 		if (c.isRemovable()) {
 			row.addView(roundButton(ctx, R.drawable.yi_close, "Kaldır", v -> {
 				if (!deck.remove(pos)) return;

@@ -2047,6 +2047,10 @@ public class MainActivityDelegate extends ActivityDelegate
 					.withEndAction(() -> x.animate().scaleX(1f).scaleY(1f).setDuration(140).start()).start();
 			me.aap.fermata.ui.view.YoldaNowPlaying.hide(this);
 			showFragment(R.id.home_fragment); // Ana sayfa: her zaman kartlara
+			// ana kart seçildiyse ona kay
+			App.get().getHandler().postDelayed(() -> {
+				if (getActiveFragment() instanceof me.aap.fermata.ui.fragment.YoldaDeckFragment d) d.goHomeCard();
+			}, 120);
 		});
 		int s = toIntPx(ctx, 52);
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
@@ -2205,7 +2209,10 @@ public class MainActivityDelegate extends ActivityDelegate
 		int vv = (full || np) ? View.GONE : View.VISIBLE;
 		if ((voiceButton != null) && (voiceButton.getVisibility() != vv)) voiceButton.setVisibility(vv);
 		int bv = (full || np || (getActiveFragmentId() == R.id.home_fragment)) ? View.GONE : View.VISIBLE;
-		if ((deckBack != null) && (deckBack.getVisibility() != bv)) deckBack.setVisibility(bv);
+		int hv = bv;
+		if (!full && !np && (getActiveFragment() instanceof me.aap.fermata.ui.fragment.YoldaDeckFragment d)
+				&& d.awayFromHomeCard()) hv = View.VISIBLE; // destede ana karttan uzaktayken ⌂ ile dön
+		if ((deckBack != null) && (deckBack.getVisibility() != hv)) deckBack.setVisibility(hv);
 		if ((deckPrev != null) && (deckPrev.getVisibility() != bv)) deckPrev.setVisibility(bv);
 		if (speedRail != null) {
 			// Videoda da (tam ekran, YouTube): yalnız önemli anda, sol üstte (video düğmelerine binmesin)
