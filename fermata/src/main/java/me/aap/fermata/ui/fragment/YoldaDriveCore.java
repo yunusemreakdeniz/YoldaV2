@@ -272,6 +272,48 @@ public final class YoldaDriveCore {
 		return (f.isEmpty() ? "?" : f) + " → " + (t.isEmpty() ? "?" : t);
 	}
 
+	/**
+	 * Ev / iş tahmini: aracın durduğu yerler {lat, lon, zaman (ms)} 300 m içinde kümelenir; ev = gece (20:00-07:00)
+	 * en çok durulan, iş = hafta içi gündüz (08:00-18:00) en çok durulan ve evden farklı küme. En az 3 kez durulmuş
+	 * olmalı. Dönüş: {evLat, evLon, işLat, işLon}; bulunamayan NaN.
+	 */
+	public static double[] guessHomeWork(List<double[]> stops, java.util.TimeZone tz) {
+		List<double[]> centers = new ArrayList<>(); // {lat, lon, gece, gündüz, n}
+		java.util.Calendar cal = java.util.Calendar.getInstance(tz);
+		for (double[] s : stops) {
+			if (Double.isNaN(s[0])) continue;
+			cal.setTimeInMillis((long) s[2]);
+			int h = cal.get(java.util.Calendar.HOUR_OF_DAY), dw = cal.get(java.util.Calendar.DAY_OF_WEEK);
+			boolean night = (h >= 20) || (h < 7);
+			boolean work = (dw != java.util.Calendar.SATURDAY) && (dw != java.util.Calendar.SUNDAY) && (h >= 8) && (h < 18);
+			double[] best = null;
+			for (double[] c : centers) {
+				if (YoldaRadarCore.dist(c[0], c[1], s[0], s[1]) <= 300) {
+					best = c;
+					break;
+				}
+			}
+			if (best == null) {
+				best = new double[]{s[0], s[1], 0, 0, 0};
+				centers.add(best);
+			}
+			best[0] = (best[0] * best[4] + s[0]) / (best[4] + 1);
+			best[1] = (best[1] * best[4] + s[1]) / (best[4] + 1);
+			best[4]++;
+			if (night) best[2]++;
+			if (work) best[3]++;
+		}
+		double[] home = null, office = null;
+		for (double[] c : centers) if ((c[2] >= 3) && ((home == null) || (c[2] > home[2]))) home = c;
+		for (double[] c : centers) {
+			if ((c == home) || (c[3] < 3)) continue;
+			if ((home != null) && (YoldaRadarCore.dist(c[0], c[1], home[0], home[1]) < 500)) continue;
+			if ((office == null) || (c[3] > office[3])) office = c;
+		}
+		return new double[]{(home != null) ? home[0] : Double.NaN, (home != null) ? home[1] : Double.NaN,
+				(office != null) ? office[0] : Double.NaN, (office != null) ? office[1] : Double.NaN};
+	}
+
 	/** Park yeri: araçtan ne kadar uzaktasın ("350 m", "1,2 km"). */
 	public static String distText(double meters) {
 		return (meters >= 1000) ? String.format(new java.util.Locale("tr"), "%.1f km", meters / 1000) : (Math.round(meters) + " m");

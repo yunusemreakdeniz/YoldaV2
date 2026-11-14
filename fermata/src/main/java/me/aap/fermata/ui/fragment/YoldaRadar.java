@@ -813,6 +813,17 @@ public final class YoldaRadar {
 		}
 	}
 
+	/** Aracın durduğu yerler {lat, lon, zaman}: park yerleri ve yolculuk bitişleri (ev / iş tahmini için). */
+	public static List<double[]> stopPoints(Context ctx) {
+		List<double[]> l = new ArrayList<>();
+		for (double[] p : parks(ctx)) l.add(new double[]{p[0], p[1], p[2]});
+		for (TripItem t : tripItems(ctx)) {
+			YoldaDriveCore.TripRec r = t.rec();
+			if (!Double.isNaN(r.endLat())) l.add(new double[]{r.endLat(), r.endLon(), r.endWall()});
+		}
+		return l;
+	}
+
 	/** Tek park yerini sil (zamanıyla); en yenisi silinirse bir öncekisi "aracım" olur. */
 	public static synchronized void deletePark(Context ctx, long at) {
 		List<double[]> l = parks(ctx);

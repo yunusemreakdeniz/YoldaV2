@@ -416,6 +416,8 @@ public class ChannelsFragment extends MainActivityFragment {
 	private void showGrid() {
 		if (grid == null || !isAdded()) return;
 		Context ctx = requireContext();
+		// Kullanıcının sırası (TV / Radyo kartındaki "Sırala")
+		YoldaChannelOrder.sort(items, YoldaChannelOrder.order(ctx), MediaLib.PlayableItem::getId);
 		MainActivityDelegate a = getActivityDelegate();
 		MediaLib.Favorites favs = a.getLib().getFavorites();
 		List<MediaLib.PlayableItem> shown = new ArrayList<>();

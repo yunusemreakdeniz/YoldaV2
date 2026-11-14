@@ -630,6 +630,135 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	// ---- Kişiler kartı ----
 
+	// ---- Navigasyon: Ev / İş ----
+
+	/**
+	 * Ev / İş düğmesi: kayıtlıysa ya da tahmin edildiyse dokun → rota; basılı tut → bulunduğun yeri kaydet.
+	 * Hiç yoksa "Ev ekle": dokununca Navigasyon ekranı (adres yaz), basılı tutunca bulunduğun yer.
+	 */
+	private TextView placeChip(Context ctx, MainActivityDelegate a, String label, String key, @Nullable String dest, boolean guessed) {
+		String text = (dest == null) ? (label + " ekle") : (guessed ? (label + " · tahmin") : label);
+		TextView c = chipBtn(ctx, text, v -> {
+			if (dest == null) {
+				YoldaStyle.toast(ctx, "Adresi yaz ya da bulunduğun yerdeyken düğmeyi basılı tut");
+				a.showFragment(R.id.yolda_nav_fragment);
+			} else if (a.isCarActivityNotMirror() && !NavFragment.inAppMap(ctx)) {
+				NavFragment.carNav(a, dest);
+			} else {
+				NavFragment.navigateTo(ctx, dest, false);
+			}
+		});
+		c.setOnLongClickListener(v -> {
+			if (Double.isNaN(YoldaRadar.lat)) {
+				YoldaStyle.toast(ctx, "Konum henüz bilinmiyor");
+				return true;
+			}
+			String here = String.format(java.util.Locale.ROOT, "%.6f,%.6f", YoldaRadar.lat, YoldaRadar.lon);
+			prefs(ctx).edit().putString(key, here).apply();
+			YoldaStyle.toast(ctx, label.replace("⌂ ", "") + " olarak kaydedildi: bulunduğun yer");
+			refreshCard(YoldaDeck.NAV);
+			return true;
+		});
+		c.setContentDescription(label.replace("⌂ ", "") + ((dest == null) ? ": kayıtlı değil" : guessed ? ": tahmin" : "")
+				+ ". Basılı tut: bulunduğun yeri kaydet");
+		return c;
+	}
+
+	// ---- YouTube kartı: izlediğin kanallar ----
+
+	private List<String> ytChannels(Context ctx) {
+		List<String> l = new ArrayList<>();
+		String s = prefs(ctx).getString("yt_channels", "");
+		for (String x : s.split("\u001E")) if (!x.trim().isEmpty()) l.add(x.trim());
+		return l;
+	}
+
+	private void saveYtChannels(Context ctx, List<String> l) {
+		prefs(ctx).edit().putString("yt_channels", String.join("\u001E", l)).apply();
+	}
+
+	// ---- TV / Radyo: kanal sırası ----
+
+	/** Kanal şeridinin sonunda "Sırala" düğmesi. */
+	private View withOrderButton(Context ctx, @Nullable View row, boolean radio) {
+		LinearLayout h = hrow(ctx);
+		h.setGravity(Gravity.CENTER_VERTICAL);
+		if (row != null) h.addView(row, new LinearLayout.LayoutParams(0, -2, 1f));
+		else h.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
+		ImageView b = roundButton(ctx, R.drawable.yi_list, radio ? "Radyoları sırala" : "Kanalları sırala",
+				v -> showOrderEditor(ctx, radio));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
+		lp.leftMargin = dp(8);
+		h.addView(b, lp);
+		return h;
+	}
+
+	/** Sıralama: her satırda ▲ ▼; sıra kaydedilir, kart ve Kanallar ekranı bu sırayla gösterir. */
+	private void showOrderEditor(Context ctx, boolean radio) {
+		List<MediaLib.PlayableItem> work = new ArrayList<>(radio ? radioChannels : tvChannels);
+		if (work.isEmpty()) {
+			YoldaStyle.toast(ctx, "Kanal listesi henüz yüklenmedi");
+			return;
+		}
+		FrameLayout panel = openOverlay(ctx, radio ? "Radyoları sırala" : "Kanalları sırala");
+		LinearLayout box = (LinearLayout) panel.getChildAt(0);
+		TextView hint = text(ctx, "▲ ▼ ile taşı · en üstteki kartta ilk görünür", 14, false, t.muted);
+		hint.setPadding(dp(4), dp(4), 0, dp(6));
+		box.addView(hint);
+		ScrollView sv = new ScrollView(ctx);
+		LinearLayout rows = new LinearLayout(ctx);
+		rows.setOrientation(LinearLayout.VERTICAL);
+		sv.addView(rows);
+		box.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
+		Runnable[] render = new Runnable[1];
+		render[0] = () -> {
+			rows.removeAllViews();
+			for (int i = 0; i < work.size(); i++) {
+				MediaLib.PlayableItem pi = work.get(i);
+				int idx = i;
+				LinearLayout r = new LinearLayout(ctx);
+				r.setOrientation(LinearLayout.HORIZONTAL);
+				r.setGravity(Gravity.CENTER_VERTICAL);
+				r.setPadding(dp(12), dp(6), dp(6), dp(6));
+				TextView n = text(ctx, (i + 1) + ".  " + pi.getName(), 16, i < 8, t.ink);
+				n.setSingleLine(true);
+				n.setEllipsize(TextUtils.TruncateAt.END);
+				r.addView(n, new LinearLayout.LayoutParams(0, -2, 1f));
+				LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(dp(48), dp(48));
+				bl.leftMargin = dp(6);
+				ImageView up = roundButton(ctx, R.drawable.yi_up, "Yukarı: " + pi.getName(), v -> {
+					YoldaChannelOrder.move(work, idx, -1);
+					saveOrder(ctx, radio, work);
+					render[0].run();
+				});
+				up.setAlpha((idx == 0) ? 0.3f : 1f);
+				r.addView(up, bl);
+				ImageView dn = roundButton(ctx, R.drawable.yi_down, "Aşağı: " + pi.getName(), v -> {
+					YoldaChannelOrder.move(work, idx, 1);
+					saveOrder(ctx, radio, work);
+					render[0].run();
+				});
+				dn.setAlpha((idx == work.size() - 1) ? 0.3f : 1f);
+				r.addView(dn, bl);
+				rows.addView(r, new LinearLayout.LayoutParams(-1, -2));
+			}
+		};
+		render[0].run();
+	}
+
+	/** Testler için: kanal sırasını kaydet (sıralama penceresinin yaptığı). */
+	private void saveOrder(Context ctx, boolean radio, List<MediaLib.PlayableItem> edited) {
+		List<String> ids = new ArrayList<>();
+		List<MediaLib.PlayableItem> tv = radio ? tvChannels : edited, rd = radio ? edited : radioChannels;
+		for (MediaLib.PlayableItem pi : tv) ids.add(pi.getId());
+		for (MediaLib.PlayableItem pi : rd) ids.add(pi.getId());
+		YoldaChannelOrder.save(ctx, ids);
+		List<MediaLib.PlayableItem> target = radio ? radioChannels : tvChannels;
+		target.clear();
+		target.addAll(edited);
+		refreshCard(radio ? YoldaDeck.RADIO : YoldaDeck.TV);
+	}
+
 	/** Telefonun kişi seçicisi (rehber izni gerekmez; yalnız seçilen kişi okunur). */
 	private final androidx.activity.result.ActivityResultLauncher<android.content.Intent> pickContact =
 			registerForActivityResult(new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(), res -> {
@@ -1699,10 +1828,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int tile = dp(fz.tile());
 		switch (c.type()) {
 			case YoldaDeck.TV -> { // kutucuğun altında kanal adı (logosu olmayan kanal da tanınsın)
-				return channelRow(ctx, a, pickChannels(tvChannels), labeledTile(tile));
+				return withOrderButton(ctx, channelRow(ctx, a, pickChannels(tvChannels), labeledTile(tile)), false);
 			}
 			case YoldaDeck.RADIO -> {
-				return channelRow(ctx, a, pickChannels(radioChannels), labeledTile(tile));
+				return withOrderButton(ctx, channelRow(ctx, a, pickChannels(radioChannels), labeledTile(tile)), true);
 			}
 			case YoldaDeck.MUSIC -> {
 				List<YtMusic.Track> rec = MusicFragment.recent(ctx);
@@ -1719,6 +1848,29 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.YOUTUBE -> {
 				LinearLayout row = hrow(ctx);
+				// İzlediğin kanallar: dokun aç, basılı tut kaldır; sonra "+ Kanal"
+				for (String ch : ytChannels(ctx)) {
+					TextView cb = chipBtn(ctx, "▶ " + ch, v -> YoutubeHomeFragment.searchFor(a, ch));
+					cb.setContentDescription("YouTube kanalı: " + ch);
+					cb.setOnLongClickListener(v -> {
+						List<String> l = ytChannels(ctx);
+						l.remove(ch);
+						saveYtChannels(ctx, l);
+						YoldaStyle.toast(ctx, "Kaldırıldı: " + ch);
+						refreshCard(YoldaDeck.YOUTUBE);
+						return true;
+					});
+					row.addView(cb, chipLp());
+				}
+				TextView add = chipBtn(ctx, "＋ Kanal", v -> askText("YouTube kanalı ekle", "Kanal adı (ör. Habertürk, Yahya Bostan)", s -> {
+					List<String> l = ytChannels(ctx);
+					if (!l.contains(s)) l.add(s);
+					saveYtChannels(ctx, l);
+					YoldaStyle.toast(ctx, "Eklendi: " + s);
+					refreshCard(YoldaDeck.YOUTUBE);
+				}));
+				add.setContentDescription("YouTube kanalı ekle");
+				row.addView(add, chipLp());
 				for (String[] q : new String[][]{{"Haber", "haber canlı"}, {"Canlı yayın", "canlı yayın türkiye"},
 						{"Müzik", "türkçe pop"}, {"Spor", "spor özet"}, {"Belgesel", "belgesel türkçe"}}) {
 					row.addView(chipBtn(ctx, q[0], v -> YoutubeHomeFragment.searchFor(a, q[1])), chipLp());
@@ -1813,8 +1965,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				LinearLayout row = hrow(ctx);
 				android.content.SharedPreferences np = prefs(ctx);
 				String home = np.getString("nav_home", null), work = np.getString("nav_work", null);
-				if (home != null) row.addView(chipBtn(ctx, "⌂ Ev", v -> NavFragment.navigateTo(ctx, home, false)), chipLp());
-				if (work != null) row.addView(chipBtn(ctx, "İş", v -> NavFragment.navigateTo(ctx, work, false)), chipLp());
+				// Kayıtlı değilse durduğun yerlerden tahmin (gece → ev, hafta içi gündüz → iş)
+				double[] g = ((home == null) || (work == null)) ? YoldaDriveCore.guessHomeWork(YoldaRadar.stopPoints(ctx),
+						java.util.TimeZone.getDefault()) : null;
+				String homeQ = (home != null) ? home : ((g != null) && !Double.isNaN(g[0])) ? String.format(java.util.Locale.ROOT,
+						"%.6f,%.6f", g[0], g[1]) : null;
+				String workQ = (work != null) ? work : ((g != null) && !Double.isNaN(g[2])) ? String.format(java.util.Locale.ROOT,
+						"%.6f,%.6f", g[2], g[3]) : null;
+				row.addView(placeChip(ctx, a, "⌂ Ev", "nav_home", homeQ, (home == null) && (homeQ != null)), chipLp());
+				row.addView(placeChip(ctx, a, "İş", "nav_work", workQ, (work == null) && (workQ != null)), chipLp());
 				row.addView(chipBtn(ctx, "Hedef ara", v -> a.showFragment(R.id.yolda_nav_fragment)), chipLp());
 				if (YoldaRadar.feature(ctx, "park") && (YoldaRadar.park(ctx) != null))
 					row.addView(chipBtn(ctx, "🅿 Aracım", v -> YoldaRadar.walkToPark(ctx)), chipLp());
@@ -2789,6 +2948,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					if (RADIO_GROUP.equals(groupOf(pi))) radioChannels.add(pi);
 					else tvChannels.add(pi);
 				}
+				List<String> ord = YoldaChannelOrder.order(requireContext());
+				YoldaChannelOrder.sort(tvChannels, ord, MediaLib.PlayableItem::getId);
+				YoldaChannelOrder.sort(radioChannels, ord, MediaLib.PlayableItem::getId);
 				if (adapter != null) {
 					for (String k : new String[]{YoldaDeck.TV, YoldaDeck.RADIO}) {
 						int i = deck.indexOf(k);
@@ -2825,6 +2987,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Önce favoriler, sonra listedeki ilk kanallar (en çok 8). */
 	private List<MediaLib.PlayableItem> pickChannels(List<MediaLib.PlayableItem> all) {
 		List<MediaLib.PlayableItem> out = new ArrayList<>();
+		if ((getContext() != null) && YoldaChannelOrder.hasOrder(getContext())) { // kullanıcının sırası
+			for (MediaLib.PlayableItem pi : all) if (out.size() < 8) out.add(pi);
+			return out;
+		}
 		try {
 			MediaLib.Favorites favs = getActivityDelegate().getLib().getFavorites();
 			for (MediaLib.PlayableItem pi : all) if ((out.size() < 8) && favs.isFavoriteItem(pi)) out.add(pi);
