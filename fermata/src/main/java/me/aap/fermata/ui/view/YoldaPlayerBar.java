@@ -185,16 +185,6 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		row.addView(button(ctx, R.drawable.yi_next, "Sonraki", v -> cb().onSkipToNext()), btnLp(52));
 		if (!compact) row.addView(button(ctx, R.drawable.more, "Diğer", v -> clickOriginal(R.id.control_menu_button)),
 				btnLp(40));
-		// Yatayda: sol kapsüle küçült (dokununca yeniden açılır)
-		boolean land = getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
-		if (land && YoldaStyle.DECK) row.addView(button(ctx, R.drawable.yi_left, "Küçült", v -> {
-			ControlPanelView.yoldaDocked = true;
-			if (getParent() instanceof ControlPanelView cp) cp.yoldaRefreshVisibility();
-			try {
-				MainActivityDelegate.get(getContext()).yoldaDockChanged();
-			} catch (Throwable ignore) {
-			}
-		}), btnLp(48));
 		row.addView(button(ctx, R.drawable.yi_close, "Kapat", v -> {
 			if (getParent() instanceof ControlPanelView cp) cp.closePlayer();
 		}), btnLp(48));

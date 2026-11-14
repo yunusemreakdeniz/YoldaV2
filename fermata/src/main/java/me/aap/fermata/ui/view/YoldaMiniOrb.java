@@ -27,6 +27,19 @@ public class YoldaMiniOrb extends FrameLayout {
 	private final RectF oval = new RectF();
 	private final float d;
 	private boolean playing;
+	private boolean expanded;
+
+	/** Çubuk açık mı (halka tam yanar; dokununca kapanır). */
+	public void setExpanded(boolean e) {
+		if (expanded == e) return;
+		expanded = e;
+		setContentDescription(e ? "Çalan: oynatıcıyı küçült" : "Çalan: oynatıcıyı aç");
+		invalidate();
+	}
+
+	public boolean isExpanded() {
+		return expanded;
+	}
 	private float angle;
 	private final Runnable spin = new Runnable() {
 		@Override
@@ -122,7 +135,8 @@ public class YoldaMiniOrb extends FrameLayout {
 		int accent = YoldaStyle.current(getContext()).accent;
 		float h = 1.5f * d;
 		oval.set(h, h, getWidth() - h, getHeight() - h);
-		ring.setColor((accent & 0x00FFFFFF) | 0x66000000);
+		ring.setColor(expanded ? (accent | 0xFF000000) : ((accent & 0x00FFFFFF) | 0x66000000));
+		ring.setStrokeWidth((expanded ? 3.5f : 2.5f) * d);
 		c.drawOval(oval, ring);
 		if (playing) {
 			arc.setColor(accent | 0xFF000000);

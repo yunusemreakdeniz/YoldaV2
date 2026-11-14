@@ -279,7 +279,12 @@ public class ControlPanelView extends ConstraintLayout
 	public static volatile boolean yoldaDocked = true;
 
 	public boolean yoldaDockedNow() {
-		return yoldaDocked && YoldaStyle.DECK && (getResources().getConfiguration().orientation
+		return yoldaDocked && yoldaLandscape();
+	}
+
+	/** Yatay ekran (telefon): oynatıcı sol kapsülden açılıp kapanır. */
+	public boolean yoldaLandscape() {
+		return YoldaStyle.DECK && (getResources().getConfiguration().orientation
 				== android.content.res.Configuration.ORIENTATION_LANDSCAPE);
 	}
 

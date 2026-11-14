@@ -1739,7 +1739,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			lp.topMargin = toIntPx(ctx, 20);
 			lp.verticalBias = 0f;
 		} else {
-			View anchor = (orb != null) ? orb : (deckPrev != null) ? deckPrev : voiceButton;
+			View anchor = (deckPrev != null) ? deckPrev : voiceButton;
 			lp.startToStart = anchor.getId();
 			lp.endToEnd = anchor.getId();
 			lp.bottomToTop = anchor.getId();
@@ -1760,7 +1760,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		r.setOnClickListener(v -> showFragment(R.id.yolda_radar_fragment));
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT,
 				ConstraintLayout.LayoutParams.WRAP_CONTENT);
-		View anchor = (orb != null) ? orb : (deckPrev != null) ? deckPrev : voiceButton;
+		View anchor = (deckPrev != null) ? deckPrev : voiceButton;
 		lp.startToStart = anchor.getId();
 		lp.endToEnd = anchor.getId();
 		lp.bottomToTop = anchor.getId();
@@ -1808,14 +1808,45 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (isCarActivity()) return;
 		ControlPanelView cp = getControlPanel();
 		if ((cp == null) || !(cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl)) return;
-		int m = videoMode ? toIntPx(getContext(), 6) : toIntPx(getContext(),
+		Context ctx = getContext();
+		boolean land = cp.yoldaLandscape();
+		// Yatayda mikrofon en altta sabit (önceden çubuğa bağlıydı: çubuk açılınca kapsül yukarı itiliyordu)
+		if ((voiceButton != null) && (voiceButton.getLayoutParams() instanceof ConstraintLayout.LayoutParams vl)) {
+			boolean toParent = land;
+			boolean isParent = vl.bottomToBottom == ConstraintLayout.LayoutParams.PARENT_ID;
+			if (toParent != isParent) {
+				if (toParent) {
+					vl.bottomToTop = ConstraintLayout.LayoutParams.UNSET;
+					vl.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
+				} else {
+					vl.bottomToBottom = ConstraintLayout.LayoutParams.UNSET;
+					vl.bottomToTop = R.id.control_panel;
+				}
+				voiceButton.setLayoutParams(vl);
+			}
+		}
+		int m = videoMode ? toIntPx(ctx, 6) : toIntPx(ctx,
 				me.aap.fermata.ui.view.YoldaStyle.VOICE_DP + me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP + 10);
 		// solda sesli / ana sayfa / geri düğmeleri sütunu: çubuk onun sağından başlar (üstlerine binmez)
-		int left = videoMode ? 0 : toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.searchLeft(getContext()) - 12);
-		if ((m == floatingBarMargin) && (cl.leftMargin == left)) return;
+		int left = videoMode ? 0 : toIntPx(ctx, me.aap.fermata.ui.view.YoldaStyle.searchLeft(ctx) - 12);
+		int maxW = 0;
+		me.aap.fermata.ui.view.YoldaMiniOrb o = orb;
+		if (land && !videoMode && (o != null) && (o.getVisibility() == View.VISIBLE) && (o.getHeight() > 0)
+				&& (cp.getParent() instanceof View host)) {
+			// Yatay: çubuk küçük oynatıcının hizasında, hemen sağında (yuvarlaktan dışarı açılır gibi)
+			int barH = (cp.getHeight() > 0) ? cp.getHeight()
+					: toIntPx(ctx, me.aap.fermata.ui.view.YoldaPlayerBar.heightDp(ctx));
+			int center = o.getTop() + o.getHeight() / 2;
+			m = Math.max(toIntPx(ctx, 6), host.getHeight() - host.getPaddingBottom() - (center + barH / 2));
+			left = o.getRight() - host.getPaddingLeft() + toIntPx(ctx, 16);
+			maxW = toIntPx(ctx, 760);
+		}
+		if ((m == floatingBarMargin) && (cl.leftMargin == left) && (cl.matchConstraintMaxWidth == maxW)) return;
 		floatingBarMargin = m;
 		cl.bottomMargin = m;
 		cl.leftMargin = left;
+		cl.matchConstraintMaxWidth = maxW;
+		cl.horizontalBias = 0f;
 		cp.setLayoutParams(cl);
 	}
 
@@ -1832,12 +1863,42 @@ public class MainActivityDelegate extends ActivityDelegate
 		me.aap.fermata.ui.view.YoldaPlayerBar b0 = cp.getYoldaBar();
 		if ((b0 != null) && (b0.onUpdate == null)) b0.onUpdate = this::updateOrb; // kapak / durum değişince
 		boolean np = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
-		boolean show = !yoldaPip && !videoMode && !np && cp.yoldaDockedNow() && cp.yoldaHasMedia();
+		boolean show = !yoldaPip && !videoMode && !np && cp.yoldaLandscape() && cp.yoldaHasMedia();
 		int vis = show ? View.VISIBLE : View.GONE;
 		if (o.getVisibility() != vis) o.setVisibility(vis);
+		o.setExpanded(!cp.yoldaDockedNow());
 		if (show) {
 			me.aap.fermata.ui.view.YoldaPlayerBar bar = cp.getYoldaBar();
 			o.set((bar != null) ? bar.coverDrawable() : null, getMediaSessionCallback().isPlaying());
+		}
+	}
+
+	/**
+	 * Küçük oynatıcıya dokunuş: çubuk yuvarlağın sağında açılır (yuvarlaktan dışarı uzanır gibi) ya da
+	 * yuvarlağın içine geri kayar. Kapsül yerinden oynamaz.
+	 */
+	private void toggleDockedPlayer() {
+		ControlPanelView cp = getControlPanel();
+		if (cp == null) return;
+		if (ControlPanelView.yoldaDocked) {
+			ControlPanelView.yoldaDocked = false;
+			yoldaDockChanged();
+			cp.setPivotX(0);
+			cp.setPivotY(cp.getHeight() / 2f);
+			cp.setScaleX(0.25f);
+			cp.setAlpha(0f);
+			cp.animate().scaleX(1f).alpha(1f).setDuration(200)
+					.setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+		} else {
+			cp.setPivotX(0);
+			cp.setPivotY(cp.getHeight() / 2f);
+			cp.animate().scaleX(0.25f).alpha(0f).setDuration(160)
+					.setInterpolator(new android.view.animation.AccelerateInterpolator()).withEndAction(() -> {
+						ControlPanelView.yoldaDocked = true;
+						yoldaDockChanged();
+						cp.setScaleX(1f);
+						cp.setAlpha(1f);
+					}).start();
 		}
 	}
 
@@ -1904,6 +1965,25 @@ public class MainActivityDelegate extends ActivityDelegate
 		dlp0.startToStart = dlp0.endToEnd = dlp0.topToTop = dlp0.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
 		host.addView(dk, dlp0);
 		dock = dk;
+		// Küçük oynatıcı (yatayda çubuk buraya iner): mikrofonun hemen üstünde, başparmağın uzandığı alt köşe
+		me.aap.fermata.ui.view.YoldaMiniOrb ob = new me.aap.fermata.ui.view.YoldaMiniOrb(ctx);
+		ob.setId(View.generateViewId());
+		ob.setVisibility(View.GONE);
+		ob.setOnClickListener(x -> toggleDockedPlayer());
+		ob.setOnLongClickListener(x -> {
+			ControlPanelView cp = getControlPanel();
+			if (cp != null) cp.closePlayer();
+			updateOrb();
+			return true;
+		});
+		int os = toIntPx(ctx, 56);
+		ConstraintLayout.LayoutParams olp = new ConstraintLayout.LayoutParams(os, os);
+		olp.startToStart = voice.getId();
+		olp.endToEnd = voice.getId();
+		olp.bottomToTop = voice.getId();
+		olp.bottomMargin = toIntPx(ctx, 6);
+		host.addView(ob, olp);
+		orb = ob;
 		AppCompatImageView v = new AppCompatImageView(ctx);
 		v.setImageResource(R.drawable.yi_home_fill);
 		v.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
@@ -1922,10 +2002,10 @@ public class MainActivityDelegate extends ActivityDelegate
 		});
 		int s = toIntPx(ctx, 52);
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
-		// sesli düğmenin hemen üstünde, ortalı
+		// sesli düğmenin (ve varsa küçük oynatıcının) hemen üstünde, ortalı
 		lp.startToStart = voice.getId();
 		lp.endToEnd = voice.getId();
-		lp.bottomToTop = voice.getId();
+		lp.bottomToTop = orb.getId();
 		lp.bottomMargin = toIntPx(ctx, 6);
 		host.addView(v, lp);
 		deckBack = v;
@@ -1953,28 +2033,6 @@ public class MainActivityDelegate extends ActivityDelegate
 		bk.setId(View.generateViewId()); // hız / radar göstergesi bunun üstüne bağlanır
 		host.addView(bk, blp);
 		deckPrev = bk;
-		// Küçük oynatıcı (yatayda çubuk buraya iner): geri düğmesinin üstünde
-		me.aap.fermata.ui.view.YoldaMiniOrb ob = new me.aap.fermata.ui.view.YoldaMiniOrb(ctx);
-		ob.setId(View.generateViewId());
-		ob.setVisibility(View.GONE);
-		ob.setOnClickListener(x -> {
-			ControlPanelView.yoldaDocked = false; // çubuk açılsın
-			yoldaDockChanged();
-		});
-		ob.setOnLongClickListener(x -> {
-			ControlPanelView cp = getControlPanel();
-			if (cp != null) cp.closePlayer();
-			updateOrb();
-			return true;
-		});
-		int os = toIntPx(ctx, 56);
-		ConstraintLayout.LayoutParams olp = new ConstraintLayout.LayoutParams(os, os);
-		olp.startToStart = bk.getId();
-		olp.endToEnd = bk.getId();
-		olp.bottomToTop = bk.getId();
-		olp.bottomMargin = toIntPx(ctx, 4);
-		host.addView(ob, olp);
-		orb = ob;
 		updateDeckButtons();
 	}
 
