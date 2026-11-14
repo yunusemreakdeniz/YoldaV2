@@ -521,6 +521,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	public void onActivityDestroy() {
 		super.onActivityDestroy();
 		me.aap.fermata.ui.fragment.YoldaWake.forget(this);
+		me.aap.fermata.ui.fragment.YoldaRadar.removeListener(parkListener);
 		if (radarAttached) {
 			radarAttached = false;
 			me.aap.fermata.ui.fragment.YoldaRadar.detach();
@@ -1752,7 +1753,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			lp.topMargin = toIntPx(ctx, 20);
 			lp.verticalBias = 0f;
 		} else {
-			View anchor = (deckPrev != null) ? deckPrev : voiceButton;
+			View anchor = (deckPark != null) ? deckPark : (deckPrev != null) ? deckPrev : voiceButton;
 			lp.startToStart = anchor.getId();
 			lp.endToEnd = anchor.getId();
 			lp.bottomToTop = anchor.getId();
@@ -1773,7 +1774,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		r.setOnClickListener(v -> showFragment(R.id.yolda_radar_fragment));
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT,
 				ConstraintLayout.LayoutParams.WRAP_CONTENT);
-		View anchor = (deckPrev != null) ? deckPrev : voiceButton;
+		View anchor = (deckPark != null) ? deckPark : (deckPrev != null) ? deckPrev : voiceButton;
 		lp.startToStart = anchor.getId();
 		lp.endToEnd = anchor.getId();
 		lp.bottomToTop = anchor.getId();
@@ -1989,7 +1990,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		android.graphics.RectF u = null;
 		int n = 0;
 		boolean railOn = false;
-		for (View v : new View[]{speedRail, orb, deckPrev, deckBack, voiceButton}) {
+		for (View v : new View[]{speedRail, orb, deckPark, deckPrev, deckBack, voiceButton}) {
 			if ((v == null) || (v.getVisibility() != View.VISIBLE) || (v.getWidth() == 0)) continue;
 			// Kapsülün kendi koordinatında: kök görünümün kenar boşluğu (yatayda kamera çentiği) çıkarılır;
 			// önceden çentikli telefonda cam düğmelerden çentik kadar sağa kayıyordu
@@ -2093,9 +2094,43 @@ public class MainActivityDelegate extends ActivityDelegate
 		blp.endToEnd = v.getId();
 		blp.bottomToTop = v.getId();
 		blp.bottomMargin = toIntPx(ctx, 2);
-		bk.setId(View.generateViewId()); // hız / radar göstergesi bunun üstüne bağlanır
+		bk.setId(View.generateViewId());
 		host.addView(bk, blp);
 		deckPrev = bk;
+		// 🅿 Aracım: kayıtlı park yeri varsa kapsülün en üstünde; dokun → yol tarifi, basılı tut → sil
+		AppCompatImageView pkb = new AppCompatImageView(ctx);
+		pkb.setImageResource(R.drawable.yi_parking);
+		pkb.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		pkb.setPadding(p, p, p, p);
+		pkb.setBackground(dockRipple(ctx));
+		pkb.setContentDescription("Aracım");
+		pkb.setClickable(true);
+		pkb.setFocusable(true);
+		pkb.setElevation(toIntPx(ctx, 12));
+		pkb.setVisibility(View.GONE);
+		pkb.setOnClickListener(x -> {
+			x.animate().scaleX(0.9f).scaleY(0.9f).setDuration(80)
+					.withEndAction(() -> x.animate().scaleX(1f).scaleY(1f).setDuration(140).start()).start();
+			me.aap.fermata.ui.fragment.YoldaRadar.walkToPark(ctx);
+		});
+		pkb.setOnLongClickListener(x -> {
+			double[] pk = me.aap.fermata.ui.fragment.YoldaRadar.park(ctx);
+			if (pk != null) {
+				me.aap.fermata.ui.fragment.YoldaRadar.deletePark(ctx, (long) pk[2]);
+				me.aap.fermata.ui.view.YoldaStyle.toast(ctx, "Park yeri silindi");
+			}
+			updateDeckButtons();
+			return true;
+		});
+		ConstraintLayout.LayoutParams plp = new ConstraintLayout.LayoutParams(s, s);
+		plp.startToStart = bk.getId();
+		plp.endToEnd = bk.getId();
+		plp.bottomToTop = bk.getId();
+		plp.bottomMargin = toIntPx(ctx, 2);
+		pkb.setId(View.generateViewId()); // hız / radar göstergesi bunun üstüne bağlanır
+		host.addView(pkb, plp);
+		deckPark = pkb;
+		me.aap.fermata.ui.fragment.YoldaRadar.addListener(parkListener);
 		updateDeckButtons();
 	}
 
@@ -2141,6 +2176,10 @@ public class MainActivityDelegate extends ActivityDelegate
 	/** V2: ana sayfa düğmesinin üstünde geri düğmesi. */
 	@Nullable
 	private View deckPrev;
+	/** Kapsüldeki 🅿 (kayıtlı park yeri varken). */
+	@Nullable
+	private View deckPark;
+	private final Runnable parkListener = this::updateDeckButtons;
 
 	/** Küçük pencere (resim içinde resim): yalnız video; düğmeler, çubuk, kanal şeridi gizli. */
 	private boolean yoldaPip;
@@ -2225,6 +2264,10 @@ public class MainActivityDelegate extends ActivityDelegate
 				&& d.awayFromHomeCard()) hv = View.VISIBLE; // destede ana karttan uzaktayken ⌂ ile dön
 		if ((deckBack != null) && (deckBack.getVisibility() != hv)) deckBack.setVisibility(hv);
 		if ((deckPrev != null) && (deckPrev.getVisibility() != bv)) deckPrev.setVisibility(bv);
+		if (deckPark != null) {
+			int pv = (full || np || !me.aap.fermata.ui.fragment.YoldaRadar.hasPark(getContext())) ? View.GONE : View.VISIBLE;
+			if (deckPark.getVisibility() != pv) deckPark.setVisibility(pv);
+		}
 		if (speedRail != null) {
 			// Videoda da (tam ekran, YouTube): yalnız önemli anda, sol üstte (video düğmelerine binmesin)
 			if (speedRail.isVideo() != full) placeSpeedRail(full);

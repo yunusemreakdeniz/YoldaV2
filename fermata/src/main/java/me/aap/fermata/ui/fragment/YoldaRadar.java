@@ -154,6 +154,7 @@ public final class YoldaRadar {
 	}
 
 	public static void setFeature(Context ctx, String key, boolean on) {
+		if ("park".equals(key)) hasParkCache = null;
 		prefs(ctx).edit().putBoolean("f_" + key, on).apply();
 		YoldaLog.add("Sürüş yardımcısı " + key + ": " + (on ? "açık" : "kapalı"));
 		if (!on && "avg".equals(key)) avg.cancel();
@@ -883,7 +884,17 @@ public final class YoldaRadar {
 		return l;
 	}
 
+	private static volatile Boolean hasParkCache;
+
+	/** Kayıtlı park yeri var mı (kapsüldeki 🅿 için; sık çağrılır, önbellekli). */
+	public static boolean hasPark(Context ctx) {
+		Boolean b = hasParkCache;
+		if (b == null) hasParkCache = b = feature(ctx, "park") && !parks(ctx).isEmpty();
+		return b;
+	}
+
 	private static void saveParks(Context ctx, List<double[]> l) {
+		hasParkCache = null;
 		try {
 			JSONArray a = new JSONArray();
 			for (double[] d : l) a.put(new JSONObject().put("la", d[0]).put("lo", d[1]).put("at", (long) d[2]).put("auto", d[3] != 0));
@@ -912,6 +923,7 @@ public final class YoldaRadar {
 	}
 
 	public static synchronized void clearPark(Context ctx) {
+		hasParkCache = null;
 		prefs(ctx).edit().remove("parks").remove("park_lat").remove("park_lon").remove("park_at").apply();
 		changed();
 	}

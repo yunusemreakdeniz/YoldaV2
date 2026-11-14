@@ -795,16 +795,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Kanal şeridinin sonunda "Sırala" düğmesi. */
 	private View withOrderButton(Context ctx, @Nullable View row, boolean radio) {
-		LinearLayout h = hrow(ctx);
-		h.setGravity(Gravity.CENTER_VERTICAL);
-		if (row != null) h.addView(row, new LinearLayout.LayoutParams(0, -2, 1f));
-		else h.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
-		ImageView b = roundButton(ctx, R.drawable.yi_edit, radio ? "Radyoları sırala" : "Kanalları sırala",
-				v -> showOrderEditor(ctx, radio));
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
-		lp.leftMargin = dp(8);
-		h.addView(b, lp);
-		return h;
+		return withActions(ctx, row, null, null, radio ? "Radyoları sırala" : "Kanalları sırala",
+				() -> showOrderEditor(ctx, radio));
 	}
 
 	/** Sıralama: her satırda ▲ ▼; sıra kaydedilir, kart ve Kanallar ekranı bu sırayla gösterir. */
@@ -988,25 +980,38 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return withActions(ctx, row, null, null, desc, edit);
 	}
 
-	/** Bütün kartlarda aynı: içerik solda, sağda yazısız yuvarlak düğmeler; önce ekle (＋), en sağda düzenle (✎). */
-	private View withActions(Context ctx, View row, @Nullable String addDesc, @Nullable Runnable add,
+	/** Kart kurulurken içerikten gelen düzenle (✎) eylemi: kartın altında "Aç"ın hemen soluna konur. */
+	@Nullable
+	private Runnable cardEdit;
+	@Nullable
+	private String cardEditDesc;
+
+	/**
+	 * Bütün kartlarda aynı: ekle (＋) yazısız yuvarlak düğme olarak listenin sonunda; düzenle (✎) "Aç"ın
+	 * yanında (kart kurulurken {@link #cardEdit} ile iletilir).
+	 */
+	@Nullable
+	private View withActions(Context ctx, @Nullable View row, @Nullable String addDesc, @Nullable Runnable add,
 													 @Nullable String editDesc, @Nullable Runnable edit) {
-		LinearLayout h = hrow(ctx);
-		h.setGravity(Gravity.CENTER_VERTICAL);
-		h.addView(row, new LinearLayout.LayoutParams(0, -2, 1f));
-		if (add != null) {
-			ImageView b = roundButton(ctx, R.drawable.yi_add, addDesc, v -> add.run());
-			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
-			lp.leftMargin = dp(8);
-			h.addView(b, lp);
-		}
 		if (edit != null) {
-			ImageView b = roundButton(ctx, R.drawable.yi_edit, editDesc, v -> edit.run());
-			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
-			lp.leftMargin = dp(8);
-			h.addView(b, lp);
+			cardEdit = edit;
+			cardEditDesc = editDesc;
 		}
-		return h;
+		if (add == null) return row;
+		LinearLayout inner = (row instanceof android.widget.HorizontalScrollView hs) && (hs.getChildAt(0) instanceof LinearLayout l)
+				? l : (row instanceof LinearLayout l2) ? l2 : null;
+		ImageView b = roundButton(ctx, R.drawable.yi_add, addDesc, v -> add.run());
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
+		lp.gravity = Gravity.CENTER_VERTICAL;
+		if (inner == null) { // içerik yok: yalnız ＋
+			LinearLayout h = hrow(ctx);
+			h.setGravity(Gravity.CENTER_VERTICAL);
+			h.addView(b, lp);
+			return h;
+		}
+		lp.leftMargin = dp(4);
+		inner.addView(b, lp);
+		return row;
 	}
 
 	// ---- YouTube kanallarım ----
@@ -2237,9 +2242,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 		LinearLayout bottom = hrow(ctx);
 		bottom.setGravity(Gravity.BOTTOM);
+		cardEdit = null;
+		cardEditDesc = null;
 		View content = content(ctx, c);
 		if (content != null) bottom.addView(content, new LinearLayout.LayoutParams(0, -2, 1f));
 		else bottom.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
+		Runnable ed = cardEdit;
+		if (ed != null) { // ✎ düzenle: "Aç"ın hemen solunda
+			ImageView eb = roundButton(ctx, R.drawable.yi_edit, cardEditDesc, x -> ed.run());
+			int es = Math.min(dp(48), dp(fz.btn()));
+			LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(es, es);
+			elp.leftMargin = dp(10);
+			bottom.addView(eb, elp);
+		}
+		cardEdit = null;
 		bottom.addView(openButton(ctx, c, noble, accent, fz), openLp(fz));
 		v.addView(bottom, new LinearLayout.LayoutParams(-1, -2));
 		return f;
