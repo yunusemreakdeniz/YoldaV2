@@ -141,6 +141,92 @@ public final class YoldaWeather {
 				(int) Math.round(cur.optDouble("wind_speed_10m", 0)), place, hours);
 	}
 
+	// ---- hava durumu ekranı: ayrıntılı tahmin ----
+
+	/** Saatlik: saat ("14:00"), sıcaklık, hava kodu, yağış olasılığı (%). */
+	public record HourD(String time, int temp, int code, int pop) {
+	}
+
+	/** Günlük: tarih ("2026-11-14"), hava kodu, en yüksek / en düşük, yağış olasılığı (%). */
+	public record Day(String date, int code, int max, int min, int pop) {
+	}
+
+	public record Detail(String place, int temp, int feels, int humidity, int wind, int code, String sunrise, String sunset,
+											 List<HourD> hours, List<Day> days) {
+	}
+
+	private static Detail detailCached;
+	private static long detailAt;
+
+	/** Ayrıntılı tahmin (15 dk saklanır): anlık, 24 saat, 7 gün. */
+	public static FutureSupplier<Detail> detail(Context ctx, boolean force) {
+		Context app = ctx.getApplicationContext();
+		if (!force && (detailCached != null) && (System.currentTimeMillis() - detailAt < CACHE_MS))
+			return Completed.completed(detailCached);
+		Promise<Detail> p = new Promise<>();
+		App.get().getExecutor().submit(() -> {
+			try {
+				double[] ll = location(app);
+				String place = placeName(app, ll);
+				String url = String.format(Locale.ROOT, "https://api.open-meteo.com/v1/forecast?latitude=%.3f&longitude=%.3f"
+						+ "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m"
+						+ "&hourly=temperature_2m,weather_code,precipitation_probability&forecast_hours=24"
+						+ "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset"
+						+ "&forecast_days=7&timezone=auto", ll[0], ll[1]);
+				Detail d = parseDetail(get(url), place);
+				detailCached = d;
+				detailAt = System.currentTimeMillis();
+				p.complete(d);
+			} catch (Throwable ex) {
+				Log.e(ex, "Ayrıntılı hava durumu alınamadı");
+				if (detailCached != null) p.complete(detailCached);
+				else p.completeExceptionally(ex);
+			}
+		});
+		return p;
+	}
+
+	static Detail parseDetail(String json, String place) throws Exception {
+		JSONObject o = new JSONObject(json);
+		JSONObject cur = o.getJSONObject("current");
+		List<HourD> hours = new ArrayList<>();
+		JSONObject h = o.optJSONObject("hourly");
+		if (h != null) {
+			JSONArray t = h.getJSONArray("time"), te = h.getJSONArray("temperature_2m"), wc = h.getJSONArray("weather_code");
+			JSONArray pp = h.optJSONArray("precipitation_probability");
+			for (int i = 0; i < t.length(); i++) {
+				String time = t.getString(i);
+				int k = time.indexOf('T');
+				hours.add(new HourD((k >= 0) ? time.substring(k + 1) : time, (int) Math.round(te.getDouble(i)), wc.getInt(i),
+						(pp != null) ? pp.optInt(i, 0) : 0));
+			}
+		}
+		List<Day> days = new ArrayList<>();
+		String rise = "", set = "";
+		JSONObject dl = o.optJSONObject("daily");
+		if (dl != null) {
+			JSONArray t = dl.getJSONArray("time"), wc = dl.getJSONArray("weather_code"), mx = dl.getJSONArray("temperature_2m_max"),
+					mn = dl.getJSONArray("temperature_2m_min");
+			JSONArray pp = dl.optJSONArray("precipitation_probability_max");
+			for (int i = 0; i < t.length(); i++) {
+				days.add(new Day(t.getString(i), wc.getInt(i), (int) Math.round(mx.getDouble(i)), (int) Math.round(mn.getDouble(i)),
+						(pp != null) ? pp.optInt(i, 0) : 0));
+			}
+			JSONArray sr = dl.optJSONArray("sunrise"), ss = dl.optJSONArray("sunset");
+			if ((sr != null) && (sr.length() > 0)) rise = hm(sr.getString(0));
+			if ((ss != null) && (ss.length() > 0)) set = hm(ss.getString(0));
+		}
+		return new Detail(place, (int) Math.round(cur.getDouble("temperature_2m")),
+				(int) Math.round(cur.optDouble("apparent_temperature", cur.getDouble("temperature_2m"))),
+				cur.optInt("relative_humidity_2m", 0), (int) Math.round(cur.optDouble("wind_speed_10m", 0)), cur.getInt("weather_code"),
+				rise, set, hours, days);
+	}
+
+	private static String hm(String iso) {
+		int k = iso.indexOf('T');
+		return (k >= 0) ? iso.substring(k + 1) : iso;
+	}
+
 	/** WMO hava kodu → Türkçe kısa açıklama. */
 	public static String text(int code) {
 		if (code == 0) return "Açık";

@@ -904,6 +904,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.PharmacyFragment();
 		} else if (id == R.id.yolda_radar_fragment) {
 			return new me.aap.fermata.ui.fragment.RadarFragment();
+		} else if (id == R.id.yolda_weather_fragment) {
+			return new me.aap.fermata.ui.fragment.WeatherFragment();
 		} else if (id == R.id.yolda_menu_fragment) {
 			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
 		} else if (id == R.id.yolda_setup_fragment) {
@@ -1158,7 +1160,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		int id = getActiveFragmentId();
 		boolean yolda = (id == R.id.home_fragment) || (id == R.id.yolda_channels_fragment) || (id == R.id.yolda_music)
 				|| (id == R.id.yolda_youtube) || (id == R.id.yolda_nav_fragment) || (id == R.id.yolda_menu_fragment)
-				|| (id == R.id.yolda_setup_fragment) || (id == R.id.yolda_pharmacy_fragment) || (id == R.id.yolda_radar_fragment);
+				|| (id == R.id.yolda_setup_fragment) || (id == R.id.yolda_pharmacy_fragment) || (id == R.id.yolda_radar_fragment)
+				|| (id == R.id.yolda_weather_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
 		int left = (me.aap.fermata.ui.view.YoldaStyle.sideRail(getContext()) && yolda && (id != R.id.home_fragment)
 				&& !videoMode)
@@ -2243,22 +2246,26 @@ public class MainActivityDelegate extends ActivityDelegate
 				);
 				me.aap.fermata.ui.view.YoldaStyle.cutoutTopPx =
 						insets.getInsets(WindowInsetsCompat.Type.displayCutout()).top;
+				// Klavye açıkken alt boşluk klavye kadar: alttaki arama / yazı kutuları klavyenin üstüne çıksın
+				// (Android 15'ten beri ekran kenara kadar çiziliyor; önceden yazılan klavyenin altında kalıyordu)
+				int imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
+				int bottomPad = Math.max(bars.bottom, imeBottom);
 				if (me.aap.fermata.ui.view.YoldaStyle.glassActive && me.aap.fermata.ui.view.YoldaStyle.DECK) {
 					// V2: araç çubuğu altta; üst boşluğu Yolda dışı sayfalar (tarayıcı, klasörler) kendisi alır
-					v.setPadding(bars.left, 0, bars.right, bars.bottom);
+					v.setPadding(bars.left, 0, bars.right, bottomPad);
 					yoldaTopTop = bars.top;
 					updateBodyTopPadding();
 				} else if (me.aap.fermata.ui.view.YoldaStyle.glassActive) {
 					// Üst boşluk tüm ekrana değil yalnız Fermata'nın üst çubuğuna: Yolda sayfaları kendi
 					// boşluğunu bırakıyor, iki kez eklenince üstte büyük boşluk kalıyordu.
-					v.setPadding(bars.left, 0, bars.right, bars.bottom);
+					v.setPadding(bars.left, 0, bars.right, bottomPad);
 					if (toolBar.getLayoutParams() instanceof android.view.ViewGroup.MarginLayoutParams tlp
 							&& (tlp.topMargin != bars.top)) {
 						tlp.topMargin = bars.top;
 						toolBar.setLayoutParams(tlp);
 					}
 				} else {
-					v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+					v.setPadding(bars.left, bars.top, bars.right, bottomPad);
 				}
 				return WindowInsetsCompat.CONSUMED;
 			});

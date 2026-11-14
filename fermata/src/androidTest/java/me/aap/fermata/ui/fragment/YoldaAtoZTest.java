@@ -1153,6 +1153,90 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Hava kartı tarayıcı değil uygulama içi ekranı açar: şimdi, 24 saat, 7 gün. */
+	@Test
+	public void havaEkrani() {
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(1000);
+		int pos = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).getDeck().indexOf(YoldaDeck.WEATHER));
+		org.junit.Assume.assumeTrue("Hava kartı destede", pos >= 0);
+		onMain(a -> {
+			((YoldaDeckFragment) a.getActiveFragment()).scrollToCard(pos);
+			return null;
+		});
+		waitIdle(1200);
+		View card = onMain(a -> ((YoldaDeckFragment) a.getActiveFragment()).cardView(pos));
+		assertNotNull(card);
+		onMain(a -> card.performClick());
+		assertTrue("Hava ekranı uygulama içinde açılmalı", waitFor(4000,
+				() -> onMain(MainActivityDelegate::getActiveFragmentId) == R.id.yolda_weather_fragment));
+		boolean got = waitFor(25_000, () -> onMain(a -> (a.getActiveFragment() instanceof WeatherFragment w) && (w.getData() != null)));
+		org.junit.Assume.assumeTrue("Open-Meteo bu ağdan erişilemiyor", got);
+		YoldaWeather.Detail d = onMain(a -> ((WeatherFragment) a.getActiveFragment()).getData());
+		Log.i(TAG, "Hava ekranı: " + d.place() + " " + d.temp() + "° · " + d.hours().size() + " saat, " + d.days().size() + " gün");
+		assertEquals("7 günlük tahmin", 7, d.days().size());
+		assertTrue("24 saatlik tahmin", d.hours().size() >= 20);
+		waitIdle(800);
+		shot("hava_ekrani");
+		onMain(a -> a.showFragment(R.id.home_fragment));
+		waitIdle(800);
+	}
+
+	/** Klavye açıkken yazılan kutu klavyenin altında kalmamalı (ekran kenara kadar çizildiğinde). */
+	@Test
+	public void klavyeYazilaniOrtmez() {
+		onMain(a -> a.showFragment(R.id.yolda_channels_fragment));
+		waitIdle(1500);
+		android.widget.EditText et = onMain(a -> findEdit(a.getActiveFragment().getView()));
+		assertNotNull("Arama kutusu olmalı", et);
+		onMain(a -> {
+			et.requestFocus();
+			((android.view.inputmethod.InputMethodManager) a.getContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE))
+					.showSoftInput(et, android.view.inputmethod.InputMethodManager.SHOW_FORCED);
+			return null;
+		});
+		boolean ime = waitFor(5000, () -> onMain(a -> {
+			androidx.core.view.WindowInsetsCompat in = androidx.core.view.ViewCompat.getRootWindowInsets(et);
+			return (in != null) && in.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime());
+		}));
+		try {
+			org.junit.Assume.assumeTrue("Emülatörde klavye açılamadı", ime);
+			waitIdle(800);
+			int[] r = onMain(a -> {
+				androidx.core.view.WindowInsetsCompat in = androidx.core.view.ViewCompat.getRootWindowInsets(et);
+				int imeH = in.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom;
+				int[] xy = new int[2];
+				et.getLocationOnScreen(xy);
+				int screenH = ((android.app.Activity) a.getContext()).getWindow().getDecorView().getHeight();
+				return new int[]{xy[1] + et.getHeight(), screenH - imeH};
+			});
+			Log.i(TAG, "Klavye: kutunun altı " + r[0] + ", klavyenin üstü " + r[1]);
+			shot("klavye_acik");
+			assertTrue("Yazı kutusu klavyenin üstünde olmalı: alt " + r[0] + " > klavye " + r[1], r[0] <= r[1] + 2);
+		} finally {
+			onMain(a -> {
+				((android.view.inputmethod.InputMethodManager) a.getContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE))
+						.hideSoftInputFromWindow(et.getWindowToken(), 0);
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(800);
+		}
+	}
+
+	@androidx.annotation.Nullable
+	private static android.widget.EditText findEdit(View v) {
+		if ((v == null) || (v.getVisibility() != View.VISIBLE)) return null;
+		if (v instanceof android.widget.EditText e) return e;
+		if (v instanceof ViewGroup g) {
+			for (int i = 0; i < g.getChildCount(); i++) {
+				android.widget.EditText e = findEdit(g.getChildAt(i));
+				if (e != null) return e;
+			}
+		}
+		return null;
+	}
+
 	private static View clickableOf(View v) {
 		while ((v != null) && !v.isClickable()) v = (v.getParent() instanceof View p) ? p : null;
 		return v;

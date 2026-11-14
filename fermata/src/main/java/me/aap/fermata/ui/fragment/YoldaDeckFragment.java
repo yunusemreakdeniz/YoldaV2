@@ -300,7 +300,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			clockCol.setOnClickListener(v -> {
 				if (weather == null) return;
 				YoldaStyle.haptic(v);
-				HomeFragment.openWeb(getActivityDelegate(), "https://www.google.com/search?q=hava+durumu");
+				getActivityDelegate().showFragment(R.id.yolda_weather_fragment);
 			});
 		} else {
 			top.addView(clock);
@@ -318,7 +318,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		wxChip.setVisibility(View.GONE);
 		wxChip.setOnClickListener(v -> {
 			YoldaStyle.haptic(v);
-			HomeFragment.openWeb(getActivityDelegate(), "https://www.google.com/search?q=hava+durumu");
+			getActivityDelegate().showFragment(R.id.yolda_weather_fragment);
 		});
 		if (narrowHeader && (dateLine != null)) { // tarihin yanında sade yazı (dokunma: tüm saat bloğu)
 			wxChip.setOnClickListener(null);
@@ -1885,7 +1885,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FAVS -> showFavorites();
 			case YoldaDeck.PHARMACY -> a.showFragment(R.id.yolda_pharmacy_fragment);
 			case YoldaDeck.RADAR -> a.showFragment(R.id.yolda_radar_fragment);
-			case YoldaDeck.WEATHER -> HomeFragment.openWeb(a, "https://www.google.com/search?q=hava+durumu");
+			case YoldaDeck.WEATHER -> a.showFragment(R.id.yolda_weather_fragment); // uygulama içi ekran
 			case YoldaDeck.PHONE, YoldaDeck.MIRROR -> openPhoneScreen(a, ctx);
 			case YoldaDeck.WEB -> {
 				YoldaStyle.webNoToolbar = false; // genel tarayıcı: adres çubuğu görünsün
