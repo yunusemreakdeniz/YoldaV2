@@ -81,8 +81,8 @@ public final class YoldaChat {
 			return new Reply("Ben Yolda, sürüş asistanınım. Müzik, radyo, TV, yol tarifi, radar ve arama işlerinde yardım ederim.", null);
 		if (s.matches("(kaç yaşındasın|yaşın kaç)")) return new Reply("Yaşım yok ama her güncellemeyle biraz büyüyorum!", null);
 		if (s.matches("(seni kim yaptı|kim yaptı seni|yaratıcın kim)")) return new Reply("Beni yol arkadaşın olayım diye yaptılar.", null);
-		if (s.matches("(evli misin|sevgilin var mı)")) return new Reply("Benim tek aşkım yollar!", null);
-		if (s.matches("(beni duyuyor musun|orada mısın|burada mısın|uyanık mısın|dinliyor musun)"))
+		if (s.matches("(evli( misin)?|sevgilin var mı)")) return new Reply("Benim tek aşkım yollar!", null);
+		if (s.matches("((beni )?duyuyor( musun)?|orada( mısın)?|burada( mısın)?|uyanık( mısın)?|dinliyor( musun)?|beni dinliyor)"))
 			return new Reply("Buradayım, dinliyorum.", null);
 
 		// eğlence
