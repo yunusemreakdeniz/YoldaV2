@@ -26,6 +26,13 @@ public final class YoldaIntents {
 		CHAT,
 		/** Destede o karta geç ("radyo kartına geç"); arg: söylenen kart adı. */
 		CARD,
+		/** Kartlar: sonraki / önceki kart, kartı aç ("radyo kartını aç"), kartları düzenle. */
+		NEXT_CARD, PREV_CARD, CARD_OPEN, EDIT_CARDS,
+		/** Sarma: num saniye (eksi: geri); SEEK_START başa. */
+		SEEK, SEEK_START,
+		/** Sürüş yardımcısını aç / kapat: arg anahtar (zones, fatigue, avg, stops, overspeed, voice, park, trips), num 1 / 0. */
+		FEATURE,
+		WAKE_OFF, SUN, THEME_SET, TEST_ALERT, NAV_APP,
 		DATE, CALC, TIMER, TIMER_CANCEL, BATTERY, SPEED, FORECAST, WHERE_AM_I, WIKI
 	}
 
@@ -147,7 +154,14 @@ public final class YoldaIntents {
 	private static final Pattern CALL = Pattern.compile(
 			"^(.+?) (?:ara|arar|arar mısın|arasana|telefonla ara|çaldır|bir ara)$|^(.+?) (?:telefon et|ile görüş|ile konuş|ile görüşmek istiyorum)$");
 	private static final Pattern CARD = Pattern.compile(
-			"^(.+?) kart(?:ı|ına|ını|a|ına doğru)?(?: (?:geç|git|gel|dön|göster|getir|aç|kaydır|bul))?$");
+			"^(.+?) kart(?:ı|ına|ını|a|ına doğru)?(?: (geç|git|gel|dön|göster|getir|aç|kaydır|bul|başlat))?$");
+	private static final Pattern SEEK_P = Pattern.compile(
+			"^(?:(.+?) (saniye|sn|dakika|dk) )?(ileri|geri) (?:sar|al|atla)$|^(.+?) (saniye|sn|dakika|dk) (ileri|geri)$");
+	private static final Pattern FEATURE_P = Pattern.compile(
+			"^(.+?) (?:uyarı(?:sı|sını|larını|ları|yı)?|hatırlatıcı(?:sı|sını|yı)?|hatırlatma(?:sı|sını|yı)?|bildirim(?:i|ini|leri)?|bip(?:i|ini)?|kaydı(?:nı)?)"
+					+ " (aç|kapat|etkinleştir|devre dışı bırak|sustur|başlat|durdur)$");
+	private static final Pattern THEME_P = Pattern.compile(
+			"^(.+?) tema(?:sı|sına|sını|yı)?(?: (?:geç|yap|uygula|aç|seç|olsun))?$|^tema(?:yı)? (.+?) (?:yap|olsun|seç)$");
 	private static final Pattern REMIND = Pattern.compile(
 			"^(.+? (?:dakika|dk|saat)) (?:sonra|içinde) (?:(.+?) )?(?:hatırlat|uyar|haber ver|söyle)$");
 	private static final Pattern TIMER = Pattern.compile(
@@ -202,10 +216,50 @@ public final class YoldaIntents {
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
 
 		// kart: "radyo kartına geç", "hava durumu kartı", "kişiler kartını göster"
+		if (c.matches("kart(ları)?(mı)? düzenle|kartları sırala|kartları düzenleyelim")) return Intent.of(Kind.EDIT_CARDS);
 		if ((m = CARD.matcher(c)).matches()) {
 			String n = m.group(1).replaceAll("^(ana sayfada|destede|kartlarda) ", "").trim();
 			if (n.matches("ana|ana sayfa|ev")) return Intent.of(Kind.HOME);
-			if (!n.isEmpty()) return Intent.of(Kind.CARD, n);
+			if (n.matches("(bir )?(sonraki|sağdaki|diğer|öbür)")) return Intent.of(Kind.NEXT_CARD);
+			if (n.matches("(bir )?(önceki|soldaki)")) return Intent.of(Kind.PREV_CARD);
+			String verb = m.group(2);
+			if (!n.isEmpty()) return Intent.of((("aç".equals(verb)) || ("başlat".equals(verb))) ? Kind.CARD_OPEN : Kind.CARD, n);
+		}
+		if (c.matches("(sağa|sola) kaydır|(sağdaki|soldaki) karta geç")) return Intent.of(c.startsWith("sağ") ? Kind.NEXT_CARD : Kind.PREV_CARD);
+
+		// sarma: "10 saniye ileri sar", "geri sar", "başa sar"
+		if (c.matches("başa sar|baştan (başlat|başla|çal|oynat)|en başa (dön|sar|git)|başından (başlat|çal)|şarkıyı baştan çal"))
+			return Intent.of(Kind.SEEK_START);
+		if ((m = SEEK_P.matcher(c)).matches()) {
+			String amount = (m.group(1) != null) ? m.group(1) : m.group(4);
+			String unit = (m.group(2) != null) ? m.group(2) : m.group(5);
+			String dir = (m.group(3) != null) ? m.group(3) : m.group(6);
+			int n = (amount == null) ? 15 : number(amount);
+			if (n > 0) {
+				if ((unit != null) && unit.startsWith("d")) n *= 60;
+				return Intent.of(Kind.SEEK, "geri".equals(dir) ? -n : n);
+			}
+		}
+
+		// uyarı denemesi, Hey Yolda'yı kapat, harita uygulaması
+		if (c.matches("(radar )?uyarı(yı|sını)? (dene|test et)|deneme uyarısı( ver)?|uyarıyı göster"))
+			return Intent.of(Kind.TEST_ALERT);
+		if (c.matches("(hey )?yolda'?(yı|yi)? (kapat|sustur|devre dışı bırak)|uyandırma(yı)? kapat|beni dinleme(yi)? (bırak|kapat)|dinlemeyi kapat"))
+			return Intent.of(Kind.WAKE_OFF);
+		if (c.matches("waze'?(ı|i|yi)? (kullan|seç)|waze ile (git|gidelim)|haritada waze kullan")) return Intent.of(Kind.NAV_APP, "waze");
+		if (c.matches("(google )?haritalar'?(ı)? (kullan|seç)|google maps'?(i)? (kullan|seç)|google haritalar ile (git|gidelim)"))
+			return Intent.of(Kind.NAV_APP, "google");
+
+		// gün doğumu / batımı
+		if (c.matches("güneş (ne zaman|saat kaçta|kaçta) (batıyor|batacak|batar)|gün batımı( ne zaman| saat kaçta| kaçta)?|hava ne zaman kararıyor|akşam ezanı.*"))
+			return Intent.of(Kind.SUN, "set");
+		if (c.matches("güneş (ne zaman|saat kaçta|kaçta) (doğuyor|doğacak|doğar)|gün doğumu( ne zaman| saat kaçta| kaçta)?|hava ne zaman aydınlanıyor"))
+			return Intent.of(Kind.SUN, "rise");
+
+		// sürüş yardımcıları: "okul uyarısını kapat", "mola hatırlatıcısını aç"
+		if ((m = FEATURE_P.matcher(c)).matches()) {
+			String key = featureKey(m.group(1).trim());
+			if (key != null) return of(Kind.FEATURE, key, m.group(2).matches("aç|etkinleştir|başlat") ? 1 : 0);
 		}
 
 		// hatırlatıcı / zamanlayıcı ("10 dakika sonra hatırlat", "5 dakikalık zamanlayıcı kur")
@@ -281,6 +335,11 @@ public final class YoldaIntents {
 		// tema
 		if (c.matches("tema(yı)? değiştir|renkleri değiştir|başka tema|temayı değiştir")) return Intent.of(Kind.THEME_NEXT);
 		if (c.matches("(otomatik tema|tema(yı)? otomatik( yap)?|gece gündüz tema(sı)?)")) return Intent.of(Kind.THEME_AUTO);
+		if (c.matches("gece modu(na geç| aç)?|karanlık mod(a geç)?")) return Intent.of(Kind.THEME_SET, "gece");
+		if ((m = THEME_P.matcher(c)).matches()) {
+			String n = ((m.group(1) != null) ? m.group(1) : m.group(2)).trim();
+			if (!n.matches("(otomatik|başka|yeni|bir)")) return Intent.of(Kind.THEME_SET, n);
+		}
 
 		// radar
 		if (c.matches("radar(lar)?(ı|ları)? (uyarı(sı|ları)?(nı)? )?(kapat|durdur|sustur|devre dışı bırak)|radar uyarısını kapat"))
@@ -368,6 +427,21 @@ public final class YoldaIntents {
 		return (q.length() >= 2) ? Intent.of(Kind.CHANNEL, q) : null;
 	}
 
+	/** Sürüş yardımcısının adı → ayar anahtarı; bilinmiyorsa null. */
+	static String featureKey(String s) {
+		String t = s.replaceAll("^(sesli )?", "");
+		if (t.matches("okul|okul bölgesi|hastane|okul ve hastane|bölge|okul ve hastane bölgesi")) return "zones";
+		if (t.matches("mola|yorgunluk|dinlenme|mola zamanı")) return "fatigue";
+		if (t.matches("ortalama hız|koridor|hız koridoru|ortalama hız koridoru")) return "avg";
+		if (t.matches("tesis|dinlenme tesisi|mola yeri|yol üstü|yol üstü mola")) return "stops";
+		if (t.matches("hız aşımı|hız|hız sınırı|aşım")) return "overspeed";
+		if (s.matches("sesli|sesli radar|radar sesi|ses")) return "voice";
+		if (t.matches("park|park yeri")) return "park";
+		if (t.matches("yolculuk|yolculuk geçmişi|yolculuk özeti")) return "trips";
+		if (t.matches("resmi radar|bakanlık|bakanlık radar")) return "official";
+		return null;
+	}
+
 	/** Ekran adı → uygulama anahtarı (music, youtube, pharmacy, nav, channels, phone, menu, web, favs); değilse null. */
 	static String appKey(String app) {
 		return switch (app) {
@@ -380,7 +454,9 @@ public final class YoldaIntents {
 			case "menü", "menu", "ayarlar", "ayarları" -> "menu";
 			case "tarayıcı", "internet", "web", "google" -> "web";
 			case "favoriler", "favorilerim", "favorileri" -> "favs";
-			case "radar", "radarlar", "radarları", "radar ekranı", "hız sınırı" -> "radar";
+			case "radar", "radarlar", "radarları", "radar ekranı", "hız sınırı", "sürüş", "sürüş ekranı", "park yerlerim",
+					 "park yerleri", "yolculuklarım", "yolculuk geçmişi" -> "radar";
+			case "hava durumu ekranı", "hava ekranı", "hava durumu sayfası", "hava tahmini" -> "weather";
 			default -> null;
 		};
 	}

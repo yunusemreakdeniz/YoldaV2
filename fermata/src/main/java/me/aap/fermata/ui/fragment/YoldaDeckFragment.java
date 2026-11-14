@@ -230,6 +230,35 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return (hc >= 0) && (list != null) && (centerPosition() != hc);
 	}
 
+	/** Sesle: sonraki (1) / önceki (-1) karta geç. @return yeni kartın başlığı; uçtaysa null. */
+	@Nullable
+	public String stepCard(int dir) {
+		if ((deck == null) || (list == null)) return null;
+		int i = centerPosition() + dir;
+		if ((i < 0) || (i >= deck.size())) return null;
+		list.smoothScrollToPosition(i);
+		return deck.get(i).title();
+	}
+
+	/** Sesle: karta geç ve aç ("radyo kartını aç"). @return kartın başlığı; bulunamadıysa null. */
+	@Nullable
+	public String openCard(String spoken) {
+		if ((deck == null) || (list == null)) return null;
+		int i = deck.find(spoken);
+		if (i < 0) return null;
+		YoldaDeck.Card c = deck.get(i);
+		list.smoothScrollToPosition(i);
+		list.postDelayed(() -> {
+			if (isAdded()) open(c);
+		}, 450);
+		return c.title();
+	}
+
+	/** Sesle: "kartları düzenle". */
+	public void startEditing() {
+		if (!editing) setEditing(true);
+	}
+
 	/** Sesle: söylenen adı taşıyan karta kayarak geç. @return kartın başlığı; bulunamadıysa null. */
 	@Nullable
 	public String goToCard(String spoken) {

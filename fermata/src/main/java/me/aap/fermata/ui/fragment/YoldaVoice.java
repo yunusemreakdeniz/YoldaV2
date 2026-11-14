@@ -161,7 +161,8 @@ public final class YoldaVoice {
 		switch (it.kind()) {
 			case HELP -> reply(a, "Örneğin: TRT Haber aç, Tarkan çal, eve git, en yakın benzinlik, sesi yüzde elli yap, "
 					+ "yarın hava nasıl, on dakika sonra su içmeyi hatırlat, neredeyim, şarjım kaç, on beş çarpı dört, "
-					+ "Atatürk kimdir, annemi ara. Sohbet de edebiliriz: nasılsın, şaka yap, acıktım.");
+					+ "Atatürk kimdir, annemi ara, radyo kartına geç, sonraki kart, on saniye geri sar, okul uyarısını kapat, "
+					+ "okyanus teması, gün batımı ne zaman. Sohbet de edebiliriz: nasılsın, şaka yap, acıktım.");
 			case CHAT -> reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			case DATE -> reply(a, YoldaAnswers.date());
 			case CALC -> reply(a, it.arg());
@@ -339,6 +340,69 @@ public final class YoldaVoice {
 					else toast(a, title + " kartı");
 				}, 150);
 			}
+			case NEXT_CARD, PREV_CARD -> {
+				a.showFragment(R.id.home_fragment);
+				App.get().getHandler().postDelayed(() -> {
+					if (!(a.getActiveFragment() instanceof YoldaDeckFragment d)) return;
+					String title = d.stepCard((it.kind() == Kind.NEXT_CARD) ? 1 : -1);
+					if (title == null) toast(a, (it.kind() == Kind.NEXT_CARD) ? "Son karttasın" : "İlk karttasın");
+					else toast(a, title + " kartı");
+				}, 150);
+			}
+			case CARD_OPEN -> {
+				a.showFragment(R.id.home_fragment);
+				App.get().getHandler().postDelayed(() -> {
+					if (!(a.getActiveFragment() instanceof YoldaDeckFragment d)) return;
+					String title = d.openCard(it.arg());
+					if (title == null) reply(a, "“" + it.arg() + "” adında bir kart bulamadım");
+					else toast(a, title + " açılıyor");
+				}, 150);
+			}
+			case EDIT_CARDS -> {
+				a.showFragment(R.id.home_fragment);
+				App.get().getHandler().postDelayed(() -> {
+					if (a.getActiveFragment() instanceof YoldaDeckFragment d) d.startEditing();
+				}, 150);
+			}
+			case SEEK, SEEK_START -> {
+				var eng = cb.getEngine();
+				if (eng == null) {
+					reply(a, "Şu an çalan bir şey yok");
+					break;
+				}
+				long pos = Math.max(0, cb.getPlaybackState().getPosition());
+				long to = (it.kind() == Kind.SEEK_START) ? 0 : Math.max(0, pos + it.num() * 1000L);
+				cb.onSeekTo(to);
+				toast(a, (it.kind() == Kind.SEEK_START) ? "Baştan" : ((it.num() > 0 ? "⏩ " : "⏪ ") + Math.abs(it.num()) + " sn"));
+			}
+			case FEATURE -> {
+				boolean on = it.num() == 1;
+				String k = it.arg();
+				if ("overspeed".equals(k)) YoldaRadar.setOverspeedWarn(ctx, on);
+				else if ("voice".equals(k)) YoldaRadar.setVoice(ctx, on);
+				else YoldaRadar.setFeature(ctx, k, on);
+				reply(a, featureName(k) + (on ? " açıldı" : " kapatıldı"));
+			}
+			case WAKE_OFF -> {
+				YoldaWake.setEnabled(a, false);
+				reply(a, "Hey Yolda kapatıldı. Mikrofon düğmesiyle konuşabilirsin, Ayarlar'dan yeniden açabilirsin");
+			}
+			case SUN -> YoldaWeather.detail(ctx, false).main().onCompletion((d, err) -> {
+				if ((d == null) || (d.sunset() == null)) reply(a, "Bilgi alınamadı");
+				else reply(a, "set".equals(it.arg()) ? ("Güneş " + d.sunset() + "'de batıyor") : ("Güneş " + d.sunrise() + "'de doğuyor"));
+			});
+			case THEME_SET -> {
+				int i = YoldaStyle.setByName(ctx, it.arg());
+				if (i < 0) reply(a, "“" + it.arg() + "” adında tema yok. Temalar: gece, gece mavi, gün batımı, okyanus, gül, asil, yumuşak");
+				else toast(a, "Tema: " + YoldaStyle.THEMES[i].name);
+			}
+			case TEST_ALERT -> YoldaRadar.testAlert(ctx, false);
+			case NAV_APP -> {
+				boolean waze = "waze".equals(it.arg());
+				ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).edit()
+						.putBoolean("nav_waze", waze).apply();
+				reply(a, waze ? "Yol tarifleri artık Waze ile" : "Yol tarifleri artık Google Haritalar ile");
+			}
 			case BACK -> a.yoldaBack();
 			case OPEN_APP -> {
 				if (!openApp(a, it.arg())) return false;
@@ -487,6 +551,7 @@ public final class YoldaVoice {
 				a.postBroadcastEvent(me.aap.utils.ui.activity.ActivityListener.FRAGMENT_CHANGED);
 			}
 			case "radar" -> a.showFragment(R.id.yolda_radar_fragment);
+			case "weather" -> a.showFragment(R.id.yolda_weather_fragment);
 			case "favs" -> {
 				a.showFragment(R.id.home_fragment);
 				App.get().getHandler().post(() -> {
@@ -561,6 +626,21 @@ public final class YoldaVoice {
 	private static void toast(MainActivityDelegate a, String text) {
 		lastFeedback = text;
 		YoldaStyle.toast(a.getContext(), text);
+	}
+
+	static String featureName(String k) {
+		return switch (k) {
+			case "zones" -> "Okul ve hastane uyarısı";
+			case "fatigue" -> "Mola hatırlatıcısı";
+			case "avg" -> "Ortalama hız uyarısı";
+			case "stops" -> "Yol üstü tesis bildirimi";
+			case "overspeed" -> "Hız aşımı bipi";
+			case "voice" -> "Sesli radar uyarısı";
+			case "park" -> "Park yeri kaydı";
+			case "trips" -> "Yolculuk kaydı";
+			case "official" -> "Resmi radarlar";
+			default -> k;
+		};
 	}
 
 	/** Kısa yazı + sesli yanıt. */

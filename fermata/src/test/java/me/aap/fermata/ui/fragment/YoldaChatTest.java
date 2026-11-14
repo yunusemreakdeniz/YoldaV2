@@ -72,6 +72,45 @@ public class YoldaChatTest {
 	}
 
 	@Test
+	public void yeniKomutlar() {
+		kind(Kind.NEXT_CARD, "sonraki karta geç");
+		kind(Kind.PREV_CARD, "önceki kart");
+		kind(Kind.NEXT_CARD, "sağa kaydır");
+		Intent o = p("radyo kartını aç");
+		assertEquals(Kind.CARD_OPEN, o.kind());
+		assertEquals("radyo", o.arg());
+		kind(Kind.EDIT_CARDS, "kartları düzenle");
+		Intent s = p("10 saniye geri sar");
+		assertEquals(Kind.SEEK, s.kind());
+		assertEquals(-10, s.num());
+		assertEquals(15, p("ileri sar").num());
+		assertEquals(60, p("bir dakika ileri").num());
+		kind(Kind.SEEK_START, "başa sar");
+		kind(Kind.NEXT, "ileri"); // tek "ileri" hâlâ sonraki
+		kind(Kind.PREV, "geri");
+		kind(Kind.BACK, "geri git");
+		Intent f = p("okul uyarısını kapat");
+		assertEquals(Kind.FEATURE, f.kind());
+		assertEquals("zones", f.arg());
+		assertEquals(0, f.num());
+		assertEquals("fatigue", p("mola hatırlatıcısını aç").arg());
+		assertEquals(1, p("mola hatırlatıcısını aç").num());
+		assertEquals("overspeed", p("hız aşımı uyarısını kapat").arg());
+		kind(Kind.RADAR_OFF, "radar uyarısını kapat"); // eski komut değişmedi
+		kind(Kind.WAKE_OFF, "hey yoldayı kapat");
+		kind(Kind.TEST_ALERT, "radar uyarısını dene");
+		assertEquals("waze", p("waze kullan").arg());
+		assertEquals("set", p("gün batımı ne zaman").arg());
+		assertEquals("rise", p("güneş kaçta doğuyor").arg());
+		Intent t = p("okyanus temasına geç");
+		assertEquals(Kind.THEME_SET, t.kind());
+		assertEquals("okyanus", t.arg());
+		kind(Kind.THEME_NEXT, "temayı değiştir");
+		kind(Kind.THEME_AUTO, "otomatik tema");
+		kind(Kind.OPEN_APP, "sürüş ekranını aç");
+	}
+
+	@Test
 	public void hesap() {
 		Intent i = p("15 çarpı 4 kaç");
 		assertEquals(Kind.CALC, i.kind());

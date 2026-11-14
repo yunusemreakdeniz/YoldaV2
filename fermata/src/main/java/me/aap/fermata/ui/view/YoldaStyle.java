@@ -214,6 +214,29 @@ public final class YoldaStyle {
 	}
 
 	/** Sıradaki tema. Otomatikteyse şu anki dilimin (gündüz / gece) teması değişir. */
+	/** Adıyla tema seç ("okyanus", "gece mavi"); bulunamazsa -1, bulunursa sırası. */
+	public static int setByName(Context ctx, String spoken) {
+		java.util.Locale tr = new java.util.Locale("tr");
+		String q = spoken.toLowerCase(tr).trim();
+		int best = -1;
+		for (int i = 0; i < THEMES.length; i++) {
+			String n = THEMES[i].name.toLowerCase(tr);
+			if (n.equals(q)) {
+				best = i;
+				break;
+			}
+			if ((best < 0) && (n.startsWith(q) || q.startsWith(n))) best = i;
+		}
+		if (best < 0) return -1;
+		if (isAuto(ctx)) {
+			if (isNight(ctx)) setNightTheme(ctx, best);
+			else setDayTheme(ctx, best);
+		} else {
+			prefs(ctx).edit().putInt("theme", best).apply();
+		}
+		return best;
+	}
+
 	public static void next(Context ctx) {
 		int n = Math.floorMod(index(ctx) + 1, THEMES.length);
 		if (isAuto(ctx)) {
