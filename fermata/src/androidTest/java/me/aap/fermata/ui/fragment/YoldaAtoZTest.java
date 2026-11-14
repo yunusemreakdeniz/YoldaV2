@@ -487,7 +487,7 @@ public class YoldaAtoZTest {
 			return null;
 		});
 		waitIdle(1200);
-		View edit = onMain(a -> byText(a.getActiveFragment().getView(), "✎ Düzenle"));
+		View edit = onMain(a -> byDesc(a.getActiveFragment().getView(), "Favorileri düzenle"));
 		assertNotNull("Favoriler kartında Düzenle olmalı", edit);
 		onMain(a -> edit.performClick());
 		waitIdle(800);
@@ -562,9 +562,9 @@ public class YoldaAtoZTest {
 			String label = String.valueOf(ctx().getPackageManager().getApplicationLabel(ctx().getApplicationInfo().packageName
 					.equals(pkg) ? ctx().getApplicationInfo() : appInfo(pkg)));
 			assertNotNull("Eklenen uygulama kartta görünmeli: " + label, onMain(a -> byDescExact(a.getActiveFragment().getView(), label)));
-			View add = onMain(a -> byText(a.getActiveFragment().getView(), "＋ Uygulama"));
-			assertNotNull("＋ Uygulama olmalı", add);
-			assertNotNull("✎ Düzenle olmalı", onMain(a -> byText(a.getActiveFragment().getView(), "✎ Düzenle")));
+			View add = onMain(a -> byDesc(a.getActiveFragment().getView(), "Uygulama ekle"));
+			assertNotNull("＋ (Uygulama ekle) olmalı", add);
+			assertNotNull("✎ (Uygulamaları düzenle) olmalı", onMain(a -> byDesc(a.getActiveFragment().getView(), "Uygulamaları düzenle")));
 			onMain(a -> add.performClick());
 			waitIdle(1200);
 			assertNotNull("Uygulama listesi açılmalı", onMain(a -> byText(a.getActiveFragment().getView(), "Uygulama ekle")));

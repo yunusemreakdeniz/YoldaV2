@@ -729,7 +729,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		h.setGravity(Gravity.CENTER_VERTICAL);
 		if (row != null) h.addView(row, new LinearLayout.LayoutParams(0, -2, 1f));
 		else h.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
-		ImageView b = roundButton(ctx, R.drawable.yi_list, radio ? "Radyoları sırala" : "Kanalları sırala",
+		ImageView b = roundButton(ctx, R.drawable.yi_edit, radio ? "Radyoları sırala" : "Kanalları sırala",
 				v -> showOrderEditor(ctx, radio));
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
 		lp.leftMargin = dp(8);
@@ -891,16 +891,50 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		th[0].attachToRecyclerView(rv);
 	}
 
-	/** Kartın içeriği + sağında "Sırala" düğmesi. */
+	/** Kartın içeriği + sağında düzenle (✎) düğmesi. */
 	private View withEditButton(Context ctx, View row, String desc, Runnable edit) {
+		return withActions(ctx, row, null, null, desc, edit);
+	}
+
+	/** Bütün kartlarda aynı: içerik solda, sağda yazısız yuvarlak düğmeler; önce ekle (＋), en sağda düzenle (✎). */
+	private View withActions(Context ctx, View row, @Nullable String addDesc, @Nullable Runnable add,
+													 @Nullable String editDesc, @Nullable Runnable edit) {
 		LinearLayout h = hrow(ctx);
 		h.setGravity(Gravity.CENTER_VERTICAL);
 		h.addView(row, new LinearLayout.LayoutParams(0, -2, 1f));
-		ImageView b = roundButton(ctx, R.drawable.yi_list, desc, v -> edit.run());
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
-		lp.leftMargin = dp(8);
-		h.addView(b, lp);
+		if (add != null) {
+			ImageView b = roundButton(ctx, R.drawable.yi_add, addDesc, v -> add.run());
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
+			lp.leftMargin = dp(8);
+			h.addView(b, lp);
+		}
+		if (edit != null) {
+			ImageView b = roundButton(ctx, R.drawable.yi_edit, editDesc, v -> edit.run());
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
+			lp.leftMargin = dp(8);
+			h.addView(b, lp);
+		}
 		return h;
+	}
+
+	// ---- YouTube kanallarım ----
+
+	private void addYtChannel(Context ctx) {
+		askText("YouTube kanalı ekle", "Kanal adı (ör. Habertürk, Yahya Bostan)", s -> {
+			List<String> l = ytChannels(ctx);
+			if (!l.contains(s)) l.add(s);
+			saveYtChannels(ctx, l);
+			YoldaStyle.toast(ctx, "Eklendi: " + s);
+			refreshCard(YoldaDeck.YOUTUBE);
+		});
+	}
+
+	private void showYtChannelsEditor(Context ctx) {
+		List<String> work = ytChannels(ctx);
+		orderEditor(ctx, "YouTube kanallarım", "kartta bu sırayla", work, x -> x, l -> {
+			saveYtChannels(ctx, new ArrayList<>(l));
+			refreshCard(YoldaDeck.YOUTUBE);
+		}, x -> true);
 	}
 
 	// ---- Kişiler kartı sırası ----
@@ -2188,20 +2222,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					});
 					row.addView(cb, chipLp());
 				}
-				TextView add = chipBtn(ctx, "＋ Kanal", v -> askText("YouTube kanalı ekle", "Kanal adı (ör. Habertürk, Yahya Bostan)", s -> {
-					List<String> l = ytChannels(ctx);
-					if (!l.contains(s)) l.add(s);
-					saveYtChannels(ctx, l);
-					YoldaStyle.toast(ctx, "Eklendi: " + s);
-					refreshCard(YoldaDeck.YOUTUBE);
-				}));
-				add.setContentDescription("YouTube kanalı ekle");
-				row.addView(add, chipLp());
 				for (String[] q : new String[][]{{"Haber", "haber canlı"}, {"Canlı yayın", "canlı yayın türkiye"},
 						{"Müzik", "türkçe pop"}, {"Spor", "spor özet"}, {"Belgesel", "belgesel türkçe"}}) {
 					row.addView(chipBtn(ctx, q[0], v -> YoutubeHomeFragment.searchFor(a, q[1])), chipLp());
 				}
-				return scroll(ctx, row);
+				boolean anyYt = !ytChannels(ctx).isEmpty();
+				return withActions(ctx, scroll(ctx, row), "YouTube kanalı ekle", () -> addYtChannel(ctx),
+						anyYt ? "YouTube kanallarımı düzenle" : null, anyYt ? () -> showYtChannelsEditor(ctx) : null);
 			}
 			case YoldaDeck.WEB -> {
 				LinearLayout row = hrow(ctx);
@@ -2254,9 +2281,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				LinearLayout row = hrow(ctx);
 				int ts = Math.max(dp(48), Math.min(tile, dp(84)));
 				for (YoldaCalls.Contact ct : YoldaCalls.favorites(ctx)) row.addView(contactTile(ctx, a, ct, ts), contactLp(ts));
-				row.addView(contactTile(ctx, a, null, ts), contactLp(ts));
-				if (YoldaCalls.favorites(ctx).isEmpty()) return scroll(ctx, row);
-				return withEditButton(ctx, scroll(ctx, row), "Kişileri düzenle", () -> showContactsEditor(ctx));
+				boolean any = !YoldaCalls.favorites(ctx).isEmpty();
+				return withActions(ctx, scroll(ctx, row), "Kişi ekle", () -> pickContact(ctx),
+						any ? "Kişileri düzenle" : null, any ? () -> showContactsEditor(ctx) : null);
 			}
 			case YoldaDeck.PHARMACY -> { // yıldızlı ilçe / iller: tek dokunuşla o yerin nöbetçileri
 				LinearLayout row = hrow(ctx);
@@ -2358,9 +2385,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 						clp.rightMargin = dp(10);
 						row.addView(cell, clp);
 					}
-					row.addView(chipBtn(ctx, "＋ Uygulama", v -> pickPhoneApp()), chipLp());
-					if (!phoneApps(ctx).isEmpty()) row.addView(chipBtn(ctx, "✎ Düzenle", v -> editPhoneApps()), chipLp());
-					return scroll(ctx, row);
+					boolean anyApp = !phoneApps(ctx).isEmpty();
+					return withActions(ctx, scroll(ctx, row), "Uygulama ekle", this::pickPhoneApp,
+							anyApp ? "Uygulamaları düzenle" : null, anyApp ? this::editPhoneApps : null);
 				}
 				return row;
 			}
@@ -2397,12 +2424,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.ADD -> {
 				LinearLayout row = hrow(ctx);
-				row.addView(chipBtn(ctx, "+ TV kanalı", v -> addTvChannel()), chipLp());
-				row.addView(chipBtn(ctx, "+ Radyo", v -> addRadio()), chipLp());
-				row.addView(chipBtn(ctx, "+ YouTube kanalı", v -> addYoutube()), chipLp());
-				row.addView(chipBtn(ctx, "+ Web sayfası", v -> addWeb()), chipLp());
-				row.addView(chipBtn(ctx, "Düzenle", v -> setEditing(true)), chipLp());
-				return scroll(ctx, row);
+				return withActions(ctx, row, "Kart ekle", this::showAddMenu, "Kartları düzenle", () -> setEditing(true));
 			}
 			case YoldaDeck.TV_CHANNEL, YoldaDeck.RADIO_CHANNEL, YoldaDeck.RADIO_STREAM -> {
 				LinearLayout row = hrow(ctx);
@@ -2628,9 +2650,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			clp.rightMargin = dp(10);
 			row.addView(cell, clp);
 		}
-		row.addView(chipBtn(ctx, "＋ Favori ekle", v -> showFavAddMenu()), chipLp());
-		if (!YoldaFavs.load(ctx).isEmpty()) row.addView(chipBtn(ctx, "✎ Düzenle", v -> editFavorites()), chipLp());
-		return scroll(ctx, row);
+		boolean any = !YoldaFavs.load(ctx).isEmpty();
+		return withActions(ctx, scroll(ctx, row), "Favori ekle", this::showFavAddMenu,
+				any ? "Favorileri düzenle" : null, any ? this::editFavorites : null);
 	}
 
 	/** Favorileri düzenle: ▲ ▼ ile sırala, ada dokunup değiştir, ✕ ile kaldır. Değişiklik hemen kaydedilir. */
