@@ -223,10 +223,17 @@ public final class YoldaWake {
 		retrySoon(1200);
 	}
 
+	/** Sesli asistan dinliyor: "Hey Yolda" mikrofonu almasın (ikinci komutta mikrofon çakışıyordu). */
+	public static volatile boolean assistantBusy;
+
 	private static void retrySoon(long delay) {
 		MainActivityDelegate a = owner;
 		if (a == null) return;
 		App.get().getHandler().postDelayed(() -> {
+			if (assistantBusy) { // asistan hâlâ dinliyor: biraz sonra yeniden dene
+				if (!paused) retrySoon(1500);
+				return;
+			}
 			if ((owner == a) && (service == null) && !paused) start(a);
 		}, delay);
 	}

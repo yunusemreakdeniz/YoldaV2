@@ -191,6 +191,9 @@ public class RadarFragment extends MainActivityFragment {
 		}));
 		if (on && !perm) col.addView(button(ctx, "Konum iznini ver", v -> askPermission(a)));
 		col.addView(feature(ctx, "cams", "Radar uyarısı", "Radara 1000 / 500 / 150 m kala bip ve uyarı"));
+		String rs = YoldaRouteRadars.status;
+		col.addView(feature(ctx, "official", "Rotadaki resmi radarlar",
+				"Hedef girince İçişleri Bakanlığı'ndan · " + ((rs != null) ? rs : "hedef yok: OpenStreetMap radarları")));
 		boolean voice = YoldaRadar.voice(ctx);
 		col.addView(toggle(ctx, "Sesli uyarı", voice ? "“500 metre sonra radar, hız sınırı 70”" : "Yalnız bip ve yazı", voice,
 				v -> {

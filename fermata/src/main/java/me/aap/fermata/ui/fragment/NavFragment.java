@@ -590,6 +590,7 @@ public class NavFragment extends MainActivityFragment {
 				.getBoolean("nav_waze", false);
 		String pkg = waze ? WAZE : MAPS;
 		boolean has = (dest != null) && !dest.trim().isEmpty();
+		if (has) YoldaRouteRadars.onDestination(ctx, dest.trim()); // rotanın resmi radarları (İçişleri Bakanlığı)
 		Uri geo = Uri.parse(has ? ("geo:0,0?q=" + Uri.encode(dest.trim())) : "geo:0,0");
 		List<Intent> tries = new ArrayList<>();
 		tries.add(new Intent("androidx.car.app.action.NAVIGATE", geo));
@@ -648,6 +649,7 @@ public class NavFragment extends MainActivityFragment {
 	public static void navigateTo(Context ctx, String dest, boolean remember) {
 		SharedPreferences p = ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
 		String d = dest.trim();
+		YoldaRouteRadars.onDestination(ctx, d); // rotanın resmi radarları (İçişleri Bakanlığı)
 		if (remember) {
 			List<String> l = new ArrayList<>();
 			try {

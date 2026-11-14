@@ -339,7 +339,7 @@ public final class YoldaRadar {
 		if ((r == null) || needFetch(la, lo)) fetchRoads(la, lo);
 
 		// radar
-		Ahead a = feature(ctx, "cams") ? YoldaRadarCore.ahead(la, lo, hd, cams, 1500) : null;
+		Ahead a = feature(ctx, "cams") ? YoldaRadarCore.ahead(la, lo, hd, effectiveCams(), 1500) : null;
 		ahead = a;
 		if ((limit == 0) && (a != null) && (a.meters() < 300) && (a.cam().limit() > 0)) {
 			limit = a.cam().limit(); // yol etiketi yoksa radarın sınırı
@@ -348,10 +348,11 @@ public final class YoldaRadar {
 		int stage = alerter.update(a, Math.max(0, speedKmh));
 		if (stage > 0) alert(ctx, YoldaRadarCore.alertText(a, stage, limit), stage <= 150, 'r');
 		helpers(ctx, la, lo, speedKmh, hd);
+		YoldaRouteRadars.onLocation(ctx, la, lo);
 		if (speedKmh >= 10) lastMoveAt = SystemClock.elapsedRealtime();
 		if (feature(ctx, "trips")) {
 			Long passed = null;
-			for (Ahead n : YoldaRadarCore.nearby(la, lo, cams, 40, 1)) passed = n.cam().id();
+			for (Ahead n : YoldaRadarCore.nearby(la, lo, effectiveCams(), 40, 1)) passed = n.cam().id();
 			YoldaDriveCore.TripRec rec = trip.update(SystemClock.elapsedRealtime(), System.currentTimeMillis(), la, lo, speedKmh, passed);
 			if (rec != null) saveTrip(ctx, rec);
 		}
@@ -377,7 +378,7 @@ public final class YoldaRadar {
 		// ortalama hız
 		if (feature(ctx, "avg")) {
 			Cam passed = null;
-			for (Ahead n : YoldaRadarCore.nearby(la, lo, cams, 40, 3)) {
+			for (Ahead n : YoldaRadarCore.nearby(la, lo, effectiveCams(), 40, 3)) {
 				if (n.cam().kind() == 'a') {
 					passed = n.cam();
 					break;
@@ -564,6 +565,53 @@ public final class YoldaRadar {
 
 	public static List<Cam> cams() {
 		return cams;
+	}
+
+	private static List<Cam> effBase, effRoute, eff = new ArrayList<>();
+
+	/**
+	 * Uyarılarda kullanılan liste: OpenStreetMap + eklediklerin + (hedef girildiyse) rotanın resmi radarları.
+	 * Aynı radar iki kaynakta varsa (60 m) bir kez sayılır.
+	 */
+	public static synchronized List<Cam> effectiveCams() {
+		List<Cam> b = cams, r = YoldaRouteRadars.cams;
+		if ((b == effBase) && (r == effRoute)) return eff;
+		List<Cam> l = new ArrayList<>(b);
+		for (Cam c : r) {
+			boolean dup = false;
+			for (Cam o : b) {
+				if ((Math.abs(o.lat() - c.lat()) < 0.001) && (YoldaRadarCore.dist(o.lat(), o.lon(), c.lat(), c.lon()) < 60)) {
+					dup = true;
+					break;
+				}
+			}
+			if (!dup) l.add(c);
+		}
+		effBase = b;
+		effRoute = r;
+		eff = l;
+		return l;
+	}
+
+	/** Rotanın resmi radarları değişti. */
+	static void routeChanged() {
+		alerter.reset();
+		changed();
+	}
+
+	/** Telefonun bilinen son konumu {lat, lon}; yoksa null. */
+	@SuppressLint("MissingPermission")
+	@androidx.annotation.Nullable
+	static double[] lastKnown(Context ctx) {
+		try {
+			LocationManager m = (LocationManager) ctx.getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+			if ((m == null) || !hasPermission(ctx)) return null;
+			Location l = m.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+			if (l == null) l = m.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+			return (l == null) ? null : new double[]{l.getLatitude(), l.getLongitude()};
+		} catch (Throwable ex) {
+			return null;
+		}
 	}
 
 	/** Testler için: radar listesini değiştir. */

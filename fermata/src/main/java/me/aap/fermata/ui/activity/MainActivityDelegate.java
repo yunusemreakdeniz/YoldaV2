@@ -1348,7 +1348,13 @@ public class MainActivityDelegate extends ActivityDelegate
 			Log.e(err, "Failed to request RECORD_AUDIO permission");
 			showAlert(getContext(), R.string.err_no_audio_record_perm);
 		}).then(v -> {
-			if (speechListener != null) speechListener.destroy();
+			SpeechListener old = speechListener;
+			if (old != null) {
+				old.replaced = true; // kapanırken "Hey Yolda"yı yeniden açmasın: mikrofon yeni dinlemede
+				old.destroy();
+			}
+			me.aap.fermata.ui.fragment.YoldaWake.pause();
+			me.aap.fermata.ui.fragment.YoldaWake.assistantBusy = true;
 			Promise<List<String>> p = new Promise<>();
 			String lang = (locale == null) ? getPrefs().getVoiceControlLang(this) : locale;
 			Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
@@ -2684,14 +2690,28 @@ public class MainActivityDelegate extends ActivityDelegate
 				}
 			}
 			playbackState = null;
-			recognizer.destroy();
+			releaseRecognizer();
 			promise.cancel();
+			if (!replaced) me.aap.fermata.ui.fragment.YoldaWake.assistantBusy = false;
 			removeGlow();
 			if (speechListener == this) speechListener = null;
 		}
 
 		// Yolda: pencere yerine uygulamanın üstünde ışık efekti
 		private me.aap.fermata.ui.view.VoiceGlowView glow;
+		/** Yerine yeni dinleme açıldı: kapanırken mikrofonu "Hey Yolda"ya geri verme. */
+		boolean replaced;
+		private boolean released;
+
+		/** Tanıma motorunu bırak (mikrofon boşalsın); bir sonraki dinleme temiz başlasın. */
+		private void releaseRecognizer() {
+			if (released) return;
+			released = true;
+			try {
+				recognizer.destroy();
+			} catch (Throwable ignore) {
+			}
+		}
 
 		private boolean showGlow() {
 			if (glow != null) return true;
@@ -2722,7 +2742,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 
 		private void removeGlow() {
-			me.aap.fermata.ui.fragment.YoldaWake.resumeSoon(); // asistan bitti: "Hey Yolda"yı yeniden dinle
+			// asistan bitti: "Hey Yolda"yı yeniden dinle (yerine yeni dinleme açıldıysa değil)
+			if (!replaced) me.aap.fermata.ui.fragment.YoldaWake.resumeSoon();
 			View v = glow;
 			glow = null;
 			if (v == null) return;
@@ -2813,6 +2834,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		public void onResults(Bundle b) {
 			List<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
 			if ((r != null) && !r.isEmpty()) text.setText(r.get(0));
+			releaseRecognizer();
+			me.aap.fermata.ui.fragment.YoldaWake.assistantBusy = false;
 			promise.complete(r);
 			// Komut çalıştı: ne yapıldığı panelde ("✓ TRT Haber açılıyor"), sonra kapanır
 			String fb = me.aap.fermata.ui.fragment.YoldaVoice.consumeFeedback();
@@ -2860,6 +2883,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			removeGlow();
 			String msg = "Speech recognition failed with error code " + error;
 			Log.e(msg);
+			me.aap.fermata.ui.fragment.YoldaWake.assistantBusy = false;
 			promise.completeExceptionally(new IOException(msg));
 			hideActiveMenu();
 
