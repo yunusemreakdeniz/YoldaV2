@@ -23,8 +23,9 @@ import me.aap.fermata.R;
 import me.aap.fermata.ui.activity.MainActivityDelegate;
 
 /**
- * Video izlerken radar / hız uyarısı: sesli asistandaki ışık efektinin kırmızısı ekranın kenarlarında
- * nabız gibi atar, ortada uyarı kartı. 5 saniye sonra kendiliğinden kapanır; ✕ ya da ekrana dokunuş kapatır.
+ * Radar uyarısı (her ekranda, videonun da üstünde): sesli asistandaki ışık efektinin kırmızısı ekranın
+ * kenarlarında nabız gibi atar, ortada uyarı kartı. 5 saniye sonra kendiliğinden kapanır; ✕ ya da karta
+ * dokunuş kapatır. Kartın dışına dokunuş alttaki ekrana geçer.
  */
 public final class YoldaAlertOverlay extends FrameLayout {
 	private static final int TAG_KEY = 0x7f0b5e21;
@@ -82,9 +83,8 @@ public final class YoldaAlertOverlay extends FrameLayout {
 		super(ctx);
 		this.urgent = urgent;
 		setWillNotDraw(false);
-		setClickable(true);
-		setOnClickListener(v -> dismiss()); // ekrana dokununca kapanır
-		setBackgroundColor(0x33000000);
+		// Kartın dışına dokunuş alttaki ekrana geçer (sürerken düğmeler 5 sn kilitlenmesin); kart ve ✕ kapatır
+		setClickable(false);
 		p.setStyle(Paint.Style.STROKE);
 
 		LinearLayout card = new LinearLayout(ctx);

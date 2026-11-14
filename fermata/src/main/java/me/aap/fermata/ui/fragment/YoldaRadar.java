@@ -519,21 +519,23 @@ public final class YoldaRadar {
 		mark(kind);
 		YoldaLog.add("Radar uyarısı: " + text);
 		beep(urgent);
-		if (!videoAlert(text, urgent)) YoldaStyleToast.show(ctx, "⚠ " + text);
+		if (!screenAlert(text, urgent)) YoldaStyleToast.show(ctx, "⚠ " + text);
 		if (voice(ctx)) App.get().getHandler().postDelayed(() -> YoldaSpeak.sayAlways(ctx, text), 350);
 	}
 
-	/** Video izlenirken: kırmızı ışıklı tam ekran uyarı (5 sn, ✕ ile kapanır). @return gösterildiyse true */
-	private static boolean videoAlert(String text, boolean urgent) {
+	/**
+	 * Radar uyarısı her ekranda: kenarlarda kırmızı ışık, ortada uyarı kartı (5 sn, ✕ ile kapanır). Hız sınırı
+	 * soldaki göstergede kalır. @return gösterildiyse true
+	 */
+	private static boolean screenAlert(String text, boolean urgent) {
 		java.lang.ref.WeakReference<Context> w = ui;
 		Context c = (w != null) ? w.get() : null;
 		if (c == null) return false;
 		try {
 			me.aap.fermata.ui.activity.MainActivityDelegate a = me.aap.fermata.ui.activity.MainActivityDelegate.get(c);
-			if (!a.yoldaVideoOnScreen()) return false;
 			App.get().getHandler().post(() -> {
 				try {
-					me.aap.fermata.ui.view.YoldaAlertOverlay.showOnVideo(a, "⚠ " + text, urgent);
+					me.aap.fermata.ui.view.YoldaAlertOverlay.show(a, "⚠ " + text, urgent);
 				} catch (Throwable ex) {
 					Log.e(ex, "Video uyarısı gösterilemedi");
 				}
