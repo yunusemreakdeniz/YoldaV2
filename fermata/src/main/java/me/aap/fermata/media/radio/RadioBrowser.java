@@ -31,7 +31,74 @@ public final class RadioBrowser {
 	}
 
 	/** Bir radyo istasyonu. */
-	public record Station(String name, String url, @Nullable String logo, String tags, String country) {
+	public record Station(String name, String url, @Nullable String logo, String tags, String country, String state,
+												 int bitrate) {
+		/** Alt satır: şehir · türler · kbps. */
+		public String sub() {
+			StringBuilder b = new StringBuilder();
+			if (!state.isEmpty()) b.append(state);
+			String t = tags.replace(",", ", ");
+			if (t.length() > 40) t = t.substring(0, 40) + "…";
+			if (!t.isEmpty()) b.append((b.length() > 0) ? " · " : "").append(t);
+			if (bitrate > 0) b.append((b.length() > 0) ? " · " : "").append(bitrate).append(" kbps");
+			return (b.length() > 0) ? b.toString() : country;
+		}
+	}
+
+	/** Tür süzgeçleri: görünen ad → etiketlerde aranan sözcükler. */
+	public static final String[][] GENRES = {
+			{"Haber", "news", "haber", "talk"},
+			{"Pop", "pop", "hits", "top"},
+			{"Türk sanat / halk", "turkish classical", "sanat", "halk", "folk", "türkü", "turku", "thm", "tsm"},
+			{"Arabesk", "arabesk", "fantazi"},
+			{"Rock", "rock", "metal", "alternative"},
+			{"Slow / Romantik", "slow", "romantic", "love", "chill", "easy"},
+			{"Klasik / Caz", "classical", "klasik", "jazz", "caz", "blues"},
+			{"Spor", "sport", "spor"},
+			{"Dini", "religious", "islam", "quran", "kuran", "ilahi", "dini"},
+			{"Çocuk", "kids", "children", "çocuk", "cocuk"},
+	};
+
+	/** İstasyon bu türe uyuyor mu (GENRES satırı). */
+	public static boolean matchesGenre(Station s, String[] genre) {
+		String t = (s.tags() + " " + s.name()).toLowerCase(java.util.Locale.ROOT);
+		for (int i = 1; i < genre.length; i++) if (t.contains(genre[i])) return true;
+		return false;
+	}
+
+	/** Şehir eşleşmesi: büyük-küçük harf ve Türkçe harf farkı gözetmeden. */
+	public static boolean matchesCity(Station s, String city) {
+		return fold(s.state()).contains(fold(city)) || fold(s.name()).contains(fold(city));
+	}
+
+	static String fold(String s) {
+		String n = s.toLowerCase(new java.util.Locale("tr")).replace('ı', 'i');
+		return java.text.Normalizer.normalize(n, java.text.Normalizer.Form.NFD).replaceAll("\\p{Mn}+", "");
+	}
+
+	/** En çok istasyonu olan şehirler (sırayla, en fazla n). */
+	public static List<String> cities(List<Station> l, int n) {
+		java.util.Map<String, Integer> c = new java.util.HashMap<>();
+		java.util.Map<String, String> shown = new java.util.HashMap<>();
+		for (Station s : l) {
+			if (s.state().isEmpty()) continue;
+			String k = fold(s.state());
+			c.merge(k, 1, Integer::sum);
+			shown.putIfAbsent(k, s.state());
+		}
+		List<String> keys = new ArrayList<>(c.keySet());
+		keys.sort((a, b) -> c.get(b) - c.get(a));
+		List<String> out = new ArrayList<>();
+		for (String k : keys) {
+			if (out.size() >= n) break;
+			out.add(shown.get(k));
+		}
+		return out;
+	}
+
+	/** Türkiye'deki tüm çalışan istasyonlar (son denetimi başarılı olanlar, en çok dinlenen önce). */
+	public static FutureSupplier<List<Station>> allTurkey() {
+		return query("/json/stations/bycountrycodeexact/TR?order=clickcount&reverse=true&hidebroken=true&limit=1500");
 	}
 
 	/** Türkiye'de en çok dinlenen istasyonlar. */
@@ -112,12 +179,13 @@ public final class RadioBrowser {
 			if (url.isEmpty()) url = o.optString("url", "");
 			String name = o.optString("name", "").trim();
 			if (url.isEmpty() || name.isEmpty()) continue;
+			if (o.has("lastcheckok") && (o.optInt("lastcheckok", 1) == 0)) continue; // son denetimde çalışmıyordu
 			String logo = o.optString("favicon", "");
 			boolean dup = false;
 			for (Station s : out) dup |= s.url().equals(url) || s.name().equalsIgnoreCase(name);
 			if (dup) continue;
 			out.add(new Station(name, url, logo.startsWith("http") ? logo : null, o.optString("tags", ""),
-					o.optString("countrycode", "")));
+					o.optString("countrycode", ""), o.optString("state", "").trim(), o.optInt("bitrate", 0)));
 		}
 		return out;
 	}

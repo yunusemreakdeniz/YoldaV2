@@ -6,8 +6,8 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 ## Açık (sırayla)
 
 V2. [ ] Video kalitesini oynatıcının içinden de değiştirme ve sesle ("video kalitesini 720 yap")
-S. [x] (v2-154) TV yayınlarını daha hızlı açan kaynaklar: kanal başına birden çok yayın adresi, en hızlı açılanı seç, ölü adresleri ele, açılış süresini ölç
-T. [ ] Daha çok radyo kanalı: açık radyo dizini (radio-browser) ile Türkiye istasyonlarının tamamı, tür / şehir süzgeci, çalışmayanları ele
+S. [x] (v2-155) TV yayınlarını daha hızlı açan kaynaklar: kanal başına birden çok yayın adresi, en hızlı açılanı seç, ölü adresleri ele, açılış süresini ölç
+T. [x] (v2-156) Daha çok radyo kanalı: açık radyo dizini (radio-browser) ile Türkiye istasyonlarının tamamı, tür / şehir süzgeci, çalışmayanları ele
 K. [ ] Daha çok sürüş uyarısı, hepsi sesli: hemzemin geçit, kasis / hız tümseği, yaya geçidi (okul yakını), keskin viraj, tünel, gişe, köprü (soğukta buzlanma); her biri Sürüş ekranından aç / kapat
 L. [ ] Uyarı geçmişi: verilen bütün uyarılar zaman ve yerle kaydedilir; Sürüş ekranında ve Yolculuklar özetinde listelenir
 I. [ ] Navigasyon aramasında yer önerileri (yazdıkça adres / yer önerileri; seçince rota)

@@ -2,7 +2,13 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
-## 2026-11-19 · v2-154 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-154
+## 2026-11-19 · v2-156 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-156
+
+- Radyo ekle listesinde artık Türkiye'deki tüm çalışan istasyonlar var (açık radyo dizini; en çok dinlenen önce).
+- Tür çipleri (Haber, Pop, Türk sanat / halk, Arabesk, Rock, Slow, Klasik / Caz, Spor, Dini, Çocuk) ve en çok istasyonu olan şehirlerin çipleri.
+- Son denetimde çalışmayan istasyonlar listeye gelmez; alt satırda şehir, tür ve yayın kalitesi (kbps) yazar.
+
+## 2026-11-19 · v2-155 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-155
 
 - TV kanalı açılmazsa artık hemen hata yok: aynı kanalın yedek yayın adresleri (iptv-org Türkiye listesi) sırayla otomatik denenir.
 - Çalışan yedek adres telefonda hatırlanır; o kanal bir dahaki sefere önce o adresle denenir. Liste haftada bir telefonda yenilenir.

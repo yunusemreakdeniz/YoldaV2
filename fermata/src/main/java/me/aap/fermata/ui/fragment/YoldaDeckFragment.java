@@ -3495,10 +3495,91 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					() -> addEntry(YoldaDeck.RADIO_CHANNEL, pi.getName(), pi.getId(), null), pi));
 		}
 		showPicker("Radyo ekle", rows, q -> RadioBrowser.search(q));
-		// Türkiye'nin en çok dinlenenleri listenin altına
-		RadioBrowser.topTurkey().main().onSuccess(l -> {
-			if (overlay != null) appendStations(l);
+		// Türkiye'deki tüm çalışan istasyonlar: tür ve şehir süzgeçleriyle listenin altına
+		setStatus("Türkiye istasyonları yükleniyor…");
+		RadioBrowser.allTurkey().main().onCompletion((l, err) -> {
+			if ((overlay == null) || (pickerRows == null)) return;
+			if ((l == null) || l.isEmpty()) {
+				setStatus("Radyo dizinine ulaşılamadı; adla arayabilirsin");
+				return;
+			}
+			allStations = l;
+			addRadioFilters(rows.size());
+			applyRadioFilter(rows.size(), null, null);
 		});
+	}
+
+	/** Radyo ekleme listesindeki tüm Türkiye istasyonları (süzgeç için). */
+	private List<RadioBrowser.Station> allStations = new ArrayList<>();
+	private static final int RADIO_SHOW_MAX = 150;
+
+	/** Tür ve şehir çipleri: kaydırılabilir iki satır, listenin üstünde. */
+	private void addRadioFilters(int keep) {
+		if ((overlay == null) || (pickerRows == null)) return;
+		Context ctx = requireContext();
+		LinearLayout box = (LinearLayout) ((ViewGroup) pickerRows.getParent()).getParent();
+		int at = box.indexOfChild((View) pickerRows.getParent());
+		String[] sel = new String[2]; // [tür, şehir]
+		java.util.List<TextView> chips = new ArrayList<>();
+		Runnable[] paint = new Runnable[1];
+		java.util.function.BiFunction<String, Integer, TextView> chip = (label, slot) -> {
+			TextView c = chipBtn(ctx, label, null);
+			c.setOnClickListener(v -> {
+				String val = label.equals("Tümü") || label.equals("Her şehir") ? null : label;
+				sel[slot] = (val != null) && val.equals(sel[slot]) ? null : val;
+				paint[0].run();
+				applyRadioFilter(keep, sel[0], sel[1]);
+			});
+			c.setTag(R.id.yolda_chip_slot, slot);
+			chips.add(c);
+			return c;
+		};
+		paint[0] = () -> {
+			for (TextView c : chips) {
+				int slot = (Integer) c.getTag(R.id.yolda_chip_slot);
+				String lb = c.getText().toString();
+				boolean on = (sel[slot] == null) ? (lb.equals("Tümü") || lb.equals("Her şehir")) : lb.equals(sel[slot]);
+				GradientDrawable b = new GradientDrawable();
+				b.setCornerRadius(dp(999));
+				b.setColor(on ? 0xFFFFF4D6 : 0x33FFFFFF);
+				c.setBackground(b);
+				c.setTextColor(on ? 0xFF111827 : t.ink);
+			}
+		};
+		LinearLayout g = hrow(ctx);
+		g.addView(chip.apply("Tümü", 0), chipLp());
+		for (String[] gr : RadioBrowser.GENRES) g.addView(chip.apply(gr[0], 0), chipLp());
+		LinearLayout c = hrow(ctx);
+		c.addView(chip.apply("Her şehir", 1), chipLp());
+		for (String city : RadioBrowser.cities(allStations, 12)) c.addView(chip.apply(city, 1), chipLp());
+		for (LinearLayout r : new LinearLayout[]{g, c}) {
+			android.widget.HorizontalScrollView hs = new android.widget.HorizontalScrollView(ctx);
+			hs.setHorizontalScrollBarEnabled(false);
+			hs.addView(r);
+			hs.setPadding(0, dp(4), 0, dp(4));
+			box.addView(hs, at++, new LinearLayout.LayoutParams(-1, -2));
+		}
+		paint[0].run();
+	}
+
+	/** Süzgece uyan istasyonları göster (Yolda listesindeki ilk {@code keep} satır yerinde kalır). */
+	private void applyRadioFilter(int keep, @Nullable String genre, @Nullable String city) {
+		if ((overlay == null) || (pickerRows == null)) return;
+		while (pickerRows.getChildCount() > keep) pickerRows.removeViewAt(keep);
+		String[] gr = null;
+		if (genre != null) for (String[] x : RadioBrowser.GENRES) if (x[0].equals(genre)) gr = x;
+		List<RadioBrowser.Station> out = new ArrayList<>();
+		for (RadioBrowser.Station s : allStations) {
+			if ((gr != null) && !RadioBrowser.matchesGenre(s, gr)) continue;
+			if ((city != null) && !RadioBrowser.matchesCity(s, city)) continue;
+			out.add(s);
+		}
+		int total = out.size();
+		if (total > RADIO_SHOW_MAX) out = out.subList(0, RADIO_SHOW_MAX);
+		setStatus((total == 0) ? "Bu süzgeçte istasyon yok"
+				: (total > RADIO_SHOW_MAX) ? (total + " istasyon · en çok dinlenen " + RADIO_SHOW_MAX + " gösteriliyor")
+				: (total + " istasyon"));
+		appendStations(out);
 	}
 
 	private void addYoutube() {
@@ -3586,8 +3667,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if ((pickerRows == null) || (overlay == null)) return;
 		Context ctx = requireContext();
 		for (RadioBrowser.Station s : l) {
-			String sub = s.tags().isEmpty() ? s.country() : s.tags();
-			if (sub.length() > 60) sub = sub.substring(0, 60) + "…";
+			String sub = s.sub();
 			pickerRows.addView(row(ctx, new Row(s.name(), sub, s.logo(), R.drawable.yi_live,
 					() -> addEntry(YoldaDeck.RADIO_STREAM, s.name(), s.url(), s.logo()))));
 		}
