@@ -347,8 +347,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		sv.setClipToPadding(false);
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
-		int side = dp(18);
-		col.setPadding(side, YoldaStyle.cutoutTop(ctx) + dp(14), side, dp(150));
+		int side = dp(16); // 8dp ızgarası: kenar 16, aralık 8, bölüm 24
+		col.setPadding(side, YoldaStyle.cutoutTop(ctx) + dp(16), side, dp(160));
 		sv.addView(col, new ScrollView.LayoutParams(-1, -2));
 
 		// Üst satır: Yolda · Telefon | Araç · tema · ayarlar
@@ -371,7 +371,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		// Saat, tarih, hava
 		LinearLayout hero = hrow(ctx);
 		hero.setGravity(Gravity.BOTTOM);
-		hero.setPadding(0, dp(18), 0, dp(14));
+		hero.setPadding(0, dp(24), 0, dp(16));
 		LinearLayout when = new LinearLayout(ctx);
 		when.setOrientation(LinearLayout.VERTICAL);
 		int hr = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
@@ -396,7 +396,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		// Şimdi çalıyor
 		LinearLayout now = hrow(ctx);
 		now.setGravity(Gravity.CENTER_VERTICAL);
-		now.setPadding(dp(14), dp(10), dp(10), dp(10));
+		now.setPadding(dp(16), dp(8), dp(8), dp(8));
 		now.setBackground(phoneSurface(ctx, 20));
 		now.setClickable(true);
 		now.setOnClickListener(v -> YoldaNowPlaying.open(a));
@@ -427,7 +427,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		// Sürüş durumu: hız sınırı, radar, aracım
 		LinearLayout drive = hrow(ctx);
 		LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(-1, dp(64));
-		dl.topMargin = dp(10);
+		dl.topMargin = dp(8);
 		phLimit = statBox(ctx, drive, "Hız sınırı", v -> a.showFragment(R.id.yolda_radar_fragment), false);
 		phRadar = statBox(ctx, drive, "Radar", v -> a.showFragment(R.id.yolda_radar_fragment), true);
 		phPark = statBox(ctx, drive, "🅿 Aracım", v -> YoldaRadar.walkToPark(ctx), true);
@@ -435,8 +435,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		// Hızlı erişim
 		LinearLayout quick = hrow(ctx);
-		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, dp(66));
-		ql.topMargin = dp(10);
+		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, dp(64));
+		ql.topMargin = dp(8);
 		quickBtn(ctx, quick, R.drawable.yi_home_fill, "Ev", v -> NavFragment.voiceGo(a, "home", null), false);
 		quickBtn(ctx, quick, R.drawable.yi_nav, "İş", v -> NavFragment.voiceGo(a, "work", null), true);
 		quickBtn(ctx, quick, R.drawable.yi_search, "Rota", v -> a.showFragment(R.id.yolda_nav_fragment), true);
@@ -446,7 +446,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		// Kartlar
 		LinearLayout kh = hrow(ctx);
 		kh.setGravity(Gravity.CENTER_VERTICAL);
-		kh.setPadding(0, dp(20), 0, dp(8));
+		kh.setPadding(0, dp(24), 0, dp(8));
 		kh.addView(text(ctx, "Kartlar", 17, true, 0xFFFFFFFF), new LinearLayout.LayoutParams(0, -2, 1f));
 		TextView ed = text(ctx, "Düzenle", 14, true, t.accent | 0xFF000000);
 		ed.setGravity(Gravity.CENTER);
@@ -466,18 +466,18 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		for (YoldaDeck.Card c : cs) {
 			if (n % per == 0) {
 				row = hrow(ctx);
-				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(92));
-				rl.topMargin = dp(10);
+				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(96));
+				rl.topMargin = dp(8);
 				col.addView(row, rl);
 			}
 			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
-			if (n % per != 0) cl.leftMargin = dp(10);
+			if (n % per != 0) cl.leftMargin = dp(8);
 			row.addView((c == null) ? addTile(ctx) : phoneTile(ctx, c), cl);
 			n++;
 		}
 		while (n % per != 0) { // son satır: eş genişlik
 			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
-			cl.leftMargin = dp(10);
+			cl.leftMargin = dp(8);
 			row.addView(new View(ctx), cl);
 			n++;
 		}
@@ -503,7 +503,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout b = new LinearLayout(ctx);
 		b.setOrientation(LinearLayout.VERTICAL);
 		b.setGravity(Gravity.CENTER_VERTICAL);
-		b.setPadding(dp(12), 0, dp(8), 0);
+		b.setPadding(dp(12), 0, dp(12), 0);
 		b.setBackground(phoneSurface(ctx, 16));
 		b.setClickable(true);
 		b.setOnClickListener(click);
@@ -544,7 +544,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		Look lk = look(c);
 		LinearLayout f = new LinearLayout(ctx);
 		f.setOrientation(LinearLayout.VERTICAL);
-		f.setPadding(dp(12), dp(12), dp(12), dp(10));
+		f.setPadding(dp(12), dp(12), dp(12), dp(12));
 		f.setBackground(phoneSurface(ctx, 18));
 		f.setClickable(true);
 		f.setContentDescription(c.title());
