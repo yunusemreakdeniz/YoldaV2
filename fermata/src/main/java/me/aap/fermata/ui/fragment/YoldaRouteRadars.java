@@ -53,6 +53,51 @@ public final class YoldaRouteRadars {
 	private static volatile long routeAt;
 	private static volatile boolean busy;
 
+	// ---- radar kaynağı: değişince sesli söylenir (haritadayken de) ----
+
+	/** Uyarılarda kullanılan radar kaynağı. */
+	public enum Source {OSM, OFFICIAL}
+
+	/** Şu anki kaynak (bakanlığın rota listesi yüklüyse OFFICIAL). */
+	public static volatile Source source = Source.OSM;
+	/** Bu hedef için "alınamadı" söylendi mi (aynı hedefte tekrar tekrar söylenmesin). */
+	private static volatile boolean failSaid;
+	@Nullable
+	private static volatile Context appCtx;
+
+	/** Kaynak değişince söylenecek cümle; söylenecek bir şey yoksa null. */
+	@Nullable
+	static String announceText(Source from, Source to, int radars, int corridors, @Nullable String why) {
+		if (to == Source.OFFICIAL) {
+			return "Radar kaynağı İçişleri Bakanlığı. Rotada " + radars + " radar"
+					+ ((corridors > 0) ? (" ve " + corridors + " ortalama hız koridoru") : "") + " var";
+		}
+		if (from == Source.OFFICIAL) {
+			return ((why != null) && why.startsWith("Hedefe varıldı")) ? "Hedefe varıldı. Radar kaynağı OpenStreetMap"
+					: "Radar kaynağı OpenStreetMap'e döndü";
+		}
+		return null;
+	}
+
+	/** Kaynak değiştiyse sesli ve yazılı bildir (radar sesli uyarısı açıksa). */
+	private static void announce(Source to, int radars, int corridors, @Nullable String why) {
+		Source from = source;
+		source = to;
+		String text = announceText(from, to, radars, corridors, why);
+		say(text);
+	}
+
+	private static void say(@Nullable String text) {
+		Context c = appCtx;
+		if ((text == null) || (c == null)) return;
+		YoldaLog.add("Radar kaynağı: " + text);
+		if (!YoldaRadar.isEnabled(c)) return;
+		me.aap.utils.app.App.get().getHandler().post(() -> {
+			me.aap.fermata.ui.view.YoldaStyle.toast(c, "📡 " + text);
+			if (YoldaRadar.voice(c)) YoldaSpeak.sayAlways(c, text);
+		});
+	}
+
 	private YoldaRouteRadars() {
 	}
 
@@ -67,12 +112,15 @@ public final class YoldaRouteRadars {
 		if ((dest == null) || dest.trim().isEmpty()) return;
 		Context app = ctx.getApplicationContext();
 		if (!YoldaRadar.isEnabled(app) || !YoldaRadar.feature(app, "official")) return;
+		appCtx = app;
+		failSaid = false;
 		NET.submit(() -> {
 			double[] to = parseLatLon(dest);
 			if (to == null) to = geocode(app, dest);
 			if (to == null) {
 				status = "Hedefin konumu bulunamadı; OpenStreetMap radarları kullanılıyor";
 				YoldaLog.add("Resmi radarlar: hedef bulunamadı (" + dest + ")");
+				say("Hedefin konumu bulunamadı. Radar kaynağı OpenStreetMap");
 				return;
 			}
 			destLat = to[0];
@@ -98,6 +146,7 @@ public final class YoldaRouteRadars {
 		cams = new ArrayList<>();
 		status = why;
 		YoldaRadar.routeChanged();
+		if (source == Source.OFFICIAL) announce(Source.OSM, 0, 0, why);
 	}
 
 	public static boolean active() {
@@ -135,9 +184,17 @@ public final class YoldaRouteRadars {
 					+ new java.text.SimpleDateFormat("HH:mm", new Locale("tr")).format(new java.util.Date()) + ")";
 			YoldaLog.add("Resmi radarlar: " + status);
 			YoldaRadar.routeChanged();
+			if (source != Source.OFFICIAL) announce(Source.OFFICIAL, r.cams().size() - corr, corr / 2, null);
+			failSaid = false;
 		} catch (Throwable ex) {
 			YoldaLog.add("Resmi radarlar alınamadı: " + ex.getMessage());
-			if (cams.isEmpty()) status = "Resmi radarlar alınamadı; OpenStreetMap radarları kullanılıyor";
+			if (cams.isEmpty()) {
+				status = "Resmi radarlar alınamadı; OpenStreetMap radarları kullanılıyor";
+				if (!failSaid) { // bu hedefte bir kez
+					failSaid = true;
+					say("Bakanlığın radar listesi alınamadı. Radar kaynağı OpenStreetMap");
+				}
+			}
 			fetchedAt = System.currentTimeMillis() - REFRESH + 5 * 60_000L; // 5 dk sonra yeniden dene
 		} finally {
 			busy = false;

@@ -130,7 +130,9 @@ public class YoldaDriveService extends Service {
 		YoldaRadarCore.Ahead a = YoldaRadar.ahead;
 		if (a != null) b.append(" · önde radar ").append(RadarFragment.meters(a.meters()));
 		if (YoldaRadar.avg.isActive() && (YoldaRadar.avg.average() > 0)) b.append(" · ort. ").append(YoldaRadar.avg.average());
-		return (b.length() == 0) ? "Açık" : b.toString();
+		// radar kaynağı: haritadayken de hangi listeye bakıldığı görünsün
+		b.append(" · kaynak ").append((YoldaRouteRadars.source == YoldaRouteRadars.Source.OFFICIAL) ? "Bakanlık" : "OSM");
+		return b.toString();
 	}
 
 	private Notification build(String text) {

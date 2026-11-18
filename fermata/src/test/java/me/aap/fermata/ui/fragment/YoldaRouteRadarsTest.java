@@ -51,6 +51,18 @@ public class YoldaRouteRadarsTest {
 	}
 
 	@Test
+	public void kaynakDegisinceSoylenir() {
+		YoldaRouteRadars.Source O = YoldaRouteRadars.Source.OSM, B = YoldaRouteRadars.Source.OFFICIAL;
+		assertEquals("Radar kaynağı İçişleri Bakanlığı. Rotada 12 radar ve 2 ortalama hız koridoru var",
+				YoldaRouteRadars.announceText(O, B, 12, 2, null));
+		assertEquals("Radar kaynağı İçişleri Bakanlığı. Rotada 3 radar var", YoldaRouteRadars.announceText(O, B, 3, 0, null));
+		assertEquals("Hedefe varıldı. Radar kaynağı OpenStreetMap",
+				YoldaRouteRadars.announceText(B, O, 0, 0, "Hedefe varıldı; OpenStreetMap radarları kullanılıyor"));
+		assertEquals("Radar kaynağı OpenStreetMap'e döndü", YoldaRouteRadars.announceText(B, O, 0, 0, null));
+		assertNull("kaynak değişmediyse söylenmez", YoldaRouteRadars.announceText(O, O, 0, 0, null));
+	}
+
+	@Test
 	public void yardimcilar() {
 		assertEquals(41.01, YoldaRouteRadars.parseLatLon("41.010000,28.980000")[0], 1e-9);
 		assertNull(YoldaRouteRadars.parseLatLon("Taksim"));

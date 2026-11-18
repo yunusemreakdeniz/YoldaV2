@@ -5,7 +5,6 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Açık (sırayla)
 
-1. [ ] Radar kaynağı değişince sesli uyarı (Bakanlık ↔ OpenStreetMap; haritadayken de) ve hangi kaynağın kullanıldığı
 2. [ ] Hava durumu araçta konumu takip etsin; hava değişince bildirim ve sesli uyarı
 3. [ ] Hız sınırı: girilmemiş yollarda yol türüne göre yasal sınır (tahmini, "~" ile); daha çok yolda sınır
 4. [ ] Araçtan inince yolculuk özeti bildirimi; dokununca güzel bir özet ekranı
@@ -26,6 +25,7 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Yapılanlar
 
+- [x] Radar kaynağı değişince sesli uyarı ve bildirimde kaynak (v2-139)
 - [x] Telefon görünümünde 8dp boşluk düzeni (v2-138)
 - [x] Telefon görünümü, Telefon | Araç anahtarı, sade kartlar (v2-137)
 - [x] Gemini bağlantısı, araçta arama (v2-136)
