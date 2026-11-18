@@ -141,6 +141,7 @@ public final class YoldaWeatherWatch {
 			YoldaLog.add("Hava bildirimi gönderilemedi: " + ex);
 		}
 		YoldaStyle.toast(app, "🌦 " + msg);
+		YoldaAlertLog.add(app, 'w', msg, YoldaRadar.lat, YoldaRadar.lon); // uyarı geçmişi
 		if (YoldaRadar.voice(app)) YoldaSpeak.sayAlways(app, msg);
 	}
 }

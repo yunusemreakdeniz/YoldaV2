@@ -9,7 +9,7 @@ V2. [ ] Video kalitesini oynatıcının içinden de değiştirme ve sesle ("vide
 S. [x] (v2-155) TV yayınlarını daha hızlı açan kaynaklar: kanal başına birden çok yayın adresi, en hızlı açılanı seç, ölü adresleri ele, açılış süresini ölç
 T. [x] (v2-156) Daha çok radyo kanalı: açık radyo dizini (radio-browser) ile Türkiye istasyonlarının tamamı, tür / şehir süzgeci, çalışmayanları ele
 K. [x] (v2-157) Daha çok sürüş uyarısı, hepsi sesli: hemzemin geçit, kasis / hız tümseği, yaya geçidi (okul yakını), keskin viraj, tünel, gişe, köprü (soğukta buzlanma); her biri Sürüş ekranından aç / kapat
-L. [ ] Uyarı geçmişi: verilen bütün uyarılar zaman ve yerle kaydedilir; Sürüş ekranında ve Yolculuklar özetinde listelenir
+L. [x] (v2-158) Uyarı geçmişi: verilen bütün uyarılar zaman ve yerle kaydedilir; Sürüş ekranında ve Yolculuklar özetinde listelenir
 I. [ ] Navigasyon aramasında yer önerileri (yazdıkça adres / yer önerileri; seçince rota)
 J. [ ] Akaryakıt fiyatları kartı (açık kaynak araştırması; bulunamazsa yakındaki istasyonlar kartı + fiyatı kullanıcı girer)
 C. [ ] Kart logoları başlıkla aynı hizada değil, küçük ve ortalı kalıyor: başlık satırıyla hizala, gerekirse büyüt
@@ -51,6 +51,8 @@ Q9. [ ] Namaz vakitleri
 Q10. [ ] Telefon durumu (pil, veri, sinyal) ve hızlı ayarlar
 Q11. [ ] Hızlı mesaj (WhatsApp / SMS hazır cevaplar, "varınca haber ver")
 Q12. [ ] Spor skorları
+R1. [ ] Araç hareket edince videodan sese geçiş (araştırma: Android Auto 2026 "video-to-audio handoff"): TV / YouTube videosu araç 10 km/s'yi geçince yalnız ses olarak sürer (görüntü kapanır, veri azalır), park edince görüntü geri gelir; Sürüş ekranından aç / kapat
+R2. [ ] Uyarı geçmişi için sesli komut ("son uyarılar", "az önce ne dedin") ve Gemini'nin geçmişi okuyabilmesi
 
 ## Sürekli (her 3 turda bir)
 

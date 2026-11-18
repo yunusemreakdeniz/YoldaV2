@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-158 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-158
+
+- Uyarı geçmişi: radar, hız aşımı, ortalama hız, okul / hastane, mola, yol tehlikesi ve hava uyarıları zaman ve yerle kaydedilir (son 300).
+- Sürüş ekranında "Son uyarılar" listesi: "Tümünü göster" ve "Geçmişi temizle" (iki dokunuş); yeri bilinen uyarıya dokununca haritada açılır.
+- Yolculuklar özetinde o yolculukta verilen uyarılar ve sayımı ("3 radar · 1 hız aşımı").
+
 ## 2026-11-19 · v2-157 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-157
 
 - Yeni sesli sürüş uyarıları: hemzemin geçit, kasis / hız tümseği, okul yanındaki yaya geçidi, keskin viraj, tünel ("farlarını aç"), gişe ve soğukta köprü buzlanması.

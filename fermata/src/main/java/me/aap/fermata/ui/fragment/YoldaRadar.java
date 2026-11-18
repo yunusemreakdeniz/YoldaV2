@@ -459,6 +459,7 @@ public final class YoldaRadar {
 				else {
 					YoldaStyleToast.show(ctx, "⚠ " + what);
 					mark('z');
+					YoldaAlertLog.add(ctx, 'z', what, la, lo);
 				}
 			}
 		} else {
@@ -630,6 +631,7 @@ public final class YoldaRadar {
 	private static void overBeep(Context ctx) {
 		overBeepAt = SystemClock.elapsedRealtime();
 		YoldaLog.add("Hız sınırı aşıldı: " + speed + " / " + limit + " (bip)");
+		YoldaAlertLog.add(ctx, 'o', "Hız " + speed + " km/s, sınır " + limit, lat, lon);
 		mark('o');
 		beep(false);
 		App.get().getHandler().postDelayed(() -> beep(false), 260); // çift bip: radardan ayırt edilsin
@@ -646,6 +648,7 @@ public final class YoldaRadar {
 	private static void alert(Context ctx, String text, boolean urgent, char kind) {
 		lastAlert = text;
 		mark(kind);
+		YoldaAlertLog.add(ctx, kind, text, lat, lon); // uyarı geçmişi
 		YoldaLog.add("Radar uyarısı: " + text);
 		beep(urgent);
 		if (!screenAlert(text, urgent)) YoldaStyleToast.show(ctx, "⚠ " + text);

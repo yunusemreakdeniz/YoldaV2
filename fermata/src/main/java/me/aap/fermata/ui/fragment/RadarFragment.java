@@ -234,6 +234,47 @@ public class RadarFragment extends MainActivityFragment {
 		col.addView(feature(ctx, "bg", "Arka planda da çalış", "Android Auto'da haritaya geçince, telefon kilitliyken de sesli uyarır"
 				+ (YoldaDriveService.running ? " · çalışıyor" : "")));
 
+		// Uyarı geçmişi: son verilen uyarılar (zaman, tür, yer); yere dokununca haritada açılır
+		List<YoldaAlertLog.Entry> hist = YoldaAlertLog.all(ctx);
+		TextView hh = new TextView(ctx);
+		hh.setText(hist.isEmpty() ? "Uyarı geçmişi boş" : ("Son uyarılar (" + hist.size() + ")"));
+		hh.setTextSize(18);
+		hh.setTypeface(Typeface.DEFAULT_BOLD);
+		hh.setTextColor(t.ink);
+		hh.setPadding(0, dp(24), 0, dp(8));
+		col.addView(hh);
+		int showN = histAll ? Math.min(100, hist.size()) : Math.min(8, hist.size());
+		for (int i = 0; i < showN; i++) col.addView(alertRow(ctx, t, hist.get(i)));
+		if (!hist.isEmpty()) {
+			LinearLayout acts = new LinearLayout(ctx);
+			if (hist.size() > 8) {
+				TextView more = histPill(ctx, histAll ? "Daha az göster" : "Tümünü göster");
+				more.setOnClickListener(v -> {
+					histAll = !histAll;
+					render();
+				});
+				acts.addView(more, new LinearLayout.LayoutParams(0, -1, 1f));
+			}
+			boolean sure = System.currentTimeMillis() - histClearAt < 4000;
+			TextView clr = histPill(ctx, sure ? "Emin misin? Tekrar dokun" : "Geçmişi temizle");
+			clr.setOnClickListener(v -> {
+				if (System.currentTimeMillis() - histClearAt < 4000) {
+					histClearAt = 0;
+					YoldaAlertLog.clear(ctx);
+					YoldaStyle.toast(ctx, "Uyarı geçmişi temizlendi");
+				} else {
+					histClearAt = System.currentTimeMillis();
+				}
+				render();
+			});
+			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
+			if (acts.getChildCount() > 0) cl.leftMargin = dp(8);
+			acts.addView(clr, cl);
+			LinearLayout.LayoutParams al = new LinearLayout.LayoutParams(-1, dp(52));
+			al.topMargin = dp(8);
+			col.addView(acts, al);
+		}
+
 
 
 		LinearLayout acts = new LinearLayout(ctx);
@@ -363,6 +404,65 @@ public class RadarFragment extends MainActivityFragment {
 		}), new LinearLayout.LayoutParams(-2, dp(42)));
 		row.setContentDescription("Yolculuk " + head + ": " + tr.summary());
 		return row;
+	}
+
+	private boolean histAll;
+	private long histClearAt;
+
+	private TextView histPill(Context ctx, String s) {
+		TextView b = new TextView(ctx);
+		b.setText(s);
+		b.setTextSize(16);
+		b.setTypeface(Typeface.DEFAULT_BOLD);
+		b.setTextColor(t.ink);
+		b.setGravity(Gravity.CENTER);
+		b.setBackground(YoldaStyle.glass(ctx, t, 999));
+		b.setClickable(true);
+		b.setContentDescription(s);
+		return b;
+	}
+
+	/** Uyarı geçmişi satırı: saat · tür, metin; yer biliniyorsa dokununca haritada açılır. Yolculuklar da kullanır. */
+	static View alertRow(Context ctx, YoldaStyle.Theme t, YoldaAlertLog.Entry e) {
+		float d = ctx.getResources().getDisplayMetrics().density;
+		LinearLayout row = new LinearLayout(ctx);
+		row.setOrientation(LinearLayout.VERTICAL);
+		row.setBackground(YoldaStyle.glass(ctx, t, 16));
+		row.setPadding((int) (16 * d), (int) (10 * d), (int) (16 * d), (int) (10 * d));
+		row.setMinimumHeight((int) (56 * d));
+		row.setGravity(Gravity.CENTER_VERTICAL);
+		Locale tr = new Locale("tr");
+		boolean today = android.text.format.DateUtils.isToday(e.at());
+		String when = new java.text.SimpleDateFormat(today ? "HH:mm" : "d MMM HH:mm", tr).format(new java.util.Date(e.at()));
+		TextView top = new TextView(ctx);
+		top.setText(when + " · " + e.kindLabel() + (e.hasPlace() ? "  ›" : ""));
+		top.setTextSize(13);
+		top.setTextColor(t.muted);
+		row.addView(top);
+		TextView tx = new TextView(ctx);
+		tx.setText(e.text());
+		tx.setTextSize(16);
+		tx.setTypeface(Typeface.DEFAULT_BOLD);
+		tx.setTextColor(t.ink);
+		tx.setMaxLines(2);
+		tx.setEllipsize(TextUtils.TruncateAt.END);
+		row.addView(tx);
+		row.setContentDescription(when + ", " + e.kindLabel() + ": " + e.text());
+		if (e.hasPlace()) {
+			row.setClickable(true);
+			row.setOnClickListener(v -> {
+				try {
+					Uri u = Uri.parse(String.format(Locale.ROOT, "geo:%.6f,%.6f?q=%.6f,%.6f", e.lat(), e.lon(), e.lat(), e.lon()));
+					ctx.startActivity(new Intent(Intent.ACTION_VIEW, u).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+				} catch (Throwable ex) {
+					YoldaStyle.toast(ctx, "Harita açılamadı");
+				}
+			});
+		}
+		LinearLayout wrap = new LinearLayout(ctx);
+		wrap.setPadding(0, 0, 0, (int) (8 * d));
+		wrap.addView(row, new LinearLayout.LayoutParams(-1, -2));
+		return wrap;
 	}
 
 	private View feature(Context ctx, String key, String label, String sub) {

@@ -211,6 +211,13 @@ public class TripFragment extends MainActivityFragment {
 			col.addView(map, ml);
 		}
 
+		// Bu yolculukta verilen uyarılar
+		List<YoldaAlertLog.Entry> al = YoldaAlertLog.between(ctx, r.startWall(), r.endWall() + 60_000);
+		TextView ah = text(ctx, al.isEmpty() ? "Bu yolculukta uyarı yok" : ("Uyarılar · " + YoldaAlertLog.summary(al)), 18, true, t.ink);
+		ah.setPadding(0, dp(24), 0, dp(8));
+		col.addView(ah);
+		for (int i = 0; i < Math.min(20, al.size()); i++) col.addView(RadarFragment.alertRow(ctx, t, al.get(i)));
+
 		addClear(ctx, col, r);
 
 		// Önceki yolculuklar
