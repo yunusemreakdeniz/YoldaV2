@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-18 · v2-142 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-142
+
+- Hız sınırı artık çok daha fazla yolda görünür: OpenStreetMap'te sınırı girilmemiş ana cadde, il ve devlet yollarında yönetmelikteki genel sınır tahmin edilir (yerleşim yerinde 50, şehirlerarası 90, bölünmüş yolda 110, otoyolda 120).
+- Şehir içi mi dışı mı: yol adındaki Cadde / Bulvar / Sokak, kaldırım ve "D / O" yol numarasından anlaşılır.
+- Tahmini sınırlar yanında "~" ile gösterilir; girilmiş gerçek sınır her zaman önce gelir.
+
 ## 2026-11-18 · v2-140 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-140
 
 - Araçtayken (ya da yolculuk sürerken) bulunduğun yerin havası 15 dakikada ya da 10 km'de bir kontrol edilir.

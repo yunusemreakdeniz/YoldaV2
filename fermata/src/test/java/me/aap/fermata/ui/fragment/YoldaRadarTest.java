@@ -58,6 +58,16 @@ public class YoldaRadarTest {
 		assertEquals(0, YoldaRadarCore.defaultLimit("trunk", false));
 		assertEquals(0, YoldaRadarCore.defaultLimit("primary", false)); // şehir içi mi dışı mı belli değil
 		assertEquals(50, YoldaRadarCore.defaultLimit("residential", false));
+		// tahmini sınır: yol türü ve yerleşim yeri
+		assertEquals(50, YoldaRadarCore.estimateLimit("primary", false, "Atatürk Bulvarı", null, false, null));
+		assertEquals(90, YoldaRadarCore.estimateLimit("primary", false, null, "D 750", false, null));
+		assertEquals(110, YoldaRadarCore.estimateLimit("trunk", true, null, "D100", false, null));
+		assertEquals(50, YoldaRadarCore.estimateLimit("secondary", false, "İstasyon Caddesi", null, false, null));
+		assertEquals(50, YoldaRadarCore.estimateLimit("primary", false, null, null, true, null)); // kaldırımlı
+		assertEquals(90, YoldaRadarCore.estimateLimit("secondary", false, null, null, false, null)); // köyler arası
+		assertEquals(50, YoldaRadarCore.estimateLimit("primary", false, null, "D100", false, "TR:urban"));
+		assertEquals(50, YoldaRadarCore.estimateLimit("tertiary", false, null, null, false, null));
+		assertEquals(120, YoldaRadarCore.estimateLimit("motorway", true, null, "O-4", false, null));
 	}
 
 	@Test

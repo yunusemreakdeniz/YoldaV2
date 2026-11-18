@@ -826,8 +826,11 @@ public final class YoldaRadar {
 					boolean est = false;
 					if (lim == 0) {
 						lim = YoldaRadarCore.parseMaxspeed(t.optString("maxspeed:type", t.optString("source:maxspeed")));
-						if (lim == 0) {
-							lim = YoldaRadarCore.defaultLimit(hw, oneway);
+						if (lim == 0) { // girilmemiş: yol türü ve yerleşim yerine göre yasal sınır (tahmini, "~")
+							String sw = t.optString("sidewalk", t.optString("sidewalk:both", ""));
+							boolean side = !sw.isEmpty() && !sw.equals("no") && !sw.equals("none") && !sw.equals("separate");
+							lim = YoldaRadarCore.estimateLimit(hw, oneway, t.optString("name", null), t.optString("ref", null), side,
+									t.optString("zone:maxspeed", t.optString("maxspeed:type", t.optString("source:maxspeed", null))));
 							est = lim > 0;
 						}
 					}

@@ -120,6 +120,36 @@ public final class YoldaRadarCore {
 		};
 	}
 
+	/**
+	 * Sınırı girilmemiş yolda tahmini yasal sınır (otomobil; Karayolları Trafik Yönetmeliği genel sınırları):
+	 * yerleşim yerinde 50, şehirlerarası iki yönlü yolda 90, bölünmüş yolda 110, otoyolda 120; yaya yolu 20.
+	 * Yerleşim yeri OSM'de çoğunlukla yazmaz: adında Cadde / Bulvar / Sokak geçmesi, kaldırım ya da şehir
+	 * içi sınır türü (TR:urban) şehir içi sayılır; "D" / "O" numaralı yol (ve adı cadde olmayan) şehirlerarası.
+	 *
+	 * @return km/s; tahmin yapılamazsa 0
+	 */
+	public static int estimateLimit(String highway, boolean oneway, @androidx.annotation.Nullable String name,
+																	@androidx.annotation.Nullable String ref, boolean sidewalk, @androidx.annotation.Nullable String zone) {
+		if (highway == null) return 0;
+		String z = (zone == null) ? "" : zone.toLowerCase(Locale.ROOT);
+		if (z.contains("urban")) return z.contains("living") ? 20 : 50;
+		if (z.contains("rural")) return oneway ? 110 : 90;
+		String n = (name == null) ? "" : name.toLowerCase(new Locale("tr"));
+		boolean cityName = n.matches(".*(cadde|bulvar|sokak|sokağ| cad\\.| sk\\.).*");
+		boolean stateRoad = (ref != null) && ref.trim().toUpperCase(Locale.ROOT).matches("^[DO][ -]?\\d+.*");
+		boolean urban = cityName || sidewalk;
+		return switch (highway) {
+			case "motorway" -> 120;
+			case "motorway_link" -> 80;
+			case "living_street" -> 20;
+			case "residential", "unclassified", "tertiary", "tertiary_link", "secondary_link", "primary_link" -> 50;
+			case "trunk" -> urban ? (oneway ? 70 : 50) : (oneway ? 110 : 90);
+			case "trunk_link" -> urban ? 50 : 70;
+			case "primary", "secondary" -> urban ? 50 : ((stateRoad && oneway) ? 110 : 90);
+			default -> 0;
+		};
+	}
+
 	// ---- geometri ----
 
 	public static double dist(double lat1, double lon1, double lat2, double lon2) {
