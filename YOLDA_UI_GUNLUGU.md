@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-154 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-154
+
+- TV kanalı açılmazsa artık hemen hata yok: aynı kanalın yedek yayın adresleri (iptv-org Türkiye listesi) sırayla otomatik denenir.
+- Çalışan yedek adres telefonda hatırlanır; o kanal bir dahaki sefere önce o adresle denenir. Liste haftada bir telefonda yenilenir.
+- Her açılışın süresi ve kullanılan adres değişikliği tanı günlüğüne yazılır; haftalık "Kanal denetimi" iş akışı ölü / yavaş adresleri raporlar.
+
 ## 2026-11-18 · v2-153 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-153
 
 - Araçtayken gelen WhatsApp, WhatsApp Business, Telegram ve SMS mesajları sesli okunur ("WhatsApp mesajı, Ahmet yazdı: …").

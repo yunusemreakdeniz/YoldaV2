@@ -1786,6 +1786,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		Context ctx = host.getContext();
 		me.aap.fermata.ui.fragment.YoldaRadar.attach(ctx);
 		radarAttached = true;
+		me.aap.fermata.ui.fragment.YoldaChannelAlt.warmUp(ctx); // TV yedek adres listesi (haftada bir yenilenir)
 		me.aap.fermata.ui.view.YoldaSpeedRail r = new me.aap.fermata.ui.view.YoldaSpeedRail(ctx);
 		r.setOnClickListener(v -> showFragment(R.id.yolda_radar_fragment));
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT,

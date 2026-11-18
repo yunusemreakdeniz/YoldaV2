@@ -756,6 +756,46 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 		}
 	}
 
+	// ---- Yolda: TV kanalı yedek adresleri ----
+	/** Denenen yedek adresin kanal adı ve adresi (açılırsa hatırlanır). */
+	@Nullable
+	private static volatile String yoldaAltName, yoldaAltUrl;
+
+	/** Açılamayan TV kanalı için yedek adres ara; bulunursa arka planda hazırlayıp oynat. */
+	private boolean yoldaTryAlt(PlayableItem i) {
+		String name = (yoldaAltName != null) && (i instanceof me.aap.fermata.media.radio.YoldaStreamItem)
+				? yoldaAltName : i.getName();
+		String url;
+		try {
+			url = i.getResource().getRid().toString();
+		} catch (Throwable ex) {
+			return false;
+		}
+		android.content.Context ctx = lib.getContext();
+		setPlaybackState(new PlaybackStateCompat.Builder().setActions(SUPPORTED_ACTIONS)
+				.setState(STATE_CONNECTING, 0, 1.0f).build());
+		me.aap.utils.function.CheckedSupplier<String, Throwable> find =
+				() -> me.aap.fermata.ui.fragment.YoldaChannelAlt.next(ctx, name, url);
+		me.aap.utils.app.App.get().execute(find).onCompletion((alt, err) ->
+				me.aap.utils.app.App.get().getHandler().post(() -> {
+					if ((alt == null) || (err != null)) {
+						yoldaAltName = yoldaAltUrl = null;
+						me.aap.fermata.ui.fragment.YoldaLog.add("Yedek adres yok: " + name);
+						setPlaybackState(new PlaybackStateCompat.Builder().setActions(SUPPORTED_ACTIONS)
+								.setState(STATE_ERROR, 0, 1.0f)
+								.setErrorMessage(PlaybackStateCompat.ERROR_CODE_UNKNOWN_ERROR, name + " açılamadı").build());
+						onStop();
+						return;
+					}
+					yoldaAltName = name;
+					yoldaAltUrl = alt;
+					me.aap.fermata.ui.fragment.YoldaLog.add("Yedek adres deneniyor: " + name);
+					tryAnotherEngine = true;
+					playItem(me.aap.fermata.media.radio.YoldaStreamItem.createVideo(lib, alt, name), 0);
+				}));
+		return true;
+	}
+
 	/** Şu an açılmakta olan yayının başlama zamanı (elapsedRealtime), açılmıyorsa 0. */
 	public static long yoldaOpeningSince() {
 		return yoldaOpenStart;
@@ -1101,6 +1141,15 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	public void onEngineStarted(MediaEngine engine) {
 		long t0 = yoldaOpenStart;
 		yoldaOpenItem = null;
+		String altUrl = yoldaAltUrl, altName = yoldaAltName;
+		if ((altUrl != null) && (altName != null)) {
+			PlayableItem src = engine.getSource();
+			if ((src != null) && altUrl.equals(src.getResource().getRid().toString())) {
+				me.aap.fermata.ui.fragment.YoldaChannelAlt.worked(lib.getContext(), altName, altUrl);
+				me.aap.fermata.ui.fragment.YoldaLog.add("Yedek adres çalıştı, hatırlandı: " + altName);
+			}
+			yoldaAltName = yoldaAltUrl = null;
+		}
 		if (t0 > 0) {
 			yoldaOpenStart = 0;
 			long ms = android.os.SystemClock.elapsedRealtime() - t0;
@@ -1286,6 +1335,9 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 			}
 		}
 
+		// Yolda: TV kanalı açılmadıysa aynı kanalın yedek yayın adresini dene (iptv-org listesi, telefonda)
+		if ((i != null) && i.isStream() && i.isVideo() && yoldaTryAlt(i)) return;
+
 		PlaybackStateCompat state = new PlaybackStateCompat.Builder().setActions(SUPPORTED_ACTIONS)
 				.setState(STATE_ERROR, 0, 1.0f)
 				.setErrorMessage(PlaybackStateCompat.ERROR_CODE_UNKNOWN_ERROR, msg).build();
@@ -1383,6 +1435,9 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 
 	public void playItem(PlayableItem i, long pos) {
 		playerTask.cancel();
+		if (!(i instanceof me.aap.fermata.media.radio.YoldaStreamItem) || (yoldaAltUrl == null)
+				|| !yoldaAltUrl.equals(((me.aap.fermata.media.radio.YoldaStreamItem) i).getStreamUrl()))
+			yoldaAltName = yoldaAltUrl = null; // başka bir şey açıldı: yedek deneme zinciri biter
 		yoldaOpenItem = i; // oynatıcı çubuğu yeni kanalın adını hemen göstersin (çalmaya başlamayı beklemeden)
 		me.aap.fermata.ui.view.YoldaNowPlaying.clearExpected(); // başka bir şeye dokunulduysa eski bekleyen ad gitsin
 		yoldaOpenStart = android.os.SystemClock.elapsedRealtime();

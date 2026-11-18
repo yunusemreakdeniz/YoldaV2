@@ -29,6 +29,8 @@ public class YoldaStreamItem extends PlayableItemBase {
 	private final String logo;
 	@Nullable
 	private final String tags;
+	/** Televizyon yayını mı (yedek adresle açılan kanal). */
+	private boolean video;
 
 	private YoldaStreamItem(MediaLib lib, String url, String name, @Nullable String logo, @Nullable String tags) {
 		super("yolda-stream://" + Integer.toHexString(url.hashCode()), root(lib),
@@ -49,6 +51,13 @@ public class YoldaStreamItem extends PlayableItemBase {
 	public static YoldaStreamItem create(MediaLib lib, String url, String name, @Nullable String logo,
 																			 @Nullable String tags) {
 		return new YoldaStreamItem(lib, url, name, logo, tags);
+	}
+
+	/** Televizyon kanalının yedek adresi için video akışı. */
+	public static YoldaStreamItem createVideo(MediaLib lib, String url, String name) {
+		YoldaStreamItem i = new YoldaStreamItem(lib, url, name, null, "TV");
+		i.video = true;
+		return i;
 	}
 
 	@NonNull
@@ -102,7 +111,7 @@ public class YoldaStreamItem extends PlayableItemBase {
 
 	@Override
 	public boolean isVideo() {
-		return false;
+		return video;
 	}
 
 	@Override
