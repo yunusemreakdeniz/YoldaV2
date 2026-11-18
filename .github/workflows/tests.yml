@@ -10,7 +10,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false  # testler sonuna kadar koşsun; yeni gönderim sıraya girer
 
 env:
   JAVA_VERSION: '17'
