@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-18 · v2-153 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-153
+
+- Araçtayken gelen WhatsApp, WhatsApp Business, Telegram ve SMS mesajları sesli okunur ("WhatsApp mesajı, Ahmet yazdı: …").
+- Sesle yanıt: "Hey Yolda, yanıtla geliyorum" ya da "on dakikaya oradayım diye cevap ver"; "mesajı tekrar oku", "kim yazdı".
+- Bir kez izin: Kurulum ekranında "Mesajları sesli oku" → Bildirimlere erişim → Yolda V2. Mesaj metni günlüğe yazılmaz.
+
 ## 2026-11-18 · v2-152 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-152
 
 - Sürüş kartı ve ekranı artık yalnız radar ve hız: park ve yolculuk bölümleri kalktı.

@@ -111,6 +111,18 @@ public class YoldaChatTest {
 	}
 
 	@Test
+	public void mesajYanit() {
+		Intent r = p("yanıtla geliyorum");
+		assertEquals(Kind.MSG_REPLY, r.kind());
+		assertEquals("geliyorum", r.arg());
+		assertEquals("10 dakikaya oradayım", p("10 dakikaya oradayım diye cevap ver").arg());
+		assertEquals("tamam", p("Hey Yolda cevap ver tamam").arg());
+		kind(Kind.MSG_READ, "mesajı tekrar oku");
+		kind(Kind.MSG_READ, "kim yazdı");
+		assertEquals("WhatsApp mesajı, Ahmet yazdı: geliyorum", YoldaMessages.spoken("WhatsApp", "Ahmet", "geliyorum"));
+	}
+
+	@Test
 	public void hesap() {
 		Intent i = p("15 çarpı 4 kaç");
 		assertEquals(Kind.CALC, i.kind());

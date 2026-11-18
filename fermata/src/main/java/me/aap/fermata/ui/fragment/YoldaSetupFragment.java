@@ -255,6 +255,17 @@ public class YoldaSetupFragment extends MainActivityFragment {
 						.onCompletion((r, err) -> {
 							if (isAdded()) render();
 						}), cp));
+		boolean ma = YoldaMessages.hasAccess(ctx);
+		col.addView(step(ctx, ma ? "✓" : "★", "Mesajları sesli oku (WhatsApp, Telegram, SMS)",
+				"Araçta gelen mesaj sesli okunur, \"Hey Yolda, yanıtla geliyorum\" diye sesle yanıtlanır. Ayarlar → "
+						+ "Bildirimlere erişim → Yolda V2 → Aç.",
+				ma ? null : "İzni ver", v -> {
+					try {
+						startActivity(YoldaMessages.accessSettings());
+					} catch (Throwable ex) {
+						me.aap.fermata.ui.view.YoldaStyle.toast(ctx, "Ayarlar açılamadı");
+					}
+				}, ma));
 		col.addView(step(ctx, "4", "Ekran paylaşımı",
 				"Araçta Telefon ya da Ekran yansıtma kartına ilk dokunduğunda telefonda “Paylaşımı / kaydı başlat” "
 						+ "onayı çıkar; onayla. Android her oturumda bir kez sorar.", null, null, false));

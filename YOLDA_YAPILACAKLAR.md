@@ -6,7 +6,6 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 ## Açık (sırayla)
 
 V2. [ ] Video kalitesini oynatıcının içinden de değiştirme ve sesle ("video kalitesini 720 yap")
-R2. [ ] WhatsApp için araçta sesli okuma / yanıt (bildirim dinleyici izniyle): gelen mesajı oku, "yanıtla" ile sesle cevap
 S. [ ] TV yayınlarını daha hızlı açan kaynaklar: kanal başına birden çok yayın adresi, en hızlı açılanı seç, ölü adresleri ele, açılış süresini ölç
 T. [ ] Daha çok radyo kanalı: açık radyo dizini (radio-browser) ile Türkiye istasyonlarının tamamı, tür / şehir süzgeci, çalışmayanları ele
 K. [ ] Daha çok sürüş uyarısı, hepsi sesli: hemzemin geçit, kasis / hız tümseği, yaya geçidi (okul yakını), keskin viraj, tünel, gişe, köprü (soğukta buzlanma); her biri Sürüş ekranından aç / kapat
@@ -60,6 +59,7 @@ Q12. [ ] Spor skorları
 
 ## Yapılanlar
 
+- [x] Araçta mesajları sesli okuma ve sesle yanıtlama: WhatsApp, Telegram, SMS (v2-153)
 - [x] Kartlar ayrıldı: Sürüş yalnız radar / hız, Park ayrı kart ve sayfa, Yolculuklarda sil / temizle (v2-152)
 - [x] Videolar varsayılan 480p, kalite seçimi Ayarlar kartı ve Menü'de (v2-151)
 - [x] Telefon kartında uygulamaların araçta açılmaması (WhatsApp vb.) düzeltildi (v2-150)

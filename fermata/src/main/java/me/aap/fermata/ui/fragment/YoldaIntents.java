@@ -33,6 +33,8 @@ public final class YoldaIntents {
 		/** Sürüş yardımcısını aç / kapat: arg anahtar (zones, fatigue, avg, stops, overspeed, voice, park, trips), num 1 / 0. */
 		FEATURE,
 		WAKE_OFF, SUN, THEME_SET, TEST_ALERT, NAV_APP,
+		/** Mesaj: son mesaja sesle yanıt (arg: metin), son mesajı tekrar oku. */
+		MSG_REPLY, MSG_READ,
 		DATE, CALC, TIMER, TIMER_CANCEL, BATTERY, SPEED, FORECAST, WHERE_AM_I, WIKI
 	}
 
@@ -162,6 +164,9 @@ public final class YoldaIntents {
 					+ " (aç|kapat|etkinleştir|devre dışı bırak|sustur|başlat|durdur)$");
 	private static final Pattern THEME_P = Pattern.compile(
 			"^(.+?) tema(?:sı|sına|sını|yı)?(?: (?:geç|yap|uygula|aç|seç|olsun))?$|^tema(?:yı)? (.+?) (?:yap|olsun|seç)$");
+	private static final Pattern MSG_REPLY_P = Pattern.compile(
+			"^(?:yanıtla|yanıt ver|cevapla|cevap ver|cevap yaz|yanıt yaz|mesajı yanıtla|mesaja cevap ver)[:,]? (.+)$"
+					+ "|^(.+?) (?:diye|olarak) (?:yanıtla|cevap ver|cevapla|yaz|yanıt ver)$");
 	private static final Pattern REMIND = Pattern.compile(
 			"^(.+? (?:dakika|dk|saat)) (?:sonra|içinde) (?:(.+?) )?(?:hatırlat|uyar|haber ver|söyle)$");
 	private static final Pattern TIMER = Pattern.compile(
@@ -261,6 +266,13 @@ public final class YoldaIntents {
 			String key = featureKey(m.group(1).trim());
 			if (key != null) return of(Kind.FEATURE, key, m.group(2).matches("aç|etkinleştir|başlat") ? 1 : 0);
 		}
+
+		// mesaj: "yanıtla geliyorum", "geliyorum diye cevap ver", "mesajı oku"
+		if ((m = MSG_REPLY_P.matcher(c)).matches()) {
+			String txt = ((m.group(1) != null) ? m.group(1) : m.group(2)).trim();
+			if (!txt.isEmpty()) return Intent.of(Kind.MSG_REPLY, txt);
+		}
+		if (c.matches("(son )?mesaj(ı|ları)? (tekrar )?oku|mesajı tekrar oku|ne yazmış|kim yazdı|son mesaj ne")) return Intent.of(Kind.MSG_READ);
 
 		// hatırlatıcı / zamanlayıcı ("10 dakika sonra hatırlat", "5 dakikalık zamanlayıcı kur")
 		if (c.matches("(hatırlatma(yı|ları)?|hatırlatıcı(yı)?) (iptal et|sil|kapat)|zamanlayıcı(yı)? iptal et ve hatırlatmayı sil"))

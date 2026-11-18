@@ -888,6 +888,17 @@
             android:foregroundServiceType="microphone" />
 
         <!-- Yolda: radar ve sürüş yardımcıları Android Auto'da haritaya geçince / Yolda kapalıyken de uyarsın -->
+        <!-- Yolda: araçta mesajları sesli okuma ve sesle yanıtlama (bildirim okuma izniyle) -->
+        <service
+            android:name="me.aap.fermata.ui.fragment.YoldaMessages"
+            android:exported="true"
+            android:label="Yolda: mesajları sesli oku"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <service
             android:name="me.aap.fermata.ui.fragment.YoldaDriveService"
             android:exported="false"

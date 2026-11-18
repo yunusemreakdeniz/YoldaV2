@@ -406,6 +406,11 @@ public final class YoldaVoice {
 				else toast(a, "Tema: " + YoldaStyle.THEMES[i].name);
 			}
 			case TEST_ALERT -> YoldaRadar.testAlert(ctx, false);
+			case MSG_REPLY -> reply(a, YoldaMessages.reply(ctx, it.arg()));
+			case MSG_READ -> {
+				if (!YoldaMessages.readLast(ctx))
+					reply(a, YoldaMessages.hasAccess(ctx) ? "Okunacak mesaj yok" : "Mesajları okumak için telefonda bildirim erişimi gerekiyor");
+			}
 			case NAV_APP -> {
 				boolean waze = "waze".equals(it.arg());
 				ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).edit()
