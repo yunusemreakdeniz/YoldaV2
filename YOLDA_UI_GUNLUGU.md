@@ -2,6 +2,13 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-18 · v2-144 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-144
+
+- Hiçbir şey çalmıyorken aracın önceki / sonraki tuşları (TRACK, direksiyon) kartlar arasında geçer.
+- İki kez hızlı "sonraki": ortadaki kartı açar; iki kez hızlı "önceki": ana sayfaya (ana karta) döner; basılı tutunca iki kart birden geçer.
+- Kartın içindeyken "önceki" geri gider. Döner düğme / yön tuşları da destede sola / sağa geçer, ortası kartı açar.
+- Bir şey çalarken tuşlar eskisi gibi şarkı / kanal değiştirir.
+
 ## 2026-11-18 · v2-143 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-143
 
 - Araçtan inince (yolculuk bitince) bildirim gelir: "Yolculuk bitti · 42,3 km" ve kısa özet.

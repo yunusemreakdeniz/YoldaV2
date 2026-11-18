@@ -715,6 +715,21 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	 * önceki/sonraki şarkıya geçmiştir (YouTube oynatıcısının kendi önerisine gidilmez).
 	 */
 	public static volatile java.util.function.IntPredicate yoldaSkip;
+	/**
+	 * Yolda: hiçbir şey çalmıyorken aracın önceki / sonraki tuşları (TRACK, direksiyon) kart destesinde gezinir.
+	 * true dönerse tuş orada işlendi.
+	 */
+	public static volatile java.util.function.IntPredicate yoldaIdleNav;
+
+	private boolean yoldaIdle(int dir) {
+		java.util.function.IntPredicate n = yoldaIdleNav;
+		if ((n == null) || isPlaying() || (yoldaOpeningItem() != null)) return false;
+		try {
+			return n.test(dir);
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
 
 	// ---- Yolda: açılış süresi (tanı günlüğü ve oynatıcı çubuğundaki "Bağlanıyor…") ----
 	private static volatile long yoldaOpenStart;
@@ -750,6 +765,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 		yoldaSkipRequests++;
 		java.util.function.IntPredicate y = yoldaSkip;
 		if ((y != null) && y.test(-1)) return;
+		if (yoldaIdle(-1)) return;
 		playerTask.cancel();
 		playerTask = skipTo(false, false);
 	}
@@ -767,6 +783,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 		yoldaSkipRequests++;
 		java.util.function.IntPredicate y = yoldaSkip;
 		if ((y != null) && y.test(1)) return;
+		if (yoldaIdle(1)) return;
 		playerTask.cancel();
 		playerTask = skipTo(true, false);
 	}

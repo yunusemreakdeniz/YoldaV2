@@ -529,6 +529,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		super.onActivityDestroy();
 		me.aap.fermata.ui.fragment.YoldaWake.forget(this);
 		me.aap.fermata.ui.fragment.YoldaRadar.removeListener(parkListener);
+		if (MediaSessionCallback.yoldaIdleNav == idleNavFn) MediaSessionCallback.yoldaIdleNav = null;
 		if (radarAttached) {
 			radarAttached = false;
 			me.aap.fermata.ui.fragment.YoldaRadar.detach();
@@ -2141,6 +2142,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		host.addView(pkb, plp);
 		deckPark = pkb;
 		me.aap.fermata.ui.fragment.YoldaRadar.addListener(parkListener);
+		if (isCarActivity() || (MediaSessionCallback.yoldaIdleNav == null))
+			MediaSessionCallback.yoldaIdleNav = idleNavFn; // araç ekranı varsa o gezinir
 		updateDeckButtons();
 	}
 
@@ -2548,7 +2551,69 @@ public class MainActivityDelegate extends ActivityDelegate
 
 	@Override
 	public boolean onKeyDown(int code, KeyEvent event, IntObjectFunction<KeyEvent, Boolean> next) {
+		// Araç: döner düğme / yön tuşları kart destesinde (sol / sağ geçer, orta açar)
+		if (isCarActivity() && (getActiveFragment() instanceof me.aap.fermata.ui.fragment.YoldaDeckFragment d)
+				&& !d.isEditing()) {
+			if ((code == KeyEvent.KEYCODE_DPAD_LEFT) || (code == KeyEvent.KEYCODE_DPAD_RIGHT)) {
+				int dir = (code == KeyEvent.KEYCODE_DPAD_RIGHT) ? 1 : -1;
+				d.stepCard((event.getRepeatCount() > 0) ? 2 * dir : dir); // basılı tutunca hızlı
+				return true;
+			}
+			if ((code == KeyEvent.KEYCODE_DPAD_CENTER) || (code == KeyEvent.KEYCODE_ENTER)) {
+				d.openCenterCard();
+				return true;
+			}
+		}
 		return handleKeyEvent(this, event, next);
+	}
+
+	// ---- aracın önceki / sonraki tuşlarıyla kartlarda gezinme (hiçbir şey çalmıyorken) ----
+
+	private int navDir;
+	private long navAt, navFastUntil;
+	private final Runnable navSingle = () -> navApply(navDir, false);
+	private final java.util.function.IntPredicate idleNavFn = this::idleNav;
+
+	/**
+	 * Önceki / sonraki: tek basış → bir kart; iki kez hızlı (0,4 sn) → sonraki: kartı aç, önceki: ana sayfa;
+	 * art arda (basılı tutma) → iki kart birden.
+	 */
+	private boolean idleNav(int dir) {
+		long now = android.os.SystemClock.elapsedRealtime();
+		App.get().getHandler().removeCallbacks(navSingle);
+		if (now < navFastUntil) { // basılı tutuluyor: hızlı geçiş
+			navFastUntil = now + 450;
+			navApply(2 * dir, false);
+			navAt = now;
+			return true;
+		}
+		if ((navDir == dir) && (now - navAt < 400)) { // iki kez
+			navAt = 0;
+			navFastUntil = now + 450;
+			navApply(dir, true);
+			return true;
+		}
+		navDir = dir;
+		navAt = now;
+		App.get().getHandler().postDelayed(navSingle, 400);
+		return true;
+	}
+
+	private void navApply(int dir, boolean dbl) {
+		ActivityFragment f = getActiveFragment();
+		if (dbl && (dir < 0)) { // iki kez geri: ana sayfa (ana karta)
+			showFragment(R.id.home_fragment);
+			App.get().getHandler().postDelayed(() -> {
+				if (getActiveFragment() instanceof me.aap.fermata.ui.fragment.YoldaDeckFragment d) d.goHomeCard();
+			}, 150);
+			return;
+		}
+		if (f instanceof me.aap.fermata.ui.fragment.YoldaDeckFragment d) {
+			if (dbl) d.openCenterCard(); // iki kez ileri: ortadaki kartı aç
+			else d.stepCard(dir);
+			return;
+		}
+		if (dir < 0) yoldaBack(); // kartın içindeyken önceki: geri
 	}
 
 	@Override

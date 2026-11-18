@@ -679,6 +679,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return c.title();
 	}
 
+	/** Aracın tuşlarıyla: ortadaki kartı aç. */
+	public void openCenterCard() {
+		if ((deck == null) || (list == null)) return;
+		int i = centerPosition();
+		if ((i >= 0) && (i < deck.size())) open(deck.get(i));
+	}
+
 	/** Sesle: "kartları düzenle". */
 	public void startEditing() {
 		if (!editing) setEditing(true);
