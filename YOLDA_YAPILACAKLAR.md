@@ -12,7 +12,7 @@ J. [ ] Akaryakıt fiyatları kartı (açık kaynak araştırması; bulunamazsa y
 C. [ ] Kart logoları başlıkla aynı hizada değil, küçük ve ortalı kalıyor: başlık satırıyla hizala, gerekirse büyüt
 D. [ ] Kartlardaki erişim düğmeleri büyük olsun (TV / radyo kanal kutucukları, kısayol çipleri, favori kutucukları); en az 56dp, araçta daha büyük
 E. [ ] TV ve radyo düzenleme: tek sıralama; kartın içinden tüm liste düzenlenir; kartın yüzünde ve Kanallar ekranında aynı sıra
-F. [ ] Sesli asistan: Gemini bağlıysa anlama da Gemini ile (doğal cümleler: "en yakın eczaneye yol tarifi", "biraz rahatlatıcı bir şey aç" → komut), bağlı değilse yerel model; hemen her soruya yanıt
+F. [ ] Sesli asistan: Gemini bağlıysa anlama da Gemini ile (doğal cümleler: "en yakın eczaneye yol tarifi", "biraz rahatlatıcı bir şey aç" → komut), bağlı değilse yerel model; hemen her soruya yanıt. Gemini bütün uygulamayı yönetebilsin: her ekran / kart / düğme için bir eylem kataloğu (araç çağırma), yerel motor da aynı kataloğu kullanır
 G. [ ] "Kaldığın yerden" kartında daha çok veri: son dinlenen / izlenen birkaç öğe, ilerleme, ne zaman
 H. [ ] Ekolayzer kartı (hazır ayarlar: Pop, Rock, Konuşma, Bas, Araç; bant ayarları)
 B. [ ] Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, kısayol çipleri) 48dp altında kalmasın
@@ -29,9 +29,30 @@ B. [ ] Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, k
 17. [ ] Telefon görünümüne cihaz testleri
 18. [ ] Padding / boşluk sorunlarının kalanı (kullanıcıdan örnek ekran görüntüsü)
 
+M. [ ] Hız sınırı için daha iyi kaynak araştırması (ücretsiz / izinli API'ler, OSM verisinin daha geniş çekilmesi, yol sınıfı + yerleşim alanı poligonu ile daha doğru tahmin); hedef: hemen her yolda sınır
+N. [ ] "Pro" görünüm: tasarım dili (yazı ölçeği, renk ve gölge tokenları, tek ikon seti, kart şablonu), bütün ekranlara uygulanması
+O. [ ] Her tıklamanın testi: cihaz testlerinde her ekrandaki tıklanabilir öğelerin taranıp tıklanması (çökme / boş ekran yok), raporlanan hataların düzeltilmesi
+P. [ ] Kartları kullanışlı ve modern yapma turu: her kartın yüzünde en sık 3 işi tek dokunuşla yapma, canlı bilgi, tutarlı düzen
+
+### Yeni kart fikirleri (sırayla eklenecek)
+
+Q1. [ ] Takvim (bugünkü etkinlikler, sıradaki toplantıya yol tarifi)
+Q2. [ ] Hatırlatıcılar ve sesli notlar
+Q3. [ ] Döviz / altın
+Q4. [ ] Haberler (başlıklar, sesli okuma)
+Q5. [ ] Podcast ve sesli kitap
+Q6. [ ] Trafik durumu (eve / işe varış süresi)
+Q7. [ ] Elektrikli araç şarj istasyonları
+Q8. [ ] Araç bakım ve yakıt defteri (muayene, sigorta, yağ değişimi hatırlatma)
+Q9. [ ] Namaz vakitleri
+Q10. [ ] Telefon durumu (pil, veri, sinyal) ve hızlı ayarlar
+Q11. [ ] Hızlı mesaj (WhatsApp / SMS hazır cevaplar, "varınca haber ver")
+Q12. [ ] Spor skorları
+
 ## Sürekli (her 3 turda bir)
 
 - Kısa çevrimiçi araştırma (Android Auto / CarPlay yönergeleri, Material 3, sürüş uygulamalarındaki yeni özellikler); bulunan en iyi 1 fikir buraya madde olarak eklenir ve sıraya girer.
+- Kendi önerilerim: her turda fark ettiğim kullanılabilirlik / görsel sorunları da madde olarak eklenir (kullanıcıdan beklemeden).
 
 ## Yapılanlar
 
