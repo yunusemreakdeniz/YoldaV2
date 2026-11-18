@@ -65,6 +65,15 @@ public final class YoldaDeck {
 		return new ArrayList<>(cards);
 	}
 
+	/** Kartları bu sırayla koy (listede olmayan kaldırılır; "Ekle" her zaman sonda kalır). */
+	public void setOrder(List<Card> order) {
+		Card add = null;
+		for (Card c : cards) if (ADD.equals(c.type())) add = c;
+		cards.clear();
+		for (Card c : order) if (!ADD.equals(c.type())) cards.add(c);
+		cards.add((add != null) ? add : builtIn(ADD));
+	}
+
 	public int size() {
 		return cards.size();
 	}

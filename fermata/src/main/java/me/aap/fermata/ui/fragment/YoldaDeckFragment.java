@@ -259,6 +259,400 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return lp;
 	}
 
+	// ---- Telefon görünümü (dikey telefonda düzenli ızgara; "Araç" seçilince deste) ----
+
+	/** Telefon görünümü açık mı (telefonda; araçta her zaman deste). */
+	private boolean phoneMode() {
+		Context ctx = getContext();
+		if ((ctx == null) || getActivityDelegate().isCarActivity()) return false;
+		return prefs(ctx).getBoolean(PREF_PHONE_VIEW, !underTest());
+	}
+
+	private static final String PREF_PHONE_VIEW = "phone_view";
+
+	/** Cihaz testleri desteyi sınar: test sürücüsü yüklüyse varsayılan deste. */
+	private static boolean underTest() {
+		try {
+			Class.forName("androidx.test.platform.app.InstrumentationRegistry");
+			return true;
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
+
+	/** Telefon | Araç anahtarı: seçilince ana ekran yeniden kurulur. */
+	private void setPhoneView(boolean on) {
+		Context ctx = getContext();
+		if (ctx == null) return;
+		prefs(ctx).edit().putBoolean(PREF_PHONE_VIEW, on).apply();
+		try {
+			getParentFragmentManager().beginTransaction().detach(this).commitNow();
+			getParentFragmentManager().beginTransaction().attach(this).commitNow();
+		} catch (Throwable ex) {
+			YoldaLog.add("Görünüm değiştirilemedi: " + ex);
+		}
+	}
+
+	private View segmented(Context ctx, boolean phone) {
+		LinearLayout seg = new LinearLayout(ctx);
+		seg.setPadding(dp(3), dp(3), dp(3), dp(3));
+		GradientDrawable sb = new GradientDrawable();
+		sb.setCornerRadius(dp(999));
+		sb.setColor(0x24FFFFFF);
+		sb.setStroke(Math.max(1, dp(1)), 0x33FFFFFF);
+		seg.setBackground(sb);
+		for (int i = 0; i < 2; i++) {
+			boolean on = (i == 0) == phone;
+			boolean toPhone = i == 0;
+			TextView b = text(ctx, (i == 0) ? "Telefon" : "Araç", 13, true, on ? 0xFF0B0E1A : 0xFFE2E6EE);
+			b.setGravity(Gravity.CENTER);
+			b.setPadding(dp(14), 0, dp(14), 0);
+			if (on) {
+				GradientDrawable ob = new GradientDrawable();
+				ob.setCornerRadius(dp(999));
+				ob.setColor(0xFFF2F4F7);
+				b.setBackground(ob);
+			}
+			b.setClickable(true);
+			b.setContentDescription((i == 0) ? "Telefon görünümü" : "Araç görünümü");
+			b.setOnClickListener(v -> {
+				if (on) return;
+				YoldaStyle.haptic(v);
+				setPhoneView(toPhone);
+			});
+			seg.addView(b, new LinearLayout.LayoutParams(-2, dp(36)));
+		}
+		return seg;
+	}
+
+	@Nullable
+	private TextView phNowTitle, phNowTag, phLimit, phRadar, phPark, phClock, phDate, phWeather;
+	@Nullable
+	private ImageView phPlay;
+	@Nullable
+	private View phNow;
+	private final Runnable phTick = new Runnable() {
+		@Override
+		public void run() {
+			if ((root == null) || !isAdded() || !phoneMode()) return;
+			updatePhoneLive();
+			root.postDelayed(this, 1500);
+		}
+	};
+
+	private View phoneHome(Context ctx) {
+		MainActivityDelegate a = getActivityDelegate();
+		ScrollView sv = new ScrollView(ctx);
+		sv.setVerticalScrollBarEnabled(false);
+		sv.setClipToPadding(false);
+		LinearLayout col = new LinearLayout(ctx);
+		col.setOrientation(LinearLayout.VERTICAL);
+		int side = dp(18);
+		col.setPadding(side, YoldaStyle.cutoutTop(ctx) + dp(14), side, dp(150));
+		sv.addView(col, new ScrollView.LayoutParams(-1, -2));
+
+		// Üst satır: Yolda · Telefon | Araç · tema · ayarlar
+		LinearLayout top = hrow(ctx);
+		top.setGravity(Gravity.CENTER_VERTICAL);
+		TextView brand = text(ctx, "Yolda", 22, true, 0xFFFFFFFF);
+		top.addView(brand, new LinearLayout.LayoutParams(0, -2, 1f));
+		top.addView(segmented(ctx, true));
+		ImageView themeB = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx),
+				v -> me.aap.fermata.ui.view.YoldaThemePicker.show(a));
+		LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(dp(44), dp(44));
+		tl.leftMargin = dp(8);
+		top.addView(themeB, tl);
+		ImageView setB = roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> a.showFragment(R.id.yolda_menu_fragment));
+		LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(dp(44), dp(44));
+		sl.leftMargin = dp(6);
+		top.addView(setB, sl);
+		col.addView(top);
+
+		// Saat, tarih, hava
+		LinearLayout hero = hrow(ctx);
+		hero.setGravity(Gravity.BOTTOM);
+		hero.setPadding(0, dp(18), 0, dp(14));
+		LinearLayout when = new LinearLayout(ctx);
+		when.setOrientation(LinearLayout.VERTICAL);
+		int hr = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+		when.addView(text(ctx, (hr < 5) ? "İyi geceler" : (hr < 12) ? "Günaydın" : (hr < 18) ? "İyi günler" : "İyi akşamlar",
+				14, false, 0xFFC5CBD8));
+		phClock = text(ctx, "", 46, true, 0xFFFFFFFF);
+		phClock.setLetterSpacing(-0.02f);
+		when.addView(phClock);
+		phDate = text(ctx, "", 14, false, 0xFFC5CBD8);
+		when.addView(phDate);
+		hero.addView(when, new LinearLayout.LayoutParams(0, -2, 1f));
+		phWeather = text(ctx, "Hava…", 15, true, 0xFFFFFFFF);
+		phWeather.setGravity(Gravity.CENTER);
+		phWeather.setPadding(dp(14), 0, dp(14), 0);
+		phWeather.setBackground(phoneSurface(ctx, 16));
+		phWeather.setClickable(true);
+		phWeather.setContentDescription("Hava durumu");
+		phWeather.setOnClickListener(v -> a.showFragment(R.id.yolda_weather_fragment));
+		hero.addView(phWeather, new LinearLayout.LayoutParams(-2, dp(56)));
+		col.addView(hero);
+
+		// Şimdi çalıyor
+		LinearLayout now = hrow(ctx);
+		now.setGravity(Gravity.CENTER_VERTICAL);
+		now.setPadding(dp(14), dp(10), dp(10), dp(10));
+		now.setBackground(phoneSurface(ctx, 20));
+		now.setClickable(true);
+		now.setOnClickListener(v -> YoldaNowPlaying.open(a));
+		LinearLayout nt = new LinearLayout(ctx);
+		nt.setOrientation(LinearLayout.VERTICAL);
+		phNowTag = text(ctx, "", 11, true, t.accent | 0xFF000000);
+		phNowTag.setLetterSpacing(0.1f);
+		nt.addView(phNowTag);
+		phNowTitle = text(ctx, "", 16, true, 0xFFFFFFFF);
+		phNowTitle.setSingleLine(true);
+		phNowTitle.setEllipsize(TextUtils.TruncateAt.END);
+		nt.addView(phNowTitle);
+		now.addView(nt, new LinearLayout.LayoutParams(0, -2, 1f));
+		phPlay = roundButton(ctx, R.drawable.yi_play, "Oynat / duraklat", v -> {
+			var cb = a.getMediaSessionCallback();
+			if (cb.isPlaying()) cb.onPause();
+			else YoldaNowPlaying.togglePlay(a);
+			root.postDelayed(this::updatePhoneLive, 300);
+		});
+		now.addView(phPlay, new LinearLayout.LayoutParams(dp(48), dp(48)));
+		ImageView nx = roundButton(ctx, R.drawable.yi_next, "Sonraki", v -> a.getMediaSessionCallback().onSkipToNext());
+		LinearLayout.LayoutParams nl = new LinearLayout.LayoutParams(dp(48), dp(48));
+		nl.leftMargin = dp(6);
+		now.addView(nx, nl);
+		phNow = now;
+		col.addView(now, new LinearLayout.LayoutParams(-1, -2));
+
+		// Sürüş durumu: hız sınırı, radar, aracım
+		LinearLayout drive = hrow(ctx);
+		LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(-1, dp(64));
+		dl.topMargin = dp(10);
+		phLimit = statBox(ctx, drive, "Hız sınırı", v -> a.showFragment(R.id.yolda_radar_fragment), false);
+		phRadar = statBox(ctx, drive, "Radar", v -> a.showFragment(R.id.yolda_radar_fragment), true);
+		phPark = statBox(ctx, drive, "🅿 Aracım", v -> YoldaRadar.walkToPark(ctx), true);
+		col.addView(drive, dl);
+
+		// Hızlı erişim
+		LinearLayout quick = hrow(ctx);
+		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, dp(66));
+		ql.topMargin = dp(10);
+		quickBtn(ctx, quick, R.drawable.yi_home_fill, "Ev", v -> NavFragment.voiceGo(a, "home", null), false);
+		quickBtn(ctx, quick, R.drawable.yi_nav, "İş", v -> NavFragment.voiceGo(a, "work", null), true);
+		quickBtn(ctx, quick, R.drawable.yi_search, "Rota", v -> a.showFragment(R.id.yolda_nav_fragment), true);
+		quickBtn(ctx, quick, R.drawable.yi_mic, "Hey Yolda", v -> a.startVoiceAssistant(), true);
+		col.addView(quick, ql);
+
+		// Kartlar
+		LinearLayout kh = hrow(ctx);
+		kh.setGravity(Gravity.CENTER_VERTICAL);
+		kh.setPadding(0, dp(20), 0, dp(8));
+		kh.addView(text(ctx, "Kartlar", 17, true, 0xFFFFFFFF), new LinearLayout.LayoutParams(0, -2, 1f));
+		TextView ed = text(ctx, "Düzenle", 14, true, t.accent | 0xFF000000);
+		ed.setGravity(Gravity.CENTER);
+		ed.setPadding(dp(10), 0, dp(4), 0);
+		ed.setClickable(true);
+		ed.setOnClickListener(v -> showPhoneCardsEditor(ctx));
+		kh.addView(ed, new LinearLayout.LayoutParams(-2, dp(44)));
+		col.addView(kh);
+
+		int w = getResources().getDisplayMetrics().widthPixels;
+		int per = (w / getResources().getDisplayMetrics().density > 600) ? 4 : 2;
+		LinearLayout row = null;
+		int n = 0;
+		List<YoldaDeck.Card> cs = new ArrayList<>();
+		for (YoldaDeck.Card c : deck.cards()) if (!YoldaDeck.ADD.equals(c.type())) cs.add(c);
+		cs.add(null); // sonda "＋ Kart ekle"
+		for (YoldaDeck.Card c : cs) {
+			if (n % per == 0) {
+				row = hrow(ctx);
+				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(92));
+				rl.topMargin = dp(10);
+				col.addView(row, rl);
+			}
+			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
+			if (n % per != 0) cl.leftMargin = dp(10);
+			row.addView((c == null) ? addTile(ctx) : phoneTile(ctx, c), cl);
+			n++;
+		}
+		while (n % per != 0) { // son satır: eş genişlik
+			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
+			cl.leftMargin = dp(10);
+			row.addView(new View(ctx), cl);
+			n++;
+		}
+		updatePhoneLive();
+		YoldaWeather.get(ctx).main().onSuccess(wn -> {
+			weather = wn;
+			if (phWeather != null)
+				phWeather.setText(YoldaWeather.emoji(wn.code()) + "  " + wn.temp() + "°  " + wn.place());
+		});
+		return sv;
+	}
+
+	/** Telefon görünümündeki yüzey: koyu cam, ince kenar. */
+	private android.graphics.drawable.Drawable phoneSurface(Context ctx, int radius) {
+		GradientDrawable g = new GradientDrawable();
+		g.setCornerRadius(dp(radius));
+		g.setColor((mix(t.base | 0xFF000000, 0xFFFFFFFF, 0.07f) & 0x00FFFFFF) | 0xE6000000);
+		g.setStroke(Math.max(1, dp(1)), 0x29FFFFFF);
+		return g;
+	}
+
+	private TextView statBox(Context ctx, LinearLayout parent, String label, View.OnClickListener click, boolean gap) {
+		LinearLayout b = new LinearLayout(ctx);
+		b.setOrientation(LinearLayout.VERTICAL);
+		b.setGravity(Gravity.CENTER_VERTICAL);
+		b.setPadding(dp(12), 0, dp(8), 0);
+		b.setBackground(phoneSurface(ctx, 16));
+		b.setClickable(true);
+		b.setOnClickListener(click);
+		b.addView(text(ctx, label, 12, false, 0xFFC5CBD8));
+		TextView v = text(ctx, "—", 15, true, 0xFFFFFFFF);
+		v.setSingleLine(true);
+		v.setEllipsize(TextUtils.TruncateAt.END);
+		b.addView(v);
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
+		if (gap) lp.leftMargin = dp(8);
+		parent.addView(b, lp);
+		return v;
+	}
+
+	private void quickBtn(Context ctx, LinearLayout parent, int icon, String label, View.OnClickListener click, boolean gap) {
+		LinearLayout b = new LinearLayout(ctx);
+		b.setOrientation(LinearLayout.VERTICAL);
+		b.setGravity(Gravity.CENTER);
+		b.setBackground(phoneSurface(ctx, 16));
+		b.setClickable(true);
+		b.setContentDescription(label);
+		b.setOnClickListener(click);
+		pressEffect(b);
+		ImageView iv = new ImageView(ctx);
+		iv.setImageResource(icon);
+		iv.setImageTintList(ColorStateList.valueOf(t.accent | 0xFF000000));
+		b.addView(iv, new LinearLayout.LayoutParams(dp(22), dp(22)));
+		TextView tv = text(ctx, label, 12, true, 0xFFFFFFFF);
+		tv.setPadding(0, dp(4), 0, 0);
+		b.addView(tv);
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
+		if (gap) lp.leftMargin = dp(8);
+		parent.addView(b, lp);
+	}
+
+	/** Izgaradaki kart: renkli simge kutusu, ad, tek satır bilgi; dokun → kartın sayfası. */
+	private View phoneTile(Context ctx, YoldaDeck.Card c) {
+		Look lk = look(c);
+		LinearLayout f = new LinearLayout(ctx);
+		f.setOrientation(LinearLayout.VERTICAL);
+		f.setPadding(dp(12), dp(12), dp(12), dp(10));
+		f.setBackground(phoneSurface(ctx, 18));
+		f.setClickable(true);
+		f.setContentDescription(c.title());
+		f.setOnClickListener(v -> open(c));
+		f.setOnLongClickListener(v -> {
+			showPhoneCardsEditor(ctx);
+			return true;
+		});
+		pressEffect(f);
+		LinearLayout head = hrow(ctx);
+		head.setGravity(Gravity.CENTER_VERTICAL);
+		FrameLayout chip = new FrameLayout(ctx);
+		GradientDrawable cb = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{lk.c1, lk.c2});
+		cb.setCornerRadius(dp(10));
+		chip.setBackground(cb);
+		ImageView ic = new ImageView(ctx);
+		ic.setImageResource(lk.icon);
+		ic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		chip.addView(ic, new FrameLayout.LayoutParams(dp(18), dp(18), Gravity.CENTER));
+		head.addView(chip, new LinearLayout.LayoutParams(dp(32), dp(32)));
+		TextView ti = text(ctx, c.title(), 15, true, 0xFFFFFFFF);
+		ti.setSingleLine(true);
+		ti.setEllipsize(TextUtils.TruncateAt.END);
+		ti.setPadding(dp(10), 0, 0, 0);
+		head.addView(ti, new LinearLayout.LayoutParams(0, -2, 1f));
+		f.addView(head);
+		f.addView(new View(ctx), new LinearLayout.LayoutParams(-1, 0, 1f));
+		TextView sub = text(ctx, lk.sub, 12, false, 0xFFC5CBD8);
+		sub.setSingleLine(true);
+		sub.setEllipsize(TextUtils.TruncateAt.END);
+		f.addView(sub);
+		return f;
+	}
+
+	private View addTile(Context ctx) {
+		LinearLayout f = new LinearLayout(ctx);
+		f.setOrientation(LinearLayout.VERTICAL);
+		f.setGravity(Gravity.CENTER);
+		GradientDrawable g = new GradientDrawable();
+		g.setCornerRadius(dp(18));
+		g.setStroke(Math.max(1, dp(1)), 0x4DFFFFFF, dp(6), dp(5));
+		f.setBackground(g);
+		f.setClickable(true);
+		f.setContentDescription("Kart ekle");
+		f.setOnClickListener(v -> showAddMenu());
+		ImageView iv = new ImageView(ctx);
+		iv.setImageResource(R.drawable.yi_add);
+		iv.setImageTintList(ColorStateList.valueOf(0xCCFFFFFF));
+		f.addView(iv, new LinearLayout.LayoutParams(dp(26), dp(26)));
+		return f;
+	}
+
+	/** Telefon görünümü: kartları sırala / kaldır (sürükle, ▲ ▼, ✕). */
+	private void showPhoneCardsEditor(Context ctx) {
+		List<YoldaDeck.Card> work = new ArrayList<>();
+		for (YoldaDeck.Card c : deck.cards()) if (!YoldaDeck.ADD.equals(c.type())) work.add(c);
+		orderEditor(ctx, "Kartları düzenle", "ızgarada bu sırayla · ✕ kaldırır (↺ ile geri gelir)", work,
+				YoldaDeck.Card::title, l -> {
+					// silinenler kaldırılan kartlara, kalanlar bu sırayla
+					for (YoldaDeck.Card c : deck.cards()) {
+						if (YoldaDeck.ADD.equals(c.type()) || l.contains(c)) continue;
+						if (!c.isBuiltIn()) stashRemoved(c);
+					}
+					deck.setOrder(l);
+					save();
+					rebuildPhone();
+				}, YoldaDeck.Card::isRemovable);
+	}
+
+	private void rebuildPhone() {
+		if ((root == null) || !isAdded() || !phoneMode()) return;
+		Context ctx = requireContext();
+		root.removeAllViews();
+		YoldaStyle.applyScreenBackground(root, t);
+		root.addView(phoneHome(ctx), new FrameLayout.LayoutParams(-1, -1));
+		root.addView(signature(ctx), signatureLp());
+	}
+
+	private void updatePhoneLive() {
+		Context ctx = getContext();
+		if ((ctx == null) || (phClock == null)) return;
+		java.util.Date d = new java.util.Date();
+		phClock.setText(new java.text.SimpleDateFormat("HH:mm", new java.util.Locale("tr")).format(d));
+		if (phDate != null) phDate.setText(new java.text.SimpleDateFormat("d MMMM EEEE", new java.util.Locale("tr")).format(d));
+		MainActivityDelegate a = getActivityDelegate();
+		var cb = a.getMediaSessionCallback();
+		String title = YoldaNowPlaying.titleOf(cb);
+		MediaLib.PlayableItem pi = a.getCurrentPlayable();
+		if ((title == null) && (pi != null)) title = pi.getName();
+		if ((title == null) && (lastItem != null)) title = lastItem.getName();
+		boolean playing = cb.isPlaying();
+		if (phNow != null) phNow.setVisibility((title == null) ? View.GONE : View.VISIBLE);
+		if (phNowTitle != null) phNowTitle.setText((title != null) ? title : "");
+		if (phNowTag != null) phNowTag.setText(playing ? "ŞİMDİ ÇALIYOR" : "KALDIĞIN YER");
+		if (phPlay != null) phPlay.setImageResource(playing ? R.drawable.yi_pause : R.drawable.yi_play);
+		if (phLimit != null) phLimit.setText((YoldaRadar.limit > 0)
+				? (YoldaRadar.limit + " km/s" + (YoldaRadar.limitEstimated ? " ~" : "")) : (YoldaRadar.isEnabled(ctx) ? "Bekleniyor" : "Kapalı"));
+		if (phRadar != null) {
+			YoldaRadarCore.Ahead ah = YoldaRadar.ahead;
+			phRadar.setText((ah != null) ? (RadarFragment.meters(ah.meters()) + " önde") : (YoldaRadar.isEnabled(ctx) ? "Önde yok" : "Kapalı"));
+		}
+		if (phPark != null) {
+			double[] pk = YoldaRadar.park(ctx);
+			phPark.setText((pk == null) ? "Kayıt yok" : Double.isNaN(YoldaRadar.lat) ? "Kayıtlı"
+					: YoldaDriveCore.distText(YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1])));
+		}
+	}
+
 	/** Sesle: sonraki (1) / önceki (-1) karta geç. @return yeni kartın başlığı; uçtaysa null. */
 	@Nullable
 	public String stepCard(int dir) {
@@ -367,6 +761,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (deck.retitle(YoldaDeck.RADAR, "Radar ve hız", YoldaDeck.titleOf(YoldaDeck.RADAR)))
 			prefs(ctx).edit().putString(PREF_DECK, deck.encode()).apply();
 		boolean car = getActivityDelegate().isCarActivity();
+		if (phoneMode()) { // telefon görünümü: düzenli ızgara (araçta her zaman deste)
+			root = new FrameLayout(ctx);
+			YoldaStyle.applyScreenBackground(root, t);
+			root.addView(phoneHome(ctx), new FrameLayout.LayoutParams(-1, -1));
+			root.addView(signature(ctx), signatureLp());
+			root.postDelayed(phTick, 1500);
+			YoldaVoice.preload(getActivityDelegate());
+			return root;
+		}
 
 		root = new FrameLayout(ctx);
 		YoldaStyle.applyScreenBackground(root, t);
@@ -490,6 +893,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(44), dp(44));
 		tlp.rightMargin = dp(10);
 		top.addView(themeBtn, tlp);
+		if (!car) { // telefonda: Telefon görünümüne dön (araç görünümünden)
+			ImageView pv = roundButton(ctx, R.drawable.yi_phone, "Telefon görünümü", v -> setPhoneView(true));
+			LinearLayout.LayoutParams pvl = new LinearLayout.LayoutParams(dp(44), dp(44));
+			pvl.rightMargin = dp(10);
+			top.addView(pv, top.indexOfChild(themeBtn), pvl);
+		}
 		// Ayarlar: tema düğmesinin yanında (menü / ayarlar ekranı)
 		ImageView setBtn = setBtnView = roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> {
 			YoldaStyle.haptic(v);
@@ -2092,14 +2501,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		FrameLayout f = new FrameLayout(ctx);
 		GradientDrawable bg = noble
 				? new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xFF1B1E28, 0xFF13151C})
-				: new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{lk.c1, lk.c2});
+				: new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{mix(lk.c1, t.base | 0xFF000000, 0.28f),
+				mix(lk.c2, t.base | 0xFF000000, 0.58f)}); // sade: renk derin, neon değil
 		bg.setCornerRadius(dp(30));
 		GradientDrawable sheen = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-				noble ? new int[]{0x0FFFFFFF, 0x00FFFFFF, 0x00FFFFFF} : new int[]{0x33FFFFFF, 0x00FFFFFF, 0x00FFFFFF});
+				noble ? new int[]{0x0FFFFFFF, 0x00FFFFFF, 0x00FFFFFF} : new int[]{0x1FFFFFFF, 0x00FFFFFF, 0x00FFFFFF});
 		sheen.setCornerRadius(dp(30));
 		GradientDrawable rim = new GradientDrawable();
 		rim.setCornerRadius(dp(30));
-		rim.setStroke(Math.max(1, dp(1)), noble ? YoldaStyle.alpha(accent, 0.30f) : 0x66FFFFFF);
+		rim.setStroke(Math.max(1, dp(1)), noble ? YoldaStyle.alpha(accent, 0.30f) : YoldaStyle.alpha(mix(lk.c1, 0xFFFFFFFF, 0.35f), 0.55f));
 		f.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{bg, sheen, rim}));
 		f.setClipToOutline(true);
 		f.setOutlineProvider(new android.view.ViewOutlineProvider() {
@@ -3322,6 +3732,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private void refreshCard(String type) {
+		if (phoneMode()) {
+			if ((root != null) && isAdded()) root.post(this::rebuildPhone);
+			return;
+		}
 		if ((adapter == null) || !isAdded()) return;
 		rebuildReason = "kart yenileme: " + type;
 		int i = deck.indexOf(type);
