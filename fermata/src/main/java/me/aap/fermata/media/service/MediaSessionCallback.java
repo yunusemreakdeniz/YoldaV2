@@ -723,7 +723,8 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 
 	private boolean yoldaIdle(int dir) {
 		java.util.function.IntPredicate n = yoldaIdleNav;
-		if ((n == null) || isPlaying() || (yoldaOpeningItem() != null)) return false;
+		// yalnız hiçbir şey yüklü değilken (arabellek dolarken ya da duraklatılmışken tuşlar şarkı / kanal değiştirir)
+		if ((n == null) || (getEngine() != null) || isPlaying() || (yoldaOpeningItem() != null)) return false;
 		try {
 			return n.test(dir);
 		} catch (Throwable ex) {

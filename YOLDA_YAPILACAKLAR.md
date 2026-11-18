@@ -21,7 +21,7 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Yapılanlar
 
-- [x] Kişiler sayfası: kişiler, altta ekle, düzenle (v2-145)
+- [x] Kişiler sayfası: kişiler, altta ekle, düzenle (v2-145, düzeltme v2-146)
 - [x] Aracın önceki / sonraki tuşları ve döner düğmeyle kart geçişi (v2-144)
 - [x] Araçtan inince yolculuk özeti bildirimi ve özet ekranı (v2-143)
 - [x] Hız sınırı girilmemiş yollarda tahmini yasal sınır (v2-142)

@@ -2,11 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
-## 2026-11-18 · v2-145 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-145
+## 2026-11-18 · v2-146 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-146
 
 - Kişiler kartına dokununca artık kendi sayfası açılır: eklediğin kişiler büyük satırlarda, renkli baş harfleriyle; dokununca arar.
 - Listenin sonunda "＋ Kişi ekle"; sağ üstte "Düzenle" ile ▲ ▼ sıralama ve ✕ kaldırma.
 - Satırlar 72dp, düğmeler 48dp: araç ekranında da rahat dokunulur.
+- Düzeltme: radyo / kanal açılırken (arabellek) önceki / sonraki tuşları yanlışlıkla kart geçişine gidiyordu; artık yalnız hiçbir şey yüklü değilken kartlarda gezinir.
 
 ## 2026-11-18 · v2-144 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-144
 
