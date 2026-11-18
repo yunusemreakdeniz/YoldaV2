@@ -132,6 +132,16 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			}));
 
 		LinearLayout set = group(ctx, "AYARLAR");
+		// Görünüm: telefonda ızgara ya da deste (araçta her zaman deste)
+		if (!a.isCarActivity()) {
+			android.content.SharedPreferences hp = ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
+			boolean phoneV = hp.getBoolean("phone_view", true);
+			set.addView(item(ctx, R.drawable.yi_phone, "Görünüm: " + (phoneV ? "Telefon (ızgara)" : "Araç (deste)") + " · değiştir",
+					0xFFBAE6FD, 0xFF0284C7, v -> {
+						hp.edit().putBoolean("phone_view", !phoneV).apply();
+						a.showFragment(R.id.home_fragment);
+					}));
+		}
 		// Gemini: Yolda'nın anlamadığı sorular, sohbet ve bilgi soruları (anahtar yalnız bu telefonda saklanır)
 		boolean gem = YoldaGemini.isEnabled(ctx);
 		View gi = item(ctx, R.drawable.yi_mic, "Gemini yapay zekâ: " + (gem ? "Bağlı (kaldırmak için basılı tut)" : "Bağlı değil — anahtar gir"),

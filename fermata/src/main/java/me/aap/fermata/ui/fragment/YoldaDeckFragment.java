@@ -269,6 +269,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private static final String PREF_PHONE_VIEW = "phone_view";
+	/** Ekranda şu an telefon görünümü mü kurulu (ayar değil, gerçekte kurulan): yenilemeler buna göre. */
+	private boolean phoneBuilt;
 
 	/** Cihaz testleri desteyi sınar: test sürücüsü yüklüyse varsayılan deste. */
 	private static boolean underTest() {
@@ -334,7 +336,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private final Runnable phTick = new Runnable() {
 		@Override
 		public void run() {
-			if ((root == null) || !isAdded() || !phoneMode()) return;
+			if ((root == null) || !isAdded() || !phoneBuilt) return;
 			updatePhoneLive();
 			root.postDelayed(this, 1500);
 		}
@@ -615,7 +617,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private void rebuildPhone() {
-		if ((root == null) || !isAdded() || !phoneMode()) return;
+		if ((root == null) || !isAdded() || !phoneBuilt) return;
 		Context ctx = requireContext();
 		root.removeAllViews();
 		YoldaStyle.applyScreenBackground(root, t);
@@ -761,7 +763,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (deck.retitle(YoldaDeck.RADAR, "Radar ve hız", YoldaDeck.titleOf(YoldaDeck.RADAR)))
 			prefs(ctx).edit().putString(PREF_DECK, deck.encode()).apply();
 		boolean car = getActivityDelegate().isCarActivity();
-		if (phoneMode()) { // telefon görünümü: düzenli ızgara (araçta her zaman deste)
+		phoneBuilt = phoneMode();
+		if (phoneBuilt) { // telefon görünümü: düzenli ızgara (araçta her zaman deste)
 			root = new FrameLayout(ctx);
 			YoldaStyle.applyScreenBackground(root, t);
 			root.addView(phoneHome(ctx), new FrameLayout.LayoutParams(-1, -1));
@@ -893,7 +896,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(44), dp(44));
 		tlp.rightMargin = dp(10);
 		top.addView(themeBtn, tlp);
-		if (!car) { // telefonda: Telefon görünümüne dön (araç görünümünden)
+		if (!car && !narrowHeader) { // geniş telefonda başlıkta; dar ekranda Menü → Görünüm
 			ImageView pv = roundButton(ctx, R.drawable.yi_phone, "Telefon görünümü", v -> setPhoneView(true));
 			LinearLayout.LayoutParams pvl = new LinearLayout.LayoutParams(dp(44), dp(44));
 			pvl.rightMargin = dp(10);
@@ -1747,6 +1750,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Override
 	public void onHiddenChanged(boolean hidden) {
 		super.onHiddenChanged(hidden);
+		if (!hidden && (root != null) && (phoneMode() != phoneBuilt)) { // Menü'den görünüm değişti: yeniden kur
+			root.post(() -> setPhoneView(phoneMode()));
+			return;
+		}
 		if (!hidden && (list != null)) list.post(() -> {
 			resize();
 			transform();
@@ -3732,7 +3739,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private void refreshCard(String type) {
-		if (phoneMode()) {
+		if (phoneBuilt) { // ekranda deste varken ızgara kurulmasın (önceden deste kayboluyordu)
 			if ((root != null) && isAdded()) root.post(this::rebuildPhone);
 			return;
 		}

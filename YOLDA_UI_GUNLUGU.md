@@ -8,6 +8,12 @@ Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 - Yağmur, kar, sis, fırtına başlayınca, hava düzelince, sıcaklık 3 derecenin altına inince ve bir saat içinde yağış beklenince bildirim gelir, sesli söylenir (haritadayken de).
 - Sürüş ekranında "Hava uyarıları" ile açılıp kapatılır.
 
+## 2026-11-18 · v2-141 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-141
+
+- Düzeltme: video / TV açıkken ana sayfaya dönünce kartların küçülmesi (testlerin yakaladığı hata) giderildi.
+- Düzeltme: deste açıkken bir kart yenilenince ekranın telefon ızgarasına dönmesi giderildi.
+- Dar telefonda görünüm değiştirme: Menü → Ayarlar → "Görünüm" (başlık taşmasın diye).
+
 ## 2026-11-18 · v2-139 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-139
 
 - Radar kaynağı değişince sesli ve yazılı uyarı: hedef girilip Bakanlık listesi yüklenince "Radar kaynağı İçişleri Bakanlığı. Rotada N radar var"; alınamazsa ya da hedefe varınca "Radar kaynağı OpenStreetMap".
