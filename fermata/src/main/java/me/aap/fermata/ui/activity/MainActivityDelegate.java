@@ -287,6 +287,13 @@ public class MainActivityDelegate extends ActivityDelegate
 			finish();
 			return completed(true);
 		}
+		// Yolda bildirimleri: "yolda_open" = trip → yolculuk özeti
+		String yo = intent.getStringExtra("yolda_open");
+		if ("trip".equals(yo)) {
+			intent.removeExtra("yolda_open");
+			App.get().getHandler().postDelayed(() -> showFragment(R.id.yolda_trip_fragment), 300);
+			return completed(true);
+		}
 
 		for (FermataAddon a : AddonManager.get().getAddons()) {
 			if (a.handleIntent(this, intent)) return completed(true);
@@ -914,6 +921,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.RadarFragment();
 		} else if (id == R.id.yolda_weather_fragment) {
 			return new me.aap.fermata.ui.fragment.WeatherFragment();
+		} else if (id == R.id.yolda_trip_fragment) {
+			return new me.aap.fermata.ui.fragment.TripFragment();
 		} else if (id == R.id.yolda_menu_fragment) {
 			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
 		} else if (id == R.id.yolda_setup_fragment) {
@@ -1170,7 +1179,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		boolean yolda = (id == R.id.home_fragment) || (id == R.id.yolda_channels_fragment) || (id == R.id.yolda_music)
 				|| (id == R.id.yolda_youtube) || (id == R.id.yolda_nav_fragment) || (id == R.id.yolda_menu_fragment)
 				|| (id == R.id.yolda_setup_fragment) || (id == R.id.yolda_pharmacy_fragment) || (id == R.id.yolda_radar_fragment)
-				|| (id == R.id.yolda_weather_fragment);
+				|| (id == R.id.yolda_weather_fragment) || (id == R.id.yolda_trip_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
 		int left = (me.aap.fermata.ui.view.YoldaStyle.sideRail(getContext()) && yolda && (id != R.id.home_fragment)
 				&& !videoMode)

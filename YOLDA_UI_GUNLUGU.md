@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-18 · v2-143 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-143
+
+- Araçtan inince (yolculuk bitince) bildirim gelir: "Yolculuk bitti · 42,3 km" ve kısa özet.
+- Bildirime dokununca yeni "Yolculuk özeti" ekranı açılır: nereden nereye, saatler, büyük mesafe; süre, ortalama, en yüksek hız ve radar / duraklama kutuları; rotayı haritada göster.
+- Aynı ekranda önceki yolculuklar listesi; dokununca o yolculuğun özeti gösterilir.
+
 ## 2026-11-18 · v2-142 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-142
 
 - Hız sınırı artık çok daha fazla yolda görünür: OpenStreetMap'te sınırı girilmemiş ana cadde, il ve devlet yollarında yönetmelikteki genel sınır tahmin edilir (yerleşim yerinde 50, şehirlerarası 90, bölünmüş yolda 110, otoyolda 120).

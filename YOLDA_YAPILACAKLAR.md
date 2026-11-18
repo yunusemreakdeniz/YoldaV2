@@ -5,7 +5,6 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Açık (sırayla)
 
-4. [ ] Araçtan inince yolculuk özeti bildirimi; dokununca güzel bir özet ekranı
 5. [ ] Araçtaki yön tuşları / döner düğme: kartlar arası geçiş, uzun basınca hızlı, iki kez ileri → kartı aç, iki kez geri → ana sayfa (multimedya kullanılmıyorken)
 6. [ ] Kişiler kartı: dokununca kendi sayfası, ekli kişiler, altta ekle, düzenle (diğerleri gibi)
 7. [ ] Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)
@@ -23,6 +22,7 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Yapılanlar
 
+- [x] Araçtan inince yolculuk özeti bildirimi ve özet ekranı (v2-143)
 - [x] Hız sınırı girilmemiş yollarda tahmini yasal sınır (v2-142)
 - [x] Video açıkken kartların küçülmesi düzeltildi (v2-141)
 - [x] Araçta hava takibi; değişince bildirim ve sesli uyarı (v2-140)

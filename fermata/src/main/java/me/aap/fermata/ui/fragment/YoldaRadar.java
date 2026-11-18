@@ -1079,9 +1079,34 @@ public final class YoldaRadar {
 			lastTrip = t;
 			YoldaLog.add("Yolculuk bitti: " + t.summary());
 			YoldaStyleToast.show(ctx, "Yolculuk bitti: " + t.summary());
+			notifyTrip(ctx, t);
 			changed();
 		} catch (Throwable ex) {
 			Log.e(ex, "Yolculuk kaydedilemedi");
+		}
+	}
+
+	/** Araçtan inince: yolculuk özeti bildirimi; dokununca özet ekranı açılır. */
+	private static void notifyTrip(Context ctx, YoldaDriveCore.TripRec t) {
+		try {
+			Context app = ctx.getApplicationContext();
+			android.app.NotificationManager nm = app.getSystemService(android.app.NotificationManager.class);
+			String ch = "yolda_trip";
+			if (android.os.Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(
+					new android.app.NotificationChannel(ch, "Yolculuk özeti", android.app.NotificationManager.IMPORTANCE_DEFAULT));
+			android.content.Intent open = app.getPackageManager().getLaunchIntentForPackage(app.getPackageName());
+			if (open == null) return;
+			open.putExtra("yolda_open", "trip").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+					| android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+			android.app.PendingIntent pi = android.app.PendingIntent.getActivity(app, 7, open,
+					android.app.PendingIntent.FLAG_UPDATE_CURRENT | android.app.PendingIntent.FLAG_IMMUTABLE);
+			String title = String.format(new Locale("tr"), "Yolculuk bitti · %.1f km", t.meters() / 1000f);
+			android.app.Notification.Builder b = (android.os.Build.VERSION.SDK_INT >= 26)
+					? new android.app.Notification.Builder(app, ch) : new android.app.Notification.Builder(app);
+			nm.notify(4712, b.setSmallIcon(me.aap.fermata.R.drawable.notification).setContentTitle(title)
+					.setContentText(t.summary() + " · ayrıntı için dokun").setContentIntent(pi).setAutoCancel(true).build());
+		} catch (Throwable ex) {
+			YoldaLog.add("Yolculuk bildirimi gönderilemedi: " + ex);
 		}
 	}
 
