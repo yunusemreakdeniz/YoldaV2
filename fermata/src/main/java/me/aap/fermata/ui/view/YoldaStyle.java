@@ -368,7 +368,7 @@ public final class YoldaStyle {
 
 	public static int titleSp(Context ctx) {
 		try {
-			if (me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx).isCarActivity()) return 28;
+			if (me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx).isCarActivity()) return 32;
 		} catch (Throwable ignore) {
 		}
 		return 34;
@@ -805,7 +805,11 @@ public final class YoldaStyle {
 
 	/** Yazı ölçeği: alçak geniş ekranda (araç, yatay telefon) yazılar daha küçük; yer kaplamasın. */
 	public static float textScale(android.content.Context c) {
-		if (shortScreen(c)) return 0.82f; // şartname: araçta yazı en az ~15 sp
+		try { // Android Auto: yazılar biraz büyük ve net (önceden araçta küçültülüyordu, zor okunuyordu)
+			if (me.aap.fermata.ui.activity.MainActivityDelegate.get(c).isCarActivity()) return 1.1f;
+		} catch (Throwable ignore) {
+		}
+		if (shortScreen(c)) return 0.82f;
 		return 1f;
 	}
 

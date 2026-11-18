@@ -501,6 +501,12 @@ public class YoldaAtoZTest {
 			return null;
 		});
 		waitIdle(1200);
+		// ✎ düzenle: Düzenle kipinde (karta basılı tutunca) ✕'in altında
+		onMain(a -> {
+			((YoldaDeckFragment) a.getActiveFragment()).startEditing();
+			return null;
+		});
+		waitIdle(1000);
 		View edit = onMain(a -> byDesc(a.getActiveFragment().getView(), "Favorileri düzenle"));
 		assertNotNull("Favoriler kartında Düzenle olmalı", edit);
 		onMain(a -> edit.performClick());
@@ -509,6 +515,10 @@ public class YoldaAtoZTest {
 		assertNotNull("Kaldır düğmesi olmalı", onMain(a -> byDesc(a.getActiveFragment().getView(), "Kaldır: İki")));
 		onMain(a -> {
 			a.onBackPressed(); // düzenleme ekranı kapanır
+			return null;
+		});
+		onMain(a -> {
+			if (a.getActiveFragment() instanceof YoldaDeckFragment d) d.stopEditing();
 			return null;
 		});
 		ctx().getSharedPreferences("yolda_favs", Context.MODE_PRIVATE).edit().clear().commit();
@@ -578,7 +588,17 @@ public class YoldaAtoZTest {
 			assertNotNull("Eklenen uygulama kartta görünmeli: " + label, onMain(a -> byDescExact(a.getActiveFragment().getView(), label)));
 			View add = onMain(a -> byDesc(a.getActiveFragment().getView(), "Uygulama ekle"));
 			assertNotNull("＋ (Uygulama ekle) olmalı", add);
-			assertNotNull("✎ (Uygulamaları düzenle) olmalı", onMain(a -> byDesc(a.getActiveFragment().getView(), "Uygulamaları düzenle")));
+			onMain(a -> {
+				((YoldaDeckFragment) a.getActiveFragment()).startEditing();
+				return null;
+			});
+			waitIdle(1000);
+			assertNotNull("✎ (Uygulamaları düzenle) Düzenle kipinde olmalı", onMain(a -> byDesc(a.getActiveFragment().getView(), "Uygulamaları düzenle")));
+			onMain(a -> {
+				((YoldaDeckFragment) a.getActiveFragment()).stopEditing();
+				return null;
+			});
+			waitIdle(1000);
 			onMain(a -> add.performClick());
 			waitIdle(1200);
 			assertNotNull("Uygulama listesi açılmalı", onMain(a -> byText(a.getActiveFragment().getView(), "Uygulama ekle")));

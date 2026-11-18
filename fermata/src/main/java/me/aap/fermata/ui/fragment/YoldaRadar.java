@@ -230,6 +230,7 @@ public final class YoldaRadar {
 	public static void carChanged(boolean connected) {
 		Context c = app;
 		if (c == null) return;
+		App.get().getHandler().post(YoldaRadar::adjustRate); // araçta her saniye, inince seyrek
 		if (connected) {
 			if (isEnabled(c) && feature(c, "bg") && hasUi()) YoldaDriveService.start(c);
 			return;
@@ -254,7 +255,9 @@ public final class YoldaRadar {
 		try {
 			lm = (LocationManager) ctx.getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
 			if (lm == null) return;
-			lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, LISTENER, Looper.getMainLooper());
+			gpsInterval = wantInterval();
+			lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, gpsInterval, (gpsInterval > 1000) ? 50 : 0, LISTENER,
+					Looper.getMainLooper());
 			listening = true;
 			Location last = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 			if ((last != null) && (System.currentTimeMillis() - last.getTime() < 60_000)) onLocation(last);
@@ -280,10 +283,45 @@ public final class YoldaRadar {
 		return listening;
 	}
 
+	/** Şu anki GPS istek aralığı (ms). */
+	private static long gpsInterval = 1000;
+	/** Son hareket (10 km/s üstü) zamanı. */
+	private static long movingAt;
+
+	/**
+	 * Pil: araç bağlıyken ya da hareket halindeyken (son 3 dk içinde 10 km/s üstü) her saniye; telefon
+	 * duruyorken 20 saniyede bir ve en az 50 m değişince (önceden her zaman saniyede bir: pil hızla bitiyordu).
+	 */
+	private static long wantInterval() {
+		boolean car = false;
+		try {
+			car = YoldaCar.isConnected();
+		} catch (Throwable ignore) {
+		}
+		boolean moving = (movingAt != 0) && (SystemClock.elapsedRealtime() - movingAt < 180_000);
+		return (car || moving) ? 1000 : 20_000;
+	}
+
+	@SuppressLint("MissingPermission")
+	private static void adjustRate() {
+		long want = wantInterval();
+		if (!listening || (lm == null) || (want == gpsInterval)) return;
+		try {
+			lm.removeUpdates(LISTENER);
+			gpsInterval = want;
+			lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, want, (want > 1000) ? 50 : 0, LISTENER, Looper.getMainLooper());
+			YoldaLog.add("Konum aralığı: " + (want / 1000) + " sn" + ((want > 1000) ? " (duruyor, pil tasarrufu)" : " (yolda)"));
+		} catch (Throwable ex) {
+			Log.e(ex, "Konum aralığı değiştirilemedi");
+		}
+	}
+
 	private static final LocationListener LISTENER = new LocationListener() {
 		@Override
 		public void onLocationChanged(Location l) {
+			if (l.hasSpeed() && (l.getSpeed() * 3.6f >= 10)) movingAt = SystemClock.elapsedRealtime();
 			onLocation(l);
+			adjustRate();
 		}
 
 		@Override

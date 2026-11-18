@@ -130,7 +130,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int title = compact ? 22 : small ? 26 : 32;
 		int head = Math.max(chip, Math.round((12 * 1.35f + title * 1.22f) * fs) + (noble() ? 9 : 0));
 		int avail = h - 2 * pad - head;
-		int line = Math.round(15 * 1.33f * fs);
+		int line = Math.round((lowFx ? 17 : 15) * 1.33f * fs); // araçta alt yazı 17 sp
 		int subLines = (avail - 10 - 2 * line >= 84) ? 2 : (avail - 10 - line >= 52) ? 1 : 0;
 		int bottom = avail - ((subLines == 0) ? 0 : (10 + subLines * line)) - 2;
 		int tile = Math.max(40, Math.min(small ? 70 : 84, bottom));
@@ -232,7 +232,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/**
 	 * Ana ekranın sağ altında el yazısıyla "Akdeniz" imzası: soluk, hafif eğik, dokunuşları geçirir
-	 * (yazı tipi Great Vibes, SIL Open Font License; lisans assets/licenses içinde).
+	 * (yazı tipi Herr Von Muellerhoff, SIL Open Font License; lisans assets/licenses içinde).
 	 */
 	private TextView signature(Context ctx) {
 		TextView s = new TextView(ctx);
@@ -241,8 +241,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			s.setTypeface(androidx.core.content.res.ResourcesCompat.getFont(ctx, R.font.yolda_signature));
 		} catch (Throwable ignore) {
 		}
-		s.setTextSize(28);
-		s.setTextColor(0x66FFFFFF);
+		s.setTextSize(38);
+		s.setTextColor(0x8CFFFFFF);
 		s.setShadowLayer(dp(3), 0, dp(1), 0x40000000);
 		s.setRotation(-6f);
 		s.setIncludeFontPadding(false);
@@ -286,6 +286,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Sesle: "kartları düzenle". */
 	public void startEditing() {
 		if (!editing) setEditing(true);
+	}
+
+	/** Düzenle kipinden çık (testler). */
+	public void stopEditing() {
+		if (editing) setEditing(false);
 	}
 
 	/** Sesle: söylenen adı taşıyan karta kayarak geç. @return kartın başlığı; bulunamadıysa null. */
@@ -977,11 +982,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return withActions(ctx, row, null, null, desc, edit);
 	}
 
-	/** Kart kurulurken içerikten gelen düzenle (✎) eylemi: kartın altında "Aç"ın hemen soluna konur. */
+	/**
+	 * Kart kurulurken içerikten gelen eylemler: ekle (＋) kartın altında "Aç"ın hemen solunda; düzenle (✎)
+	 * Düzenle kipinde (karta basılı tutunca) sağ üstteki ✕'in altında.
+	 */
 	@Nullable
-	private Runnable cardEdit;
+	private Runnable cardEdit, cardAdd;
 	@Nullable
-	private String cardEditDesc;
+	private String cardEditDesc, cardAddDesc;
 
 	/**
 	 * Bütün kartlarda aynı: ekle (＋) yazısız yuvarlak düğme olarak listenin sonunda; düzenle (✎) "Aç"ın
@@ -994,20 +1002,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			cardEdit = edit;
 			cardEditDesc = editDesc;
 		}
-		if (add == null) return row;
-		LinearLayout inner = (row instanceof android.widget.HorizontalScrollView hs) && (hs.getChildAt(0) instanceof LinearLayout l)
-				? l : (row instanceof LinearLayout l2) ? l2 : null;
-		ImageView b = roundButton(ctx, R.drawable.yi_add, addDesc, v -> add.run());
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
-		lp.gravity = Gravity.CENTER_VERTICAL;
-		if (inner == null) { // içerik yok: yalnız ＋
-			LinearLayout h = hrow(ctx);
-			h.setGravity(Gravity.CENTER_VERTICAL);
-			h.addView(b, lp);
-			return h;
+		if (add != null) {
+			cardAdd = add;
+			cardAddDesc = addDesc;
 		}
-		lp.leftMargin = dp(4);
-		inner.addView(b, lp);
 		return row;
 	}
 
@@ -1919,11 +1917,25 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private record Look(int c1, int c2, @DrawableRes int icon, boolean tint, String tag, String sub) {
 	}
 
+	/** İki rengi k oranında karıştır (0: a, 1: b). */
+	private static int mix(int a, int b, float k) {
+		int r = Math.round(((a >> 16) & 0xFF) + (((b >> 16) & 0xFF) - ((a >> 16) & 0xFF)) * k);
+		int g = Math.round(((a >> 8) & 0xFF) + (((b >> 8) & 0xFF) - ((a >> 8) & 0xFF)) * k);
+		int bl = Math.round((a & 0xFF) + ((b & 0xFF) - (a & 0xFF)) * k);
+		return 0xFF000000 | (r << 16) | (g << 8) | bl;
+	}
+
 	/** Kartın görünümü: kullanıcı renk seçtiyse o renkler, yoksa türünün renkleri. */
 	private Look look(YoldaDeck.Card c) {
 		Look lk = baseLook(c);
 		int[] cc = customColors(c.key());
 		if (cc != null) lk = new Look(cc[0], cc[1], lk.icon(), lk.tint(), lk.tag(), lk.sub());
+		// Canlı temalarda kart renkleri temanın renklerine doğru kayar: her tema destede gerçekten farklı görünür
+		// (önceden yalnız arka plan ışıkları değişiyordu, kartlar hep aynı renkteydi). Kendi seçtiğin renk korunur.
+		if ((t != null) && (t.cards == YoldaStyle.CARDS_VIVID) && (cc == null)) {
+			lk = new Look(mix(lk.c1, t.blobs[0], 0.42f), mix(lk.c2, t.blobs[1], 0.5f), lk.icon(), lk.tint(), lk.tag(),
+					lk.sub());
+		}
 		// Yumuşak tema: kartın renkleri yarı doygun ve biraz koyu
 		if ((t != null) && (t.cards == YoldaStyle.CARDS_SOFT)) {
 			lk = new Look(YoldaStyle.calm(lk.c1, 0.5f, 0.62f), YoldaStyle.calm(lk.c2, 0.5f, 0.55f), lk.icon(), lk.tint(),
@@ -2112,6 +2124,28 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			else setEditing(true);
 			return true;
 		});
+		if (editing && !YoldaDeck.ADD.equals(c.type())) { // ✎ içeriği düzenle: ✕'in altında (✕ yoksa köşede)
+			cardEdit = cardAdd = null;
+			try {
+				content(ctx, c); // yalnız kartın eylemlerini öğrenmek için
+			} catch (Throwable ignore) {
+			}
+			Runnable ed = cardEdit;
+			cardEdit = cardAdd = null;
+			if (ed != null) {
+				ImageView eb = roundButton(ctx, R.drawable.yi_edit, cardEditDesc, x -> ed.run());
+				GradientDrawable ebg = new GradientDrawable();
+				ebg.setShape(GradientDrawable.OVAL);
+				ebg.setColor(0xE6FFFFFF);
+				eb.setBackground(ebg);
+				eb.setImageTintList(ColorStateList.valueOf(0xFF111827));
+				eb.setTranslationZ(dp(20));
+				FrameLayout.LayoutParams el = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP | Gravity.END);
+				el.topMargin = c.isRemovable() ? dp(62) : dp(10);
+				el.rightMargin = dp(10);
+				f.addView(eb, el);
+			}
+		}
 		if (editing && c.isRemovable()) { // kaldır: kartın sağ üst köşesinde
 			ImageView rm = roundButton(ctx, R.drawable.yi_close, "Kaldır", x -> removeCard(c, pos));
 			GradientDrawable rb = new GradientDrawable();
@@ -2181,7 +2215,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			tagRow.addView(dot, dlp);
 		}
 		boolean homeCard = c.key().equals(prefs(ctx).getString("home_card", null));
-		TextView tag = text(ctx, (homeCard ? "⌂ ANA KART · " : "") + lk.tag, 12, true, noble ? accent : 0xE6FFFFFF);
+		TextView tag = text(ctx, (homeCard ? "⌂ ANA KART · " : "") + lk.tag, lowFx ? 14 : 12, true, noble ? accent : 0xE6FFFFFF);
 		tag.setLetterSpacing(0.14f);
 		tagRow.addView(tag);
 		names.addView(tagRow);
@@ -2204,7 +2238,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		head.addView(names, new LinearLayout.LayoutParams(0, -2, 1f));
 		v.addView(head);
 
-		TextView sub = text(ctx, lk.sub, 15, false, noble ? 0xFFA3A8B5 : 0xD9FFFFFF);
+		TextView sub = text(ctx, lk.sub, lowFx ? 17 : 15, lowFx, noble ? 0xFFA3A8B5 : (lowFx ? 0xF2FFFFFF : 0xD9FFFFFF));
 		sub.setMaxLines(Math.max(1, fz.subLines()));
 		sub.setEllipsize(TextUtils.TruncateAt.END);
 		sub.setPadding(0, dp(10), 0, 0);
@@ -2239,20 +2273,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 		LinearLayout bottom = hrow(ctx);
 		bottom.setGravity(Gravity.BOTTOM);
-		cardEdit = null;
-		cardEditDesc = null;
+		cardEdit = cardAdd = null;
 		View content = content(ctx, c);
 		if (content != null) bottom.addView(content, new LinearLayout.LayoutParams(0, -2, 1f));
 		else bottom.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
-		Runnable ed = cardEdit;
-		if (ed != null) { // ✎ düzenle: "Aç"ın hemen solunda
-			ImageView eb = roundButton(ctx, R.drawable.yi_edit, cardEditDesc, x -> ed.run());
+		Runnable ad = cardAdd;
+		if (ad != null) { // ＋ ekle: "Aç"ın hemen solunda
+			ImageView ab = roundButton(ctx, R.drawable.yi_add, cardAddDesc, x -> ad.run());
 			int es = Math.min(dp(48), dp(fz.btn()));
-			LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(es, es);
-			elp.leftMargin = dp(10);
-			bottom.addView(eb, elp);
+			LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(es, es);
+			alp.leftMargin = dp(10);
+			bottom.addView(ab, alp);
 		}
-		cardEdit = null;
+		cardEdit = cardAdd = null;
 		bottom.addView(openButton(ctx, c, noble, accent, fz), openLp(fz));
 		v.addView(bottom, new LinearLayout.LayoutParams(-1, -2));
 		return f;
@@ -3524,7 +3557,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private TextView chipBtn(Context ctx, String s, View.OnClickListener click) {
-		TextView c = text(ctx, s, 15, true, 0xFFFFFFFF);
+		TextView c = text(ctx, s, lowFx ? 17 : 15, true, 0xFFFFFFFF); // araçta (lowFx) büyük
 		c.setGravity(Gravity.CENTER);
 		c.setPadding(dp(18), 0, dp(18), 0);
 		GradientDrawable g = new GradientDrawable();

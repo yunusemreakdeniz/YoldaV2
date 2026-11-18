@@ -50,6 +50,8 @@ public final class YoldaGlow extends Drawable {
 		return new int[]{t1, t2};
 	}
 
+	private final Runnable tick = this::invalidateSelf;
+
 	public void setDrift(boolean d) {
 		if (drift == d) return;
 		drift = d;
@@ -87,7 +89,11 @@ public final class YoldaGlow extends Drawable {
 		blob(c, towards(c1, 0xFFFFFFFF, 0.25f), bd.left + w * (0.55f + 0.12f * (float) Math.sin(s * 0.13)),
 				bd.top + h * 0.10f, r * 0.55f, 0x33);
 		boolean settling = motion && ((c1 != t1) || (c2 != t2));
-		if (anim || settling) invalidateSelf();
+		if (settling) invalidateSelf(); // renk geçişi kısa: akıcı
+		else if (anim) { // yavaş süzülme: saniyede ~12 kare yeter, pil harcamaz
+			unscheduleSelf(tick);
+			scheduleSelf(tick, SystemClock.uptimeMillis() + 83);
+		}
 	}
 
 	private void blob(Canvas c, int color, float x, float y, float r, int alpha) {

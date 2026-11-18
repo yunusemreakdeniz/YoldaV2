@@ -797,6 +797,30 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 			getItem = completed(cur);
 		}
 
+		// Yolda: canlı kanallar (TV / radyo) kullanıcının sırasıyla geçer ve sondan başa döner
+		if (!folder && cur.isStream() && !(cur instanceof me.aap.fermata.media.radio.YoldaStreamItem)
+				&& (cur.getParent() != null)) {
+			return cur.getParent().getPlayableChildren(false, true).main().then(children -> {
+				List<PlayableItem> l = (children == null) ? new java.util.ArrayList<>() : new java.util.ArrayList<>(children);
+				me.aap.fermata.ui.fragment.YoldaChannelOrder.sort(l,
+						me.aap.fermata.ui.fragment.YoldaChannelOrder.order(lib.getContext()), PlayableItem::getId);
+				int idx = -1;
+				for (int k = 0; k < l.size(); k++) {
+					if (l.get(k).getId().equals(cur.getId())) {
+						idx = k;
+						break;
+					}
+				}
+				FutureSupplier<PlayableItem> target = ((idx < 0) || (l.size() < 2))
+						? (next ? getNextPlayable(cur) : getPrevPlayable(cur))
+						: completed(l.get(Math.floorMod(idx + (next ? 1 : -1), l.size())));
+				return target.then(this::prepareItem).then(pi -> {
+					if (pi != null) skipTo(next, pi);
+					return completedVoid();
+				});
+			});
+		}
+
 		return getItem.then(
 				item -> (next ? getNextPlayable(item) : getPrevPlayable(item)).then(this::prepareItem)
 						.then(pi -> {
