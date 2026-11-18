@@ -39,9 +39,11 @@ public class YoldaDeckTest {
 		assertEquals("Kaldığın yerden", d.get(0).title());
 		assertEquals("YouTube", d.get(1).title());
 		assertEquals("Sürüş", d.get(7).title());
-		assertEquals("Hava durumu", d.get(8).title());
-		assertEquals("Nöbetçi eczane", d.get(9).title());
-		assertEquals("Ekle", d.get(15).title());
+		assertEquals("Park", d.get(8).title());
+		assertEquals("Yolculuklar", d.get(9).title());
+		assertEquals("Hava durumu", d.get(10).title());
+		assertEquals("Nöbetçi eczane", d.get(11).title());
+		assertEquals("Ekle", d.get(17).title());
 	}
 
 	@Test
@@ -51,7 +53,7 @@ public class YoldaDeckTest {
 		assertEquals("youtube", d.get(0).type());
 		assertEquals("resume", d.get(1).type());
 		assertEquals(0, d.move(0, -1)); // en baştan sola gidilmez
-		assertEquals(15, d.move(15, 1)); // en sondan sağa gidilmez
+		assertEquals(17, d.move(17, 1)); // en sondan sağa gidilmez
 	}
 
 	@Test
@@ -61,7 +63,7 @@ public class YoldaDeckTest {
 		assertFalse("Ekle kaldırılamaz", d.remove(d.indexOf("add")));
 		assertEquals(List.of("phone"), d.missingBuiltIns());
 		int at = d.restore("phone");
-		assertEquals(10, at); // eczanenin ardına, ekran yansıtmanın önüne
+		assertEquals(12, at); // eczanenin ardına, ekran yansıtmanın önüne
 		assertTrue(d.missingBuiltIns().isEmpty());
 	}
 
