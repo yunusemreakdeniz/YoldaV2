@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-18 · v2-147 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-147
+
+- Kartlardaki simge kutuları büyüdü (48–60dp), simgeler kutunun içinde daha büyük.
+- Kart düğmeleri (Aç, ＋, ✎ ve yuvarlak düğmeler) artık en az 48dp; araçta 64dp'ye kadar.
+- Telefon görünümündeki kart simgeleri 40dp kutuda, 24dp simge.
+
 ## 2026-11-18 · v2-146 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-146
 
 - Kişiler kartına dokununca artık kendi sayfası açılır: eklediğin kişiler büyük satırlarda, renkli baş harfleriyle; dokununca arar.

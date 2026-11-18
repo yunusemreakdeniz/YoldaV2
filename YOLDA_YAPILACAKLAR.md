@@ -5,6 +5,8 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Açık (sırayla)
 
+A. [ ] Sürüş geçmişi kartı: tüm yolculuklar listesi, her birinin ayrıntısı (özet ekranı), toplamlar (bu ay km, süre)
+B. [ ] Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, kısayol çipleri) 48dp altında kalmasın
 0. [ ] Kalıcı imza anahtarı: güncellemeler eskinin üzerine kurulsun, ayarlar / kart düzeni / görünüm silinmesin (kullanıcı onayı bekliyor: anahtar oluşturma ve GitHub gizli ayarları)
 7. [ ] Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)
 8. [ ] Medya kartı: telefondaki videolar (en yeni üstte, klasörler, kaldığı yerden) ve fotoğraflar (yalnız telefonda)
@@ -19,8 +21,13 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 17. [ ] Telefon görünümüne cihaz testleri
 18. [ ] Padding / boşluk sorunlarının kalanı (kullanıcıdan örnek ekran görüntüsü)
 
+## Sürekli (her 3 turda bir)
+
+- Kısa çevrimiçi araştırma (Android Auto / CarPlay yönergeleri, Material 3, sürüş uygulamalarındaki yeni özellikler); bulunan en iyi 1 fikir buraya madde olarak eklenir ve sıraya girer.
+
 ## Yapılanlar
 
+- [x] Kart simgeleri ve düğmeleri büyüdü, en az 48dp (v2-147)
 - [x] Kişiler sayfası: kişiler, altta ekle, düzenle (v2-145, düzeltme v2-146)
 - [x] Aracın önceki / sonraki tuşları ve döner düğmeyle kart geçişi (v2-144)
 - [x] Araçtan inince yolculuk özeti bildirimi ve özet ekranı (v2-143)

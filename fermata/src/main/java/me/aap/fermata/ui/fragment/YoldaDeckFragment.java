@@ -126,7 +126,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		boolean small = h < 330;
 		boolean compact = h < 260;
 		int pad = compact ? 14 : small ? 18 : 24;
-		int chip = compact ? 40 : small ? 46 : 54;
+		int chip = compact ? 48 : small ? 52 : 60; // en az 48dp: kolay dokunulur
 		int title = compact ? 22 : small ? 26 : 32;
 		int head = Math.max(chip, Math.round((12 * 1.35f + title * 1.22f) * fs) + (noble() ? 9 : 0));
 		int avail = h - 2 * pad - head;
@@ -135,8 +135,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int bottom = avail - ((subLines == 0) ? 0 : (10 + subLines * line)) - 2;
 		int tile = Math.max(40, Math.min(small ? 70 : 84, bottom));
 		int logo = Math.max(44, Math.min(small ? 84 : 104, bottom));
-		int btn = Math.max(40, Math.min(52, bottom));
-		int chipH = Math.max(40, Math.min(48, bottom));
+		int btn = Math.max(48, Math.min(lowFx ? 64 : 56, bottom)); // düğmeler en az 48dp (araçta 64'e kadar)
+		int chipH = Math.max(48, Math.min(lowFx ? 60 : 52, bottom));
 		int big = compact ? 32 : small ? 40 : 52;
 		// Çok alçak kart (yatay telefon, çubuk açık): tek satır — simge, ad, "Aç" yan yana; içerik şeridi yok
 		if (h < 150) {
@@ -565,8 +565,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
 		ic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		chip.addView(ic, new FrameLayout.LayoutParams(dp(18), dp(18), Gravity.CENTER));
-		head.addView(chip, new LinearLayout.LayoutParams(dp(32), dp(32)));
+		chip.addView(ic, new FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER));
+		head.addView(chip, new LinearLayout.LayoutParams(dp(40), dp(40)));
 		TextView ti = text(ctx, c.title(), 15, true, 0xFFFFFFFF);
 		ti.setSingleLine(true);
 		ti.setEllipsize(TextUtils.TruncateAt.END);
@@ -2601,7 +2601,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
 		if (lk.tint) ic.setImageTintList(ColorStateList.valueOf(accent));
-		int icn = Math.round(fz.chip() * 0.56f);
+		int icn = Math.round(fz.chip() * 0.62f); // simge daha büyük
 		chip.addView(ic, new FrameLayout.LayoutParams(dp(icn), dp(icn), Gravity.CENTER));
 		head.addView(chip, new LinearLayout.LayoutParams(dp(fz.chip()), dp(fz.chip())));
 		LinearLayout names = new LinearLayout(ctx);
@@ -2686,7 +2686,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		Runnable ad = cardAdd;
 		if (ad != null) { // ＋ ekle: "Aç"ın hemen solunda
 			ImageView ab = roundButton(ctx, R.drawable.yi_add, cardAddDesc, x -> ad.run());
-			int es = Math.min(dp(48), dp(fz.btn()));
+			int es = Math.max(dp(48), dp(fz.btn())); // en az 48dp
 			LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(es, es);
 			alp.leftMargin = dp(10);
 			bottom.addView(ab, alp);
@@ -3985,8 +3985,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView b = new ImageView(ctx);
 		b.setImageResource(icon);
 		b.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		int p = dp(11);
+		int p = dp(10); // simge düğmenin içinde daha büyük görünsün
 		b.setPadding(p, p, p, p);
+		b.setMinimumWidth(dp(48));
+		b.setMinimumHeight(dp(48));
 		b.setBackground(YoldaStyle.glass(ctx, t, 999));
 		b.setContentDescription(desc);
 		b.setClickable(true);
