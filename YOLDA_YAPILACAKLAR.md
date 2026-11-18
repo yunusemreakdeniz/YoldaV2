@@ -5,6 +5,8 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Açık (sırayla)
 
+I. [ ] Navigasyon aramasında yer önerileri (yazdıkça adres / yer önerileri; seçince rota)
+J. [ ] Akaryakıt fiyatları kartı (açık kaynak araştırması; bulunamazsa yakındaki istasyonlar kartı + fiyatı kullanıcı girer)
 C. [ ] Kart logoları başlıkla aynı hizada değil, küçük ve ortalı kalıyor: başlık satırıyla hizala, gerekirse büyüt
 D. [ ] Kartlardaki erişim düğmeleri büyük olsun (TV / radyo kanal kutucukları, kısayol çipleri, favori kutucukları); en az 56dp, araçta daha büyük
 E. [ ] TV ve radyo düzenleme: tek sıralama; kartın içinden tüm liste düzenlenir; kartın yüzünde ve Kanallar ekranında aynı sıra
@@ -22,7 +24,6 @@ B. [ ] Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, k
 13. [ ] Hava durumuna göre animasyonlu tema (gece / gündüz ayarlı)
 14. [ ] Sisteme ölçülü animasyonlar (geçişler, kart açılışı)
 15. [ ] Reklam engelleyiciyi güçlendirme
-16. [ ] Yakıt fiyatları kartı (açık ve kullanım şartlarına uygun bir kaynak bulunursa)
 17. [ ] Telefon görünümüne cihaz testleri
 18. [ ] Padding / boşluk sorunlarının kalanı (kullanıcıdan örnek ekran görüntüsü)
 
@@ -32,6 +33,7 @@ B. [ ] Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, k
 
 ## Yapılanlar
 
+- [x] Düzeltme: telefon görünümü gerçek telefonda hiç açılmıyordu (v2-149)
 - [x] Yolculuklar (sürüş geçmişi) kartı: bütün yolculuklar, ayrıntı, bu ayın toplamı (v2-148)
 - [x] Kart simgeleri ve düğmeleri büyüdü, en az 48dp (v2-147)
 - [x] Kişiler sayfası: kişiler, altta ekle, düzenle (v2-145, düzeltme v2-146)

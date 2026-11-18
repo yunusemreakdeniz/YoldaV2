@@ -2,6 +2,10 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-18 · v2-149 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-149
+
+- Düzeltme: telefon görünümü (dikey ızgara, Telefon | Araç anahtarı) gerçek telefonda hiç açılmıyordu; uygulama kendini test ortamı sanıp her zaman desteyi gösteriyordu. Artık telefonda varsayılan telefon görünümü.
+
 ## 2026-11-18 · v2-148 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-148
 
 - Yeni "Yolculuklar" kartı (Sürüş kartının yanında): bu ayın özeti ("Bu ay 12 yolculuk · 486 km · 9 sa 20 dk") ve son yolculuklar; birine dokununca ayrıntısı açılır.

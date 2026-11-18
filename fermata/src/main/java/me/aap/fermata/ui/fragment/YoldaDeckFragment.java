@@ -272,14 +272,26 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Ekranda şu an telefon görünümü mü kurulu (ayar değil, gerçekte kurulan): yenilemeler buna göre. */
 	private boolean phoneBuilt;
 
-	/** Cihaz testleri desteyi sınar: test sürücüsü yüklüyse varsayılan deste. */
+	/**
+	 * Cihaz testleri desteyi sınar: yalnız gerçekten bir test çalışıyorsa (kayıtlı test sürücüsü varsa) varsayılan
+	 * deste. Önceden yalnız sınıfın varlığına bakılıyordu; sınıf uygulamanın içinde de olduğundan gerçek telefonda
+	 * da deste açılıyor, telefon görünümü hiç gelmiyordu.
+	 */
+	private static Boolean underTest;
+
 	private static boolean underTest() {
+		Boolean u = underTest;
+		if (u != null) return u;
+		boolean r;
 		try {
-			Class.forName("androidx.test.platform.app.InstrumentationRegistry");
-			return true;
+			Object ins = Class.forName("androidx.test.platform.app.InstrumentationRegistry")
+					.getMethod("getInstrumentation").invoke(null);
+			r = ins != null; // test yoksa "No instrumentation registered" hatası atar
 		} catch (Throwable ex) {
-			return false;
+			r = false;
 		}
+		underTest = r;
+		return r;
 	}
 
 	/** Telefon | Araç anahtarı: seçilince ana ekran yeniden kurulur. */
