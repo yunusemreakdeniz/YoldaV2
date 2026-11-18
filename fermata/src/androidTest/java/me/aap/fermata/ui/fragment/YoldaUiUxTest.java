@@ -56,7 +56,7 @@ public class YoldaUiUxTest {
 	private static final int MIN_TOUCH_DP = 36;
 	private static final int[] SCREENS = {R.id.home_fragment, R.id.yolda_channels_fragment, R.id.yolda_youtube,
 			R.id.yolda_nav_fragment, R.id.yolda_menu_fragment, R.id.yolda_setup_fragment, R.id.yolda_music, R.id.yolda_pharmacy_fragment,
-			R.id.yolda_radar_fragment, R.id.yolda_park_fragment, R.id.yolda_trip_fragment, R.id.yolda_contacts_fragment,
+			R.id.yolda_radar_fragment, R.id.yolda_park_fragment, R.id.yolda_fuel_fragment, R.id.yolda_trip_fragment, R.id.yolda_contacts_fragment,
 			R.id.yolda_weather_fragment};
 
 	private ActivityScenario<MainActivity> scenario;

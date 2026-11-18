@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-161 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-161
+
+- Yeni Akaryakıt kartı ve sayfası: benzin, motorin ve LPG Türkiye ortalaması (TL / litre) ve bu haftaki değişim (▲ / ▼).
+- Yakıt türünü seç, aracının tüketimini (L / 100 km) ayarla: 100 km ve son yolculuğun yakıt maliyeti hesaplanır.
+- "En yakın benzinlik" tek dokunuşla yol tarifi; sesle "akaryakıt kartına geç". Veri: OpenVan.camp (CC BY 4.0), 6 saatte bir yenilenir.
+
 ## 2026-11-19 · v2-160 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-160
 
 - Navigasyon aramasında yazdıkça yer önerileri: Ev, İş ve son gidilenler anında; 3 harften sonra OpenStreetMap önerileri (bulunduğun yere yakın olanlar önce, uzaklığıyla).
