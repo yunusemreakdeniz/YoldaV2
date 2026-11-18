@@ -508,6 +508,60 @@ public class YoutubeWebView extends FermataWebView {
 				"setVideoQuality(" + idx + ", 0, true);");
 	}
 
+	/**
+	 * Yolda: seçili kaliteyi (360 / 480 / 720 / 1080) ya da altındaki en yüksek seviyeyi seç (veri tasarrufu).
+	 * YouTube seviye adları: hd1080, hd720, large (480), medium (360), small, tiny.
+	 */
+	void setPreferredVideoQuality(String q) {
+		String max = switch (q) {
+			case "360" -> "medium";
+			case "480" -> "large";
+			case "720" -> "hd720";
+			default -> "hd1080";
+		};
+		loadUrl("javascript:\n" +
+				"(function() {\n" +
+				CLEAR_HIGHEST_VIDEO_QUALITY_JS +
+				"  clearFermataQ();\n" +
+				"  var order = ['tiny','small','medium','large','hd720','hd1080','hd1440','hd2160','highres'];\n" +
+				"  var maxIdx = order.indexOf('" + max + "');\n" +
+				"  var state = window.__fermataQ = { player: null, handler: null, timeout: null, attempts: 0 };\n" +
+				"  function getPlayer() {\n" +
+				"    return document.querySelector('#movie_player') || document.querySelector('.html5-video-player');\n" +
+				"  }\n" +
+				"  function apply(p) {\n" +
+				"    if (!p || typeof p.getAvailableQualityLevels !== 'function') return false;\n" +
+				"    var levels = p.getAvailableQualityLevels();\n" +
+				"    if (!levels || levels.length === 0) return false;\n" +
+				"    var pick = null, pickIdx = -1;\n" +
+				"    for (var i = 0; i < levels.length; i++) {\n" +
+				"      var k = order.indexOf(levels[i]);\n" +
+				"      if ((k >= 0) && (k <= maxIdx) && (k > pickIdx)) { pick = levels[i]; pickIdx = k; }\n" +
+				"    }\n" +
+				"    if (!pick) return false;\n" +
+				"    if (p.getPlaybackQuality && p.getPlaybackQuality() === pick) return true;\n" +
+				"    if (typeof p.setPlaybackQualityRange === 'function') p.setPlaybackQualityRange(pick, pick);\n" +
+				"    else if (typeof p.setPlaybackQuality === 'function') p.setPlaybackQuality(pick);\n" +
+				"    else return false;\n" +
+				"    return true;\n" +
+				"  }\n" +
+				"  function install() {\n" +
+				"    var p = getPlayer();\n" +
+				"    if (!p || typeof p.addEventListener !== 'function') {\n" +
+				"      if (++state.attempts < 50) state.timeout = setTimeout(install, 200);\n" +
+				"      return;\n" +
+				"    }\n" +
+				"    state.player = p;\n" +
+				"    state.handler = function(s) {\n" +
+				"      if ((s === 1) || (s === 3)) apply(getPlayer() || p);\n" +
+				"    };\n" +
+				"    p.addEventListener('onStateChange', state.handler);\n" +
+				"    apply(p);\n" +
+				"  }\n" +
+				"  install();\n" +
+				"})();");
+	}
+
 	void setHighestVideoQuality() {
 		loadUrl("javascript:\n" +
 				"(function() {\n" +

@@ -192,10 +192,17 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 			var b = trackSelector.buildUponParameters();
 			b.clearVideoSizeConstraints();
 			b.setMaxVideoBitrate(Integer.MAX_VALUE);
+			String q = me.aap.fermata.ui.view.YoldaStyle.videoQuality(appCtx);
 			if (videoHidden) {
 				b.setMaxVideoBitrate(500_000);
-			} else if (metered() && appCtx.getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
-					Context.MODE_PRIVATE).getBoolean("data_saver", true)) {
+			} else if (!"auto".equals(q)) { // kullanıcının seçtiği kalite (varsayılan 480p: veri tasarrufu)
+				switch (q) {
+					case "360" -> b.setMaxVideoSize(640, 360).setMaxVideoBitrate(900_000);
+					case "480" -> b.setMaxVideoSize(854, 480).setMaxVideoBitrate(1_600_000);
+					case "720" -> b.setMaxVideoSize(1280, 720).setMaxVideoBitrate(3_500_000);
+					default -> b.setMaxVideoSize(1920, 1080);
+				}
+			} else if (metered()) { // otomatik: mobil veride en çok 720p
 				b.setMaxVideoSize(1280, 720);
 				b.setMaxVideoBitrate(3_000_000);
 			}

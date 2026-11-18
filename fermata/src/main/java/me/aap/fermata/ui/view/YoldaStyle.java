@@ -234,6 +234,32 @@ public final class YoldaStyle {
 		prefs(ctx).edit().putInt("theme", Math.floorMod(i, THEMES.length)).apply();
 	}
 
+	// ---- video kalitesi (veri kullanımı) ----
+
+	/** Seçenekler: auto, 360, 480, 720, 1080. Varsayılan 480 (mobil veri dostu). */
+	public static final String[] VIDEO_QUALITIES = {"360", "480", "720", "1080", "auto"};
+
+	public static String videoQuality(Context ctx) {
+		return prefs(ctx).getString("video_quality", "480");
+	}
+
+	public static void setVideoQuality(Context ctx, String q) {
+		prefs(ctx).edit().putString("video_quality", q).apply();
+	}
+
+	/** Sıradaki kalite (çipe dokununca). */
+	public static String nextVideoQuality(Context ctx) {
+		String cur = videoQuality(ctx);
+		int i = java.util.Arrays.asList(VIDEO_QUALITIES).indexOf(cur);
+		String n = VIDEO_QUALITIES[(i + 1) % VIDEO_QUALITIES.length];
+		setVideoQuality(ctx, n);
+		return n;
+	}
+
+	public static String videoQualityLabel(String q) {
+		return "auto".equals(q) ? "Otomatik" : (q + "p");
+	}
+
 	/** Bütün temaların adları ("gece, gece mavi, …"). */
 	public static String names() {
 		StringBuilder b = new StringBuilder();

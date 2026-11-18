@@ -132,6 +132,12 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			}));
 
 		LinearLayout set = group(ctx, "AYARLAR");
+		// Video kalitesi (veri kullanımı): dokundukça 360 → 480 → 720 → 1080 → Otomatik
+		set.addView(item(ctx, R.drawable.yi_tv, "Video kalitesi: " + YoldaStyle.videoQualityLabel(YoldaStyle.videoQuality(ctx))
+				+ " · değiştir", 0xFFFECACA, 0xFFDC2626, v -> {
+			YoldaStyle.nextVideoQuality(ctx);
+			render();
+		}));
 		// Görünüm: telefonda ızgara ya da deste (araçta her zaman deste)
 		if (!a.isCarActivity()) {
 			android.content.SharedPreferences hp = ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);

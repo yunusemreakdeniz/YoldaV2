@@ -84,7 +84,13 @@ class YoutubeMediaEngine implements MediaEngine, OverlayMenu.SelectionHandler {
 
 		if (url.startsWith("blob:")) url = url.substring(5);
 		current = new Current(url);
-		if (!web.getAddon().autoHighestQuality()) {
+		String vq = me.aap.fermata.ui.view.YoldaStyle.videoQuality(web.getContext());
+		if (!"auto".equals(vq)) { // Yolda: seçili kalite (varsayılan 480p, veri tasarrufu)
+			if (!url.isEmpty() && !url.equals(qualityUrl)) {
+				qualityUrl = url;
+				web.setPreferredVideoQuality(vq);
+			}
+		} else if (!web.getAddon().autoHighestQuality()) {
 			qualityUrl = null;
 		} else if (!url.isEmpty() && !url.equals(qualityUrl)) {
 			qualityUrl = url;

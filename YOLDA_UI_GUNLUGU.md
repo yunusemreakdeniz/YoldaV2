@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-18 · v2-151 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-151
+
+- Videolar artık varsayılan 480p açılır (YouTube ve TV): veri kullanımı belirgin düşer.
+- Kalite seçimi: Ayarlar kartındaki "Video kalitesi" ve Menü → Ayarlar; dokundukça 360p → 480p → 720p → 1080p → Otomatik.
+- Otomatik: Wi-Fi'de en iyi kalite, mobil veride en çok 720p. Görüntü ekranda değilken (yalnız ses) en düşük kalite.
+
 ## 2026-11-18 · v2-150 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-150
 
 - Telefon kartından WhatsApp vb. açmak araçta çalışmıyordu: Yolda telefonda arka planda olduğundan Android uygulamayı açtırmıyordu. Artık önce izinler denetlenir (eksikse hangisinin gerektiği söylenir), sonra telefon ekranı araçta açılır, en son uygulama öne gelir.

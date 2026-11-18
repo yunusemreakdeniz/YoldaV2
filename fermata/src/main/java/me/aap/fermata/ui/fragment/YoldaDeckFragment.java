@@ -2981,10 +2981,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					adapter.notifyDataSetChanged();
 				}), chipLp());
 				row.addView(chipBtn(ctx, "Telefon izinleri", v -> a.showFragment(R.id.yolda_setup_fragment)), chipLp());
-				boolean saver = prefs(ctx).getBoolean("data_saver", true);
-				row.addView(chipBtn(ctx, "Veri tasarrufu: " + (saver ? "Açık (720p)" : "Kapalı"), v -> {
-					prefs(ctx).edit().putBoolean("data_saver", !saver).apply();
-					adapter.notifyDataSetChanged();
+				row.addView(chipBtn(ctx, "Video kalitesi: " + YoldaStyle.videoQualityLabel(YoldaStyle.videoQuality(ctx)), v -> {
+					String q = YoldaStyle.nextVideoQuality(ctx);
+					YoldaStyle.toast(ctx, "Video kalitesi: " + YoldaStyle.videoQualityLabel(q)
+							+ ("auto".equals(q) ? " (mobil veride en çok 720p)" : ""));
+					refreshCard(YoldaDeck.SETTINGS);
 				}), chipLp());
 				boolean auto = prefs(ctx).getBoolean("car_autoplay", true);
 				row.addView(chipBtn(ctx, "Araçta otomatik çal: " + (auto ? "Açık" : "Kapalı"), v -> {

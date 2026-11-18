@@ -5,7 +5,7 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Açık (sırayla)
 
-V. [ ] Veri kullanımı: videolar (YouTube, TV) varsayılan 480p; kalite seçilebilsin (Otomatik / 360 / 480 / 720 / 1080), kartta ve oynatıcıda
+V2. [ ] Video kalitesini oynatıcının içinden de değiştirme ve sesle ("video kalitesini 720 yap")
 U. [ ] Kartları ayır: Sürüş (Radar) kartı ve ekranı yalnız radar / hız; Park ayrı kart ve sayfa (park yerleri, temizle); Yolculuklar kendi kartında (temizle orada); Sürüş ekranından park ve yolculuk bölümleri kalkar
 R2. [ ] WhatsApp için araçta sesli okuma / yanıt (bildirim dinleyici izniyle): gelen mesajı oku, "yanıtla" ile sesle cevap
 S. [ ] TV yayınlarını daha hızlı açan kaynaklar: kanal başına birden çok yayın adresi, en hızlı açılanı seç, ölü adresleri ele, açılış süresini ölç
@@ -61,6 +61,7 @@ Q12. [ ] Spor skorları
 
 ## Yapılanlar
 
+- [x] Videolar varsayılan 480p, kalite seçimi Ayarlar kartı ve Menü'de (v2-151)
 - [x] Telefon kartında uygulamaların araçta açılmaması (WhatsApp vb.) düzeltildi (v2-150)
 - [x] Düzeltme: telefon görünümü gerçek telefonda hiç açılmıyordu (v2-149)
 - [x] Yolculuklar (sürüş geçmişi) kartı: bütün yolculuklar, ayrıntı, bu ayın toplamı (v2-148)
