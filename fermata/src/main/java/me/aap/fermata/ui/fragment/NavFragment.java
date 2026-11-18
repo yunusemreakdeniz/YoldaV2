@@ -224,6 +224,7 @@ public class NavFragment extends MainActivityFragment {
 			slp.topMargin = dp(22);
 			col.addView(search, slp);
 		}
+		attachSuggestions(ctx, input, col);
 
 		// Ev, İş ve yakındakiler
 		LinearLayout quick = new LinearLayout(ctx);
@@ -257,6 +258,131 @@ public class NavFragment extends MainActivityFragment {
 		info.setTextColor(0xB3FFFFFF);
 		info.setPadding(dp(4), dp(24), 0, 0);
 		col.addView(info);
+	}
+
+	// ---- yazdıkça yer önerileri ----
+
+	@Nullable
+	private LinearLayout sugBox;
+	private int sugSeq;
+	private final Runnable[] sugPending = new Runnable[1];
+
+	/**
+	 * Arama kutusuna yazdıkça öneriler: kayıtlı ve son gidilen yerler anında, ardından OpenStreetMap (Photon)
+	 * önerileri (350 ms bekleyip, en az 3 harf). Desteli görünümde arama altta: öneriler kutunun hemen üstünde.
+	 */
+	private void attachSuggestions(Context ctx, EditText input, LinearLayout col) {
+		LinearLayout box = new LinearLayout(ctx);
+		box.setOrientation(LinearLayout.VERTICAL);
+		box.setPadding(dp(8), dp(8), dp(8), dp(8));
+		box.setBackground(YoldaStyle.glass(ctx, t, 24));
+		box.setVisibility(View.GONE);
+		sugBox = box;
+		if (YoldaStyle.DECK) {
+			box.setElevation(dp(10));
+			FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM);
+			flp.setMargins(dp(YoldaStyle.searchLeft(ctx)), 0, dp(22), dp(YoldaStyle.VOICE_BOTTOM_DP + YoldaStyle.VOICE_DP + 8));
+			root.addView(box, flp);
+		} else {
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+			lp.topMargin = dp(8);
+			col.addView(box, col.indexOfChild((View) input.getParent()) + 1, lp);
+		}
+		input.addTextChangedListener(new android.text.TextWatcher() {
+			@Override
+			public void beforeTextChanged(CharSequence s, int st, int c, int a) {
+			}
+
+			@Override
+			public void onTextChanged(CharSequence s, int st, int b, int c) {
+			}
+
+			@Override
+			public void afterTextChanged(android.text.Editable e) {
+				suggest(ctx, e.toString().trim());
+			}
+		});
+	}
+
+	private void suggest(Context ctx, String q) {
+		LinearLayout box = sugBox;
+		if (box == null) return;
+		int seq = ++sugSeq;
+		android.os.Handler h = me.aap.utils.app.App.get().getHandler();
+		if (sugPending[0] != null) h.removeCallbacks(sugPending[0]);
+		if (q.length() < 2) {
+			box.removeAllViews();
+			box.setVisibility(View.GONE);
+			return;
+		}
+		List<YoldaPlaceSuggest.Suggestion> loc = YoldaPlaceSuggest.local(q, recent(), prefs().getString("nav_home", null),
+				prefs().getString("nav_work", null));
+		showSuggestions(ctx, loc, null);
+		if (q.length() < 3) return;
+		double la = YoldaRadar.lat, lo = YoldaRadar.lon;
+		sugPending[0] = () -> {
+			me.aap.utils.function.CheckedSupplier<List<YoldaPlaceSuggest.Suggestion>, Throwable> job =
+					() -> YoldaPlaceSuggest.fetch(q, la, lo);
+			me.aap.utils.app.App.get().execute(job).onCompletion((l, err) -> h.post(() -> {
+				if ((seq != sugSeq) || (sugBox == null) || !isAdded()) return; // daha yeni yazı var
+				if (err != null) Log.d(err, "Yer önerileri alınamadı");
+				showSuggestions(ctx, loc, l);
+			}));
+		};
+		h.postDelayed(sugPending[0], 350);
+	}
+
+	private void showSuggestions(Context ctx, List<YoldaPlaceSuggest.Suggestion> loc,
+															 @Nullable List<YoldaPlaceSuggest.Suggestion> net) {
+		LinearLayout box = sugBox;
+		if (box == null) return;
+		box.removeAllViews();
+		List<YoldaPlaceSuggest.Suggestion> all = new ArrayList<>(loc);
+		if (net != null) for (YoldaPlaceSuggest.Suggestion s : net) {
+			if (all.size() >= (YoldaStyle.DECK ? 5 : 7)) break;
+			all.add(s);
+		}
+		for (YoldaPlaceSuggest.Suggestion s : all) box.addView(suggestionRow(ctx, s));
+		box.setVisibility(all.isEmpty() ? View.GONE : View.VISIBLE);
+	}
+
+	private View suggestionRow(Context ctx, YoldaPlaceSuggest.Suggestion s) {
+		LinearLayout r = new LinearLayout(ctx);
+		r.setOrientation(LinearLayout.HORIZONTAL);
+		r.setGravity(Gravity.CENTER_VERTICAL);
+		r.setMinimumHeight(dp(56));
+		r.setPadding(dp(12), dp(6), dp(12), dp(6));
+		r.setClickable(true);
+		r.setContentDescription(s.title() + (s.sub().isEmpty() ? "" : (", " + s.sub())));
+		int ic = "Son gidilen".equals(s.sub()) ? R.drawable.yi_history
+				: ("Ev".equals(s.title()) ? R.drawable.yi_home_fill : ("İş".equals(s.title()) ? R.drawable.yi_work : R.drawable.yi_nav));
+		r.addView(icon(ctx, ic, 0xC7FFFFFF), sq(24));
+		LinearLayout tx = new LinearLayout(ctx);
+		tx.setOrientation(LinearLayout.VERTICAL);
+		tx.setPadding(dp(14), 0, dp(8), 0);
+		TextView n = text(ctx, s.title(), 17, true);
+		n.setSingleLine(true);
+		n.setEllipsize(android.text.TextUtils.TruncateAt.END);
+		tx.addView(n);
+		if (!s.sub().isEmpty()) {
+			TextView sb = text(ctx, s.sub(), 13, false);
+			sb.setTextColor(0xB3FFFFFF);
+			sb.setSingleLine(true);
+			sb.setEllipsize(android.text.TextUtils.TruncateAt.END);
+			tx.addView(sb);
+		}
+		r.addView(tx, new LinearLayout.LayoutParams(0, -2, 1f));
+		String d = YoldaPlaceSuggest.distance(s.meters());
+		if (!d.isEmpty()) {
+			TextView dv = text(ctx, d, 14, true);
+			dv.setTextColor(0xB3FFFFFF);
+			r.addView(dv);
+		}
+		r.setOnClickListener(v -> {
+			if (sugBox != null) sugBox.setVisibility(View.GONE);
+			navigate(ctx, s.dest(), true);
+		});
+		return r;
 	}
 
 	// ---- parçalar ----

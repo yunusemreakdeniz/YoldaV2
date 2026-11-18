@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-160 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-160
+
+- Navigasyon aramasında yazdıkça yer önerileri: Ev, İş ve son gidilenler anında; 3 harften sonra OpenStreetMap önerileri (bulunduğun yere yakın olanlar önce, uzaklığıyla).
+- Öneriye dokununca yol tarifi doğrudan başlar; araçta öneriler arama kutusunun hemen üstünde, en az 56dp satırlarla.
+- Deste testi 18 kartlık desteye göre düzeltildi (birim testleri yeniden yeşil).
+
 ## 2026-11-19 · v2-158 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-158
 
 - Uyarı geçmişi: radar, hız aşımı, ortalama hız, okul / hastane, mola, yol tehlikesi ve hava uyarıları zaman ve yerle kaydedilir (son 300).
