@@ -225,6 +225,9 @@ public class RadarFragment extends MainActivityFragment {
 				? ("Koridordasın · ortalaman " + Math.max(0, YoldaRadar.avg.average()) + " km/s · " + meters(YoldaRadar.avg.meters()))
 				: "Denetim noktasından geçince ortalamanı gösterir, aşarsan uyarır"));
 		col.addView(feature(ctx, "zones", "Okul ve hastane bölgesi", "Yaklaşınca uyarır (okullar hafta içi 07:00-18:30)"));
+		// yol tehlikeleri: her biri sesli, ayrı ayrı aç / kapat
+		for (char k : YoldaHazards.KINDS.toCharArray())
+			col.addView(feature(ctx, YoldaHazards.feature(k), YoldaHazards.label(k), YoldaHazards.hint(k)));
 		col.addView(feature(ctx, "stops", "Yol üstü mola yerleri", "Önündeki akaryakıt ve dinlenme tesisleri"));
 		col.addView(feature(ctx, "fatigue", "Mola hatırlatıcısı", "2 saat ara vermeden sürünce hatırlatır · şu an "
 				+ YoldaDriveCore.duration(YoldaRadar.fatigue.drivingMs())));

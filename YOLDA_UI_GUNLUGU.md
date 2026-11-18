@@ -2,6 +2,13 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-157 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-157
+
+- Yeni sesli sürüş uyarıları: hemzemin geçit, kasis / hız tümseği, okul yanındaki yaya geçidi, keskin viraj, tünel ("farlarını aç"), gişe ve soğukta köprü buzlanması.
+- Uyarı mesafesi hıza göre ayarlanır (hızlıyken daha erken); yalnız önündekiler, her biri bir kez söylenir.
+- Keskin viraj yolun şeklinden hesaplanır (ana yollarda, 60 km/s üstünde); köprü uyarısı hava 3°C ve altındayken.
+- Her uyarı Sürüş ekranından ayrı ayrı açılıp kapatılır.
+
 ## 2026-11-19 · v2-156 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-156
 
 - Radyo ekle listesinde artık Türkiye'deki tüm çalışan istasyonlar var (açık radyo dizini; en çok dinlenen önce).

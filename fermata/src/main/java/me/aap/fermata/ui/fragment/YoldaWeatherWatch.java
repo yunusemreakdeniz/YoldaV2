@@ -33,6 +33,11 @@ public final class YoldaWeatherWatch {
 	/** Son bilinen durum: hava türü, sıcaklık, yaklaşan yağış için söylenen tür (aynısı tekrar söylenmesin). */
 	private static int lastCode = -1, lastTemp = Integer.MIN_VALUE, saidSoonCat = -1;
 
+	/** Son bilinen sıcaklık (°C); bilinmiyorsa Integer.MIN_VALUE (köprü buzlanma uyarısı için). */
+	public static int knownTemp() {
+		return lastTemp;
+	}
+
 	private YoldaWeatherWatch() {
 	}
 

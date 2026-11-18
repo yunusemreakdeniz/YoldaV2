@@ -101,6 +101,9 @@ public final class YoldaRadar {
 	private static double placesLat = Double.NaN, placesLon = Double.NaN;
 	private static long placesAt, placesFailAt;
 	private static boolean placesFetching;
+	/** Yol tehlikeleri (hemzemin geçit, kasis, tünel, gişe, köprü) ve yaya geçitleri (okul yanı süzülür). */
+	private static final List<YoldaHazards.Hazard> hazards = new ArrayList<>(), crossings = new ArrayList<>();
+	private static final YoldaHazards.Memory hzMem = new YoldaHazards.Memory();
 
 	private YoldaRadar() {
 	}
@@ -461,9 +464,26 @@ public final class YoldaRadar {
 		} else {
 			zone = null;
 		}
+		// yol tehlikeleri: hemzemin geçit, kasis, okul yanı yaya geçidi, keskin viraj, tünel, gişe, köprü
+		String en = hazardKinds(ctx);
+		if (!en.isEmpty()) {
+			List<YoldaHazards.Hazard> hl;
+			synchronized (hazards) {
+				hl = new ArrayList<>(hazards);
+				if (en.indexOf('p') >= 0) hl.addAll(YoldaHazards.nearSchools(crossings, pl));
+			}
+			Road rd = road;
+			if ((rd != null) && (en.indexOf('c') >= 0) && (sp >= 60) && rd.highway().matches("^(motorway|trunk|primary|secondary|tertiary)(_link)?$"))
+				hl.addAll(YoldaHazards.curves(rd.id(), rd.pts()));
+			int t = YoldaWeatherWatch.knownTemp();
+			int month = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH);
+			boolean cold = (t != Integer.MIN_VALUE) ? (t <= 3) : ((month == java.util.Calendar.DECEMBER) || (month <= java.util.Calendar.FEBRUARY));
+			YoldaHazards.Hazard h = YoldaHazards.next(la, lo, hd, sp, hl, en, cold, hzMem, now);
+			if (h != null) alert(ctx, YoldaHazards.text(h.kind(), (int) YoldaRadarCore.dist(la, lo, h.lat(), h.lon())), false, 'h');
+		}
 		// mola yerleri
 		stops = feature(ctx, "stops") ? YoldaDriveCore.stopsAhead(la, lo, hd, pl, 30_000, 8) : new ArrayList<>();
-		if (feature(ctx, "zones") || feature(ctx, "stops")) fetchPlaces(la, lo);
+		if (feature(ctx, "zones") || feature(ctx, "stops") || !en.isEmpty()) fetchPlaces(la, lo);
 		// yorgunluk
 		if (feature(ctx, "fatigue") && fatigue.update(now, sp)) {
 			String t = YoldaDriveCore.duration(fatigue.drivingMs()) + "dir ara vermeden sürüyorsun. Bir mola iyi gelir";
@@ -509,6 +529,7 @@ public final class YoldaRadar {
 					for (YoldaDriveCore.Place p : got) places.put(p.id(), p);
 					while (places.size() > 4000) places.remove(places.keySet().iterator().next());
 				}
+				fetchHazards(la, lo);
 				placesLat = la;
 				placesLon = lo;
 				placesFailAt = 0;
@@ -520,6 +541,66 @@ public final class YoldaRadar {
 				placesFetching = false;
 			}
 		});
+	}
+
+	/** Açık tehlike türleri (YoldaHazards.KINDS içinden). */
+	static String hazardKinds(Context ctx) {
+		StringBuilder b = new StringBuilder();
+		for (char k : YoldaHazards.KINDS.toCharArray()) if (feature(ctx, YoldaHazards.feature(k))) b.append(k);
+		return b.toString();
+	}
+
+	/** Yakındaki yol tehlikelerini OSM'den al (yerlerle aynı arka plan işinde). */
+	private static void fetchHazards(double la, double lo) {
+		String hw = "^(motorway|trunk|primary|secondary|tertiary)(_link)?$";
+		String q = String.format(Locale.ROOT, "[out:json][timeout:25];(node(around:3000,%1$.5f,%2$.5f)[\"railway\"=\"level_crossing\"];"
+				+ "node(around:3000,%1$.5f,%2$.5f)[\"traffic_calming\"];node(around:6000,%1$.5f,%2$.5f)[\"barrier\"=\"toll_booth\"];"
+				+ "node(around:1500,%1$.5f,%2$.5f)[\"highway\"=\"crossing\"];);out;"
+				+ "(way(around:4000,%1$.5f,%2$.5f)[\"tunnel\"=\"yes\"][\"highway\"~\"%3$s\"];"
+				+ "way(around:4000,%1$.5f,%2$.5f)[\"bridge\"=\"yes\"][\"highway\"~\"%3$s\"];);out tags geom;", la, lo, hw);
+		try {
+			JSONArray el = new JSONObject(overpass(q, 30_000)).getJSONArray("elements");
+			List<YoldaHazards.Hazard> hz = new ArrayList<>(), cr = new ArrayList<>();
+			for (int i = 0; i < el.length(); i++) {
+				JSONObject o = el.getJSONObject(i);
+				JSONObject t = o.optJSONObject("tags");
+				if (t == null) continue;
+				long id = o.getLong("id");
+				if ("node".equals(o.optString("type"))) {
+					double a = o.optDouble("lat", Double.NaN), b = o.optDouble("lon", Double.NaN);
+					if (Double.isNaN(a) || Double.isNaN(b)) continue;
+					if ("level_crossing".equals(t.optString("railway"))) hz.add(new YoldaHazards.Hazard(id * 8 + 1, a, b, 'l'));
+					else if (!t.optString("traffic_calming").isEmpty() && !"island".equals(t.optString("traffic_calming")))
+						hz.add(new YoldaHazards.Hazard(id * 8 + 2, a, b, 'b'));
+					else if ("toll_booth".equals(t.optString("barrier"))) hz.add(new YoldaHazards.Hazard(id * 8 + 3, a, b, 'g'));
+					else if ("crossing".equals(t.optString("highway"))) cr.add(new YoldaHazards.Hazard(id * 8 + 4, a, b, 'p'));
+				} else {
+					JSONArray g = o.optJSONArray("geometry");
+					if ((g == null) || (g.length() < 2)) continue;
+					char k = "yes".equals(t.optString("tunnel")) ? 't' : 'i';
+					// iki ucu da giriş: hangi yönden gelinirse önündeki uç uyarılır
+					JSONObject f = g.getJSONObject(0), l = g.getJSONObject(g.length() - 1);
+					hz.add(new YoldaHazards.Hazard(id * 8 + 5, f.getDouble("lat"), f.getDouble("lon"), k));
+					hz.add(new YoldaHazards.Hazard(id * 8 + 6, l.getDouble("lat"), l.getDouble("lon"), k));
+				}
+			}
+			synchronized (hazards) {
+				hazards.clear();
+				hazards.addAll(hz);
+				crossings.clear();
+				crossings.addAll(cr);
+			}
+		} catch (Throwable ex) {
+			Log.d(ex, "Sürüş yardımcıları: yol tehlikeleri alınamadı");
+		}
+	}
+
+	/** Testler için: yol tehlikelerini değiştir. */
+	public static void setHazards(List<YoldaHazards.Hazard> l) {
+		synchronized (hazards) {
+			hazards.clear();
+			hazards.addAll(l);
+		}
 	}
 
 	/** Testler için: yakındaki yerleri değiştir (ağdan alma bir süre beklesin). */
@@ -534,7 +615,7 @@ public final class YoldaRadar {
 		lastZoneId = Long.MIN_VALUE;
 	}
 
-	/** Son uyarının zamanı ve türü (sol kenar o göstergeyi yanıp söndürür): r radar, o hız aşımı, a ortalama, z bölge, f mola. */
+	/** Son uyarının zamanı ve türü (sol kenar o göstergeyi yanıp söndürür): r radar, o hız aşımı, a ortalama, z bölge, f mola, h yol tehlikesi. */
 	public static volatile long alertAt;
 	public static volatile char alertKind;
 	/** Testler için: son hız aşımı bipinin zamanı. */
