@@ -12,7 +12,7 @@ K. [x] (v2-157) Daha çok sürüş uyarısı, hepsi sesli: hemzemin geçit, kasi
 L. [x] (v2-158) Uyarı geçmişi: verilen bütün uyarılar zaman ve yerle kaydedilir; Sürüş ekranında ve Yolculuklar özetinde listelenir
 I. [x] (v2-160) Navigasyon aramasında yer önerileri (yazdıkça adres / yer önerileri; seçince rota)
 J. [x] (v2-161) Akaryakıt fiyatları kartı (açık kaynak araştırması; bulunamazsa yakındaki istasyonlar kartı + fiyatı kullanıcı girer)
-C. [ ] Kart logoları başlıkla aynı hizada değil, küçük ve ortalı kalıyor: başlık satırıyla hizala, gerekirse büyüt
+C. [x] (v2-162) Kart logoları başlıkla aynı hizada değil, küçük ve ortalı kalıyor: başlık satırıyla hizala, gerekirse büyüt
 D. [ ] Kartlardaki erişim düğmeleri büyük olsun (TV / radyo kanal kutucukları, kısayol çipleri, favori kutucukları); en az 56dp, araçta daha büyük
 E. [ ] TV ve radyo düzenleme: tek sıralama; kartın içinden tüm liste düzenlenir; kartın yüzünde ve Kanallar ekranında aynı sıra
 F. [ ] Sesli asistan: Gemini bağlıysa anlama da Gemini ile (doğal cümleler: "en yakın eczaneye yol tarifi", "biraz rahatlatıcı bir şey aç" → komut), bağlı değilse yerel model; hemen her soruya yanıt. Gemini bütün uygulamayı yönetebilsin: her ekran / kart / düğme için bir eylem kataloğu (araç çağırma), yerel motor da aynı kataloğu kullanır

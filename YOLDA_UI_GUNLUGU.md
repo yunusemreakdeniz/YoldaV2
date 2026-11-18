@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-162 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-162
+
+- Kart simgeleri başlıkla aynı hizada: koyu (asil) temada başlığın altındaki vurgu çizgisi artık simgeyi aşağı itmiyor.
+- Simge kutusu 8dp büyüdü (en az 56dp); simge kutuyu daha çok dolduruyor (renkli simgeler %72, marka logoları %66).
+- Telefon görünümü kutucuklarındaki simgeler de büyüdü (24 → 28dp).
+
 ## 2026-11-19 · v2-161 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-161
 
 - Yeni Akaryakıt kartı ve sayfası: benzin, motorin ve LPG Türkiye ortalaması (TL / litre) ve bu haftaki değişim (▲ / ▼).

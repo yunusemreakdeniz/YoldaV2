@@ -577,7 +577,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
 		ic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		chip.addView(ic, new FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER));
+		chip.addView(ic, new FrameLayout.LayoutParams(dp(28), dp(28), Gravity.CENTER)); // kutunun %70'i
 		head.addView(chip, new LinearLayout.LayoutParams(dp(40), dp(40)));
 		TextView ti = text(ctx, c.title(), 15, true, 0xFFFFFFFF);
 		ti.setSingleLine(true);
@@ -2638,9 +2638,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
 		if (lk.tint) ic.setImageTintList(ColorStateList.valueOf(accent));
-		int icn = Math.round(fz.chip() * 0.62f); // simge daha büyük
+		// Simge kutusu etiket + başlık bloğuyla aynı yükseklikte ve dikeyde onunla ortalı (tek satırlı alçak kartta
+		// olağan boy); simge kutuyu daha çok doldurur (renkli simge %72, marka logosu %66)
+		int chipDp = fz.row() ? fz.chip() : (fz.chip() + 8);
+		int icn = Math.round(chipDp * (lk.tint ? 0.72f : 0.66f));
 		chip.addView(ic, new FrameLayout.LayoutParams(dp(icn), dp(icn), Gravity.CENTER));
-		head.addView(chip, new LinearLayout.LayoutParams(dp(fz.chip()), dp(fz.chip())));
+		head.addView(chip, new LinearLayout.LayoutParams(dp(chipDp), dp(chipDp)));
 		LinearLayout names = new LinearLayout(ctx);
 		names.setOrientation(LinearLayout.VERTICAL);
 		names.setPadding(dp(14), 0, dp(8), 0);
@@ -2668,7 +2671,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(title, 16, fz.title(), 1,
 				android.util.TypedValue.COMPLEX_UNIT_SP);
 		names.addView(title, new LinearLayout.LayoutParams(-1, -2));
-		if (noble) { // başlığın altında ince vurgu çizgisi
+		head.addView(names, new LinearLayout.LayoutParams(0, -2, 1f));
+		v.addView(head);
+		if (noble) { // başlığın altında ince vurgu çizgisi: ad bloğunun dışında (simge başlıkla hizalı kalsın)
 			View line = new View(ctx);
 			GradientDrawable ld = new GradientDrawable();
 			ld.setCornerRadius(dp(2));
@@ -2676,10 +2681,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			line.setBackground(ld);
 			LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(dp(40), dp(3));
 			llp.topMargin = dp(6);
-			names.addView(line, llp);
+			llp.leftMargin = dp(chipDp + 14); // başlığın altına
+			v.addView(line, llp);
 		}
-		head.addView(names, new LinearLayout.LayoutParams(0, -2, 1f));
-		v.addView(head);
 
 		TextView sub = text(ctx, lk.sub, lowFx ? 17 : 15, lowFx, noble ? 0xFFA3A8B5 : (lowFx ? 0xF2FFFFFF : 0xD9FFFFFF));
 		sub.setMaxLines(Math.max(1, fz.subLines()));
