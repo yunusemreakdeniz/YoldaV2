@@ -11,7 +11,7 @@ public class YoldaGeminiTest {
 	@Test
 	public void yanit() throws Exception {
 		String json = "{\"candidates\":[{\"content\":{\"role\":\"model\",\"parts\":["
-				+ "{\"text\":\"düşünce\",\"thought\":true},{\"text\":\"**Ankara**, Türkiye'nin başkentidir.\n\"},"
+				+ "{\"text\":\"düşünce\",\"thought\":true},{\"text\":\"**Ankara**, Türkiye'nin başkentidir.\\n\"},"
 				+ "{\"text\":\" Nüfusu yaklaşık 5,8 milyon.\"}]}}]}";
 		assertEquals("Ankara, Türkiye'nin başkentidir. Nüfusu yaklaşık 5,8 milyon.", YoldaGemini.parse(json));
 		assertNull(YoldaGemini.parse("{\"candidates\":[]}"));
