@@ -5,6 +5,8 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Açık (sırayla)
 
+K. [ ] Daha çok sürüş uyarısı, hepsi sesli: hemzemin geçit, kasis / hız tümseği, yaya geçidi (okul yakını), keskin viraj, tünel, gişe, köprü (soğukta buzlanma); her biri Sürüş ekranından aç / kapat
+L. [ ] Uyarı geçmişi: verilen bütün uyarılar zaman ve yerle kaydedilir; Sürüş ekranında ve Yolculuklar özetinde listelenir
 I. [ ] Navigasyon aramasında yer önerileri (yazdıkça adres / yer önerileri; seçince rota)
 J. [ ] Akaryakıt fiyatları kartı (açık kaynak araştırması; bulunamazsa yakındaki istasyonlar kartı + fiyatı kullanıcı girer)
 C. [ ] Kart logoları başlıkla aynı hizada değil, küçük ve ortalı kalıyor: başlık satırıyla hizala, gerekirse büyüt
