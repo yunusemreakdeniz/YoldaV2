@@ -6,7 +6,6 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 ## Açık (sırayla)
 
 0. [ ] Kalıcı imza anahtarı: güncellemeler eskinin üzerine kurulsun, ayarlar / kart düzeni / görünüm silinmesin (kullanıcı onayı bekliyor: anahtar oluşturma ve GitHub gizli ayarları)
-6. [ ] Kişiler kartı: dokununca kendi sayfası, ekli kişiler, altta ekle, düzenle (diğerleri gibi)
 7. [ ] Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)
 8. [ ] Medya kartı: telefondaki videolar (en yeni üstte, klasörler, kaldığı yerden) ve fotoğraflar (yalnız telefonda)
 9. [ ] Mobil veri sınırı ve uyarısı (aç / kapat); aşınca devam edene devam
@@ -22,6 +21,7 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Yapılanlar
 
+- [x] Kişiler sayfası: kişiler, altta ekle, düzenle (v2-145)
 - [x] Aracın önceki / sonraki tuşları ve döner düğmeyle kart geçişi (v2-144)
 - [x] Araçtan inince yolculuk özeti bildirimi ve özet ekranı (v2-143)
 - [x] Hız sınırı girilmemiş yollarda tahmini yasal sınır (v2-142)

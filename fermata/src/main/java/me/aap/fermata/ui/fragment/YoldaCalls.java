@@ -90,6 +90,37 @@ public final class YoldaCalls {
 		save(ctx, l);
 	}
 
+	/** Telefonun kişi seçicisi (rehber izni gerekmez): seçilen kişi eklenir; done(true) eklendiyse. Araçta açılmaz. */
+	public static void pick(MainActivityDelegate a, java.util.function.Consumer<Boolean> done) {
+		Context ctx = a.getContext();
+		if (a.isCarActivity()) {
+			YoldaStyle.toast(ctx, "Kişiyi telefondan ekle");
+			done.accept(false);
+			return;
+		}
+		try {
+			a.startActivityForResult(() -> new Intent(Intent.ACTION_PICK,
+					android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI)).onCompletion((data, err) -> {
+				if ((err != null) || (data == null) || (data.getData() == null)) {
+					done.accept(false);
+					return;
+				}
+				Contact c = fromPicked(ctx, data.getData());
+				if (c == null) {
+					YoldaStyle.toast(ctx, "Kişi eklenemedi");
+					done.accept(false);
+					return;
+				}
+				addFavorite(ctx, c);
+				YoldaStyle.toast(ctx, "Eklendi: " + c.name());
+				done.accept(true);
+			});
+		} catch (Throwable ex) {
+			YoldaStyle.toast(ctx, "Kişi seçici açılamadı");
+			done.accept(false);
+		}
+	}
+
 	/** Kişileri bu sırayla kaydet (Düzenle penceresi: sıralama ve silme). */
 	public static void setFavorites(Context ctx, List<Contact> l) {
 		save(ctx, new ArrayList<>(l));

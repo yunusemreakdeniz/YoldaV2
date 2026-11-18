@@ -39,6 +39,7 @@
     <item name="yolda_radar_fragment" type="id" />
     <item name="yolda_weather_fragment" type="id" />
     <item name="yolda_trip_fragment" type="id" />
+    <item name="yolda_contacts_fragment" type="id" />
     <item name="yolda_menu_fragment" type="id" />
     <item name="yolda_setup_fragment" type="id" />
     <item name="tv_fragment" type="id" />
