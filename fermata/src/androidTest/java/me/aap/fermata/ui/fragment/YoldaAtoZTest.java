@@ -971,8 +971,8 @@ public class YoldaAtoZTest {
 			assertTrue("Yolculuk özeti söylenmeli: " + YoldaSpeak.lastSpoken,
 					(YoldaSpeak.lastSpoken != null) && YoldaSpeak.lastSpoken.startsWith("Son yolculuk: 3,0 km"));
 
-			// Radar ekranında park ve yolculuk bölümleri
-			onMain(a -> a.showFragment(R.id.yolda_radar_fragment));
+			// Park sayfası (park ve yolculuklar artık kendi sayfalarında)
+			onMain(a -> a.showFragment(R.id.yolda_park_fragment));
 			waitIdle(1200);
 			assertNotNull(onMain(a -> byText(a.getActiveFragment().getView(), "Park yerleri · en üstteki aracın")));
 			assertEquals("Araç ayrılınca otomatik kayıt", 1.0, YoldaRadar.parks(c).get(0)[3], 0);
@@ -983,7 +983,9 @@ public class YoldaAtoZTest {
 			onMain(a -> del.performClick());
 			waitIdle(800);
 			assertEquals("Park yeri silinmeli", before - 1, YoldaRadar.parks(c).size());
-			assertNotNull(onMain(a -> byText(a.getActiveFragment().getView(), "Son yolculuklar")));
+			onMain(a -> a.showFragment(R.id.yolda_trip_fragment));
+			waitIdle(1200);
+			assertNotNull(onMain(a -> byText(a.getActiveFragment().getView(), "Yolculuk özeti")));
 			shot("park_ve_yolculuk");
 
 			// Kapatınca hizmet durur

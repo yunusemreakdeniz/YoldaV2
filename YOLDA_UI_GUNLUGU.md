@@ -2,6 +2,13 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-18 · v2-152 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-152
+
+- Sürüş kartı ve ekranı artık yalnız radar ve hız: park ve yolculuk bölümleri kalktı.
+- Yeni Park kartı ve sayfası: aracının uzaklığı ve bırakıldığı saat; "Buraya park ettim", "Aracıma git"; park yerleri listesi (Git / Sil), "Tümünü temizle" ve "Park yerimi hatırla" anahtarı.
+- Yolculuklar sayfasında "Bu yolculuğu sil" ve "Tümünü temizle" (iki kez dokunarak).
+- Ekran testlerine Park, Yolculuklar, Kişiler ve Hava ekranları eklendi.
+
 ## 2026-11-18 · v2-151 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-151
 
 - Videolar artık varsayılan 480p açılır (YouTube ve TV): veri kullanımı belirgin düşer.

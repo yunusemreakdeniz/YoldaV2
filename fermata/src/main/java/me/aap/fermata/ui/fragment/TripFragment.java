@@ -36,6 +36,7 @@ public class TripFragment extends MainActivityFragment {
 	private YoldaStyle.Theme t;
 	/** Gösterilen yolculuğun sırası (0 = en son). */
 	private int shown;
+	private long clearAskedAt;
 	/** Açılırken gösterilecek yolculuk (kart / bildirim); açılınca sıfırlanır. */
 	public static volatile int showIndex;
 
@@ -210,6 +211,8 @@ public class TripFragment extends MainActivityFragment {
 			col.addView(map, ml);
 		}
 
+		addClear(ctx, col, r);
+
 		// Önceki yolculuklar
 		if (trips.size() > 1) {
 			TextView sec = text(ctx, "Bütün yolculuklar (" + trips.size() + ")", 18, true, t.ink);
@@ -238,6 +241,37 @@ public class TripFragment extends MainActivityFragment {
 				col.addView(row, pl);
 			}
 		}
+	}
+
+	/** Bu yolculuğu sil ve tümünü temizle (iki kez dokun). */
+	private void addClear(Context ctx, LinearLayout col, YoldaDriveCore.TripRec r) {
+		LinearLayout acts = new LinearLayout(ctx);
+		LinearLayout.LayoutParams al = new LinearLayout.LayoutParams(-1, dp(52));
+		al.topMargin = dp(24);
+		TextView one = pill(ctx, "Bu yolculuğu sil");
+		one.setOnClickListener(v -> {
+			YoldaRadar.deleteTrip(ctx, r.startWall());
+			YoldaStyle.toast(ctx, "Yolculuk silindi");
+			shown = 0;
+			render();
+		});
+		acts.addView(one, new LinearLayout.LayoutParams(0, -1, 1f));
+		boolean sure = System.currentTimeMillis() - clearAskedAt < 4000;
+		TextView all = pill(ctx, sure ? "Emin misin? Tekrar dokun" : "Tümünü temizle");
+		all.setOnClickListener(v -> {
+			if (System.currentTimeMillis() - clearAskedAt < 4000) {
+				clearAskedAt = 0;
+				YoldaRadar.clearTrips(ctx);
+				YoldaStyle.toast(ctx, "Yolculuklar temizlendi");
+			} else {
+				clearAskedAt = System.currentTimeMillis();
+			}
+			render();
+		});
+		LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
+		cl.leftMargin = dp(8);
+		acts.addView(all, cl);
+		col.addView(acts, al);
 	}
 
 	private LinearLayout card(Context ctx) {

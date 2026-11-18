@@ -23,6 +23,8 @@ public final class YoldaDeck {
 	public static final String WEATHER = "weather";
 	public static final String PHARMACY = "pharmacy";
 	public static final String RADAR = "radar";
+	/** Park yerleri (aracım). */
+	public static final String PARK = "park";
 	/** Sürüş geçmişi: bütün yolculuklar ve ayrıntıları. */
 	public static final String TRIPS = "trips";
 	public static final String CALLS = "calls";
@@ -38,7 +40,7 @@ public final class YoldaDeck {
 	public static final String YT_CHANNEL = "ytch";
 	public static final String URL = "url";
 
-	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, TRIPS, WEATHER, PHARMACY, PHONE, CALLS, MIRROR, WEB, SETTINGS,
+	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, PHONE, CALLS, MIRROR, WEB, SETTINGS,
 			ADD};
 	private static final char FIELD = '\u001F';
 	private static final char RECORD = '\u001E';
@@ -102,6 +104,7 @@ public final class YoldaDeck {
 			case "hava", "hava durumu" -> WEATHER;
 			case "radar", "sürüş", "hız", "radar ve hız" -> RADAR;
 			case "yolculuk", "yolculuklar", "yolculuklarım", "sürüş geçmişi", "geçmiş" -> TRIPS;
+			case "park", "park yeri", "park yerleri", "aracım", "otopark" -> PARK;
 			case "kişiler", "kişi", "arama", "rehber", "aramalar" -> CALLS;
 			case "eczane", "nöbetçi eczane", "eczaneler" -> PHARMACY;
 			case "favori", "favoriler", "favorilerim" -> FAVS;
@@ -154,6 +157,7 @@ public final class YoldaDeck {
 			case PHONE -> "Telefon";
 			case CALLS -> "Kişiler";
 			case TRIPS -> "Yolculuklar";
+			case PARK -> "Park";
 			case MIRROR -> "Ekran yansıtma";
 			case WEB -> "Tarayıcı";
 			case SETTINGS -> "Ayarlar";

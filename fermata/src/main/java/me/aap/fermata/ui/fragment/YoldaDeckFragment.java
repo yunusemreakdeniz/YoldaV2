@@ -766,7 +766,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -1113,6 +1113,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 	}
 
+	/** Park kartının alt yazısı: aracın ne kadar uzakta, ne zaman bırakıldı. */
+	private String parkLine() {
+		Context ctx = getContext();
+		if (ctx == null) return "";
+		double[] pk = YoldaRadar.park(ctx);
+		if (pk == null) return "Kayıtlı park yeri yok · araçtan inince kendiliğinden kaydedilir";
+		String when = new java.text.SimpleDateFormat("d MMM HH:mm", new java.util.Locale("tr")).format(new java.util.Date((long) pk[2]));
+		return (Double.isNaN(YoldaRadar.lat) ? "Aracın kayıtlı" : ("Aracın " + YoldaDriveCore.distText(
+				YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1])) + " uzakta")) + " · " + when;
+	}
+
 	/** Eczane kartının alt yazısı: seçili il / ilçe. */
 	private String radarSubtitle() {
 		Context ctx = getContext();
@@ -1124,9 +1135,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				+ RadarFragment.meters(a.meters()) + ((YoldaRadar.limit > 0) ? (" · sınır " + YoldaRadar.limit) : "");
 		if (YoldaRadar.trip.isActive()) return "Bu yolculuk: " + YoldaDriveCore.distText(YoldaRadar.trip.meters())
 				+ ((YoldaRadar.limit > 0) ? (" · sınır " + YoldaRadar.limit) : "");
-		double[] pk = YoldaRadar.park(ctx);
-		if ((pk != null) && !Double.isNaN(YoldaRadar.lat) && YoldaRadar.hasFix())
-			return "Aracın " + YoldaDriveCore.distText(YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1])) + " uzakta · 🅿 basılı tut: yol tarifi";
 		if (!YoldaRadar.hasFix()) return "Açık · konum bekleniyor";
 		int n = Double.isNaN(YoldaRadar.lat) ? 0
 				: YoldaRadarCore.nearby(YoldaRadar.lat, YoldaRadar.lon, YoldaRadar.cams(), 10_000, 99).size();
@@ -1627,17 +1635,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				.setInterpolator(new android.view.animation.LinearInterpolator()).start();
 		radarUpdateView = new java.lang.ref.WeakReference<>(up);
 		row.addView(up, actionLp(s, false));
-		ImageView park = iconAction(ctx, R.drawable.yi_parking, "Buraya park ettim: park yerini kaydet", s, v -> {
-			YoldaStyle.haptic(v);
-			YoldaStyle.toast(ctx, YoldaRadar.savePark(ctx, false) ? "Park yeri kaydedildi · basılı tut: aracına git"
-					: "Konum henüz bilinmiyor");
-		});
-		park.setOnLongClickListener(v -> {
-			if (YoldaRadar.park(ctx) == null) YoldaStyle.toast(ctx, "Kayıtlı park yeri yok");
-			else YoldaRadar.walkToPark(ctx);
-			return true;
-		});
-		row.addView(park, actionLp(s, true));
 		row.addView(iconAction(ctx, R.drawable.yi_add_location, "Buraya radar ekle", s, v -> {
 			YoldaStyle.haptic(v);
 			YoldaStyle.toast(ctx, YoldaRadar.addHere(ctx) ? "Radar eklendi; buradan geçerken uyaracak" : "Konum henüz bilinmiyor");
@@ -2474,6 +2471,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.PARK -> new Look(0xFF34D399, 0xFF047857, R.drawable.yi_parking, true, "PARK YERİ", parkLine());
 			case YoldaDeck.TRIPS -> new Look(0xFF818CF8, 0xFF3730A3, R.drawable.yi_nav, true, "SÜRÜŞ GEÇMİŞİ",
 					TripFragment.monthLine(requireContext()));
 			case YoldaDeck.NAV -> new Look(0xFF2DD4BF, 0xFF0F766E, R.drawable.yi_nav, true, "NAVİGASYON",
@@ -2815,6 +2813,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return favRow(ctx, a, Math.max(dp(40), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
 			}
+			case YoldaDeck.PARK -> { // buraya park ettim · aracıma git
+				LinearLayout row = hrow(ctx);
+				row.addView(chipBtn(ctx, "🅿 Buraya park ettim", v -> {
+					YoldaStyle.toast(ctx, YoldaRadar.savePark(ctx, false) ? "Park yeri kaydedildi" : "Konum henüz bilinmiyor");
+					refreshCard(YoldaDeck.PARK);
+				}), chipLp());
+				if (YoldaRadar.park(ctx) != null)
+					row.addView(chipBtn(ctx, "Aracıma git", v -> YoldaRadar.walkToPark(ctx)), chipLp());
+				return scroll(ctx, row);
+			}
 			case YoldaDeck.TRIPS -> { // son yolculuklar: dokun → o yolculuğun ayrıntısı
 				List<YoldaRadar.TripItem> tl = YoldaRadar.tripItems(ctx);
 				if (tl.isEmpty()) return null;
@@ -3108,6 +3116,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				a.showFragment(R.id.yolda_contacts_fragment); // kendi sayfası: kişiler, ekle, düzenle
 			}
 			case YoldaDeck.RADAR -> a.showFragment(R.id.yolda_radar_fragment);
+			case YoldaDeck.PARK -> a.showFragment(R.id.yolda_park_fragment);
 			case YoldaDeck.TRIPS -> {
 				TripFragment.showIndex = 0;
 				a.showFragment(R.id.yolda_trip_fragment);

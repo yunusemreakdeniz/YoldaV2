@@ -181,52 +181,7 @@ public class RadarFragment extends MainActivityFragment {
 		liveLimit.setMinLines(2); // önde radar satırı gelip gidince ekran kaymasın
 		info.addView(liveLimit);
 
-		// Aracım / park yerleri en üstte (en sık bakılan). En yenisi "aracım"; her biri "Git" ve "Sil" (araç ayrılınca kendiliğinden eklenir)
-		if (YoldaRadar.feature(ctx, "park")) {
-			List<double[]> pks = YoldaRadar.parks(ctx);
-			TextView ph = text(ctx, pks.isEmpty() ? "Park yerleri" : "Park yerleri · en üstteki aracın", 18, true, t.ink);
-			ph.setPadding(dp(4), dp(14), dp(4), dp(4));
-			col.addView(ph);
-			TextView pt = text(ctx, "Araç bağlantısı (Android Auto) kesilince kendiliğinden kaydedilir; 🅿 ile elle de eklenir",
-					13, false, t.muted);
-			pt.setPadding(dp(4), 0, dp(4), dp(6));
-			col.addView(pt);
-			java.text.SimpleDateFormat pdf = new java.text.SimpleDateFormat("d MMM EEE HH:mm", new Locale("tr"));
-			for (int i = 0; i < Math.min(10, pks.size()); i++) {
-				double[] pk = pks.get(i);
-				LinearLayout row = new LinearLayout(ctx);
-				row.setOrientation(LinearLayout.HORIZONTAL);
-				row.setGravity(Gravity.CENTER_VERTICAL);
-				row.setBackground(YoldaStyle.glass(ctx, t, 16));
-				row.setPadding(dp(14), dp(8), dp(8), dp(8));
-				LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2);
-				rlp.topMargin = dp(8);
-				LinearLayout tx = new LinearLayout(ctx);
-				tx.setOrientation(LinearLayout.VERTICAL);
-				String when = pdf.format(new java.util.Date((long) pk[2])) + ((pk[3] != 0) ? " · otomatik" : " · elle");
-				tx.addView(text(ctx, (i == 0) ? ("🅿 Aracın · " + when) : when, 14, i == 0, (i == 0) ? t.ink : t.muted));
-				String far = Double.isNaN(YoldaRadar.lat) ? "Uzaklık bilinmiyor"
-						: (YoldaDriveCore.distText(YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1])) + " uzakta");
-				tx.addView(text(ctx, far, 13, false, t.muted));
-				row.addView(tx, new LinearLayout.LayoutParams(0, -2, 1f));
-				row.addView(button(ctx, "Git", v -> YoldaRadar.walkTo(ctx, pk[0], pk[1])), new LinearLayout.LayoutParams(-2, dp(42)));
-				LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(-2, dp(42));
-				dl.leftMargin = dp(8);
-				row.addView(button(ctx, "Sil", v -> {
-					YoldaRadar.deletePark(ctx, (long) pk[2]);
-					YoldaStyle.toast(ctx, "Park yeri silindi");
-					render();
-				}), dl);
-				row.setContentDescription("Park yeri " + when + ", " + far);
-				col.addView(row, rlp);
-			}
-			LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-2, dp(46));
-			hp.topMargin = dp(10);
-			col.addView(button(ctx, "🅿 Buraya park ettim", v -> {
-				YoldaStyle.toast(ctx, YoldaRadar.savePark(ctx, false) ? "Park yeri kaydedildi" : "Konum henüz bilinmiyor");
-				render();
-			}), hp);
-		}
+		// Park ve yolculuklar kendi kartlarında / sayfalarında (Park, Yolculuklar); bu ekranda yalnız radar ve hız
 
 		// Ayarlar
 		col.addView(toggle(ctx, "Radar ve sürüş yardımcıları", on ? "Açık · aşağıdakiler tek tek kapatılabilir"
@@ -275,8 +230,6 @@ public class RadarFragment extends MainActivityFragment {
 				+ YoldaDriveCore.duration(YoldaRadar.fatigue.drivingMs())));
 		col.addView(feature(ctx, "bg", "Arka planda da çalış", "Android Auto'da haritaya geçince, telefon kilitliyken de sesli uyarır"
 				+ (YoldaDriveService.running ? " · çalışıyor" : "")));
-		col.addView(feature(ctx, "park", "Park yerimi hatırla", "Araç bağlantısı kesilince aracın yeri kaydedilir"));
-		col.addView(feature(ctx, "trips", "Yolculuk özeti", "Her yolculuğun km, süre, ortalama ve en yüksek hızı"));
 
 
 
@@ -307,51 +260,6 @@ public class RadarFragment extends MainActivityFragment {
 			sh.setPadding(dp(4), dp(20), dp(4), dp(8));
 			col.addView(sh);
 			for (YoldaDriveCore.Stop s : st) col.addView(stopRow(ctx, a, s));
-		}
-
-		// Yolculuklar: kısalar (son 5) ve 20 km üstü geçmiş (silinene kadar)
-		if (YoldaRadar.feature(ctx, "trips")) {
-			List<YoldaRadar.TripItem> items = YoldaRadar.tripItems(ctx);
-			List<YoldaRadar.TripItem> shorts = new java.util.ArrayList<>(), longs = new java.util.ArrayList<>();
-			for (YoldaRadar.TripItem it : items) (it.rec().isLong() ? longs : shorts).add(it);
-			String nowTrip = YoldaRadar.trip.isActive() ? (" · şu an yoldasın, " + YoldaDriveCore.distText(YoldaRadar.trip.meters())) : "";
-			TextView th = text(ctx, (shorts.isEmpty() ? "Kısa yolculuk yok" : "Son yolculuklar") + nowTrip, 18, true, t.ink);
-			th.setPadding(dp(4), dp(20), dp(4), dp(8));
-			col.addView(th);
-			for (int i = 0; i < Math.min(5, shorts.size()); i++) col.addView(tripRow(ctx, shorts.get(i)));
-
-			TextView lh = text(ctx, longs.isEmpty() ? "Yolculuk geçmişi: 20 km üstü yolculukların burada saklanır"
-					: ("Yolculuk geçmişi · 20 km üstü · " + longs.size() + " yolculuk, " + totalKm(longs) + " km"), 18, true, t.ink);
-			lh.setPadding(dp(4), dp(20), dp(4), dp(8));
-			col.addView(lh);
-			int show = allTrips ? longs.size() : Math.min(10, longs.size());
-			for (int i = 0; i < show; i++) col.addView(tripRow(ctx, longs.get(i)));
-			LinearLayout tr = new LinearLayout(ctx);
-			tr.setOrientation(LinearLayout.HORIZONTAL);
-			LinearLayout.LayoutParams trp = new LinearLayout.LayoutParams(-1, -2);
-			trp.topMargin = dp(10);
-			col.addView(tr, trp);
-			if (longs.size() > 10) {
-				tr.addView(button(ctx, allTrips ? "Daha az göster" : ("Tümünü göster (" + longs.size() + ")"), v -> {
-					allTrips = !allTrips;
-					render();
-				}), new LinearLayout.LayoutParams(-2, dp(46)));
-			}
-			if (!items.isEmpty()) {
-				LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(-2, dp(46));
-				if (tr.getChildCount() > 0) dl.leftMargin = dp(10);
-				boolean sure = System.currentTimeMillis() - clearAskedAt < 4000;
-				tr.addView(button(ctx, sure ? "Emin misin? Tekrar dokun" : "Tüm yolculukları sil", v -> {
-					if (System.currentTimeMillis() - clearAskedAt < 4000) {
-						clearAskedAt = 0;
-						YoldaRadar.clearTrips(ctx);
-						YoldaStyle.toast(ctx, "Yolculuklar silindi");
-					} else {
-						clearAskedAt = System.currentTimeMillis();
-					}
-					render();
-				}), dl);
-			}
 		}
 
 		// Yakındaki radarlar
