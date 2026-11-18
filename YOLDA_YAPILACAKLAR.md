@@ -5,7 +5,6 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Açık (sırayla)
 
-2. [ ] Hava durumu araçta konumu takip etsin; hava değişince bildirim ve sesli uyarı
 3. [ ] Hız sınırı: girilmemiş yollarda yol türüne göre yasal sınır (tahmini, "~" ile); daha çok yolda sınır
 4. [ ] Araçtan inince yolculuk özeti bildirimi; dokununca güzel bir özet ekranı
 5. [ ] Araçtaki yön tuşları / döner düğme: kartlar arası geçiş, uzun basınca hızlı, iki kez ileri → kartı aç, iki kez geri → ana sayfa (multimedya kullanılmıyorken)
@@ -25,6 +24,7 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Yapılanlar
 
+- [x] Araçta hava takibi; değişince bildirim ve sesli uyarı (v2-140)
 - [x] Radar kaynağı değişince sesli uyarı ve bildirimde kaynak (v2-139)
 - [x] Telefon görünümünde 8dp boşluk düzeni (v2-138)
 - [x] Telefon görünümü, Telefon | Araç anahtarı, sade kartlar (v2-137)

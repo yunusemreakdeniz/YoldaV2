@@ -388,6 +388,7 @@ public final class YoldaRadar {
 		if (stage > 0) alert(ctx, YoldaRadarCore.alertText(a, stage, limit), stage <= 150, 'r');
 		helpers(ctx, la, lo, speedKmh, hd);
 		YoldaRouteRadars.onLocation(ctx, la, lo);
+		YoldaWeatherWatch.onLocation(ctx, la, lo); // araçta hava takibi
 		if (speedKmh >= 10) lastMoveAt = SystemClock.elapsedRealtime();
 		if (feature(ctx, "trips")) {
 			Long passed = null;

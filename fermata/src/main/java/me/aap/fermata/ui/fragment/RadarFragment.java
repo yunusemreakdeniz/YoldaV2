@@ -253,6 +253,8 @@ public class RadarFragment extends MainActivityFragment {
 		String rs = YoldaRouteRadars.status;
 		col.addView(feature(ctx, "official", "Rotadaki resmi radarlar",
 				"Hedef girince İçişleri Bakanlığı'ndan · " + ((rs != null) ? rs : "hedef yok: OpenStreetMap radarları")));
+		col.addView(feature(ctx, YoldaWeatherWatch.FEATURE, "Hava uyarıları",
+				"Araçtayken bulunduğun yerin havası izlenir; yağmur, kar, sis, buzlanma ve düzelme bildirilir ve söylenir"));
 		boolean voice = YoldaRadar.voice(ctx);
 		col.addView(toggle(ctx, "Sesli uyarı", voice ? "“500 metre sonra radar, hız sınırı 70”" : "Yalnız bip ve yazı", voice,
 				v -> {
