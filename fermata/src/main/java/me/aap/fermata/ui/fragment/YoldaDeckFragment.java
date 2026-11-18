@@ -3347,23 +3347,42 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				.putString(PREF_PHONE_APPS, String.join(",", l)).apply();
 	}
 
-	/** Uygulamayı telefonda açar; araçtaysa telefon ekranı da Yolda'da açılır (uygulama araçta kullanılır). */
+	/**
+	 * Uygulamayı telefonda açar; araçtaysa telefon ekranı da Yolda'da açılır (uygulama araçta kullanılır).
+	 * Araçta sıra önemli: Yolda telefonda arka planda olduğundan Android başka uygulamayı açmayı ancak
+	 * "Diğer uygulamaların üzerinde göster" izniyle bırakır (yoksa WhatsApp vb. sessizce açılmıyordu). Önce izinler
+	 * denetlenir, sonra telefon ekranı açılır, en son uygulama (yansıtma başlamışken öne gelsin).
+	 */
 	private void openPhoneApp(MainActivityDelegate a, Context ctx, String pkg, CharSequence label) {
 		YoldaStyle.haptic(list);
-		try {
-			Intent i = ctx.getPackageManager().getLaunchIntentForPackage(pkg);
-			if (i == null) {
-				YoldaStyle.toast(ctx, label + " açılamadı");
+		Intent i = ctx.getPackageManager().getLaunchIntentForPackage(pkg);
+		if (i == null) {
+			YoldaStyle.toast(ctx, label + " açılamadı (telefonda kurulu değil ya da açılış ekranı yok)");
+			return;
+		}
+		if (a.isCarActivity()) {
+			java.util.List<String> miss = YoldaPhonePerms.missing(ctx);
+			if (!miss.isEmpty()) { // izin yoksa Android uygulamayı açtırmaz: nedenini söyle
+				YoldaLog.add("Telefon uygulaması açılamaz (" + label + "): eksik izinler " + miss);
+				openPhoneScreen(a, ctx);
 				return;
 			}
-			ctx.getApplicationContext().startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-			YoldaLog.add("Telefon uygulaması açıldı: " + label);
+			openPhoneScreen(a, ctx); // önce telefon ekranı araçta
+			me.aap.utils.app.App.get().getHandler().postDelayed(() -> launch(ctx, i, label), 900);
+			return;
+		}
+		launch(ctx, i, label);
+	}
+
+	private static void launch(Context ctx, Intent i, CharSequence label) {
+		try {
+			ctx.getApplicationContext().startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+					| Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED));
+			YoldaLog.add("Telefon uygulaması açıldı: " + label + (YoldaPhonePerms.overlay(ctx) ? "" : " (üstte gösterme izni yok)"));
 		} catch (Exception ex) {
 			YoldaLog.add("Telefon uygulaması açılamadı: " + label + " · " + ex);
 			YoldaStyle.toast(ctx, label + " açılamadı");
-			return;
 		}
-		if (a.isCarActivity()) openPhoneScreen(a, ctx); // telefon ekranı araçta: uygulama görünür ve dokunulur
 	}
 
 	/** Telefondaki uygulamalardan seç (eklenmiş olanlar listede yok). */
