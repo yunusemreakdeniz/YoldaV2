@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-163 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-163
+
+- Kartlardaki erişim düğmeleri büyüdü: TV / radyo kanal kutucukları, kısayol çipleri ve Aç düğmesi telefonda en az 56dp, araçta 64dp.
+- Kartta yer yetmezse düğmeler küçülmez, önce alt yazı satırı kısalır.
+- Adı altında yazan kutucukların (favoriler, kanallar) görsel kutusu en az 48dp; dokunma alanı adıyla birlikte 56dp ve üstü.
+
 ## 2026-11-19 · v2-162 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-162
 
 - Kart simgeleri başlıkla aynı hizada: koyu (asil) temada başlığın altındaki vurgu çizgisi artık simgeyi aşağı itmiyor.

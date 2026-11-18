@@ -128,15 +128,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int pad = compact ? 14 : small ? 18 : 24;
 		int chip = compact ? 48 : small ? 52 : 60; // en az 48dp: kolay dokunulur
 		int title = compact ? 22 : small ? 26 : 32;
-		int head = Math.max(chip, Math.round((12 * 1.35f + title * 1.22f) * fs) + (noble() ? 9 : 0));
+		// başlık: simge kutusu (chip + 8) ile etiket + başlık bloğunun büyüğü; asil temada altında 9dp vurgu çizgisi
+		int head = Math.max(chip + 8, Math.round((12 * 1.35f + title * 1.22f) * fs)) + (noble() ? 9 : 0);
 		int avail = h - 2 * pad - head;
 		int line = Math.round((lowFx ? 17 : 15) * 1.33f * fs); // araçta alt yazı 17 sp
+		// Erişim düğmeleri (kanal kutucukları, çipler, Aç) en az 56dp, araçta 64dp: yer yoksa önce alt yazı kısalır
+		int minTap = lowFx ? 64 : 56;
 		int subLines = (avail - 10 - 2 * line >= 84) ? 2 : (avail - 10 - line >= 52) ? 1 : 0;
 		int bottom = avail - ((subLines == 0) ? 0 : (10 + subLines * line)) - 2;
-		int tile = Math.max(40, Math.min(small ? 70 : 84, bottom));
-		int logo = Math.max(44, Math.min(small ? 84 : 104, bottom));
-		int btn = Math.max(48, Math.min(lowFx ? 64 : 56, bottom)); // düğmeler en az 48dp (araçta 64'e kadar)
-		int chipH = Math.max(48, Math.min(lowFx ? 60 : 52, bottom));
+		while ((subLines > 0) && (bottom < minTap)) {
+			subLines--;
+			bottom = avail - ((subLines == 0) ? 0 : (10 + subLines * line)) - 2;
+		}
+		int tile = Math.max(minTap, Math.min(small ? 72 : 88, bottom));
+		int logo = Math.max(minTap, Math.min(small ? 84 : 104, bottom));
+		int btn = Math.max(minTap, Math.min(lowFx ? 72 : 64, bottom));
+		int chipH = minTap; // çipler: araçta 64, telefonda 56
 		int big = compact ? 32 : small ? 40 : 52;
 		// Çok alçak kart (yatay telefon, çubuk açık): tek satır — simge, ad, "Aç" yan yana; içerik şeridi yok
 		if (h < 150) {
@@ -2839,7 +2846,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return (row.getChildCount() == 0) ? null : row;
 			}
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
-				return favRow(ctx, a, Math.max(dp(40), tile - dp(Math.round(17 * Math.max(1f,
+				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
 			}
 			case YoldaDeck.FUEL -> { // üç fiyat çipi (dokun: o yakıtı seç) ve en yakın benzinlik
@@ -3998,7 +4005,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Nullable
 	/** Altında ad satırı olan kutucuğun boyu: ad satırına yer kalsın (kart yüksekliği aşılmasın). */
 	private int labeledTile(int tile) {
-		return Math.max(dp(40), tile - dp(Math.round(17 * Math.max(1f, getResources().getConfiguration().fontScale))));
+		return Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f, getResources().getConfiguration().fontScale))));
 	}
 
 	private View channelRow(Context ctx, MainActivityDelegate a, List<MediaLib.PlayableItem> l, int tile) {
@@ -4148,7 +4155,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private LinearLayout.LayoutParams chipLp() {
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp((cardH > 0) ? fit().chipH() : 48));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp((cardH > 0) ? fit().chipH() : 56));
 		lp.rightMargin = dp(10);
 		return lp;
 	}
