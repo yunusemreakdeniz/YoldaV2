@@ -163,7 +163,12 @@ public final class YoldaVoice {
 					+ "yarın hava nasıl, on dakika sonra su içmeyi hatırlat, neredeyim, şarjım kaç, on beş çarpı dört, "
 					+ "Atatürk kimdir, annemi ara, radyo kartına geç, sonraki kart, on saniye geri sar, okul uyarısını kapat, "
 					+ "okyanus teması, gün batımı ne zaman. Sohbet de edebiliriz: nasılsın, şaka yap, acıktım.");
-			case CHAT -> reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
+			case CHAT -> {
+				YoldaChat.Reply cr = YoldaChat.answer(it.arg(), 12, null);
+				// iş yapan sohbet ("acıktım" → restoranlar) yerelde; düz sohbet Gemini bağlıysa onunla
+				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
+				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
+			}
 			case DATE -> reply(a, YoldaAnswers.date());
 			case CALC -> reply(a, it.arg());
 			case BATTERY -> reply(a, YoldaAnswers.battery(ctx));
@@ -186,6 +191,10 @@ public final class YoldaVoice {
 				reply(a, (n > 0) ? "Hatırlatmalar silindi" : "Kurulu bir hatırlatma yok");
 			}
 			case WIKI -> {
+				if (YoldaGemini.isEnabled(ctx)) {
+					askGemini(a, raw);
+					break;
+				}
 				toast(a, "“" + it.arg() + "” aranıyor…");
 				YoldaAnswers.wiki(it.arg(), t -> reply(a, t));
 			}
@@ -655,10 +664,21 @@ public final class YoldaVoice {
 
 	/** Komut anlaşılamadı: kullanıcı beklemede kalmasın, kısa yazıyla (ve sesle) söylenir. */
 	public static void notUnderstood(MainActivityDelegate a, String raw) {
+		if (YoldaGemini.isEnabled(a.getContext())) { // komut değil: soru / sohbet → Gemini
+			YoldaLog.add("Sesli komut Gemini'ye: “" + raw + "”");
+			askGemini(a, raw);
+			return;
+		}
 		YoldaLog.add("Sesli komut anlaşılamadı: “" + raw + "”");
 		lastFeedback = "Anlayamadım";
 		toast(a, "“" + raw + "” anlaşılamadı");
 		listenAgain(a);
+	}
+
+	/** Soruyu Gemini'ye sor, yanıtı söyle (hata olursa nedenini). */
+	static void askGemini(MainActivityDelegate a, String q) {
+		toast(a, "Düşünüyorum…");
+		YoldaGemini.ask(a.getContext(), q, ans -> reply(a, ans), err -> reply(a, err));
 	}
 
 	/** Art arda yeniden dinleme sayısı; bir komut çalışınca sıfırlanır. */

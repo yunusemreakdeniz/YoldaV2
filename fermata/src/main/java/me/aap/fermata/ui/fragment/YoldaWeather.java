@@ -46,6 +46,12 @@ public final class YoldaWeather {
 	public record Now(int temp, int code, int wind, String place, List<Hour> hours) {
 	}
 
+	/** Saklanan son hava (yoksa null; ağ isteği yapmaz). */
+	@Nullable
+	public static Now cachedNow() {
+		return cached;
+	}
+
 	/** Güncel hava (saklanan taze ise hemen). */
 	public static FutureSupplier<Now> get(Context ctx) {
 		Context app = ctx.getApplicationContext();

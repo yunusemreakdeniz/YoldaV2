@@ -246,6 +246,15 @@ public class YoldaSetupFragment extends MainActivityFragment {
 		if (!ac) col.addView(step(ctx, "?", "Erişilebilirlik anahtarı basılmıyor mu?",
 				"Uygulama bilgisini aç → sağ üstteki ⋮ → “Kısıtlanmış ayarlara izin ver”.",
 				"Uygulama bilgisini aç", v -> YoldaPhonePerms.openAppInfo(ctx), false));
+		boolean cp = (ctx.checkSelfPermission(android.Manifest.permission.CALL_PHONE) == android.content.pm.PackageManager.PERMISSION_GRANTED)
+				&& (ctx.checkSelfPermission(android.Manifest.permission.READ_CONTACTS) == android.content.pm.PackageManager.PERMISSION_GRANTED);
+		col.addView(step(ctx, cp ? "✓" : "★", "Arama ve rehber",
+				"Araçta Kişiler kartından ve sesle (\"Annemi ara\") arayabilmek için. Araçtayken bu izin istenemiyor.",
+				cp ? null : "İzni ver", v -> MainActivityDelegate.get(ctx).getAppActivity()
+						.checkPermissions(android.Manifest.permission.CALL_PHONE, android.Manifest.permission.READ_CONTACTS)
+						.onCompletion((r, err) -> {
+							if (isAdded()) render();
+						}), cp));
 		col.addView(step(ctx, "4", "Ekran paylaşımı",
 				"Araçta Telefon ya da Ekran yansıtma kartına ilk dokunduğunda telefonda “Paylaşımı / kaydı başlat” "
 						+ "onayı çıkar; onayla. Android her oturumda bir kez sorar.", null, null, false));

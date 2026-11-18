@@ -132,6 +132,29 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			}));
 
 		LinearLayout set = group(ctx, "AYARLAR");
+		// Gemini: Yolda'nın anlamadığı sorular, sohbet ve bilgi soruları (anahtar yalnız bu telefonda saklanır)
+		boolean gem = YoldaGemini.isEnabled(ctx);
+		View gi = item(ctx, R.drawable.yi_mic, "Gemini yapay zekâ: " + (gem ? "Bağlı (kaldırmak için basılı tut)" : "Bağlı değil — anahtar gir"),
+				0xFFBFDBFE, 0xFF2563EB, v -> me.aap.utils.ui.UiUtils.queryText(ctx, R.string.yolda_gemini_key, R.drawable.yi_edit)
+						.onSuccess(k -> {
+							if ((k == null) || k.trim().isEmpty()) return;
+							YoldaGemini.setKey(ctx, k);
+							YoldaStyle.toast(ctx, "Gemini deneniyor…");
+							YoldaGemini.ask(ctx, "Tek kısa cümleyle merhaba de.", ans -> {
+								YoldaStyle.toast(ctx, "Gemini bağlandı: " + ans);
+								if (isAdded()) render();
+							}, err -> {
+								YoldaStyle.toast(ctx, err);
+								if (isAdded()) render();
+							});
+						}));
+		gi.setOnLongClickListener(v -> {
+			YoldaGemini.setKey(ctx, null);
+			YoldaStyle.toast(ctx, "Gemini bağlantısı kaldırıldı");
+			render();
+			return true;
+		});
+		set.addView(gi);
 		// Temalar: renk örnekleriyle seçim; tek tema ya da gündüz / gece otomatik (araçta farlara, telefonda gün batımına göre)
 		boolean autoTheme = YoldaStyle.isAuto(ctx);
 		String tl = autoTheme ? ("Tema: ☀ " + YoldaStyle.THEMES[YoldaStyle.dayTheme(ctx)].name + " / 🌙 "

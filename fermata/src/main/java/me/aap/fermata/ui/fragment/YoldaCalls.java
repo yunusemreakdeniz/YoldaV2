@@ -124,13 +124,38 @@ public final class YoldaCalls {
 		Context ctx = a.getContext();
 		YoldaLog.add("Arama: " + c.name());
 		if (ctx.checkSelfPermission(Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+			if (place(ctx, c)) return;
 			start(ctx, new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + Uri.encode(c.number()))), c);
+			return;
+		}
+		if (a.isCarActivity()) { // araçta izin penceresi açılamaz
+			YoldaVoice.reply(a, "Arama izni yok. Araç dururken telefonda Yolda'yı açıp arama iznini ver");
 			return;
 		}
 		a.getAppActivity().checkPermissions(Manifest.permission.CALL_PHONE).onCompletion((r, err) -> {
 			boolean ok = (r != null) && (r.length > 0) && (r[0] == PackageManager.PERMISSION_GRANTED);
+			if (ok && place(ctx, c)) return;
 			start(ctx, new Intent(ok ? Intent.ACTION_CALL : Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(c.number()))), c);
 		});
+	}
+
+	/**
+	 * Aramayı Android'in arama hizmetiyle başlat (TelecomManager): ekran açmadan çalışır, bu yüzden araç
+	 * bağlıyken (uygulama telefonda arka planda) de arar; Android Auto aramayı araç ekranında gösterir.
+	 * Önceden arama ekranı açılmaya çalışılıyordu, araçtayken Android bunu sessizce engelliyordu.
+	 */
+	@android.annotation.SuppressLint("MissingPermission")
+	private static boolean place(Context ctx, Contact c) {
+		try {
+			android.telecom.TelecomManager tm = (android.telecom.TelecomManager) ctx.getSystemService(Context.TELECOM_SERVICE);
+			if (tm == null) return false;
+			tm.placeCall(Uri.fromParts("tel", c.number(), null), new android.os.Bundle());
+			YoldaLog.add("Arama başlatıldı (arama hizmeti): " + c.name());
+			return true;
+		} catch (Throwable ex) {
+			YoldaLog.add("Arama hizmeti başlatamadı: " + ex);
+			return false;
+		}
 	}
 
 	private static void start(Context ctx, Intent i, Contact c) {
