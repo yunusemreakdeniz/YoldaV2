@@ -754,7 +754,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -2462,6 +2462,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.TRIPS -> new Look(0xFF818CF8, 0xFF3730A3, R.drawable.yi_nav, true, "SÜRÜŞ GEÇMİŞİ",
+					TripFragment.monthLine(requireContext()));
 			case YoldaDeck.NAV -> new Look(0xFF2DD4BF, 0xFF0F766E, R.drawable.yi_nav, true, "NAVİGASYON",
 					"Yol tarifi, ev, iş ve son gidilen yerler");
 			case YoldaDeck.CALLS -> new Look(0xFF4ADE80, 0xFF15803D, R.drawable.yi_phone, true, "ARAMA",
@@ -2801,6 +2803,23 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return favRow(ctx, a, Math.max(dp(40), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
 			}
+			case YoldaDeck.TRIPS -> { // son yolculuklar: dokun → o yolculuğun ayrıntısı
+				List<YoldaRadar.TripItem> tl = YoldaRadar.tripItems(ctx);
+				if (tl.isEmpty()) return null;
+				LinearLayout row = hrow(ctx);
+				java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("d MMM", new java.util.Locale("tr"));
+				for (int i = 0; i < Math.min(4, tl.size()); i++) {
+					YoldaRadar.TripItem ti = tl.get(i);
+					int idx = i;
+					String name = ti.route().isEmpty() ? df.format(new java.util.Date(ti.rec().startWall())) : ti.route();
+					row.addView(chipBtn(ctx, name + " · " + String.format(new java.util.Locale("tr"), "%.0f km",
+							ti.rec().meters() / 1000f), v -> {
+						TripFragment.showIndex = idx;
+						a.showFragment(R.id.yolda_trip_fragment);
+					}), chipLp());
+				}
+				return scroll(ctx, row);
+			}
 			case YoldaDeck.WEATHER -> {
 				if (weather == null) return null;
 				LinearLayout row = hrow(ctx);
@@ -3076,6 +3095,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				a.showFragment(R.id.yolda_contacts_fragment); // kendi sayfası: kişiler, ekle, düzenle
 			}
 			case YoldaDeck.RADAR -> a.showFragment(R.id.yolda_radar_fragment);
+			case YoldaDeck.TRIPS -> {
+				TripFragment.showIndex = 0;
+				a.showFragment(R.id.yolda_trip_fragment);
+			}
 			case YoldaDeck.WEATHER -> a.showFragment(R.id.yolda_weather_fragment); // uygulama içi ekran
 			case YoldaDeck.PHONE, YoldaDeck.MIRROR -> openPhoneScreen(a, ctx);
 			case YoldaDeck.WEB -> {

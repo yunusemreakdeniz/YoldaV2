@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-18 · v2-148 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-148
+
+- Yeni "Yolculuklar" kartı (Sürüş kartının yanında): bu ayın özeti ("Bu ay 12 yolculuk · 486 km · 9 sa 20 dk") ve son yolculuklar; birine dokununca ayrıntısı açılır.
+- Yolculuk özeti ekranında ayın toplamı ve bütün yolculuklar (60'a kadar) listelenir; dokununca o yolculuğun ayrıntısı.
+- Kart mevcut destelere de bir kez eklenir; sesle: "yolculuklar kartına geç".
+
 ## 2026-11-18 · v2-147 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-147
 
 - Kartlardaki simge kutuları büyüdü (48–60dp), simgeler kutunun içinde daha büyük.

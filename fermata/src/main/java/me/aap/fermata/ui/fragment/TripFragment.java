@@ -36,6 +36,28 @@ public class TripFragment extends MainActivityFragment {
 	private YoldaStyle.Theme t;
 	/** Gösterilen yolculuğun sırası (0 = en son). */
 	private int shown;
+	/** Açılırken gösterilecek yolculuk (kart / bildirim); açılınca sıfırlanır. */
+	public static volatile int showIndex;
+
+	/** Bu ayın özeti: "Bu ay 12 yolculuk · 486 km · 9 sa 20 dk" (yoksa kısa açıklama). */
+	public static String monthLine(Context ctx) {
+		List<YoldaRadar.TripItem> l = YoldaRadar.tripItems(ctx);
+		if (l.isEmpty()) return "Henüz yolculuk yok · araçla 1 km'den uzun yolculuklar burada";
+		java.util.Calendar c = java.util.Calendar.getInstance();
+		int m = c.get(java.util.Calendar.MONTH), y = c.get(java.util.Calendar.YEAR);
+		int n = 0, meters = 0;
+		long ms = 0;
+		for (YoldaRadar.TripItem it : l) {
+			c.setTimeInMillis(it.rec().startWall());
+			if ((c.get(java.util.Calendar.MONTH) != m) || (c.get(java.util.Calendar.YEAR) != y)) continue;
+			n++;
+			meters += it.rec().meters();
+			ms += it.rec().durationMs();
+		}
+		if (n == 0) return "Bu ay yolculuk yok · toplam " + l.size() + " kayıt";
+		return "Bu ay " + n + " yolculuk · " + String.format(new Locale("tr"), "%.0f km", meters / 1000f) + " · "
+				+ YoldaDriveCore.duration(ms);
+	}
 
 	@Override
 	public int getFragmentId() {
@@ -61,7 +83,8 @@ public class TripFragment extends MainActivityFragment {
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle state) {
 		root = new FrameLayout(requireContext());
-		shown = 0;
+		shown = showIndex;
+		showIndex = 0;
 		render();
 		return root;
 	}
@@ -80,7 +103,8 @@ public class TripFragment extends MainActivityFragment {
 	public void onHiddenChanged(boolean hidden) {
 		super.onHiddenChanged(hidden);
 		if (!hidden) {
-			shown = 0;
+			shown = showIndex;
+			showIndex = 0;
 			render();
 		}
 	}
@@ -100,6 +124,9 @@ public class TripFragment extends MainActivityFragment {
 		root.addView(sv, new FrameLayout.LayoutParams(-1, -1));
 
 		col.addView(text(ctx, "Yolculuk özeti", YoldaStyle.titleSp(ctx), true, t.ink));
+		TextView month = text(ctx, monthLine(ctx), 14, true, t.accent | 0xFF000000);
+		month.setPadding(0, dp(4), 0, 0);
+		col.addView(month);
 		List<YoldaRadar.TripItem> trips = YoldaRadar.tripItems(ctx);
 		if (trips.isEmpty()) {
 			TextView m = text(ctx, "Henüz kayıtlı yolculuk yok. Araçla 1 km'den uzun bir yolculuktan sonra burada özeti görünür.",
@@ -185,11 +212,11 @@ public class TripFragment extends MainActivityFragment {
 
 		// Önceki yolculuklar
 		if (trips.size() > 1) {
-			TextView sec = text(ctx, "Önceki yolculuklar", 18, true, t.ink);
+			TextView sec = text(ctx, "Bütün yolculuklar (" + trips.size() + ")", 18, true, t.ink);
 			sec.setPadding(0, dp(24), 0, dp(8));
 			col.addView(sec);
 			SimpleDateFormat df = new SimpleDateFormat("d MMM HH:mm", tr);
-			for (int i = 0; i < Math.min(8, trips.size()); i++) {
+			for (int i = 0; i < Math.min(60, trips.size()); i++) {
 				if (i == idx) continue;
 				YoldaRadar.TripItem p = trips.get(i);
 				LinearLayout row = card(ctx);
