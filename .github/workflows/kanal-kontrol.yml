@@ -1,0 +1,30 @@
+name: Kanal denetimi
+
+# Yolda kanal listesinin yayın adreslerini dener; ölü / yavaş olanlara iptv-org listesinden alternatif bulur.
+# Sonuç (güncellenmiş liste ve rapor) yapıt olarak yüklenir; depoya kendiliğinden yazılmaz.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  denetim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Denetle
+        run: |
+          mkdir -p cikti
+          python3 tools/kanal_kontrol.py kanallar/yolda.m3u cikti/yolda.m3u cikti/rapor.md
+          cat cikti/rapor.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kanal-denetimi
+          path: cikti/
