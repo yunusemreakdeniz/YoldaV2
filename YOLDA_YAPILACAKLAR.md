@@ -5,6 +5,12 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Açık (sırayla)
 
+C. [ ] Kart logoları başlıkla aynı hizada değil, küçük ve ortalı kalıyor: başlık satırıyla hizala, gerekirse büyüt
+D. [ ] Kartlardaki erişim düğmeleri büyük olsun (TV / radyo kanal kutucukları, kısayol çipleri, favori kutucukları); en az 56dp, araçta daha büyük
+E. [ ] TV ve radyo düzenleme: tek sıralama; kartın içinden tüm liste düzenlenir; kartın yüzünde ve Kanallar ekranında aynı sıra
+F. [ ] Sesli asistan: Gemini bağlıysa anlama da Gemini ile (doğal cümleler: "en yakın eczaneye yol tarifi", "biraz rahatlatıcı bir şey aç" → komut), bağlı değilse yerel model; hemen her soruya yanıt
+G. [ ] "Kaldığın yerden" kartında daha çok veri: son dinlenen / izlenen birkaç öğe, ilerleme, ne zaman
+H. [ ] Ekolayzer kartı (hazır ayarlar: Pop, Rock, Konuşma, Bas, Araç; bant ayarları)
 B. [ ] Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, kısayol çipleri) 48dp altında kalmasın
 0. [ ] Kalıcı imza anahtarı: güncellemeler eskinin üzerine kurulsun, ayarlar / kart düzeni / görünüm silinmesin (kullanıcı onayı bekliyor: anahtar oluşturma ve GitHub gizli ayarları)
 7. [ ] Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)
