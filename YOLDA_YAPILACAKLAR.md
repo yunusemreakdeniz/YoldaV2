@@ -5,6 +5,8 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 ## Açık (sırayla)
 
+V. [ ] Veri kullanımı: videolar (YouTube, TV) varsayılan 480p; kalite seçilebilsin (Otomatik / 360 / 480 / 720 / 1080), kartta ve oynatıcıda
+U. [ ] Kartları ayır: Sürüş (Radar) kartı ve ekranı yalnız radar / hız; Park ayrı kart ve sayfa (park yerleri, temizle); Yolculuklar kendi kartında (temizle orada); Sürüş ekranından park ve yolculuk bölümleri kalkar
 R2. [ ] WhatsApp için araçta sesli okuma / yanıt (bildirim dinleyici izniyle): gelen mesajı oku, "yanıtla" ile sesle cevap
 S. [ ] TV yayınlarını daha hızlı açan kaynaklar: kanal başına birden çok yayın adresi, en hızlı açılanı seç, ölü adresleri ele, açılış süresini ölç
 T. [ ] Daha çok radyo kanalı: açık radyo dizini (radio-browser) ile Türkiye istasyonlarının tamamı, tür / şehir süzgeci, çalışmayanları ele
