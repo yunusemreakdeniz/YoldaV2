@@ -2,6 +2,10 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-20 · v2-202 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-202 · Çökme düzeltmesi
+
+- Telefon görünümünde Kart ekle → Kartları düzenle / Desteyi varsayılana döndür uygulamayı kapatıyordu: artık telefonun kart düzenleyicisi açılır, ızgara yeniden kurulur.
+
 ## 2026-11-19 · v2-201 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-201 · Güneş, bulut, sis yeniden
 
 - Güneş: ılık gök geçişi, katmanlı sıcak güneş, aşağı inen sönen hüzmeler (sakin, dönmez). Bulut: mavi gök, hacimli gölgeli bulutlar, üç katman. Sis: renkleri bastıran örtü, içinden dağılan ışık, zıt yönlerde süzülen tabakalar.
