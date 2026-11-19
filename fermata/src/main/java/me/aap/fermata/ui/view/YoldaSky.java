@@ -203,10 +203,10 @@ public final class YoldaSky {
 		p.setShader(null);
 	}
 
-	/** Saniyede kaç kare (ms aralık): damla / kar / yıldız 30, güneş / bulut / sis 20, sahnesiz 12. */
+	/** Saniyede kaç kare (ms aralık): damla / kar / yıldız 30, bulut / sis 20, güneş ve sahnesiz 12. */
 	public static long frameMs(int s) {
 		if (fast(s)) return 33;
-		return ((s == SUN) || (s == CLOUDS) || (s == FOG)) ? 50 : 83;
+		return ((s == CLOUDS) || (s == FOG)) ? 50 : 83; // sakin güneş ~12 kare yeter
 	}
 
 	private static long nightAt;
@@ -242,15 +242,16 @@ public final class YoldaSky {
 				float cx = bd.left + w * 0.84f, cy = bd.top + h * 0.07f, big = Math.max(w, h);
 				// üstte ılık gökyüzü tonu (ekranın üst yarısı)
 				glowOval(c, p, bd.left + w * 0.6f, bd.top, w * 1.1f, h * 0.55f, 0xFFFFB86B, 0x2E);
-				float pulse = 1f + 0.035f * (float) Math.sin(s * 0.6);
-				glow(c, p, cx, cy, big * 0.6f * pulse, 0xFFFFD27A, 0x5C); // geniş hale
-				// ince, yavaş dönen ışınlar (uzunlukları hafifçe nefes alır)
+				// Sakin güneş (sık kullanılır, göz yormasın): dönme ve uçuşan zerre yok; hale çok yavaş nefes alır
+				// (~12 sn), sabit ışınlar yalnız ışıkça ve çok yavaş (15-20 sn) belirip solar.
+				float pulse = 1f + 0.02f * (float) Math.sin(s * 0.52);
+				glow(c, p, cx, cy, big * 0.6f * pulse, 0xFFFFD27A, 0x50); // geniş hale
 				p.setStyle(Paint.Style.FILL);
-				float rot = (float) Math.toRadians(s * 3);
-				for (int i = 0; i < 14; i++) {
-					double a0 = rot + i * (Math.PI * 2 / 14), da = 0.025 + 0.02 * rnd(i, 31);
-					float len = big * (0.55f + 0.25f * rnd(i, 32)) * (0.9f + 0.1f * (float) Math.sin(s * 0.8 + i));
-					p.setColor(((int) (14 + 10 * rnd(i, 33)) << 24) | 0xFFF1C2);
+				for (int i = 0; i < 8; i++) { // sabit, geniş ve soluk ışınlar
+					double a0 = Math.PI * 0.55 + i * (Math.PI * 2 / 8) + 0.15 * rnd(i, 31), da = 0.06 + 0.03 * rnd(i, 32);
+					float len = big * (0.5f + 0.2f * rnd(i, 33));
+					float br = 0.5f + 0.5f * (float) Math.sin(s * (0.31f + 0.1f * rnd(i, 34)) + i * 1.9f);
+					p.setColor(((int) (8 + 9 * br) << 24) | 0xFFF1C2);
 					ray.rewind();
 					ray.moveTo(cx, cy);
 					ray.lineTo(cx + (float) Math.cos(a0 - da) * len, cy + (float) Math.sin(a0 - da) * len);
@@ -258,22 +259,12 @@ public final class YoldaSky {
 					ray.close();
 					c.drawPath(ray, p);
 				}
-				glow(c, p, cx, cy, big * 0.13f, 0xFFFFF4D6, 0x9A); // parlak güneş diski
-				glow(c, p, cx, cy, big * 0.05f, 0xFFFFFFFF, 0xC0);
-				// mercek parlamaları: güneşten ekranın ortasına doğru çapraz, soluk halkalar
+				glow(c, p, cx, cy, big * 0.13f, 0xFFFFF4D6, 0x90); // parlak güneş diski
+				glow(c, p, cx, cy, big * 0.05f, 0xFFFFFFFF, 0xB8);
+				// iki sabit, çok soluk mercek parlaması
 				float fx = bd.left + w * 0.5f - cx, fy = bd.top + h * 0.55f - cy;
-				float[] at = {0.35f, 0.6f, 0.85f, 1.15f}, sz = {0.035f, 0.02f, 0.06f, 0.03f};
-				int[] col = {0xFFFFE7A8, 0xFFB8E1FF, 0xFFFFC7A0, 0xFFD9C8FF};
-				for (int i = 0; i < at.length; i++)
-					glow(c, p, cx + fx * at[i], cy + fy * at[i], big * sz[i], col[i], 0x30 + 0x08 * (int) (2 + Math.sin(s * 0.7 + i)));
-				// ışıkta süzülen zerreler (yavaşça yükselir, hafif salınır)
-				for (int i = 0; i < 26; i++) {
-					float y = 1.05f - ((rnd(i, 61) + s * 0.012f * (0.5f + rnd(i, 62))) % 1.1f);
-					float x = (rnd(i, 63) + 0.015f * (float) Math.sin(s * 0.5f + i)) % 1f;
-					int a = (int) (40 + 70 * (0.5f + 0.5f * Math.sin(s * (0.7f + rnd(i, 64)) + i)));
-					p.setColor((a << 24) | 0xFFF3D6);
-					c.drawCircle(bd.left + x * w, bd.top + y * h, u * (0.8f + 1.2f * rnd(i, 65)), p);
-				}
+				glow(c, p, cx + fx * 0.55f, cy + fy * 0.55f, big * 0.025f, 0xFFB8E1FF, 0x24);
+				glow(c, p, cx + fx * 0.9f, cy + fy * 0.9f, big * 0.05f, 0xFFFFC7A0, 0x1E);
 				return true;
 			}
 			case STARS -> {

@@ -49,7 +49,7 @@ public class YoldaPaketBTest {
 		// hızlı hareket 30 kare, güneş / bulut / sis 20 kare (akıcı süzülme), sahnesiz 12 kare (pil)
 		assertEquals(33, YoldaSky.frameMs(YoldaSky.RAIN));
 		assertEquals(33, YoldaSky.frameMs(YoldaSky.SNOW));
-		assertEquals(50, YoldaSky.frameMs(YoldaSky.SUN));
+		assertEquals(83, YoldaSky.frameMs(YoldaSky.SUN)); // sakin güneş
 		assertEquals(50, YoldaSky.frameMs(YoldaSky.CLOUDS));
 		assertEquals(50, YoldaSky.frameMs(YoldaSky.FOG));
 		assertEquals(83, YoldaSky.frameMs(YoldaSky.NONE));
