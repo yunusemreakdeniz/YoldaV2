@@ -2244,6 +2244,22 @@ public class MainActivityDelegate extends ActivityDelegate
 	 */
 	private void pipWithMaps() {
 		Context ctx = getContext();
+		java.util.List<String> recent = me.aap.fermata.ui.fragment.NavFragment.recent(ctx);
+		boolean waze = ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
+				Context.MODE_PRIVATE).getBoolean("nav_waze", false);
+		android.content.pm.PackageManager pm = ctx.getPackageManager();
+		Intent want = new Intent(Intent.ACTION_VIEW, Uri.parse(recent.isEmpty() ? "geo:0,0?q="
+				: ("google.navigation:q=" + Uri.encode(recent.get(0)))))
+				.setPackage(waze ? "com.waze" : "com.google.android.apps.maps").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		Intent any = new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		// Önce harita uygulaması var mı: yoksa küçük pencereye hiç geçilmez (geçip mağazaya düşünce pencere odak
+		// alamıyor, uygulama "yanıt vermiyor" görünüyordu — dayanıklılık testi, 19 Kasım)
+		Intent i = (want.resolveActivity(pm) != null) ? want : (any.resolveActivity(pm) != null) ? any : null;
+		if (i == null) {
+			me.aap.fermata.ui.fragment.YoldaLog.add("Video + harita: harita uygulaması yok");
+			me.aap.fermata.ui.view.YoldaStyle.toast(ctx, "Harita uygulaması yok; video tam ekranda kalıyor");
+			return;
+		}
 		boolean pip = false;
 		try {
 			if (android.os.Build.VERSION.SDK_INT >= 26) {
@@ -2254,22 +2270,11 @@ public class MainActivityDelegate extends ActivityDelegate
 		} catch (Throwable ex) {
 			me.aap.fermata.ui.fragment.YoldaLog.add("Küçük pencere açılamadı: " + ex);
 		}
-		java.util.List<String> recent = me.aap.fermata.ui.fragment.NavFragment.recent(ctx);
-		boolean waze = ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
-				Context.MODE_PRIVATE).getBoolean("nav_waze", false);
-		Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(recent.isEmpty() ? "geo:0,0?q="
-				: ("google.navigation:q=" + Uri.encode(recent.get(0)))))
-				.setPackage(waze ? "com.waze" : "com.google.android.apps.maps").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 		App.get().getHandler().postDelayed(() -> {
 			try {
 				ctx.getApplicationContext().startActivity(i);
 			} catch (Exception ex) {
-				try {
-					ctx.getApplicationContext().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q="))
-							.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-				} catch (Exception ex2) {
-					me.aap.utils.ui.UiUtils.showAlert(ctx, "Harita uygulaması bulunamadı");
-				}
+				me.aap.utils.ui.UiUtils.showAlert(ctx, "Harita uygulaması açılamadı");
 			}
 		}, pip ? 350 : 0);
 		me.aap.fermata.ui.fragment.YoldaLog.add("Video + harita: " + (pip ? "küçük pencere ve " : "") + "harita uygulaması");

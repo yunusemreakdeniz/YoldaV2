@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-175 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-175
+
+- "Video + harita": telefonda harita uygulaması yoksa video artık küçük pencereye geçmiyor, "Harita uygulaması yok" deniyor (önceden küçük pencerede kalıp ekran yanıt vermiyor gibi görünüyordu).
+- Dayanıklılık testindeki donmanın nedeni bulundu ve listeye yazıldı (küçük pencerede odak).
+
 ## 2026-11-19 · v2-174 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-174
 
 - Yeni "Kaldığın yerden" sayfası (karttaki "Tümünü gör ›"): son çalınanların tamamı, türü, ne zaman açıldığı ve ilerleme çubuğu; her satırda "Devam et", en üstte büyük "Sürdür", "Geçmişi temizle". Karta dokunmak eskisi gibi kaldığı yerden çalar.
