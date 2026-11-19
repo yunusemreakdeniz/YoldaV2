@@ -102,6 +102,23 @@ public final class YoldaDeck {
 	}
 
 	/** Sabit kartın varsayılan adı. */
+	/**
+	 * Telefon görünümünün kartları: kart seti destedeki (araç) ile aynı, sırası ve gizlenenleri ayrı. Önce
+	 * {@code order}'daki sırayla, sonra sırada olmayan (yeni eklenen) kartlar destedeki sırayla; gizlenenler ve
+	 * "Ekle" kartı yok.
+	 */
+	public static List<Card> phoneCards(List<Card> deckCards, List<String> order, java.util.Set<String> hidden) {
+		List<Card> out = new ArrayList<>();
+		java.util.Map<String, Card> byKey = new java.util.LinkedHashMap<>();
+		for (Card c : deckCards) if (!ADD.equals(c.type())) byKey.put(c.key(), c);
+		for (String k : order) {
+			Card c = byKey.remove(k);
+			if ((c != null) && !hidden.contains(k)) out.add(c);
+		}
+		for (Card c : byKey.values()) if (!hidden.contains(c.key())) out.add(c);
+		return out;
+	}
+
 	/** Söylenen kart adı → kart türü ("radyo", "hava", "harita", "kişiler"…); bilinmiyorsa null. */
 	@Nullable
 	static String typeOfSpoken(String s) {

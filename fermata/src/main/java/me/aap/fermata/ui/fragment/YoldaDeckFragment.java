@@ -537,8 +537,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int per = (w / getResources().getDisplayMetrics().density > 600) ? 4 : 3; // dikey telefonda üçlü ızgara
 		LinearLayout row = null;
 		int n = 0;
-		List<YoldaDeck.Card> cs = new ArrayList<>();
-		for (YoldaDeck.Card c : deck.cards()) if (!YoldaDeck.ADD.equals(c.type())) cs.add(c);
+		List<YoldaDeck.Card> cs = new ArrayList<>(phoneCards(ctx)); // telefonun kendi sırası (araçtaki desteden ayrı)
 		cs.add(null); // sonda "＋ Kart ekle"
 		for (YoldaDeck.Card c : cs) {
 			if (n % per == 0) {
@@ -699,20 +698,62 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	/** Telefon görünümü: kartları sırala / kaldır (sürükle, ▲ ▼, ✕). */
+	private static final String PREF_PHONE_ORDER = "phone_order", PREF_PHONE_HIDDEN = "phone_hidden";
+
+	/** Telefon görünümünün kartları: araçtaki desteden ayrı sıra ve gizleme (ilk açılışta destenin sırasıyla başlar). */
+	private List<YoldaDeck.Card> phoneCards(Context ctx) {
+		android.content.SharedPreferences p = prefs(ctx);
+		List<String> order = new ArrayList<>();
+		String js = p.getString(PREF_PHONE_ORDER, null);
+		if (js == null) { // ilk kez: bugünkü sıradan başla, bundan sonra ayrı
+			for (YoldaDeck.Card c : deck.cards()) if (!YoldaDeck.ADD.equals(c.type())) order.add(c.key());
+			savePhoneOrder(ctx, order, new java.util.HashSet<>());
+		} else {
+			try {
+				org.json.JSONArray a = new org.json.JSONArray(js);
+				for (int i = 0; i < a.length(); i++) order.add(a.getString(i));
+			} catch (Exception ignore) {
+			}
+		}
+		return YoldaDeck.phoneCards(deck.cards(), order, p.getStringSet(PREF_PHONE_HIDDEN, java.util.Collections.emptySet()));
+	}
+
+	private void savePhoneOrder(Context ctx, List<String> order, java.util.Set<String> hidden) {
+		org.json.JSONArray a = new org.json.JSONArray();
+		for (String k : order) a.put(k);
+		prefs(ctx).edit().putString(PREF_PHONE_ORDER, a.toString()).putStringSet(PREF_PHONE_HIDDEN, hidden).apply();
+	}
+
+	/** Telefonda gizlenmiş kartlar ("＋ Kart ekle"de geri getirilir). */
+	private List<YoldaDeck.Card> phoneHiddenCards(Context ctx) {
+		java.util.Set<String> h = prefs(ctx).getStringSet(PREF_PHONE_HIDDEN, java.util.Collections.emptySet());
+		List<YoldaDeck.Card> out = new ArrayList<>();
+		for (YoldaDeck.Card c : deck.cards()) if (h.contains(c.key())) out.add(c);
+		return out;
+	}
+
+	private void unhidePhoneCard(Context ctx, YoldaDeck.Card c) {
+		java.util.Set<String> h = new java.util.HashSet<>(prefs(ctx).getStringSet(PREF_PHONE_HIDDEN, java.util.Collections.emptySet()));
+		h.remove(c.key());
+		List<String> order = new ArrayList<>();
+		for (YoldaDeck.Card x : phoneCards(ctx)) order.add(x.key());
+		order.add(c.key()); // geri gelen sona
+		savePhoneOrder(ctx, order, h);
+		rebuildPhone();
+	}
+
+	/** Telefon görünümü: kartları sırala / kaldır (sürükle, ▲ ▼, ✕); araçtaki desteye dokunmaz. */
 	private void showPhoneCardsEditor(Context ctx) {
-		List<YoldaDeck.Card> work = new ArrayList<>();
-		for (YoldaDeck.Card c : deck.cards()) if (!YoldaDeck.ADD.equals(c.type())) work.add(c);
-		orderEditor(ctx, "Kartları düzenle", "ızgarada bu sırayla · ✕ kaldırır (↺ ile geri gelir)", work,
+		List<YoldaDeck.Card> work = new ArrayList<>(phoneCards(ctx));
+		orderEditor(ctx, "Telefon kartlarını düzenle", "yalnız telefonda bu sırayla · araçtaki sıra ayrı · ✕ telefonda gizler", work,
 				YoldaDeck.Card::title, l -> {
-					// silinenler kaldırılan kartlara, kalanlar bu sırayla
-					for (YoldaDeck.Card c : deck.cards()) {
-						if (YoldaDeck.ADD.equals(c.type()) || l.contains(c)) continue;
-						if (!c.isBuiltIn()) stashRemoved(c);
-					}
-					deck.setOrder(l);
-					save();
+					List<String> order = new ArrayList<>();
+					for (YoldaDeck.Card c : l) order.add(c.key());
+					java.util.Set<String> hidden = new java.util.HashSet<>();
+					for (YoldaDeck.Card c : deck.cards()) if (!YoldaDeck.ADD.equals(c.type()) && !order.contains(c.key())) hidden.add(c.key());
+					savePhoneOrder(ctx, order, hidden);
 					rebuildPhone();
-				}, YoldaDeck.Card::isRemovable);
+				}, c -> true);
 	}
 
 	private void rebuildPhone() {
@@ -3806,6 +3847,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		rows.add(new Row("YouTube kanalı", "Kanal ya da konu adı", null, R.drawable.yi_youtube, this::addYoutube));
 		rows.add(new Row("Web sayfası", "Bir adres", null, R.drawable.yi_globe, this::addWeb));
 		addRestoreRows(rows);
+		if (phoneBuilt) for (YoldaDeck.Card hc : phoneHiddenCards(requireContext())) // telefonda gizlenenler
+			rows.add(new Row(hc.title(), "Telefonda gizli · geri getir", null, R.drawable.yi_add,
+					() -> unhidePhoneCard(requireContext(), hc)));
 		rows.add(new Row("Kartları düzenle", "Sırala ya da kaldır", null, R.drawable.yi_edit, () -> setEditing(true)));
 		rows.add(new Row("Desteyi varsayılana döndür", "Eklenen kartlar silinir", null, R.drawable.yi_close, () -> {
 			deck.reset();

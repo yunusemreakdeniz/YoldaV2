@@ -54,6 +54,25 @@ public class YoldaDeckTest {
 	}
 
 	@Test
+	public void telefonSirasiAyri() {
+		YoldaDeck d = new YoldaDeck();
+		List<YoldaDeck.Card> all = d.cards();
+		// sıra yoksa destedeki sırayla, "Ekle" yok
+		List<YoldaDeck.Card> p = YoldaDeck.phoneCards(all, List.of(), java.util.Set.of());
+		assertEquals(all.size() - 1, p.size());
+		assertEquals("resume", p.get(0).type());
+		// telefon sırası: önce verilenler, sonra kalanlar destedeki sırayla; gizlenen yok
+		p = YoldaDeck.phoneCards(all, List.of("weather", "radio"), java.util.Set.of("youtube"));
+		assertEquals("weather", p.get(0).type());
+		assertEquals("radio", p.get(1).type());
+		assertEquals("resume", p.get(2).type());
+		for (YoldaDeck.Card c : p) assertFalse("gizli kart görünmemeli", "youtube".equals(c.type()));
+		assertEquals(all.size() - 2, p.size());
+		// deste (araç) sırası değişmedi
+		assertEquals("youtube", d.get(1).type());
+	}
+
+	@Test
 	public void tasima() {
 		YoldaDeck d = new YoldaDeck();
 		assertEquals(1, d.move(0, 1));
