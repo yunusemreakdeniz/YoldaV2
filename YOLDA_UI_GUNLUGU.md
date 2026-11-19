@@ -2,6 +2,10 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-194 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-194 · Yolculuk kaydı
+
+- Android Auto bağlanınca yolculuk kendiliğinden başlar, kesilince biter. Telefonda kendiliğinden başlamaz: Yolculuklar kartında ve sayfasında Yolculuğu başlat / bitir; sesle de.
+
 ## 2026-11-19 · v2-193 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-193 · Sakin güneş
 
 - Güneşli sahne sakin: ışınlar dönmez (sabit, yalnız ışıkları çok yavaş belirip solar), uçuşan zerreler yok, iki soluk mercek parlaması.
