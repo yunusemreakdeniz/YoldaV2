@@ -756,6 +756,23 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 		}
 	}
 
+	/** "Kaldığın yerden" geçmişi: ne çalındı, ne zaman, ne kadarı (akışlarda adresiyle). */
+	private void yoldaHistory(PlayableItem i, long position) {
+		try {
+			String kind = i.isStream() ? (i.isVideo() ? "TV" : "Radyo") : (i.isVideo() ? "Video" : "Müzik");
+			String url = (i instanceof me.aap.fermata.media.radio.YoldaStreamItem s) ? s.getStreamUrl() : null;
+			android.content.Context ctx = lib.getContext();
+			String id = i.getId(), name = i.getName();
+			if (i.isStream()) {
+				me.aap.fermata.ui.fragment.YoldaPlayHistory.add(ctx, id, name, kind, url, 0, 0);
+				return;
+			}
+			i.getDuration().main().onCompletion((dur, err) -> me.aap.fermata.ui.fragment.YoldaPlayHistory.add(ctx, id, name,
+					kind, url, position, (dur != null) ? dur : 0));
+		} catch (Throwable ignore) {
+		}
+	}
+
 	// ---- Yolda: TV kanalı yedek adresleri ----
 	/** Denenen yedek adresin kanal adı ve adresi (açılırsa hatırlanır). */
 	@Nullable
@@ -1712,6 +1729,7 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	}
 
 	private void setLastPlayed(PlayableItem i, long position) {
+		yoldaHistory(i, position);
 		if (i.isExternal()) return;
 
 		if (position < 0) {

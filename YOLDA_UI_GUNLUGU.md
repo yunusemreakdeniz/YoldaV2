@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-169 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-169
+
+- "Kaldığın yerden" kartı artık son çalınanların geçmişini tutar (en çok 12): TV, radyo, müzik ve videolar, ne zaman açıldıkları ("5 dk önce", "dün") ve ne kadarı dinlendiği (%42).
+- Kartta son kanal ve şarkının yanında geçmişten 5 çip; dokununca o öğe yeniden açılır (radyo dizininden eklenen istasyonlar ve yedek TV adresleri dahil).
+- Alt satırda son iki öğe, ilerleme ve zaman.
+
 ## 2026-11-19 · v2-168 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-168
 
 - Gemini bağlıysa uygulamayı o yönetir: doğal istekleri ("biraz rahatlatıcı bir şey aç", "beni en yakın eczaneye götür", "çok gürültülü") anlayıp uygulamanın komutuna çevirir, komut hemen yürür.

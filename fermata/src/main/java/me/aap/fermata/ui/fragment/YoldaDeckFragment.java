@@ -2851,7 +2851,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					row.addView(imageTile(ctx, rec.get(0).thumb(), null, tile, false, rec.get(0).title(),
 							v -> MusicFragment.playTracks(a, rec, 0)), tileLp(tile));
 				}
-				return (row.getChildCount() == 0) ? null : row;
+				// Geçmiş: son çalınanlar, ne zaman ve ne kadarı dinlendi; dokununca kaldığı yerden
+				long now = System.currentTimeMillis();
+				int added = 0;
+				for (YoldaPlayHistory.Entry e : YoldaPlayHistory.all(ctx)) {
+					if (added >= 5) break;
+					if ((lastItem != null) && e.id().equals(lastItem.getId())) continue; // kutucukta zaten var
+					int pc = e.percent();
+					String label = "▶ " + e.name() + ((pc >= 0) ? (" · %" + pc) : "") + " · " + YoldaPlayHistory.ago(e.at(), now);
+					TextView ch = chipBtn(ctx, label, v -> resumeEntry(a, e));
+					ch.setContentDescription(e.kind() + ": " + e.name() + ", " + YoldaPlayHistory.ago(e.at(), now));
+					row.addView(ch, chipLp());
+					added++;
+				}
+				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
 			}
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
@@ -3979,8 +3992,25 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (!pi.isVideo()) YoldaNowPlaying.show(a);
 	}
 
+	/** Geçmişteki bir öğeyi aç: adresiyle (radyo dizini / yedek TV) ya da kütüphane kimliğiyle. */
+	private void resumeEntry(MainActivityDelegate a, YoldaPlayHistory.Entry e) {
+		if (e.url() != null) {
+			playItem(a, "TV".equals(e.kind()) ? me.aap.fermata.media.radio.YoldaStreamItem.createVideo(a.getLib(), e.url(), e.name())
+					: me.aap.fermata.media.radio.YoldaStreamItem.create(a.getLib(), e.url(), e.name(), null, null));
+			return;
+		}
+		a.getLib().getItem(e.id()).main().onCompletion((it, err) -> {
+			if (it instanceof MediaLib.PlayableItem pi) playItem(a, pi);
+			else YoldaStyle.toast(a.getContext(), e.name() + " bulunamadı");
+		});
+	}
+
 	/** "Kaldığın yerden" kartının alt yazısı: son kanal / radyo ve son şarkı. */
 	private String resumeText() {
+		if (getContext() != null) { // geçmiş varsa: son iki öğe, ilerleme ve ne zaman
+			List<YoldaPlayHistory.Entry> h = YoldaPlayHistory.all(requireContext());
+			if (!h.isEmpty()) return YoldaPlayHistory.line(h, System.currentTimeMillis());
+		}
 		StringBuilder b = new StringBuilder();
 		if (lastItem != null) b.append(lastItem.getName());
 		List<YtMusic.Track> rec = (getContext() != null) ? MusicFragment.recent(requireContext()) : List.of();
