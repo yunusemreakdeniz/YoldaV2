@@ -58,6 +58,20 @@ public final class YoldaGemini {
 		}
 	}
 
+	/** Sesli asistanın verdiği anlık durum (araç / telefon, çalan, hız); yönergeye eklenir. */
+	@Nullable
+	public static volatile String state;
+	/** Son soru zamanı: 10 dakika sessizlikten sonra konuşma geçmişi unutulur (eski konu karışmasın). */
+	private static volatile long lastAskAt;
+
+	/** Sesle okunacak hale getir: markdown, madde işareti, emoji ve fazla boşluk atılır. */
+	public static String spoken(@Nullable String s) {
+		if (s == null) return "";
+		String t = s.replaceAll("[*_#`>~]+", " ").replaceAll("(?m)^\\s*[-•]\\s+", "")
+				.replaceAll("[\\x{1F300}-\\x{1FAFF}\\x{2600}-\\x{27BF}]", "").replaceAll("\\s+", " ").trim();
+		return t;
+	}
+
 	/** Sistem yönergesi: sürücüye, Türkçe, kısa, sesle okunacak düz metin. */
 	static String system(@Nullable String place) {
 		String now = new SimpleDateFormat("d MMMM yyyy EEEE, HH:mm", new Locale("tr")).format(new Date());
@@ -71,7 +85,8 @@ public final class YoldaGemini {
 				+ "Doğal istekleri anlamına göre çevir: \"biraz rahatlatıcı bir şey aç\" → \"KOMUT: rahatlatıcı müzik çal\", "
 				+ "\"beni en yakın eczaneye götür\" → \"KOMUT: en yakın nöbetçi eczane\", \"çok gürültülü\" → \"KOMUT: sesi kıs\". "
 				+ "Soru ya da sohbetse komut yazma, normal yanıt ver.\nKatalog:\n" + YoldaActions.forPrompt()
-				+ "Şu an: " + now + ((place != null) ? (". Kullanıcının bulunduğu yer: " + place) : "") + ".";
+				+ "Şu an: " + now + ((place != null) ? (". Kullanıcının bulunduğu yer: " + place) : "") + ". "
+				+ ((state != null) ? state : "");
 	}
 
 	/** Soruyu sor; yanıt ana iş parçacığında {@code out}'a gelir (hata olursa null ve neden {@code err}'e). */
@@ -82,6 +97,11 @@ public final class YoldaGemini {
 			err.accept("Gemini anahtarı girilmemiş");
 			return;
 		}
+		long now0 = System.currentTimeMillis();
+		if (now0 - lastAskAt > 10 * 60_000L) synchronized (history) {
+			history.clear();
+		}
+		lastAskAt = now0;
 		App.get().getExecutor().submit(() -> {
 			String answer = null, problem = null;
 			try {

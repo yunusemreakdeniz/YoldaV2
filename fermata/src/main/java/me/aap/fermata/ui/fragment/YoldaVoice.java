@@ -89,10 +89,18 @@ public final class YoldaVoice {
 		for (String s : alts) if ((s != null) && !s.trim().isEmpty() && (raws.size() < 5)) raws.add(s.trim());
 		if (raws.isEmpty()) return false;
 		lastFeedback = null;
+		voiceSeq++; // yeni komut: daha önce sorulup yanıtı gelmemiş Gemini sorusu artık söylenmez
 
 		// "Hangisi?" sorusunun cevabı ("birinci", "Ahmet Yılmaz")
 		if (YoldaCalls.pending != null) {
 			for (String r : raws) if (YoldaCalls.answer(a, r)) return true;
+		}
+
+		// Gemini bağlıysa: doğal cümle, sohbet ve bilgi soruları ona; kesin cihaz komutları yerelde (hızlı, internetsiz)
+		if (!fromGemini && YoldaGemini.isEnabled(a.getContext()) && allForGemini(raws)) {
+			YoldaLog.add("Sesli komut Gemini'ye (doğal cümle): “" + raws.get(0) + "”");
+			askGemini(a, raws.get(0));
+			return true;
 		}
 
 		// İki komut birden: "sesi aç ve TRT Haber aç", "duraklat sonra hava nasıl"
@@ -539,7 +547,41 @@ public final class YoldaVoice {
 			playChannel(a, best);
 			return true;
 		}
-		return musicFallback(a, chans.get(0));
+		if (musicFallback(a, chans.get(0))) return true;
+		if (!fromGemini && YoldaGemini.isEnabled(a.getContext())) { // "biraz rahatlatıcı bir şey aç": kanal değil
+			YoldaLog.add("Sesli komut Gemini'ye (kanal bulunamadı): “" + raw + "”");
+			askGemini(a, raw);
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Gemini bağlıyken bu cümleyi yerel çözücü yerine Gemini mi anlamalı: anlaşılmayan, sohbet, bilgi sorusu ve
+	 * uzun doğal cümleyle verilmiş gevşek komutlar (şarkı / video / radyo arama, yer tarifi) Gemini'ye; kesin cihaz
+	 * komutları (ses, oynatma, kart, arama, tema, sürüş, saat…) yerelde kalır. Kanal adları {@link #channel}'da.
+	 */
+	/**
+	 * Tanıyıcının bütün tahminleri Gemini'lik mi: tahminlerden biri kesin bir komutsa ya da cümle "ve / sonra"
+	 * ile birden çok komutsa yerelde kalır.
+	 */
+	static boolean allForGemini(List<String> raws) {
+		for (String r : raws) {
+			String c = YoldaIntents.clean(r);
+			if (c.matches(".* (?:ve|sonra|ardından|daha sonra) .*")) return false;
+			if (!geminiFirst(YoldaIntents.parse(r), c)) return false;
+		}
+		return true;
+	}
+
+	static boolean geminiFirst(@androidx.annotation.Nullable Intent it, String cleaned) {
+		if (it == null) return true;
+		int words = cleaned.trim().isEmpty() ? 0 : cleaned.trim().split("\\s+").length;
+		return switch (it.kind()) {
+			case CHAT, WIKI -> true;
+			case YT_SEARCH, SONG, RADIO_SEARCH, NAV_TO -> words >= 6; // "yol boyunca dinleyeceğim güzel bir şey çal"
+			default -> false;
+		};
 	}
 
 	private static void fallback(MainActivityDelegate a, List<Intent> chans, String raw) {
@@ -719,10 +761,21 @@ public final class YoldaVoice {
 	/** Soruyu Gemini'ye sor, yanıtı söyle (hata olursa nedenini). */
 	static void askGemini(MainActivityDelegate a, String q) {
 		toast(a, "Düşünüyorum…");
-		YoldaGemini.ask(a.getContext(), q, ans -> {
+		int seq = voiceSeq;
+		YoldaGemini.state = state(a);
+		YoldaGemini.ask(a.getContext(), q, raw -> {
+			if (seq != voiceSeq) { // bu arada yeni bir komut verildi: eski yanıt araya girmesin
+				YoldaLog.add("Gemini yanıtı geç geldi, söylenmedi");
+				return;
+			}
+			String ans = YoldaGemini.spoken(raw);
 			List<String> cmds = YoldaActions.commands(ans);
 			if (cmds == null) {
 				reply(a, ans);
+				// Gemini soru sorduysa ("Hangi şehir?") konuşma bitince mikrofonu bir kez aç: yeniden "Hey Yolda" deme
+				if (ans.trim().endsWith("?")) YoldaSpeak.afterSpeech(() -> {
+					if (seq == voiceSeq) a.startVoiceAssistant();
+				});
 				return;
 			}
 			// Gemini isteği katalogdaki komutlara çevirdi: yerel çözücü yürütür (geri Gemini'ye dönmez)
@@ -745,6 +798,21 @@ public final class YoldaVoice {
 
 	/** Gemini'nin çevirdiği komut yürütülürken: anlaşılmazsa yeniden Gemini'ye sorulmaz (döngü olmasın). */
 	private static boolean fromGemini;
+	/** Her sesli komutta artar: geç gelen Gemini yanıtı yeni komutun üstüne konuşmasın. */
+	private static volatile int voiceSeq;
+
+	/** Gemini'ye verilen anlık durum: araç / telefon, ekran, çalan. */
+	private static String state(MainActivityDelegate a) {
+		StringBuilder b = new StringBuilder(a.isCarActivity() ? "Kullanıcı araçta (Android Auto). " : "Kullanıcı telefonda. ");
+		try {
+			var cb = a.getMediaSessionCallback();
+			String t = YoldaNowPlaying.titleOf(cb);
+			if (t != null) b.append(cb.isPlaying() ? "Şu an çalan: " : "Duraklatılmış: ").append(t).append(". ");
+			if (YoldaRadar.speed > 5) b.append("Hız ").append(YoldaRadar.speed).append(" km/s. ");
+		} catch (Throwable ignore) {
+		}
+		return b.toString();
+	}
 
 	/** Art arda yeniden dinleme sayısı; bir komut çalışınca sıfırlanır. */
 	private static int retries;

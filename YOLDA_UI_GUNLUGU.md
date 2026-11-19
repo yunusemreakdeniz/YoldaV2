@@ -2,6 +2,13 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-178 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-178
+
+- Gemini ile yerel sesli asistan artık karışmıyor: kesin cihaz komutları (ses, oynatma, kanal adı, kart, arama, tema, sürüş, saat) yerelde ve hızlı; sohbet, bilgi soruları, anlaşılmayan ve uzun doğal cümleler ("yol boyunca dinleyebileceğim güzel şarkılar çal") doğrudan Gemini'ye.
+- Kanal adı tutmazsa "anlayamadım" yerine Gemini'ye sorulur ("biraz rahatlatıcı bir şey aç").
+- Geç gelen Gemini yanıtı yeni komutun üstüne konuşmaz; Gemini soru sorarsa ("Hangi şehir?") konuşma bitince mikrofon kendiliğinden açılır.
+- Gemini neyin çaldığını, araçta mı telefonda mı olduğunu ve hızı bilir; yanıtlardaki işaretler (*, #, emoji) okunmaz; 10 dakika sessizlikten sonra eski konu unutulur.
+
 ## 2026-11-19 · v2-177 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-177
 
 - Araç görünümünden telefon görünümüne dönülemiyordu (dikey telefonda düğme gizliydi): artık Araç görünümünün üst çubuğunda her zaman "Telefon görünümü" düğmesi var; sesle "telefon görünümüne geç" / "araç görünümüne geç".

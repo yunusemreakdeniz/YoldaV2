@@ -1,6 +1,7 @@
 package me.aap.fermata.ui.fragment;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -29,6 +30,29 @@ public class YoldaActionsTest {
 			assertNotNull("çözülemedi: " + c, YoldaIntents.parse(c));
 		}
 		assertTrue(YoldaActions.forPrompt().contains("kartına geç"));
+	}
+
+	@Test
+	public void geminiYerelAyrimi() {
+		// kesin cihaz komutları yerelde
+		assertFalse(YoldaVoice.allForGemini(List.of("sesi kıs")));
+		assertFalse(YoldaVoice.allForGemini(List.of("TRT Haber aç")));
+		assertFalse(YoldaVoice.allForGemini(List.of("Tarkan çal")));
+		assertFalse(YoldaVoice.allForGemini(List.of("eve git")));
+		assertFalse(YoldaVoice.allForGemini(List.of("sesi aç ve TRT Haber aç"))); // iki komut: yerel ayırır
+		// tahminlerden biri kesin komutsa yerel
+		assertFalse(YoldaVoice.allForGemini(List.of("ankaranın nüfusu ne kadar", "sesi kıs")));
+		// sohbet, bilgi sorusu, anlaşılmayan ve uzun doğal cümle Gemini'ye
+		assertTrue(YoldaVoice.allForGemini(List.of("nasılsın")));
+		assertTrue(YoldaVoice.allForGemini(List.of("yol boyunca dinleyebileceğim güzel şarkılar çal")));
+		assertTrue(YoldaVoice.allForGemini(List.of("bugün çok yorgunum ne yapsam")));
+	}
+
+	@Test
+	public void geminiYanitiSeslendirilir() {
+		assertEquals("Merhaba", YoldaGemini.spoken("**Merhaba** 😊"));
+		assertEquals("bir iki", YoldaGemini.spoken("- bir\n- iki"));
+		assertEquals("", YoldaGemini.spoken(null));
 	}
 
 	@Test

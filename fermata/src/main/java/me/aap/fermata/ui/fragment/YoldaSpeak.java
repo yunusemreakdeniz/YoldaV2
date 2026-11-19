@@ -106,6 +106,7 @@ public final class YoldaSpeak {
 					speaking = false;
 					spokeAt = android.os.SystemClock.elapsedRealtime();
 					abandon(app);
+					runAfter();
 				}
 
 				@Override
@@ -113,6 +114,7 @@ public final class YoldaSpeak {
 					speaking = false;
 					spokeAt = android.os.SystemClock.elapsedRealtime();
 					abandon(app);
+					runAfter();
 				}
 			});
 			ready = true;
@@ -140,6 +142,26 @@ public final class YoldaSpeak {
 		focus = null;
 		AudioManager am = (AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
 		if ((am != null) && (f != null)) am.abandonAudioFocusRequest(f);
+	}
+
+	@androidx.annotation.Nullable
+	private static volatile Runnable after;
+
+	/**
+	 * Şu anki konuşma bitince (ses kapalıysa ya da konuşmuyorsa 400 ms sonra) bir kez çalıştır: Gemini soru sorunca
+	 * mikrofonun kendi sesini duymadan açılması için.
+	 */
+	public static void afterSpeech(Runnable r) {
+		after = r;
+		App.get().getHandler().postDelayed(() -> {
+			if (!speaking && (after == r)) runAfter(); // konuşma hiç başlamadıysa (ses kapalı) beklemeden
+		}, 1200);
+	}
+
+	private static void runAfter() {
+		Runnable r = after;
+		after = null;
+		if (r != null) App.get().getHandler().postDelayed(r, 400);
 	}
 
 	private static volatile boolean speaking;
