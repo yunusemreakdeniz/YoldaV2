@@ -51,13 +51,13 @@ Q2. [x] (v2-181) Hatırlatıcılar ve sesli notlar
 Q3. [x] (v2-179) Döviz / altın
 Q4. [x] (v2-179) Haberler (başlıklar, sesli okuma)
 Q5. [x] (v2-182, podcast; sesli kitap kaynağı yok) Podcast ve sesli kitap
-Q6. [ ] Trafik durumu (eve / işe varış süresi)
+Q6. [x] (v2-182, OSRM; canlı trafik Google Haritalar'da) Trafik durumu (eve / işe varış süresi)
 Q7. [x] (v2-181) Elektrikli araç şarj istasyonları
 Q8. [x] (v2-181) Araç bakım ve yakıt defteri (muayene, sigorta, yağ değişimi hatırlatma)
 Q9. [x] (v2-179) Namaz vakitleri
 Q10. [x] (v2-181) Telefon durumu (pil, veri, sinyal) ve hızlı ayarlar
 Q11. [x] (v2-181) Hızlı mesaj (WhatsApp / SMS hazır cevaplar, "varınca haber ver")
-Q12. [ ] Spor skorları
+Q12. [x] (v2-182, Süper Lig, TheSportsDB deneme anahtarı; canlı değil) Spor skorları
 R3. [x] (v2-181) Dayanıklılık testinde donma (ANR "no focused window"): neden bulundu (v2-175): rastgele dokunuş "Video + harita"yı açıyor, uygulama küçük pencereye (PiP) geçiyor, harita mağazaya yönleniyor; uygulama küçük penceredeyken gelen tuşlar odaksız pencereye düşüyor. v2-175: harita uygulaması yoksa küçük pencereye geçilmez. Kalan: başlatıcıdan dönünce küçük pencereden tam ekrana çıkış (onNewIntent'te PiP'ten çık), sonra monkey yeniden denenecek
 R2. [x] (v2-181) Uyarı geçmişi için sesli komut ("son uyarılar", "az önce ne dedin") ve Gemini'nin geçmişi okuyabilmesi
 
