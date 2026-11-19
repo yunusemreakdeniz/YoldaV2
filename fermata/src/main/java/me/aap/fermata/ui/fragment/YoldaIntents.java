@@ -231,7 +231,7 @@ public final class YoldaIntents {
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
 
 		// telefon durumu: "ne kadar veri kullandım", "internetim ne kadar kaldı", "telefon durumu"
-		if (c.matches(".*(veri|internet|kota)(m|yi|imi)? (ne kadar|kaç)( kaldı| kullandım| gitti| harcadım)?.*")
+		if (c.matches(".*(veri|internet|kota)(m|im|imi|imiz|yi|i|ı)? (ne kadar|kaç)( kaldı| kullandım| gitti| harcadım)?.*")
 				|| c.matches("(ne kadar|kaç) (veri|internet|mb|gb) (kullandım|harcadım|gitti)")
 				|| c.matches("telefon(un)? durumu( nasıl)?"))
 			return Intent.of(Kind.STATUS);
