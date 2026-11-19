@@ -36,6 +36,9 @@ public class YoldaActionsTest {
 		assertEquals(YoldaIntents.Kind.VIDEO_Q, YoldaIntents.parse("video kalitesini 720 yap").kind());
 		assertEquals(YoldaIntents.Kind.VIDEO_Q, YoldaIntents.parse("kaliteyi düşür").kind());
 		assertEquals(YoldaIntents.Kind.EQ, YoldaIntents.parse("rock ekolayzer").kind());
+		assertEquals(1, YoldaIntents.parse("telefon görünümüne geç").num());
+		assertEquals(0, YoldaIntents.parse("araç görünümüne geç").num());
+		assertEquals(YoldaIntents.Kind.VIEW_MODE, YoldaIntents.parse("telefon görünümü").kind());
 		assertEquals("720", me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("video kalitesini 720 yap", "480"));
 		assertEquals("1080", me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("full hd yap", "480"));
 		assertEquals("720", me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("hd olsun", "480"));

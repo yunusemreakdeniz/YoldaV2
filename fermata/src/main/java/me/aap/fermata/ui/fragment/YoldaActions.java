@@ -41,6 +41,7 @@ public final class YoldaActions {
 			{"[kart adı] kartına geç / [kart adı] kartını aç", "desteyi o karta götürür / açar (radyo, hava, akaryakıt, park, yolculuklar, eczane, sürüş, kişiler, telefon, favoriler)"},
 			{"sonraki kart / önceki kart / kartları düzenle", "deste"},
 			{"ana sayfa / geri", "gezinme"},
+			{"telefon görünümüne geç / araç görünümüne geç", "telefonda ızgara ya da kart destesi"},
 			{"navigasyonu aç / kanalları aç / menüyü aç / ayarları aç", "ekran açar"},
 			// sürüş
 			{"radarı aç / radarı kapat / radar var mı", "radar uyarısı"},

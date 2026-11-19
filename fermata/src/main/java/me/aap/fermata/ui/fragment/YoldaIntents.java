@@ -39,7 +39,9 @@ public final class YoldaIntents {
 		/** Ekolayzer hazır ayarı (arg: ayar adı; null: kartı aç). */
 		EQ,
 		/** Video kalitesi (arg: söylenen cümle; kaliteyi YoldaStyle.spokenVideoQuality çıkarır). */
-		VIDEO_Q
+		VIDEO_Q,
+		/** Telefonda görünüm: num 1 telefon (ızgara), 0 araç (deste). */
+		VIEW_MODE
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -223,6 +225,12 @@ public final class YoldaIntents {
 		// yardım, tekrar
 		if (c.matches("(yardım|ne yapabilirsin|neler yapabilirsin|komutlar|ne diyebilirim|nasıl kullanılır)")) return Intent.of(Kind.HELP);
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
+
+		// görünüm: "telefon görünümüne geç", "araç görünümü", "ızgara görünümü"
+		if (c.matches("(telefon|ızgara) (görünümü|görünümüne geç|görünümünü aç|modu|moduna geç)"))
+			return Intent.of(Kind.VIEW_MODE, 1);
+		if (c.matches("(araç|deste|kart) (görünümü|görünümüne geç|görünümünü aç|modu|moduna geç)"))
+			return Intent.of(Kind.VIEW_MODE, 0);
 
 		// video kalitesi: "video kalitesini 720 yap", "kaliteyi düşür", "görüntü kalitesi otomatik"
 		if (c.matches(".*(video kalite|kaliteyi|kalitesini|görüntü kalite|çözünürlü).*")) return Intent.of(Kind.VIDEO_Q, c);

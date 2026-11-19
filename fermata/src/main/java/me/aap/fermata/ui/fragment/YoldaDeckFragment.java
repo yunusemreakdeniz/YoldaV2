@@ -301,6 +301,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return r;
 	}
 
+	/** Sesle / menüden: telefon (true) ya da araç (false) görünümü. */
+	public void setViewMode(boolean phone) {
+		setPhoneView(phone);
+	}
+
 	/** Telefon | Araç anahtarı: seçilince ana ekran yeniden kurulur. */
 	private void setPhoneView(boolean on) {
 		Context ctx = getContext();
@@ -327,6 +332,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			boolean toPhone = i == 0;
 			TextView b = text(ctx, (i == 0) ? "Telefon" : "Araç", 13, true, on ? 0xFF0B0E1A : 0xFFE2E6EE);
 			b.setGravity(Gravity.CENTER);
+			b.setIncludeFontPadding(false); // yazı düğmenin tam ortasında
+			b.setMaxLines(1);
 			b.setPadding(dp(14), 0, dp(14), 0);
 			if (on) {
 				GradientDrawable ob = new GradientDrawable();
@@ -341,7 +348,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				YoldaStyle.haptic(v);
 				setPhoneView(toPhone);
 			});
-			seg.addView(b, new LinearLayout.LayoutParams(-2, dp(36)));
+			seg.addView(b, new LinearLayout.LayoutParams(-2, dp(42))); // 3dp kenarla birlikte 48dp dokunma
 		}
 		return seg;
 	}
@@ -578,10 +585,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		b.setBackground(phoneSurface(ctx, 16));
 		b.setClickable(true);
 		b.setOnClickListener(click);
-		b.addView(text(ctx, label, 12, false, 0xFFC5CBD8));
+		TextView lb = text(ctx, label, 12, false, 0xFFC5CBD8);
+		lb.setIncludeFontPadding(false);
+		lb.setMaxLines(1);
+		lb.setEllipsize(TextUtils.TruncateAt.END);
+		b.addView(lb);
 		TextView v = text(ctx, "—", 15, true, 0xFFFFFFFF);
+		v.setIncludeFontPadding(false);
 		v.setSingleLine(true);
 		v.setEllipsize(TextUtils.TruncateAt.END);
+		v.setPadding(0, dp(4), 0, 0);
 		b.addView(v);
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
 		if (gap) lp.leftMargin = dp(8);
@@ -602,10 +615,21 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView iv = new ImageView(ctx);
 		iv.setImageResource(icon);
 		iv.setImageTintList(ColorStateList.valueOf(tint)); // her düğmenin kendi rengi (taslaktaki gibi)
+		iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
 		b.addView(iv, new LinearLayout.LayoutParams(dp(24), dp(24)));
+		// Yazı: tek satır, tam genişlikte ortalı, üst yazı tipi boşluğu yok ("İş"teki İ noktası satırı aşağı itmesin);
+		// büyük yazı boyutunda sığmazsa küçülür (iki satıra kırılıp simgeleri kaydırmasın)
 		TextView tv = text(ctx, label, 12, true, 0xFFFFFFFF);
-		tv.setPadding(0, dp(4), 0, 0);
-		b.addView(tv);
+		tv.setIncludeFontPadding(false);
+		tv.setGravity(Gravity.CENTER);
+		tv.setMaxLines(1);
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(tv, 9,
+				Math.max(10, Math.round(tv.getTextSize() / getResources().getDisplayMetrics().scaledDensity)), 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP);
+		LinearLayout.LayoutParams tvl = new LinearLayout.LayoutParams(-1, dp(16));
+		tvl.topMargin = dp(6);
+		tvl.leftMargin = tvl.rightMargin = dp(4);
+		b.addView(tv, tvl);
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
 		if (gap) lp.leftMargin = dp(8);
 		parent.addView(b, lp);
@@ -990,7 +1014,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(48), dp(48));
 		tlp.rightMargin = dp(10);
 		top.addView(themeBtn, tlp);
-		if (!car && !narrowHeader) { // geniş telefonda başlıkta; dar ekranda Menü → Görünüm
+		if (!car) { // telefonda her zaman: Araç görünümünden tek dokunuşla telefon görünümüne dön (dar ekranda da)
 			ImageView pv = roundButton(ctx, R.drawable.yi_phone, "Telefon görünümü", v -> setPhoneView(true));
 			LinearLayout.LayoutParams pvl = new LinearLayout.LayoutParams(dp(48), dp(48));
 			pvl.rightMargin = dp(10);

@@ -596,6 +596,17 @@ public class YoldaAtoZTest {
 			});
 			for (String t : titles) assertNotNull("Izgarada kart olmalı: " + t, onMain(a -> byDescExact(root, t)));
 			shot("telefon_gorunumu");
+			// Araç görünümüne geç, oradaki "Telefon görünümü" düğmesiyle geri dön (dar dikey ekranda da)
+			View car = onMain(a -> byDescExact(root, "Araç görünümü"));
+			assertNotNull("Telefon | Araç anahtarı olmalı", car);
+			onMain(a -> car.performClick());
+			waitIdle(1500);
+			View back = onMain(a -> byDescExact(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Telefon görünümü"));
+			assertNotNull("Araç görünümünde telefona dönüş düğmesi olmalı", back);
+			onMain(a -> back.performClick());
+			waitIdle(1500);
+			assertNotNull("Telefon görünümüne dönülmeli",
+					onMain(a -> byDescExact(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Kart ekle")));
 		} finally {
 			onMain(a -> {
 				call(deck(a), "setPhoneView", false);

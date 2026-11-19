@@ -2,6 +2,13 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-177 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-177
+
+- Araç görünümünden telefon görünümüne dönülemiyordu (dikey telefonda düğme gizliydi): artık Araç görünümünün üst çubuğunda her zaman "Telefon görünümü" düğmesi var; sesle "telefon görünümüne geç" / "araç görünümüne geç".
+- Telefon görünümünde düğme yazıları hizalandı: Ev, İş, Rota, Hey Yolda yazıları tek satır ve tam ortada (İ noktası satırı kaydırmıyor, büyük yazıda iki satıra kırılmıyor); durum kutularındaki yazılar da.
+- Telefon | Araç anahtarı 48dp dokunma alanına çıktı, yazısı ortada.
+- Emülatör testi: Araç görünümüne geçip düğmeyle telefona geri dönmeyi de deniyor.
+
 ## 2026-11-19 · v2-176 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-176
 
 - Telefon görünümü tasarım taslağına göre yenilendi: şimdi çalıyor şeridinde türün renkli kutusu (radyo turuncu, TV mavi, müzik mor, video kırmızı) ve canlı yayında kırmızı "● CANLI · RADYO / TV".

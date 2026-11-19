@@ -169,6 +169,20 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case VIEW_MODE -> {
+				if (a.isCarActivity()) {
+					reply(a, "Araçta her zaman kart destesi görünür");
+					break;
+				}
+				boolean phone = it.num() == 1;
+				ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE)
+						.edit().putBoolean("phone_view", phone).apply();
+				a.showFragment(R.id.home_fragment);
+				App.get().getHandler().postDelayed(() -> {
+					if (a.getActiveFragment() instanceof YoldaDeckFragment d) d.setViewMode(phone);
+				}, 150);
+				reply(a, phone ? "Telefon görünümü" : "Araç görünümü");
+			}
 			case VIDEO_Q -> {
 				String cur = me.aap.fermata.ui.view.YoldaStyle.videoQuality(ctx);
 				String q = me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality(it.arg(), cur);
