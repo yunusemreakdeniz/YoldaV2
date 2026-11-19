@@ -42,6 +42,8 @@ public final class YoldaDeck {
 	public static final String PODCAST = "podcast";
 	/** Telefondaki videolar ve fotoğraflar. */
 	public static final String MEDIA = "media";
+	/** Eve / işe yol süresi; Süper Lig sonuçları. */
+	public static final String TRAFFIC = "traffic", SPORTS = "sports";
 	public static final String RADAR = "radar";
 	/** Park yerleri (aracım). */
 	public static final String PARK = "park";
@@ -60,7 +62,7 @@ public final class YoldaDeck {
 	public static final String YT_CHANNEL = "ytch";
 	public static final String URL = "url";
 
-	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, PODCAST, MEDIA, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, STATUS, CHARGER, NOTES, QUICKMSG, CALENDAR, CARCARE, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
+	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, PODCAST, MEDIA, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, STATUS, CHARGER, NOTES, QUICKMSG, CALENDAR, CARCARE, TRAFFIC, SPORTS, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
 			ADD};
 	private static final char FIELD = '\u001F';
 	private static final char RECORD = '\u001E';
@@ -160,6 +162,8 @@ public final class YoldaDeck {
 			case "hızlı mesaj", "mesaj", "mesajlar", "hazır mesaj", "hazır cevap" -> QUICKMSG;
 			case "podcast", "podcastler", "podkast", "sesli kitap" -> PODCAST;
 			case "medya", "videolarım", "videolar", "fotoğraflar", "fotoğraflarım", "galeri" -> MEDIA;
+			case "trafik", "yol durumu", "eve ne kadar", "işe ne kadar" -> TRAFFIC;
+			case "spor", "maç", "maçlar", "skor", "skorlar", "futbol", "süper lig" -> SPORTS;
 			case "takvim", "ajanda", "etkinlik", "etkinlikler", "toplantı", "toplantılar" -> CALENDAR;
 			case "bakım", "araç bakımı", "muayene", "sigorta", "kasko" -> CARCARE;
 			case "ekle", "ekleme" -> ADD;
@@ -221,6 +225,8 @@ public final class YoldaDeck {
 			case NOTES -> "Notlar";
 			case QUICKMSG -> "Hızlı mesaj";
 			case CALENDAR -> "Takvim";
+			case TRAFFIC -> "Trafik";
+			case SPORTS -> "Spor";
 			case PODCAST -> "Podcast";
 			case MEDIA -> "Medya";
 			case CARCARE -> "Araç bakımı";

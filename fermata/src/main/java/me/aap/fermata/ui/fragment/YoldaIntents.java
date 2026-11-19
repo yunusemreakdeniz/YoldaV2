@@ -55,7 +55,9 @@ public final class YoldaIntents {
 		/** Takvim: bugünkü / yarınki etkinlikler; araç bakımı: muayene, sigorta, kasko, yağ değişimi. */
 		CALENDAR, CARCARE,
 		/** Podcast: arg = podcast adı ("X podcastini aç"). */
-		PODCAST
+		PODCAST,
+		/** Yol süresi: arg home / work. Spor: arg takım (null: son sonuçlar). */
+		TRAFFIC, SPORTS
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -245,6 +247,17 @@ public final class YoldaIntents {
 		if (c.matches("(bütün |tüm )?notları (sil|temizle)")) return Intent.of(Kind.NOTE_CLEAR);
 		if (c.matches("(şunu |bunu )?(not al|not et|not düş)\\b.+|.+ (diye )?(not al|not et|not düş)"))
 			return Intent.of(Kind.NOTE_ADD, raw.trim());
+
+		// yol süresi: "eve kaç dakika", "işe ne kadar sürer", "eve ne zaman varırım"
+		if (c.matches("(eve|evime) (kaç dakika|ne kadar( sürer)?|ne zaman varırım|kaç saat)( var| kaldı)?"))
+			return Intent.of(Kind.TRAFFIC, "home");
+		if (c.matches("(işe|iş yerine|ofise) (kaç dakika|ne kadar( sürer)?|ne zaman varırım|kaç saat)( var| kaldı)?"))
+			return Intent.of(Kind.TRAFFIC, "work");
+		// spor: "maç sonuçları", "galatasaray maçı ne zaman", "fenerbahçe kaç kaç bitti"
+		if (c.matches("(maç sonuçları|skorlar|süper lig( sonuçları)?|maçlar|bugünkü maçlar)"))
+			return Intent.of(Kind.SPORTS, (String) null);
+		m = Pattern.compile("^(.+?) (?:maçı|maçları|maçının sonucu) ?(?:ne zaman|kaçta|kaç kaç|ne oldu|bitti|sonucu)?.*$").matcher(c);
+		if (m.matches() && !m.group(1).matches("(bugün|yarın|son)")) return Intent.of(Kind.SPORTS, m.group(1));
 
 		// podcast: "fularsız entellik podcastini aç", "podcast dinle"
 		m = Pattern.compile("^(.+?) (?:podcastini|podcasti|podkastını|podcast'ini) (?:aç|çal|dinle|oynat)$").matcher(c);

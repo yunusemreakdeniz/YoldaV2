@@ -192,6 +192,41 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case TRAFFIC -> {
+				String d = ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE)
+						.getString("home".equals(it.arg()) ? "nav_home" : "nav_work", null);
+				String who = "home".equals(it.arg()) ? "Eve" : "İşe";
+				if (d == null) {
+					reply(a, who.equals("Eve") ? "Ev adresi kayıtlı değil" : "İş adresi kayıtlı değil");
+					break;
+				}
+				me.aap.utils.function.CheckedSupplier<YoldaTraffic.Eta, Throwable> job = () -> YoldaTraffic.eta(d);
+				me.aap.utils.app.App.get().execute(job).onCompletion((e, err) -> App.get().getHandler().post(() ->
+						reply(a, (e == null) ? "Yol süresi hesaplanamadı" : (who + " " + YoldaTraffic.text(e).replace("·", ",")
+								+ ", trafik hariç tahmini"))));
+			}
+			case SPORTS -> {
+				String team = it.arg();
+				me.aap.utils.function.CheckedSupplier<List<YoldaSports.Match>[], Throwable> job = () -> YoldaSports.matches(ctx, true);
+				me.aap.utils.app.App.get().execute(job).onCompletion((ms, err) -> App.get().getHandler().post(() -> {
+					if ((ms == null) || (ms[0].isEmpty() && ms[1].isEmpty())) {
+						reply(a, "Maç sonuçları alınamadı");
+						return;
+					}
+					StringBuilder b = new StringBuilder();
+					for (YoldaSports.Match m2 : ms[0]) {
+						if ((team != null) && !m2.has(team)) continue;
+						b.append((b.length() > 0) ? ". " : "Son sonuç: ").append(m2.line());
+						if ((team != null) || (b.length() > 120)) break;
+					}
+					for (YoldaSports.Match m2 : ms[1]) {
+						if ((team != null) && !m2.has(team)) continue;
+						b.append(". Sıradaki: ").append(m2.line());
+						break;
+					}
+					reply(a, (b.length() == 0) ? ("“" + team + "” maçı bulunamadı") : b.toString());
+				}));
+			}
 			case PODCAST -> {
 				String want = it.arg();
 				List<YoldaPodcast.Show> subs = YoldaPodcast.subscriptions(ctx);

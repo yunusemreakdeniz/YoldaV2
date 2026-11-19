@@ -38,6 +38,8 @@ public final class YoldaActions {
 			{"gideceğim yerde otopark var mı / [yer]de otopark", "varılacak yerin çevresindeki otoparklar"},
 			{"şarj istasyonları kartına geç", "yakındaki elektrikli araç şarj istasyonları"},
 			{"neredeyim", "bulunduğun yer"},
+			{"eve kaç dakika / işe ne kadar sürer", "yol süresi (trafik hariç tahmini)"},
+			{"maç sonuçları / [takım] maçı ne zaman", "Süper Lig sonuçları ve fikstür"},
 			// arama ve mesaj
 			{"[kişi] ara", "telefonla arar (annemi ara)"},
 			{"yanıtla [metin] / mesajı tekrar oku", "son mesaja sesle yanıt, son mesajı okuma"},
