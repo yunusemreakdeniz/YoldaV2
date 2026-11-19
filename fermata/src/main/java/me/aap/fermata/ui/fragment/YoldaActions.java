@@ -40,6 +40,7 @@ public final class YoldaActions {
 			// arama ve mesaj
 			{"[kişi] ara", "telefonla arar (annemi ara)"},
 			{"yanıtla [metin] / mesajı tekrar oku", "son mesaja sesle yanıt, son mesajı okuma"},
+			{"hızlı mesaj kartına geç", "hazır cevaplar, varınca haber ver"},
 			// destede ve ekranlar
 			{"[kart adı] kartına geç / [kart adı] kartını aç", "desteyi o karta götürür / açar (radyo, hava, akaryakıt, park, yolculuklar, eczane, sürüş, kişiler, telefon, favoriler)"},
 			{"sonraki kart / önceki kart / kartları düzenle", "deste"},

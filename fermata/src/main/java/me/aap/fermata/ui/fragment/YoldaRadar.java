@@ -1147,6 +1147,7 @@ public final class YoldaRadar {
 
 	private static synchronized void saveTrip(Context ctx, YoldaDriveCore.TripRec t) {
 		try {
+			YoldaQuickMsg.onTripEnded(ctx); // "varınca haber ver" istendiyse hatırlat
 			JSONArray old = new JSONArray(prefs(ctx).getString("trips", "[]"));
 			JSONArray all = new JSONArray();
 			all.put(new JSONObject().put("s", t.startWall()).put("e", t.endWall()).put("m", t.meters()).put("mv", t.movingMs())

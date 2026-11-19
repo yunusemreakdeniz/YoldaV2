@@ -32,7 +32,7 @@ public class YoldaDeckTest {
 	@Test
 	public void varsayilanSira() {
 		YoldaDeck d = new YoldaDeck();
-		String[] want = {"resume", "youtube", "music", "tv", "radio", "favs", "nav", "radar", "park", "trips", "weather", "pharmacy", "fuel", "fx", "prayer", "news", "status", "charger", "notes", "phone", "calls",
+		String[] want = {"resume", "youtube", "music", "tv", "radio", "favs", "nav", "radar", "park", "trips", "weather", "pharmacy", "fuel", "fx", "prayer", "news", "status", "charger", "notes", "quickmsg", "phone", "calls",
 				"mirror", "web", "eq", "settings", "add"};
 		assertEquals(want.length, d.size());
 		for (int i = 0; i < want.length; i++) assertEquals(want[i], d.get(i).type());
@@ -50,8 +50,9 @@ public class YoldaDeckTest {
 		assertEquals("Telefon durumu", d.get(16).title());
 		assertEquals("Şarj istasyonları", d.get(17).title());
 		assertEquals("Notlar", d.get(18).title());
-		assertEquals("Ekolayzer", d.get(23).title());
-		assertEquals("Ekle", d.get(25).title());
+		assertEquals("Hızlı mesaj", d.get(19).title());
+		assertEquals("Ekolayzer", d.get(24).title());
+		assertEquals("Ekle", d.get(26).title());
 	}
 
 	@Test
@@ -80,7 +81,7 @@ public class YoldaDeckTest {
 		assertEquals("youtube", d.get(0).type());
 		assertEquals("resume", d.get(1).type());
 		assertEquals(0, d.move(0, -1)); // en baştan sola gidilmez
-		assertEquals(25, d.move(25, 1)); // en sondan sağa gidilmez
+		assertEquals(26, d.move(26, 1)); // en sondan sağa gidilmez
 	}
 
 	@Test
@@ -90,7 +91,7 @@ public class YoldaDeckTest {
 		assertFalse("Ekle kaldırılamaz", d.remove(d.indexOf("add")));
 		assertEquals(List.of("phone"), d.missingBuiltIns());
 		int at = d.restore("phone");
-		assertEquals(19, at); // notların ardına, ekran yansıtmanın önüne
+		assertEquals(20, at); // hızlı mesajın ardına, ekran yansıtmanın önüne
 		assertTrue(d.missingBuiltIns().isEmpty());
 	}
 
@@ -98,11 +99,11 @@ public class YoldaDeckTest {
 	public void eklemeEkleKartininOnune() {
 		YoldaDeck d = new YoldaDeck();
 		int at = d.add(YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null);
-		assertEquals(25, at);
-		assertEquals("add", d.get(26).type());
-		assertEquals("TRT 1", d.get(25).title());
-		assertEquals("Aynı kanal ikinci kez eklenmez", 25, d.add(YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null));
-		assertEquals(27, d.size());
+		assertEquals(26, at);
+		assertEquals("add", d.get(27).type());
+		assertEquals("TRT 1", d.get(26).title());
+		assertEquals("Aynı kanal ikinci kez eklenmez", 26, d.add(YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null));
+		assertEquals(28, d.size());
 	}
 
 	@Test
@@ -119,9 +120,9 @@ public class YoldaDeckTest {
 
 	@Test
 	public void bozukKayitVarsayilanaDoner() {
-		assertEquals(26, YoldaDeck.decode(null).size());
-		assertEquals(26, YoldaDeck.decode("").size());
-		assertEquals(26, YoldaDeck.decode("çöp").size());
+		assertEquals(27, YoldaDeck.decode(null).size());
+		assertEquals(27, YoldaDeck.decode("").size());
+		assertEquals(27, YoldaDeck.decode("çöp").size());
 		// "Ekle" kaydı kaybolsa da eklenir
 		YoldaDeck d = YoldaDeck.decode("tv\u001Ftv\u001FTV\u001F\u001F");
 		assertEquals(2, d.size());

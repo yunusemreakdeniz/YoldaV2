@@ -916,7 +916,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -1069,9 +1069,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (!car) { // telefonda her zaman: Araç görünümünden tek dokunuşla telefon görünümüne dön (dar ekranda da)
 			ImageView pv = roundButton(ctx, R.drawable.yi_phone, "Telefon görünümü", v -> setPhoneView(true));
 			LinearLayout.LayoutParams pvl = new LinearLayout.LayoutParams(dp(48), dp(48));
-			if (narrowHeader && (dateLine != null)) { // dar ekranda ikinci satırda, tarihin yanında: üst satır taşmasın
-				pvl.leftMargin = dp(8);
-				dateLine.addView(pv, pvl);
+			if (narrowHeader) { // dar ekranda tema düğmesinin yerinde (tema Ayarlar'da ve telefon görünümünde): üst satır taşmasın
+				pvl.rightMargin = dp(10);
+				int at = top.indexOfChild(themeBtn);
+				top.removeView(themeBtn);
+				top.addView(pv, Math.max(0, at), pvl);
 			} else {
 				pvl.rightMargin = dp(10);
 				top.addView(pv, top.indexOfChild(themeBtn), pvl);
@@ -1311,6 +1313,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return (b.length() == 0) ? "Dolar, euro ve altın alınıyor…" : b.toString();
 			}
 		}
+	}
+
+	/** Hızlı mesaj kartının alt satırı: kime yanıt gider. */
+	private String quickMsgLine() {
+		YoldaMessages.Msg m = YoldaQuickMsg.replyTarget(YoldaMessages.last, System.currentTimeMillis());
+		if (m != null) return "Dokununca " + m.sender() + " (" + m.app() + ") kişisine yanıt";
+		String who = YoldaQuickMsg.arrivalNotice(requireContext());
+		return (who != null) ? ("Varınca " + who + " için hatırlatacağım") : "Hazır cevap seç; kişiyi gönderirken seçersin";
+	}
+
+	private void showQuickMsgEditor(Context ctx) {
+		List<String> work = new ArrayList<>(YoldaQuickMsg.presets(ctx));
+		orderEditor(ctx, "Hazır cevaplar", "kartta bu sırayla · 🗑 siler", work, x -> x, l -> {
+			YoldaQuickMsg.savePresets(ctx, new ArrayList<>(l));
+			refreshCard(YoldaDeck.QUICKMSG);
+		}, x -> true);
 	}
 
 	/** Notlar kartının alt satırı: sıradaki hatırlatma ve not sayısı. */
@@ -2253,14 +2271,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dots.removeAllViews();
 		int cur = centerPosition();
 		int home = homeCardIndex();
+		// Kart çoksa noktalar ekrana sığacak kadar küçülür (26 kartta dar telefonda sağdan taşıyordu)
+		int n = Math.max(1, deck.size());
+		int avail = Math.max(dp(120), ((dots.getWidth() > 0) ? dots.getWidth() : getResources().getDisplayMetrics().widthPixels) - dp(32));
+		int per = (avail - dp(15)) / n; // ortadaki uzun nokta için pay
+		int mg = Math.max(1, Math.min(dp(3), per / 4));
+		int sz = Math.max(dp(3), Math.min(dp(7), per - 2 * mg));
+		int curW = Math.min(dp(22), sz * 3);
 		for (int i = 0; i < deck.size(); i++) {
 			if (i == home) { // ana kart: nokta yerine ev simgesi (ortadaysa parlak, değilse soluk)
 				android.widget.ImageView hv = new android.widget.ImageView(ctx);
 				hv.setImageResource(R.drawable.yi_home_fill);
 				hv.setImageTintList(android.content.res.ColorStateList.valueOf((i == cur) ? 0xFFFFFFFF : 0x99FFFFFF));
 				hv.setContentDescription("Ana kart");
-				LinearLayout.LayoutParams hl = new LinearLayout.LayoutParams(dp((i == cur) ? 15 : 12), dp((i == cur) ? 15 : 12));
-				hl.leftMargin = hl.rightMargin = dp(3);
+				int hs = Math.max(sz + dp(4), Math.min(dp((i == cur) ? 15 : 12), sz * 2));
+				LinearLayout.LayoutParams hl = new LinearLayout.LayoutParams(hs, hs);
+				hl.leftMargin = hl.rightMargin = mg;
 				hl.gravity = Gravity.CENTER_VERTICAL;
 				dots.addView(hv, hl);
 				continue;
@@ -2270,8 +2296,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			g.setCornerRadius(dp(4));
 			g.setColor((i == cur) ? 0xFFFFFFFF : 0x55FFFFFF);
 			d.setBackground(g);
-			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp((i == cur) ? 22 : 7), dp(7));
-			lp.leftMargin = lp.rightMargin = dp(3);
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((i == cur) ? curW : sz, sz);
+			lp.leftMargin = lp.rightMargin = mg;
 			lp.gravity = Gravity.CENTER_VERTICAL;
 			dots.addView(d, lp);
 		}
@@ -2733,6 +2759,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.QUICKMSG -> new Look(0xFF86EFAC, 0xFF166534, R.drawable.yi_phone, true, "HIZLI MESAJ", quickMsgLine());
 			case YoldaDeck.NOTES -> new Look(0xFFFDE68A, 0xFFB45309, R.drawable.yi_edit, true, "NOTLAR · HATIRLATMA", notesLine());
 			case YoldaDeck.CHARGER -> new Look(0xFF2DD4BF, 0xFF0D9488, R.drawable.yi_ev, true, "ŞARJ İSTASYONLARI", chargerLine());
 			case YoldaDeck.STATUS -> new Look(0xFF93C5FD, 0xFF1E3A8A, R.drawable.yi_phone, true, "TELEFON DURUMU",
@@ -3104,6 +3131,30 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
+			}
+			case YoldaDeck.QUICKMSG -> { // hazır cevaplar: dokun → son mesaja yanıt ya da paylaş; varınca haber ver
+				LinearLayout row = hrow(ctx);
+				String who = YoldaQuickMsg.arrivalNotice(ctx);
+				row.addView(chipBtn(ctx, (who == null) ? "📍 Varınca haber ver" : ("📍 Varınca: " + who + " · kapat"), v -> {
+					if (YoldaQuickMsg.arrivalNotice(ctx) != null) {
+						YoldaQuickMsg.setArrivalNotice(ctx, null);
+						refreshCard(YoldaDeck.QUICKMSG);
+					} else {
+						askText("Varınca kime haber verilsin?", "Kişi (ör. Annem)", s -> {
+							YoldaQuickMsg.setArrivalNotice(ctx, s);
+							YoldaStyle.toast(ctx, "Yolculuk bitince " + s + " için hatırlatacağım");
+							refreshCard(YoldaDeck.QUICKMSG);
+						});
+					}
+				}), chipLp());
+				for (String m : YoldaQuickMsg.presets(ctx))
+					row.addView(chipBtn(ctx, m, v -> YoldaStyle.toast(ctx, YoldaQuickMsg.send(ctx, m))), chipLp());
+				return withActions(ctx, scroll(ctx, row), "Hazır cevap ekle", () -> askText("Hazır cevap ekle", "Ör. 5 dakikaya oradayım", s -> {
+					List<String> l = YoldaQuickMsg.presets(ctx);
+					l.add(s);
+					YoldaQuickMsg.savePresets(ctx, l);
+					refreshCard(YoldaDeck.QUICKMSG);
+				}), "Hazır cevapları düzenle", () -> showQuickMsgEditor(ctx));
 			}
 			case YoldaDeck.NOTES -> { // sıradaki hatırlatmalar ve son notlar (dokun: okunur), sesli not ekle
 				LinearLayout row = hrow(ctx);
@@ -3529,6 +3580,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.EQ -> a.showFragment(R.id.yolda_eq_fragment); // kendi sayfası: hazır ayarlar ve bant ayarları
 			case YoldaDeck.STATUS -> a.showFragment(R.id.yolda_status_fragment);
 			case YoldaDeck.NOTES -> a.showFragment(R.id.yolda_notes_fragment);
+			case YoldaDeck.QUICKMSG -> showQuickMsgEditor(ctx); // hazır cevapları düzenle (sırala, sil, ekle)
 			case YoldaDeck.CHARGER -> {
 				NearbyFragment.mode = NearbyFragment.CHARGER;
 				a.showFragment(R.id.yolda_nearby_fragment);
