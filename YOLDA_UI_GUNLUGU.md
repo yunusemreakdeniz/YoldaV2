@@ -2,6 +2,15 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-181 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-181 · Paket A (1. bölüm)
+
+- Yeni kartlar: Telefon durumu (pil, bağlantı, sinyal, aylık mobil veri ve sınırı, hızlı ayarlar), Şarj istasyonları, Notlar (sesli not, kalıcı hatırlatmalar), Hızlı mesaj (hazır cevaplar, varınca haber ver), Takvim (bugün / yarın), Araç bakımı (muayene, sigorta, kasko, yağ değişimi; 7 gün kala hatırlatma). Deste 29 kart.
+- Mobil veri sınırı: %80'de ve sınırda sesli uyarı, sınırda video 360p; "Devam et" ile ay sonuna kadar susar.
+- Akaryakıt fiyatı bulunduğun il / ilçeye göre (Opet servisi; alınamazsa Türkiye ortalaması), resmi fiyat sayfaları ve pompadaki fiyatı elle girme.
+- Gideceğin yerdeki otoparklar (Park sayfası, sesle "gideceğim yerde otopark var mı").
+- Sesli okumayı durdurma (ekranda düğme, duraklat tuşu, "dur / sus"); Gemini anahtarı çalışıyorsa bütün sesli konuşma ve yönetim Gemini'den (ulaşılamazsa yerel); "son uyarılar", "az önce ne dedin".
+- Telefon ve Android Auto kart sıraları ayrı; telefon görünümünden araca araba simgeli düğme; dar ekranda başlık, düğme ve sayfa noktası taşmaları düzeltildi; küçük pencereden (PiP) dönünce tam ekran.
+
 ## 2026-11-19 · v2-179 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-179
 
 - Video izlerken kalite: sağ üstte "HD 480p ▾" düğmesi; dokununca 360p · 480p · 720p · 1080p · Otomatik, seçilen kalite çalan videoya (TV ve YouTube) hemen uygulanır; bir süre sonra soluklaşır.
