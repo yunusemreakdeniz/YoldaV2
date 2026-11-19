@@ -70,9 +70,7 @@ public final class YoldaGemini {
 				+ "katalogdaki kalıplardan biri, köşeli parantezleri gerçek değerle doldur; en çok 3 komutu \" ; \" ile ayır. "
 				+ "Doğal istekleri anlamına göre çevir: \"biraz rahatlatıcı bir şey aç\" → \"KOMUT: rahatlatıcı müzik çal\", "
 				+ "\"beni en yakın eczaneye götür\" → \"KOMUT: en yakın nöbetçi eczane\", \"çok gürültülü\" → \"KOMUT: sesi kıs\". "
-				+ "Soru ya da sohbetse komut yazma, normal yanıt ver.
-Katalog:
-" + YoldaActions.forPrompt()
+				+ "Soru ya da sohbetse komut yazma, normal yanıt ver.\nKatalog:\n" + YoldaActions.forPrompt()
 				+ "Şu an: " + now + ((place != null) ? (". Kullanıcının bulunduğu yer: " + place) : "") + ".";
 	}
 

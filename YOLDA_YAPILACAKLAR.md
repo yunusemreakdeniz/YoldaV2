@@ -15,7 +15,7 @@ J. [x] (v2-161) Akaryakıt fiyatları kartı (açık kaynak araştırması; bulu
 C. [x] (v2-162) Kart logoları başlıkla aynı hizada değil, küçük ve ortalı kalıyor: başlık satırıyla hizala, gerekirse büyüt
 D. [x] (v2-163) Kartlardaki erişim düğmeleri büyük olsun (TV / radyo kanal kutucukları, kısayol çipleri, favori kutucukları); en az 56dp, araçta daha büyük
 E. [x] (v2-166) TV ve radyo düzenleme: tek sıralama; kartın içinden tüm liste düzenlenir; kartın yüzünde ve Kanallar ekranında aynı sıra
-F. [x] (v2-167) Sesli asistan: Gemini bağlıysa anlama da Gemini ile (doğal cümleler: "en yakın eczaneye yol tarifi", "biraz rahatlatıcı bir şey aç" → komut), bağlı değilse yerel model; hemen her soruya yanıt. Gemini bütün uygulamayı yönetebilsin: her ekran / kart / düğme için bir eylem kataloğu (araç çağırma), yerel motor da aynı kataloğu kullanır
+F. [x] (v2-168) Sesli asistan: Gemini bağlıysa anlama da Gemini ile (doğal cümleler: "en yakın eczaneye yol tarifi", "biraz rahatlatıcı bir şey aç" → komut), bağlı değilse yerel model; hemen her soruya yanıt. Gemini bütün uygulamayı yönetebilsin: her ekran / kart / düğme için bir eylem kataloğu (araç çağırma), yerel motor da aynı kataloğu kullanır
 G. [ ] "Kaldığın yerden" kartında daha çok veri: son dinlenen / izlenen birkaç öğe, ilerleme, ne zaman
 H. [ ] Ekolayzer kartı (hazır ayarlar: Pop, Rock, Konuşma, Bas, Araç; bant ayarları)
 B. [ ] Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, kısayol çipleri) 48dp altında kalmasın
@@ -52,6 +52,7 @@ Q10. [ ] Telefon durumu (pil, veri, sinyal) ve hızlı ayarlar
 Q11. [ ] Hızlı mesaj (WhatsApp / SMS hazır cevaplar, "varınca haber ver")
 Q12. [ ] Spor skorları
 R1. [ ] Araç hareket edince videodan sese geçiş (araştırma: Android Auto 2026 "video-to-audio handoff"): TV / YouTube videosu araç 10 km/s'yi geçince yalnız ses olarak sürer (görüntü kapanır, veri azalır), park edince görüntü geri gelir; Sürüş ekranından aç / kapat
+R3. [ ] Dayanıklılık testinde donma (ANR, "Input dispatching timed out — no focused window", 19 Kasım): rastgele dokunuşta uygulama arka plandan dönerken; ana iş parçacığı dökümünü incele, açılışta ağır işi arka plana al
 R2. [ ] Uyarı geçmişi için sesli komut ("son uyarılar", "az önce ne dedin") ve Gemini'nin geçmişi okuyabilmesi
 
 ## Sürekli (her 3 turda bir)

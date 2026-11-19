@@ -2,7 +2,7 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
-## 2026-11-19 · v2-167 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-167
+## 2026-11-19 · v2-168 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-168
 
 - Gemini bağlıysa uygulamayı o yönetir: doğal istekleri ("biraz rahatlatıcı bir şey aç", "beni en yakın eczaneye götür", "çok gürültülü") anlayıp uygulamanın komutuna çevirir, komut hemen yürür.
 - Tek eylem kataloğu: oynatma, kanallar, navigasyon, arama / mesaj, kartlar, sürüş uyarıları, hatırlatma, tema; Gemini de yerel komut çözücü de aynı listeyi kullanır.
