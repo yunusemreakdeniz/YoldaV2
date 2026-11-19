@@ -1117,9 +1117,10 @@ public class YoldaAtoZTest {
 			});
 			assertTrue("Videoda radar uyarısı kartı görünmeli",
 					waitFor(2000, () -> onMain(me.aap.fermata.ui.view.YoldaAlertOverlay::isShown)));
-			shot("video_radar_uyarisi");
+			// ✕ ekran görüntüsünden önce aranır: uyarı 5 sn'de kendiliğinden kapanır, görüntü almak yavaş olabilir
 			View x = onMain(a -> byDesc(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Uyarıyı kapat"));
 			assertNotNull("Uyarıda kapat düğmesi olmalı", x);
+			shot("video_radar_uyarisi");
 			onMain(a -> x.performClick());
 			assertTrue("✕ ile kapanmalı", waitFor(1500, () -> !onMain(me.aap.fermata.ui.view.YoldaAlertOverlay::isShown)));
 		} finally {

@@ -119,6 +119,9 @@ public class WeatherFragment extends MainActivityFragment {
 		TextView title = text(ctx, (data != null) ? data.place() : "Hava durumu", YoldaStyle.titleSp(ctx), true, t.ink);
 		title.setSingleLine(true);
 		title.setEllipsize(TextUtils.TruncateAt.END);
+		// uzun yer adı ("Mendocino County", "Kahramanmaraş Merkez") kesilmesin: sığana kadar küçülür (en az 18 sp)
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(title, 18,
+				Math.max(19, Math.round(YoldaStyle.titleSp(ctx))), 1, android.util.TypedValue.COMPLEX_UNIT_SP);
 		head.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
 		TextView refresh = pill(ctx, loading ? "Yükleniyor…" : "↻ Yenile");
 		refresh.setOnClickListener(v -> {
