@@ -2626,6 +2626,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private int centerPosition() {
+		if ((list == null) || (snap == null)) return -1; // telefon görünümünde deste listesi yok
 		View v = snap.findSnapView(list.getLayoutManager());
 		return (v != null) ? list.getChildAdapterPosition(v) : -1;
 	}
@@ -2962,6 +2963,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private void setEditing(boolean on) {
+		if ((list == null) || (adapter == null) || (editBtn == null)) { // telefon görünümü: deste yok, kendi düzenleyicisi
+			if (on && (getContext() != null)) showPhoneCardsEditor(requireContext());
+			return;
+		}
 		int keep = centerPosition(); // düzenleme kipine girip çıkarken ortadaki kart değişmesin
 		editing = on;
 		updateRestoreBtn();
@@ -4047,6 +4052,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private void afterChange(int focus) {
 		if (!isAdded() || (getContext() == null)) return;
 		save();
+		if ((adapter == null) || (list == null)) { // telefon görünümü: ızgarayı yeniden kur
+			if (phoneBuilt) rebuildPhone();
+			return;
+		}
 		adapter.notifyDataSetChanged();
 		list.post(() -> {
 			if (!isAdded()) return;
