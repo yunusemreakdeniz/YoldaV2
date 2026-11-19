@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-187 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-187 · TomTom hız sınırı
+
+- İsteğe bağlı TomTom hız sınırı: Menü → "TomTom hız sınırı" ile kullanıcının ücretsiz anahtarı; OSM'de sınırı yazılı olmayan yollarda TomTom'un sınırı (sıra: OSM yazılı, TomTom, tahmin); günde en çok 2.000 istek.
+- Alanı çizilmemiş köy / kasabalarda yakın yerleşim noktasıyla şehir içi tahmini; yol değişince tanı günlüğüne sınırın kaynağı.
+
 ## 2026-11-19 · v2-186 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-186 · Hey Yolda düzeltmesi
 
 - "Hey Yolda" denmeden açılıyordu: sıkı kip (varsayılan) yalnız kesin sonuçta, yüksek güvenle (>= 0.88), doğal sürede ve sohbetin ortasında değilken uyanır; tek "yola" uyandırmaz. Menü'de "Hey Yolda hassasiyeti: Sıkı / Normal".
