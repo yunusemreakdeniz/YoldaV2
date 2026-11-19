@@ -292,33 +292,47 @@ public final class YoldaWake {
 		return isWake(json, false);
 	}
 
+	static boolean isWake(String json, boolean playing) {
+		return isWake(json, playing, true);
+	}
+
 	private static final java.util.Set<String> STRONG = new java.util.HashSet<>(java.util.Arrays.asList(
-			"hey yolda", "ey yolda", "hey yol da", "hey yola", "ey yola", "heyolda", "eyolda"));
+			"hey yolda", "ey yolda", "hey yol da", "heyolda", "eyolda"));
+
+	/** Sıkı kip (varsayılan): yanlış uyanmaya karşı yüksek güven eşiği. Normal kip eski, daha duyarlı eşik. */
+	static final double CONF_STRICT = 0.88, CONF_NORMAL = 0.6;
 
 	/**
-	 * Uyandırma sözcüğü mü. Yanlış uyanmalara karşı (müzik, radyo, konuşma):
+	 * Uyandırma sözcüğü mü. Türkçe küçük model "hey"i çoğunlukla duymaz, "hey yolda"yı tek "yolda" olarak verir;
+	 * bu yüzden "yolda" tek başına kabul edilir ama yalnız sıkı koşullarla (yanlış uyanma: sohbet, radyo, müzik):
 	 * <ul>
-	 * <li>cümle yalnız "hey yolda" olmalı (en çok bir bilinmeyen sözcük önde); "yola çıkalım" gibi devamı olan
-	 * cümleler uyandırmaz,</li>
-	 * <li>"hey"siz tek "yolda" yalnız kesin sonuçta (ara sonuçta değil) ve bir şey çalmıyorken kabul edilir,</li>
-	 * <li>sözcük güveni (varsa) düşükse kabul edilmez.</li>
+	 * <li>yalnız kesin sonuç (ara sonuçlar gürültülü, sayılmaz),</li>
+	 * <li>sonuç yalnız uyandırma sözcüğü: önünde en çok bir bilinmeyen ("hey"), ardında hiçbir şey,</li>
+	 * <li>sözcük güveni sıkı kipte en az 0.88 (gerçek "hey yolda" kayıtlarında 0.94-0.99),</li>
+	 * <li>"yolda" 0.25-1.2 sn sürmeli (çok kısa gürültü, uzatılmış sözcük değil),</li>
+	 * <li>tek "yola" uyandırmaz (gündelik sözcük); bir şey çalarken yalnız açıkça "hey yolda".</li>
 	 * </ul>
 	 *
-	 * @param playing hoparlörden ses geliyor: yalnız açıkça "hey yolda" kabul
+	 * @param playing hoparlörden ses geliyor
+	 * @param strict  sıkı kip (Menü → "Hey Yolda" hassasiyeti)
 	 */
-	static boolean isWake(String json, boolean playing) {
+	static boolean isWake(String json, boolean playing, boolean strict) {
 		if (json == null) return false;
 		String s = json.toLowerCase(new Locale("tr"));
 		boolean partial = s.contains("\"partial\"");
+		if (partial && strict) return false;
 		String text;
 		java.util.Map<String, Double> conf = new java.util.HashMap<>();
+		double dur = -1;
 		try {
 			org.json.JSONObject o = new org.json.JSONObject(s);
 			text = o.optString(partial ? "partial" : "text", "");
 			org.json.JSONArray r = o.optJSONArray("result");
 			if (r != null) for (int i = 0; i < r.length(); i++) {
 				org.json.JSONObject w = r.getJSONObject(i);
-				conf.merge(w.optString("word"), w.optDouble("conf", 1), Math::min);
+				String word = w.optString("word");
+				conf.merge(word, w.optDouble("conf", 1), Math::min);
+				if (word.equals("yolda") && w.has("start") && w.has("end")) dur = w.optDouble("end") - w.optDouble("start");
 			}
 		} catch (Throwable ex) {
 			int q = s.lastIndexOf(':');
@@ -335,13 +349,44 @@ public final class YoldaWake {
 			if (!words[i].isEmpty()) b.append(b.length() > 0 ? " " : "").append(words[i]);
 		}
 		String r = b.toString();
-		for (String w : new String[]{"yolda", "yola"}) {
+		double min = strict ? (playing ? 0.93 : CONF_STRICT) : CONF_NORMAL;
+		for (String w : new String[]{"hey", "ey", "yolda", "yola", "yol", "da"}) {
 			Double c = conf.get(w);
-			if ((c != null) && (c < 0.6)) return false;
+			if ((c != null) && (c < min)) return false;
 		}
+		if (strict && (dur >= 0) && ((dur < 0.25) || (dur > 1.2))) return false;
 		if (STRONG.contains(r)) return (lead == 0) || !playing;
-		if (r.equals("yolda") || r.equals("yola")) return !partial && !playing;
+		if (!strict && (r.equals("hey yola") || r.equals("ey yola"))) return lead == 0;
+		if (r.equals("yolda")) return !partial && !playing && (!strict || !conf.isEmpty() || (lead == 0));
+		if (r.equals("yola")) return !strict && !partial && !playing;
 		return false;
+	}
+
+	/** Son duyulan (uyandırma olmayan) konuşma: sohbetin ortasındaki "yolda" uyandırmasın. */
+	private static long lastSpeechAt;
+
+	/** Uyandırma sözcüğü tek başına mı söylendi: önceki konuşmadan en az 2 sn sonra (sıkı kipte). */
+	static boolean isolated(long now, long lastSpeech, boolean strict) {
+		return !strict || (now - lastSpeech >= 2000);
+	}
+
+	/** Sonuçta (ara sonuç değil) uyandırma dışında konuşma var mı. */
+	static boolean hasSpeech(@androidx.annotation.Nullable String json) {
+		if ((json == null) || json.contains("\"partial\"")) return false;
+		try {
+			String t = new org.json.JSONObject(json).optString("text", "").trim();
+			return !t.isEmpty();
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
+
+	public static boolean isStrict(Context ctx) {
+		return ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).getBoolean("wake_strict", true);
+	}
+
+	public static void setStrict(Context ctx, boolean on) {
+		ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).edit().putBoolean("wake_strict", on).apply();
 	}
 
 	private static void check(String json) {
@@ -352,7 +397,18 @@ public final class YoldaWake {
 			playing = (o != null) && o.getMediaSessionCallback().isPlaying();
 		} catch (Throwable ignore) {
 		}
-		if (!isWake(json, playing)) return;
+		MainActivityDelegate oo = (carOwner != null) ? carOwner : owner;
+		boolean strict = (oo == null) || isStrict(oo.getContext());
+		long t0 = System.currentTimeMillis();
+		if (!isWake(json, playing, strict)) {
+			if (hasSpeech(json)) lastSpeechAt = t0; // sohbet sürüyor
+			return;
+		}
+		if (!isolated(t0, lastSpeechAt, strict)) {
+			YoldaLog.add("Hey Yolda: konuşmanın ortasında, sayılmadı");
+			lastSpeechAt = t0;
+			return;
+		}
 		if (YoldaSpeak.recentlySpoke()) { // Yolda'nın kendi sesi ("Ben Yolda…")
 			YoldaLog.add("Hey Yolda: kendi sesi, sayılmadı");
 			return;
