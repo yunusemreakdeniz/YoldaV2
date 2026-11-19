@@ -609,6 +609,7 @@ public final class YoldaVoice {
 		return switch (it.kind()) {
 			case CHAT, WIKI -> true;
 			case YT_SEARCH, SONG, RADIO_SEARCH, NAV_TO -> words >= 6; // "yol boyunca dinleyeceğim güzel bir şey çal"
+			case CHANNEL -> words >= 5; // tanınmayan cümle kanal adı sayılıyordu: uzun cümle kanal adı değildir
 			default -> false;
 		};
 	}
