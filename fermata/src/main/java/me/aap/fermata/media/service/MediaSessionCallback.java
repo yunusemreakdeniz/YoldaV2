@@ -862,6 +862,9 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 				List<PlayableItem> l = (children == null) ? new java.util.ArrayList<>() : new java.util.ArrayList<>(children);
 				me.aap.fermata.ui.fragment.YoldaChannelOrder.sort(l,
 						me.aap.fermata.ui.fragment.YoldaChannelOrder.order(lib.getContext()), PlayableItem::getId);
+				// gizlenen kanallar atlanır (çalan kanal gizli olsa da yerini bulmak için listede kalır)
+				l.removeIf(p -> !p.getId().equals(cur.getId())
+						&& me.aap.fermata.ui.fragment.YoldaChannelOrder.isHidden(lib.getContext(), p.getName()));
 				int idx = -1;
 				for (int k = 0; k < l.size(); k++) {
 					if (l.get(k).getId().equals(cur.getId())) {

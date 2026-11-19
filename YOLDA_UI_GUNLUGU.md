@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-166 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-166
+
+- TV ve Radyo kartında "Kanalları düzenle": tüm liste tek sırayla; sürükle ya da ▲ ▼ ile taşı, ada dokununca kanalı gizle / göster.
+- Aynı sıra ve gizleme her yerde: kartın yüzü, Kanallar ekranı ve direksiyondan / sesle "sonraki kanal" (gizlenenler atlanır).
+- Emülatör testlerindeki gerçek hatalar düzeltildi: hava ekranında uzun yer adı başlıkta kesilmiyor (sığana kadar küçülür); takılan test sınıfı artık tüm testi kilitlemiyor.
+
 ## 2026-11-19 · v2-163 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-163
 
 - Kartlardaki erişim düğmeleri büyüdü: TV / radyo kanal kutucukları, kısayol çipleri ve Aç düğmesi telefonda en az 56dp, araçta 64dp.

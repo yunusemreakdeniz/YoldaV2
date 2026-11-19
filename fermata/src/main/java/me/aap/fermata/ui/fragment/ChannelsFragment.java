@@ -572,17 +572,11 @@ public class ChannelsFragment extends MainActivityFragment {
 	private boolean editing;
 
 	static boolean isHidden(Context ctx, String name) {
-		return ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE)
-				.getStringSet("ch_hidden", java.util.Collections.emptySet()).contains(name);
+		return YoldaChannelOrder.isHidden(ctx, name);
 	}
 
 	private static void setHidden(Context ctx, String name, boolean hide) {
-		android.content.SharedPreferences sp = ctx.getApplicationContext()
-				.getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
-		Set<String> set = new java.util.HashSet<>(sp.getStringSet("ch_hidden", java.util.Collections.emptySet()));
-		if (hide) set.add(name);
-		else set.remove(name);
-		sp.edit().putStringSet("ch_hidden", set).apply();
+		YoldaChannelOrder.setHidden(ctx, name, hide);
 	}
 
 	private View mini(Context ctx, int res, View.OnClickListener click) {

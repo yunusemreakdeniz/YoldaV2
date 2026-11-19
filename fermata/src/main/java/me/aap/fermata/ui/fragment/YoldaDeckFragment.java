@@ -1278,8 +1278,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaStyle.toast(ctx, "Kanal listesi henüz yüklenmedi");
 			return;
 		}
-		orderEditor(ctx, radio ? "Radyoları sırala" : "Kanalları sırala", "en üstteki kartta ilk görünür", work,
-				MediaLib.PlayableItem::getName, l -> saveOrder(ctx, radio, l), null);
+		// Tek sıra: kart, Kanallar ekranı ve kanal atlama aynı sırayı izler; ada dokununca kanal gizlenir / gösterilir
+		orderEditor(ctx, radio ? "Radyoları düzenle" : "Kanalları düzenle", "ada dokun: gizle / göster", work,
+				pi -> YoldaChannelOrder.isHidden(ctx, pi.getName()) ? (pi.getName() + "  · gizli") : pi.getName(),
+				l -> saveOrder(ctx, radio, l), null, (pi, put) -> {
+					boolean hid = YoldaChannelOrder.isHidden(ctx, pi.getName());
+					YoldaChannelOrder.setHidden(ctx, pi.getName(), !hid);
+					YoldaStyle.toast(ctx, pi.getName() + (hid ? " gösteriliyor" : " gizlendi"));
+					put.accept(pi); // satırı yeniden çiz
+					refreshCard(radio ? YoldaDeck.RADIO : YoldaDeck.TV);
+				});
 	}
 
 	/**
@@ -3986,7 +3994,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Önce favoriler, sonra listedeki ilk kanallar (en çok 8). */
 	private List<MediaLib.PlayableItem> pickChannels(List<MediaLib.PlayableItem> all) {
 		List<MediaLib.PlayableItem> out = new ArrayList<>();
-		if ((getContext() != null) && YoldaChannelOrder.hasOrder(getContext())) { // kullanıcının sırası
+		Context hc = getContext();
+		if (hc != null) { // gizlenen kanallar kartta görünmez
+			List<MediaLib.PlayableItem> vis = new ArrayList<>();
+			for (MediaLib.PlayableItem pi : all) if (!YoldaChannelOrder.isHidden(hc, pi.getName())) vis.add(pi);
+			all = vis;
+		}
+		if ((hc != null) && YoldaChannelOrder.hasOrder(hc)) { // kullanıcının sırası
 			for (MediaLib.PlayableItem pi : all) if (out.size() < 8) out.add(pi);
 			return out;
 		}
