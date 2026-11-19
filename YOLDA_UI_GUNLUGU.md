@@ -2,6 +2,18 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-185 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-185 · Paket B
+
+- Zemin hava durumuna göre: yağmurda damla, karda tane, açık gündüz güneş, açık gece yıldız, sis, bulut, fırtına; araçta ve animasyon kapalıyken sabit; Tema seçicide aç / kapa.
+- Ölçülü animasyonlar: ekran açılışında kısa soluklaşma ve yükselme (araçta yalnız soluklaşma), basınca hafif küçülme.
+- Pro tasarım dili: tek yazı ölçeği, köşe basamakları, yazı rengi tokenları (her temada okunurluk testi).
+- Android Auto: kart yüzünde en çok 6 öğe, kısa tek satır çip yazıları.
+- Hız sınırı: yerleşim alanı içindeyken adsız ana yolda 50 (dışında 90), bölünmüş yolda 70 / 110.
+- Reklam engelleyici: daha çok reklam ağı, her sitede reklam betiği dosyaları, boş reklam kutuları gizlenir, sayfa dokunulmadan pencere açamaz.
+- Sesle ve Gemini ile kart yönetimi: "X kartını gizle / geri getir / başa al / Y kartının ardına taşı"; Gemini kart listesini bilir.
+- Müzik kartı ilk açılışta boş kalmaz; hızlı geçiş şeridi 33 kartta ekrana sığar (son karta varılır).
+- Yeni cihaz testi: her ekranda her tıklama (çökme / boş ekran yok).
+
 ## 2026-11-19 · v2-184 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-184 · Gemini düzeltmesi
 
 - Gemini 503 ("model aşırı yüklü") ve uzun bekleme: önce hızlı Lite modeller (gemini-3.5-flash-lite, flash-lite-latest), sonra Flash; yoğunlukta kısa bekleyip tekrar dener, 12 sn yanıtsız model atlanır. Yeni anahtarlara kapalı 2.5 modelleri çıkarıldı.

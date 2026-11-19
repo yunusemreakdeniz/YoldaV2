@@ -32,17 +32,17 @@ B. [x] (v2-173) Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucu
 9. [x] (v2-181) Mobil veri sınırı ve uyarısı (aç / kapat); aşınca devam edene devam
 10. [x] (v2-182) TV'de çok kanal değiştirince görüntünün gitmesi (tanı günlüğüyle)
 11. [x] (v2-181) Gidilen yerdeki otoparklar (OpenStreetMap)
-12. [ ] Android Auto'da profesyonel görünüm: kalan sadeleştirmeler
-13. [ ] Hava durumuna göre animasyonlu tema (gece / gündüz ayarlı)
-14. [ ] Sisteme ölçülü animasyonlar (geçişler, kart açılışı)
-15. [ ] Reklam engelleyiciyi güçlendirme
+12. [x] (v2-185, araçta kart yüzünde en çok 6 öğe, kısa yazı) Android Auto'da profesyonel görünüm: kalan sadeleştirmeler
+13. [x] (v2-185) Hava durumuna göre animasyonlu tema (gece / gündüz ayarlı)
+14. [x] (v2-185) Sisteme ölçülü animasyonlar (geçişler, kart açılışı)
+15. [x] (v2-185) Reklam engelleyiciyi güçlendirme
 17. [x] (v2-176) Telefon görünümüne cihaz testleri
 18. [ ] Padding / boşluk sorunlarının kalanı (kullanıcıdan örnek ekran görüntüsü)
 
-M. [ ] Hız sınırı için daha iyi kaynak araştırması (ücretsiz / izinli API'ler, OSM verisinin daha geniş çekilmesi, yol sınıfı + yerleşim alanı poligonu ile daha doğru tahmin); hedef: hemen her yolda sınır
-N. [ ] "Pro" görünüm: tasarım dili (yazı ölçeği, renk ve gölge tokenları, tek ikon seti, kart şablonu), bütün ekranlara uygulanması
-O. [ ] Her tıklamanın testi: cihaz testlerinde her ekrandaki tıklanabilir öğelerin taranıp tıklanması (çökme / boş ekran yok), raporlanan hataların düzeltilmesi
-P. [ ] Kartları kullanışlı ve modern yapma turu: her kartın yüzünde en sık 3 işi tek dokunuşla yapma, canlı bilgi, tutarlı düzen
+M. [x] (v2-185, yerleşim alanı ile; saha doğrulaması ve yakınlık yedeği sürüyor) Hız sınırı için daha iyi kaynak araştırması (ücretsiz / izinli API'ler, OSM verisinin daha geniş çekilmesi, yol sınıfı + yerleşim alanı poligonu ile daha doğru tahmin); hedef: hemen her yolda sınır
+N. [x] (v2-185, yazı ölçeği, köşe ve renk tokenları) "Pro" görünüm: tasarım dili (yazı ölçeği, renk ve gölge tokenları, tek ikon seti, kart şablonu), bütün ekranlara uygulanması
+O. [x] (v2-185, YoldaClickAllTest: 18 ekran) Her tıklamanın testi: cihaz testlerinde her ekrandaki tıklanabilir öğelerin taranıp tıklanması (çökme / boş ekran yok), raporlanan hataların düzeltilmesi
+P. [x] (v2-185) Kartları kullanışlı ve modern yapma turu: her kartın yüzünde en sık 3 işi tek dokunuşla yapma, canlı bilgi, tutarlı düzen
 
 ### Yeni kart fikirleri (sırayla eklenecek)
 
