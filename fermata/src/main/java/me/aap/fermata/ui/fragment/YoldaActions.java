@@ -47,6 +47,9 @@ public final class YoldaActions {
 			// destede ve ekranlar
 			{"[kart adı] kartına geç / [kart adı] kartını aç", "desteyi o karta götürür / açar (radyo, hava, akaryakıt, park, yolculuklar, eczane, sürüş, kişiler, telefon, favoriler)"},
 			{"sonraki kart / önceki kart / kartları düzenle", "deste"},
+			{"[kart adı] kartını gizle / [kart adı] kartını geri getir", "kartı gizler (telefon görünümünde yalnız telefonda) / geri getirir"},
+			{"[kart adı] kartını başa al / sona al", "kartın sırasını değiştirir"},
+			{"[kart adı] kartını [öbür kart] kartının önüne / ardına taşı", "kartı başka bir kartın yanına taşır"},
 			{"ana sayfa / geri", "gezinme"},
 			{"telefon görünümüne geç / araç görünümüne geç", "telefonda ızgara ya da kart destesi"},
 			{"navigasyonu aç / kanalları aç / menüyü aç / ayarları aç", "ekran açar"},

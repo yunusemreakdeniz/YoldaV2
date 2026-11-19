@@ -111,6 +111,49 @@ public class YoldaPaketBTest {
 	}
 
 	@Test
+	public void kartYonetimiKomutlari() {
+		YoldaIntents.Intent h = YoldaIntents.parse("hava durumu kartını gizle");
+		assertEquals(YoldaIntents.Kind.CARD_HIDE, h.kind());
+		assertEquals("hava durumu", h.arg());
+		assertEquals(YoldaIntents.Kind.CARD_HIDE, YoldaIntents.parse("spor kartını kaldır").kind());
+		YoldaIntents.Intent g = YoldaIntents.parse("podcast kartını geri getir");
+		assertEquals(YoldaIntents.Kind.CARD_SHOW, g.kind());
+		assertEquals("podcast", g.arg());
+		assertEquals("radyo|first", YoldaIntents.parse("radyo kartını başa al").arg());
+		assertEquals("eczane|last", YoldaIntents.parse("eczane kartını en sona taşı").arg());
+		YoldaIntents.Intent mv = YoldaIntents.parse("spor kartını trafik kartının ardına taşı");
+		assertEquals(YoldaIntents.Kind.CARD_MOVE, mv.kind());
+		assertEquals("spor|after|trafik", mv.arg());
+		assertEquals("spor|before|trafik", YoldaIntents.parse("spor kartını trafik kartının önüne al").arg());
+		// eski kart komutları değişmedi
+		assertEquals(YoldaIntents.Kind.CARD, YoldaIntents.parse("radyo kartına geç").kind());
+		assertEquals(YoldaIntents.Kind.CARD_OPEN, YoldaIntents.parse("akaryakıt kartını aç").kind());
+	}
+
+	@Test
+	public void kartHedefSirasi() {
+		assertEquals(0, YoldaDeck.targetIndex(5, "first", -1, 10));
+		assertEquals(9, YoldaDeck.targetIndex(5, "last", -1, 10));
+		assertEquals(2, YoldaDeck.targetIndex(5, "before", 2, 10)); // öbürü solda: onun yerine
+		assertEquals(3, YoldaDeck.targetIndex(5, "after", 2, 10));
+		assertEquals(7, YoldaDeck.targetIndex(2, "before", 8, 10)); // öbürü sağda: çıkınca bir kayar
+		assertEquals(8, YoldaDeck.targetIndex(2, "after", 8, 10));
+		assertEquals(5, YoldaDeck.targetIndex(5, "after", 5, 10)); // kendi yanına: yer değişmez
+		assertEquals(4, YoldaDeck.targetIndex(4, "before", -1, 10)); // öbürü bulunamadı
+		// liste üzerinde gerçekten doğru yere gidiyor mu
+		java.util.List<String> l = new java.util.ArrayList<>(java.util.List.of("a", "b", "c", "d", "e"));
+		int to = YoldaDeck.targetIndex(0, "after", 3, l.size()); // a'yı d'nin ardına
+		l.add(to, l.remove(0));
+		assertEquals(java.util.List.of("b", "c", "d", "a", "e"), l);
+		l = new java.util.ArrayList<>(java.util.List.of("a", "b", "c", "d", "e"));
+		to = YoldaDeck.targetIndex(4, "before", 1, l.size()); // e'yi b'nin önüne
+		l.add(to, l.remove(4));
+		assertEquals(java.util.List.of("a", "e", "b", "c", "d"), l);
+		assertEquals(YoldaDeck.PODCAST, YoldaDeck.builtInOfSpoken("podcast"));
+		assertEquals(null, YoldaDeck.builtInOfSpoken("olmayan bir şey"));
+	}
+
+	@Test
 	public void yerlesimAlani() throws Exception {
 		JSONArray el = new JSONArray("[{\"type\":\"way\",\"tags\":{\"highway\":\"primary\"}},"
 				+ "{\"type\":\"area\",\"tags\":{\"landuse\":\"residential\"}}]");

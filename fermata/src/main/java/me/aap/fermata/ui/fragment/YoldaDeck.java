@@ -396,4 +396,34 @@ public final class YoldaDeck {
 		cut = cut.replaceAll("[\\s·,.:;-]+$", "");
 		return cut + "…";
 	}
+
+	// ---- sesle / Gemini ile kart yönetimi ----
+
+	/**
+	 * Taşınan kartın yeni sırası: where = first / last / before / after (other: yanına konacak kartın sırası).
+	 * size: taşınabilir kart sayısı ("Ekle" hariç). Kart kendi yanına taşınırsa yeri değişmez.
+	 */
+	public static int targetIndex(int from, String where, int other, int size) {
+		if ((size <= 0) || (from < 0) || (from >= size)) return from;
+		int t = switch (where) {
+			case "first" -> 0;
+			case "last" -> size - 1;
+			case "before" -> (other < 0) ? from : ((other < from) ? other : other - 1);
+			case "after" -> (other < 0) ? from : ((other < from) ? other + 1 : other);
+			default -> from;
+		};
+		return Math.max(0, Math.min(size - 1, t));
+	}
+
+	/** Söylenen ada uyan sabit kart türü (kaldırılmış olsa da; geri getirmek için), yoksa null. */
+	@Nullable
+	public static String builtInOfSpoken(@Nullable String spoken) {
+		if (spoken == null) return null;
+		String s = spoken.trim().toLowerCase(new java.util.Locale("tr")).replaceAll("['’]", "");
+		String t = typeOfSpoken(s);
+		if (t == null) t = typeOfSpoken(s.replaceAll("(y?[ae]|n[ae]|y?[ıiuü]|n[ıiuü])$", ""));
+		if (t == null) return null;
+		for (String d : DEFAULT) if (d.equals(t)) return t;
+		return null;
+	}
 }

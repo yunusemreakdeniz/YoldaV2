@@ -572,6 +572,24 @@ public final class YoldaVoice {
 					else toast(a, title + " açılıyor");
 				}, 150);
 			}
+			case CARD_HIDE, CARD_SHOW, CARD_MOVE -> { // kart yönetimi (sesle ya da Gemini'nin KOMUT'uyla)
+				a.showFragment(R.id.home_fragment);
+				App.get().getHandler().postDelayed(() -> {
+					if (!(a.getActiveFragment() instanceof YoldaDeckFragment d)) return;
+					String[] p = it.arg().split("\\|");
+					String t = switch (it.kind()) {
+						case CARD_HIDE -> d.hideCardByName(p[0]);
+						case CARD_SHOW -> d.showCardByName(p[0]);
+						default -> d.moveCardByName(p[0], (p.length > 1) ? p[1] : "first", (p.length > 2) ? p[2] : null);
+					};
+					if (t == null) reply(a, "“" + p[0] + "” kartını bulamadım" + ((p.length > 2) ? (" ya da “" + p[2] + "” kartını") : ""));
+					else reply(a, t + switch (it.kind()) {
+						case CARD_HIDE -> " kartı gizlendi; geri getirmek için “" + t.toLowerCase(new java.util.Locale("tr")) + " kartını geri getir” de";
+						case CARD_SHOW -> " kartı geri geldi";
+						default -> " kartı taşındı";
+					});
+				}, 150);
+			}
 			case EDIT_CARDS -> {
 				a.showFragment(R.id.home_fragment);
 				App.get().getHandler().postDelayed(() -> {

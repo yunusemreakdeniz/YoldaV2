@@ -869,6 +869,94 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return deck.get(i).title();
 	}
 
+	/**
+	 * Sesle / Gemini ile kart gizle: telefon görünümünde yalnız telefondan gizler (araç destesi değişmez), araçta
+	 * desteden kaldırır (sabit kart sonra geri getirilebilir). @return kartın adı, bulunamazsa ya da kaldırılamazsa null.
+	 */
+	@Nullable
+	public String hideCardByName(String spoken) {
+		Context ctx = getContext();
+		if ((deck == null) || (ctx == null)) return null;
+		int i = deck.find(spoken);
+		if (i < 0) return null;
+		YoldaDeck.Card c = deck.get(i);
+		if (YoldaDeck.ADD.equals(c.type())) return null;
+		if (phoneMode()) {
+			java.util.Set<String> h = new java.util.HashSet<>(prefs(ctx).getStringSet(PREF_PHONE_HIDDEN, java.util.Collections.emptySet()));
+			h.add(c.key());
+			List<String> order = new ArrayList<>();
+			for (YoldaDeck.Card x : phoneCards(ctx)) if (!x.key().equals(c.key())) order.add(x.key());
+			savePhoneOrder(ctx, order, h);
+			rebuildPhone();
+			return c.title();
+		}
+		if (!deck.remove(i)) return null;
+		if (!c.isBuiltIn()) stashRemoved(c);
+		afterChange(Math.max(0, i - 1));
+		updateRestoreBtn();
+		return c.title();
+	}
+
+	/** Gizlenen / kaldırılan kartı geri getir. @return kartın adı, bulunamazsa null. */
+	@Nullable
+	public String showCardByName(String spoken) {
+		Context ctx = getContext();
+		if ((deck == null) || (ctx == null)) return null;
+		if (phoneMode()) {
+			for (YoldaDeck.Card hc : phoneHiddenCards(ctx)) {
+				if (deck.find(spoken) == deck.cards().indexOf(hc)) { // söylenen ad bu gizli karta uyuyor
+					unhidePhoneCard(ctx, hc);
+					return hc.title();
+				}
+			}
+		}
+		String type = YoldaDeck.builtInOfSpoken(spoken);
+		if (type == null) return null;
+		int at = deck.indexOf(type);
+		if (at >= 0) { // zaten destede: telefonda gizliyse yukarıda açıldı; değilse oraya git
+			goToCard(spoken);
+			return deck.get(at).title();
+		}
+		at = deck.restore(type);
+		afterChange(at);
+		updateRestoreBtn();
+		return deck.get(at).title();
+	}
+
+	/** Kartı taşı: where = first / last / before / after (other: yanına konacak kartın adı). @return yeni sıra açıklaması ya da null. */
+	@Nullable
+	public String moveCardByName(String spoken, String where, @Nullable String other) {
+		Context ctx = getContext();
+		if ((deck == null) || (ctx == null)) return null;
+		int i = deck.find(spoken);
+		if ((i < 0) || YoldaDeck.ADD.equals(deck.get(i).type())) return null;
+		int o = (other != null) ? deck.find(other) : -1;
+		if ((other != null) && (o < 0)) return null;
+		YoldaDeck.Card c = deck.get(i);
+		if (phoneMode()) {
+			List<String> order = new ArrayList<>();
+			for (YoldaDeck.Card x : phoneCards(ctx)) order.add(x.key());
+			int from = order.indexOf(c.key());
+			if (from < 0) return null;
+			int oi = (o >= 0) ? order.indexOf(deck.get(o).key()) : -1;
+			int to = YoldaDeck.targetIndex(from, where, oi, order.size());
+			order.add(to, order.remove(from));
+			savePhoneOrder(ctx, order, new java.util.HashSet<>(prefs(ctx).getStringSet(PREF_PHONE_HIDDEN, java.util.Collections.emptySet())));
+			rebuildPhone();
+			return c.title();
+		}
+		int movable = deck.size() - ((deck.indexOf(YoldaDeck.ADD) >= 0) ? 1 : 0);
+		int to = YoldaDeck.targetIndex(i, where, o, movable);
+		int p = i;
+		while (p != to) {
+			int np = deck.move(p, (to > p) ? 1 : -1);
+			if (np == p) break;
+			p = np;
+		}
+		afterChange(p);
+		return c.title();
+	}
+
 	/** Ana karta kayarak dön. @return ana kart varsa true. */
 	public boolean goHomeCard() {
 		int hc = homeCardIndex();
