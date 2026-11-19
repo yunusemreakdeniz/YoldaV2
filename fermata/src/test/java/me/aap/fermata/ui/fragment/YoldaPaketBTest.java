@@ -177,6 +177,28 @@ public class YoldaPaketBTest {
 	}
 
 	@Test
+	public void yakindakiYerlesimNoktasi() throws Exception {
+		// köy noktası 400 m ötede: yerleşim içi; 900 m ötede: dışı (köy yarıçapı 600 m)
+		double la = 40.0, lo = 32.0;
+		String near = "[{\"type\":\"node\",\"lat\":40.0036,\"lon\":32.0,\"tags\":{\"place\":\"village\",\"name\":\"Köy\"}}]";
+		String far = "[{\"type\":\"node\",\"lat\":40.0081,\"lon\":32.0,\"tags\":{\"place\":\"village\"}}]";
+		assertTrue(YoldaRadarCore.settlementNear(new JSONArray(near), la, lo));
+		assertFalse(YoldaRadarCore.settlementNear(new JSONArray(far), la, lo));
+		// kasaba noktası 900 m: içi (kasaba 1500 m); yol (way) ve yerleşim olmayan düğüm sayılmaz
+		assertTrue(YoldaRadarCore.settlementNear(new JSONArray(far.replace("village", "town")), la, lo));
+		assertFalse(YoldaRadarCore.settlementNear(new JSONArray(near.replace("village", "locality")), la, lo));
+		assertFalse(YoldaRadarCore.settlementNear(new JSONArray(near.replace("\"node\"", "\"way\"")), la, lo));
+		assertFalse(YoldaRadarCore.settlementNear(null, la, lo));
+	}
+
+	@Test
+	public void hizSiniriGunlugu() {
+		assertEquals("Hız sınırı ~50 · yol: primary · tahmin, yerleşim içi", YoldaRadarCore.limitLog("primary", 50, true, true));
+		assertEquals("Hız sınırı 82 · yol: trunk · haritada yazılı", YoldaRadarCore.limitLog("trunk", 82, false, false));
+		assertEquals("Hız sınırı yok · yol: service", YoldaRadarCore.limitLog("service", 0, false, false));
+	}
+
+	@Test
 	public void yerlesimdeHizSiniri() {
 		// adsız ana yol: dışarıda 90, yerleşim alanında 50
 		assertEquals(90, YoldaRadarCore.estimateLimit("primary", false, null, null, false, null, false));
