@@ -28,7 +28,7 @@ H. [x] (v2-170) Ekolayzer kartı (hazır ayarlar: Pop, Rock, Konuşma, Bas, Ara�
 B. [x] (v2-173) Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, kısayol çipleri) 48dp altında kalmasın
 0. [ ] Kalıcı imza anahtarı: güncellemeler eskinin üzerine kurulsun, ayarlar / kart düzeni / görünüm silinmesin (kullanıcı onayı bekliyor: anahtar oluşturma ve GitHub gizli ayarları)
 7. [x] (v2-174) Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)
-8. [ ] Medya kartı: telefondaki videolar (en yeni üstte, klasörler, kaldığı yerden) ve fotoğraflar (yalnız telefonda)
+8. [x] (v2-182) Medya kartı: telefondaki videolar (en yeni üstte, klasörler, kaldığı yerden) ve fotoğraflar (yalnız telefonda)
 9. [x] (v2-181) Mobil veri sınırı ve uyarısı (aç / kapat); aşınca devam edene devam
 10. [x] (v2-182) TV'de çok kanal değiştirince görüntünün gitmesi (tanı günlüğüyle)
 11. [x] (v2-181) Gidilen yerdeki otoparklar (OpenStreetMap)

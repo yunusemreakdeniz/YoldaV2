@@ -916,7 +916,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG, YoldaDeck.CALENDAR, YoldaDeck.CARCARE, YoldaDeck.PODCAST}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG, YoldaDeck.CALENDAR, YoldaDeck.CARCARE, YoldaDeck.PODCAST, YoldaDeck.MEDIA}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -1313,6 +1313,78 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return (b.length() == 0) ? "Dolar, euro ve altın alınıyor…" : b.toString();
 			}
 		}
+	}
+
+	// ---- Medya ----
+
+	private String mediaLine() {
+		Context ctx = requireContext();
+		if (!YoldaMedia.hasPermission(ctx)) return "Telefondaki videolar ve fotoğraflar · izin gerekli";
+		List<YoldaMedia.Item> v = YoldaMedia.videos(ctx, 1);
+		return v.isEmpty() ? "Telefonda video yok" : ("Son video: " + v.get(0).name() + (v.get(0).folder().isEmpty() ? "" : (" · " + v.get(0).folder())));
+	}
+
+	private void askMediaPermission(MainActivityDelegate a) {
+		a.getAppActivity().checkPermissions(YoldaMedia.permissions()).onCompletion((r, err) -> {
+			if (isAdded()) refreshCard(YoldaDeck.MEDIA);
+		});
+	}
+
+	/** Kutucuk: küçük resim arka planda yüklenir; videoda ▶ ve süre, fotoğrafta yalnız resim. */
+	private View mediaTile(Context ctx, YoldaMedia.Item it, int size, boolean video, View.OnClickListener click) {
+		FrameLayout f = new FrameLayout(ctx);
+		GradientDrawable bg = new GradientDrawable();
+		bg.setCornerRadius(dp(14));
+		bg.setColor(0x33FFFFFF);
+		f.setBackground(bg);
+		f.setClipToOutline(true);
+		ImageView iv = new ImageView(ctx);
+		iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+		f.addView(iv, new FrameLayout.LayoutParams(-1, -1));
+		if (video) {
+			TextView d = text(ctx, "▶ " + YoldaMedia.dur(it.durMs()), 12, true, 0xFFFFFFFF);
+			d.setPadding(dp(6), dp(2), dp(6), dp(2));
+			GradientDrawable db = new GradientDrawable();
+			db.setCornerRadius(dp(8));
+			db.setColor(0x99000000);
+			d.setBackground(db);
+			FrameLayout.LayoutParams dl = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START);
+			dl.leftMargin = dl.bottomMargin = dp(6);
+			f.addView(d, dl);
+		}
+		f.setClickable(true);
+		f.setContentDescription((video ? "Video: " : "Fotoğraf: ") + it.name());
+		f.setOnClickListener(click);
+		Context app = ctx.getApplicationContext();
+		me.aap.utils.function.CheckedSupplier<android.graphics.Bitmap, Throwable> job = () -> YoldaMedia.thumbnail(app, it.uri());
+		me.aap.utils.app.App.get().execute(job).onSuccess(b -> me.aap.utils.app.App.get().getHandler().post(() -> {
+			if (b != null) iv.setImageBitmap(b);
+		}));
+		return f;
+	}
+
+	/** Telefondaki videoyu Yolda'nın oynatıcısında aç. */
+	private void playLocalVideo(MainActivityDelegate a, YoldaMedia.Item it) {
+		playItem(a, me.aap.fermata.media.radio.YoldaStreamItem.createVideo(a.getLib(), it.uri().toString(), it.name()));
+	}
+
+	private void openPhoto(Context ctx, YoldaMedia.Item it) {
+		try {
+			startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(it.uri(), "image/*")
+					.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+		} catch (Throwable ex) {
+			YoldaStyle.toast(ctx, "Fotoğraf açılamadı");
+		}
+	}
+
+	/** Bütün videolar (en yeni üstte, klasör ve süreyle) → dokun: oynat. */
+	private void showMediaList(MainActivityDelegate a, Context ctx) {
+		List<Row> rows = new ArrayList<>();
+		for (YoldaMedia.Item it : YoldaMedia.videos(ctx, 60))
+			rows.add(new Row(it.name(), YoldaMedia.dur(it.durMs()) + (it.folder().isEmpty() ? "" : (" · " + it.folder())), null,
+					R.drawable.yi_movie, () -> playLocalVideo(a, it)));
+		if (rows.isEmpty()) YoldaStyle.toast(ctx, "Telefonda video yok");
+		else showPicker("Videolar", rows, null);
 	}
 
 	// ---- Podcast ----
@@ -2882,6 +2954,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.MEDIA -> new Look(0xFFF9A8D4, 0xFF9D174D, R.drawable.yi_movie, true, "MEDYA", mediaLine());
 			case YoldaDeck.PODCAST -> new Look(0xFFC4B5FD, 0xFF5B21B6, R.drawable.yi_mic, true, "PODCAST", podcastLine());
 			case YoldaDeck.CALENDAR -> new Look(0xFF93C5FD, 0xFF1D4ED8, R.drawable.yi_list, true, "TAKVİM", calendarLine());
 			case YoldaDeck.CARCARE -> new Look(0xFFFCA5A5, 0xFF991B1B, R.drawable.yi_settings, true, "ARAÇ BAKIMI", carCareLine());
@@ -3257,6 +3330,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
+			}
+			case YoldaDeck.MEDIA -> { // son videolar (▶ oynatıcıda), telefonda son fotoğraflar (galeride)
+				LinearLayout row = hrow(ctx);
+				if (!YoldaMedia.hasPermission(ctx)) {
+					row.addView(chipBtn(ctx, "🎬 Videolara erişim izni ver", v -> askMediaPermission(a)), chipLp());
+					return row;
+				}
+				for (YoldaMedia.Item it : YoldaMedia.videos(ctx, 6)) row.addView(mediaTile(ctx, it, tile, true, v -> playLocalVideo(a, it)), tileLp(tile));
+				if (!a.isCarActivity()) for (YoldaMedia.Item it : YoldaMedia.photos(ctx, 6))
+					row.addView(mediaTile(ctx, it, tile, false, v -> openPhoto(ctx, it)), tileLp(tile));
+				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
 			}
 			case YoldaDeck.PODCAST -> { // aboneliklerin son bölümü tek dokunuşla; ＋ podcast ara, ✎ abonelikleri düzenle
 				LinearLayout row = hrow(ctx);
@@ -3764,6 +3848,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.CARCARE -> showCarCareMenu(ctx);
 			case YoldaDeck.PODCAST -> showPodcasts(a, ctx);
+			case YoldaDeck.MEDIA -> {
+				if (!YoldaMedia.hasPermission(ctx)) askMediaPermission(a);
+				else showMediaList(a, ctx);
+			}
 			case YoldaDeck.CHARGER -> {
 				NearbyFragment.mode = NearbyFragment.CHARGER;
 				a.showFragment(R.id.yolda_nearby_fragment);

@@ -255,6 +255,13 @@ public class YoldaSetupFragment extends MainActivityFragment {
 						.onCompletion((r, err) -> {
 							if (isAdded()) render();
 						}), cp));
+		boolean mp = YoldaMedia.hasPermission(ctx);
+		col.addView(step(ctx, mp ? "✓" : "★", "Videolar ve fotoğraflar",
+				"Medya kartında telefondaki son videolar (Yolda'da oynar) ve fotoğraflar (yalnız telefonda). Yalnız okunur.",
+				mp ? null : "İzni ver", v -> MainActivityDelegate.get(ctx).getAppActivity().checkPermissions(YoldaMedia.permissions())
+						.onCompletion((r, err) -> {
+							if (isAdded()) render();
+						}), mp));
 		boolean ca = YoldaCalendar.hasPermission(ctx);
 		col.addView(step(ctx, ca ? "✓" : "★", "Takvim",
 				"Takvim kartında bugünkü ve yarınki etkinlikler, sesle \"bugün ne var\". Yalnız okunur.",

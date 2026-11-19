@@ -32,29 +32,29 @@ public class YoldaDeckTest {
 	@Test
 	public void varsayilanSira() {
 		YoldaDeck d = new YoldaDeck();
-		String[] want = {"resume", "youtube", "music", "podcast", "tv", "radio", "favs", "nav", "radar", "park", "trips", "weather", "pharmacy", "fuel", "fx", "prayer", "news", "status", "charger", "notes", "quickmsg", "calendar", "carcare", "phone", "calls",
+		String[] want = {"resume", "youtube", "music", "podcast", "media", "tv", "radio", "favs", "nav", "radar", "park", "trips", "weather", "pharmacy", "fuel", "fx", "prayer", "news", "status", "charger", "notes", "quickmsg", "calendar", "carcare", "phone", "calls",
 				"mirror", "web", "eq", "settings", "add"};
 		assertEquals(want.length, d.size());
 		for (int i = 0; i < want.length; i++) assertEquals(want[i], d.get(i).type());
 		assertEquals("Kaldığın yerden", d.get(0).title());
 		assertEquals("YouTube", d.get(1).title());
-		assertEquals("Sürüş", d.get(8).title());
-		assertEquals("Park", d.get(9).title());
-		assertEquals("Yolculuklar", d.get(10).title());
-		assertEquals("Hava durumu", d.get(11).title());
-		assertEquals("Nöbetçi eczane", d.get(12).title());
-		assertEquals("Akaryakıt", d.get(13).title());
-		assertEquals("Döviz ve altın", d.get(14).title());
-		assertEquals("Namaz vakitleri", d.get(15).title());
-		assertEquals("Haberler", d.get(16).title());
-		assertEquals("Telefon durumu", d.get(17).title());
-		assertEquals("Şarj istasyonları", d.get(18).title());
-		assertEquals("Notlar", d.get(19).title());
-		assertEquals("Hızlı mesaj", d.get(20).title());
-		assertEquals("Takvim", d.get(21).title());
-		assertEquals("Araç bakımı", d.get(22).title());
-		assertEquals("Ekolayzer", d.get(27).title());
-		assertEquals("Ekle", d.get(29).title());
+		assertEquals("Sürüş", d.get(9).title());
+		assertEquals("Park", d.get(10).title());
+		assertEquals("Yolculuklar", d.get(11).title());
+		assertEquals("Hava durumu", d.get(12).title());
+		assertEquals("Nöbetçi eczane", d.get(13).title());
+		assertEquals("Akaryakıt", d.get(14).title());
+		assertEquals("Döviz ve altın", d.get(15).title());
+		assertEquals("Namaz vakitleri", d.get(16).title());
+		assertEquals("Haberler", d.get(17).title());
+		assertEquals("Telefon durumu", d.get(18).title());
+		assertEquals("Şarj istasyonları", d.get(19).title());
+		assertEquals("Notlar", d.get(20).title());
+		assertEquals("Hızlı mesaj", d.get(21).title());
+		assertEquals("Takvim", d.get(22).title());
+		assertEquals("Araç bakımı", d.get(23).title());
+		assertEquals("Ekolayzer", d.get(28).title());
+		assertEquals("Ekle", d.get(30).title());
 	}
 
 	@Test
@@ -83,7 +83,7 @@ public class YoldaDeckTest {
 		assertEquals("youtube", d.get(0).type());
 		assertEquals("resume", d.get(1).type());
 		assertEquals(0, d.move(0, -1)); // en baştan sola gidilmez
-		assertEquals(29, d.move(29, 1)); // en sondan sağa gidilmez
+		assertEquals(30, d.move(30, 1)); // en sondan sağa gidilmez
 	}
 
 	@Test
@@ -93,7 +93,7 @@ public class YoldaDeckTest {
 		assertFalse("Ekle kaldırılamaz", d.remove(d.indexOf("add")));
 		assertEquals(List.of("phone"), d.missingBuiltIns());
 		int at = d.restore("phone");
-		assertEquals(23, at); // araç bakımının ardına, ekran yansıtmanın önüne
+		assertEquals(24, at); // araç bakımının ardına, ekran yansıtmanın önüne
 		assertTrue(d.missingBuiltIns().isEmpty());
 	}
 
@@ -101,11 +101,11 @@ public class YoldaDeckTest {
 	public void eklemeEkleKartininOnune() {
 		YoldaDeck d = new YoldaDeck();
 		int at = d.add(YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null);
-		assertEquals(29, at);
-		assertEquals("add", d.get(30).type());
-		assertEquals("TRT 1", d.get(29).title());
-		assertEquals("Aynı kanal ikinci kez eklenmez", 29, d.add(YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null));
-		assertEquals(31, d.size());
+		assertEquals(30, at);
+		assertEquals("add", d.get(31).type());
+		assertEquals("TRT 1", d.get(30).title());
+		assertEquals("Aynı kanal ikinci kez eklenmez", 30, d.add(YoldaDeck.TV_CHANNEL, "TRT 1", "tv://trt1", null));
+		assertEquals(32, d.size());
 	}
 
 	@Test
@@ -122,9 +122,9 @@ public class YoldaDeckTest {
 
 	@Test
 	public void bozukKayitVarsayilanaDoner() {
-		assertEquals(30, YoldaDeck.decode(null).size());
-		assertEquals(30, YoldaDeck.decode("").size());
-		assertEquals(30, YoldaDeck.decode("çöp").size());
+		assertEquals(31, YoldaDeck.decode(null).size());
+		assertEquals(31, YoldaDeck.decode("").size());
+		assertEquals(31, YoldaDeck.decode("çöp").size());
 		// "Ekle" kaydı kaybolsa da eklenir
 		YoldaDeck d = YoldaDeck.decode("tv\u001Ftv\u001FTV\u001F\u001F");
 		assertEquals(2, d.size());
