@@ -99,6 +99,96 @@ https://livetv.powerapp.com.tr/pturkslow/slow.smil/playlist.m3u8
 https://live.duhnet.tv/S2/HLS_LIVE/dreamturknp/playlist.m3u8
 #EXTINF:-1 tvg-logo="https://i.imgur.com/02cDIBi.png" group-title="Müzik",Number 1 TV
 https://b01c02nl.mediatriple.net/videoonlylive/mtkgeuihrlfwlive/broadcast_5c9e17cd59e8b.smil/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/PexhKwp.png" group-title="Ulusal",4U TV
+https://hls.4utv.live/hls/stream.m3u8
+#EXTINF:-1 tvg-logo="https://iatv.tmgrup.com.tr/site/v2/a2tv/i/a2tv-logo.png" group-title="Ulusal",A2TV
+https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/a2tv/a2tv.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/mgDCKiy.png" group-title="Ulusal",Aksu TV
+https://live.artidijitalmedya.com/artidijital_aksutv/aksutv/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/a3w9eFe.png" group-title="Ulusal",Alanya Posta TV
+https://api-tv3.yayin.com.tr/postatv/postatv/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://www.anadolunettv.com/d/r/logo.png" group-title="Ulusal",Anadolu Net TV
+https://live.artidijitalmedya.com/artidijital_anadolunet/anadolunet/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://asset.artidijitalmedya.com/image/188x188/channels/v1/logo_13.png" group-title="Haber",AS TV
+https://live.artidijitalmedya.com/artidijital_astv/astv/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://birtv.tv/assets/upload/637f83951df60.png" group-title="Yerel",Bir TV
+https://edge.taksimbilisim.com/birtv/bant1/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/qWkHjRA.png" group-title="Dini",Diyar TV
+https://live.artidijitalmedya.com/artidijital_diyartv/diyartv/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://dosttv.com/wp-content/uploads/2022/02/dost_logo.png" group-title="Dini",Dost TV
+https://dost.stream.emsal.im/tv/live.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/rhU6j9I.png" group-title="Ulusal",Edessa TV
+https://canli.edessatv.com/hls/stream.m3u8
+#EXTINF:-1 tvg-logo="https://www.dsmart.com.tr/epg/images/0x60/5ffc18c6cfef0b15933a8b65" group-title="Haber",Ekotürk
+https://cdn.ekoturk.net/hls/master.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/HF7N4Li.png" group-title="Ulusal",Erzurum Web TV
+https://win29.yayin.com.tr/erzurumwebtv/erzurumwebtv/iptvdelisi.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/epAEBrp.png" group-title="Yerel",ES TV
+https://live.artidijitalmedya.com/artidijital_estv/estv/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://yt3.googleusercontent.com/ytc/AIdro_msPtG6zfPKIJIIdvG4dehXLoVoXcHM2-2HL9YxsNYzGQ=s512-c-k-c0x00ffffff-no-rj" group-title="Ulusal",ETV Kayseri
+https://live.artidijitalmedya.com/artidijital_etv/etv/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.ibb.co/wBwmB1T/iY0osc7.png" group-title="Haber",Finans Türk TV
+https://yayin30.haber100.com/live/finansturk/playlist.m3u8
+#EXTINF:-1 tvg-logo="" group-title="Haber",Flash Haber TV
+https://b01c02nl.mediatriple.net/videoonlylive/mtyycglqauzjhlive/broadcast_67c053c48829f.smil/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://ilketv.com.tr/wp-content/uploads/2024/06/logo.png" group-title="Yerel",İlke TV
+https://stream.ilketv.com.tr/hls/ilkecanli.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/51xCkXG.png" group-title="Ulusal",Kanal 12
+https://live.artidijitalmedya.com/artidijital_kanal12/kanal12/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/3br8RCq.png" group-title="Ulusal",Kanal 23
+https://cdn-kanal23.yayin.com.tr/kanal23/index.m3u8
+#EXTINF:-1 tvg-logo="https://www.knmusictv.com/wp-content/uploads/2026/01/LOGO2112.png" group-title="Müzik",KN Music TV
+https://cdn4.yayin.com.tr/kntv/tracks-v1a1/mono.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/LeTP4zq.png" group-title="Ulusal",Kocaeli TV
+https://edge.taksimbilisim.com/kocaelitv/bant1/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://www.konyaolaytv.com/upload/tema/20230307__5154687762.jpg" group-title="Ulusal",Konya Olay TV
+https://live.artidijitalmedya.com/artidijital_konyaolaytv/konyaolaytv/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/wwCysFs.png" group-title="Dini",Lalegül TV
+https://lbl.netmedya.net/hls/lalegultv.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/slwbux7.png" group-title="Müzik",Number 1 Aşk
+https://b01c02nl.mediatriple.net/videoonlylive/mtkgeuihrlfwlive/u_stream_5c9e18f9cea15_1/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/rYtbAGZ.png" group-title="Müzik",Number 1 Damar
+https://b01c02nl.mediatriple.net/videoonlylive/mtkgeuihrlfwlive/u_stream_5c9e198784bdc_1/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/ZM4PSyq.png" group-title="Müzik",Number 1 Dance
+https://b01c02nl.mediatriple.net/videoonlylive/mtkgeuihrlfwlive/u_stream_5c9e2aa8acf44_1/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/QpPteBO.png" group-title="Müzik",Power Dance
+https://livetv.powerapp.com.tr/dance/dance.smil/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/0RzUswR.png" group-title="Müzik",Power Love
+https://livetv.powerapp.com.tr/plove/love.smil/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/a5nW3HU.png" group-title="Müzik",PowerTürk Taptaze
+https://livetv.powerapp.com.tr/pturktaptaze/taptaze.smil/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/cKQIK4i.png" group-title="Yerel",SAT-7 Türk
+https://live.artidijitalmedya.com/artidijital_sat7turk/sat7turk/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://sercemtv.com.tr/sercemlogo.jpg" group-title="Belgesel",Sercem TV
+https://canli.sercemtv.com.tr/hls/0/stream.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/tZpx32y.png" group-title="Yerel",Tempo TV
+https://live.artidijitalmedya.com/artidijital_tempotv/tempotv/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/Mbi0jbz.png" group-title="Ulusal",Tivi 6
+https://live.artidijitalmedya.com/artidijital_tivi6/tivi6/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/JrWFwBd.png" group-title="Spor",TRT 3
+https://tv-trt3.live.trt.com.tr/master.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/8PmXz9t.png" group-title="Çocuk",TRT Diyanet Çocuk
+https://tv-trtdiyanetcocuk.medya.trt.com.tr/master.m3u8
+#EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/TRT_EBA_TV_logo.svg/960px-TRT_EBA_TV_logo.svg.png" group-title="Eğitim",TRT EBA
+https://tv-e-okul01.medya.trt.com.tr/master.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/CRBfZi4.png" group-title="Eğitim",TRT EBA İlkokul
+https://tv-e-okul00.medya.trt.com.tr/master.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/vj2L2L2.png" group-title="Eğitim",TRT EBA Lise
+https://tv-e-okul02.medya.trt.com.tr/master.m3u8
+#EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/TRT_Kurd%C3%AE_logo.svg/960px-TRT_Kurd%C3%AE_logo.svg.png" group-title="Yerel",TRT Kurdi
+https://tv-trtkurdi.medya.trt.com.tr/master.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/UpsQsbd.png" group-title="Yerel",TV 4
+https://turkmedya-live.ercdn.net/tv4/tv4.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/8KO0uxn.png" group-title="Yerel",Urfa Natik TV
+https://live.artidijitalmedya.com/artidijital_urfanatiktv/urfanatiktv/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://van65tv.com/assets/images/logo/logo.png" group-title="Ulusal",Van 65 TV
+https://live.artidijitalmedya.com/artidijital_van65/van65/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/jw0gB8L.png" group-title="Yerel",Vav TV
+https://playlist.fasttvcdn.com/pl/rfrk9821hdy9dayo8wfyha/kltr-sanat-tv/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/rTBX6lS.png" group-title="Ulusal",YOL TV
+https://live.yoltv.com/hls/stream.m3u8
+#EXTINF:-1 tvg-logo="https://i.imgur.com/o0eevnb.png" group-title="Yerel",Zarok TV
+https://zindikurmanci.zaroktv.com.tr/hls/stream.m3u8
 #EXTINF:-1 group-title="Radyo",TRT FM
 https://rd-trtfm.medya.trt.com.tr/master_128.m3u8
 #EXTINF:-1 group-title="Radyo",TRT Radyo 1
@@ -141,3 +231,131 @@ https://showradyo.radyotvonline.net/showradyoaac/
 https://babaradyo.turkhosted.com/best/babaradyo.stream/playlist.m3u8
 #EXTINF:-1 group-title="Radyo",Kafa Radyo
 https://moondigitalmaster.radyotvonline.net/kafaradyo/playlist.m3u8
+#EXTINF:-1 tvg-logo="https://www.damarturkfm.com/favicon.ico" group-title="Radyo" yolda-kbps="128",DamarTurk FM
+https://live.radyositesihazir.com:10997/stream?type=http&nocache=99881
+#EXTINF:-1 group-title="Radyo" yolda-kbps="64",Havin FM
+http://yayin6.radyohizmeti.com:7050/;stream.mp3
+#EXTINF:-1 group-title="Radyo" yolda-kbps="64",Super FM 2
+https://playerservices.streamtheworld.com/api/livestream-redirect/SUPER2_SC?/
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Kral Türk FM
+https://live.radyositesihazir.com/8032/stream
+#EXTINF:-1 tvg-logo="http://canlikurtceradyodinle.com/favicon.ico" group-title="Radyo" yolda-kbps="64",Azadi Fm
+https://amed.ozelip.com/8040/;
+#EXTINF:-1 tvg-logo="https://turkiyemfm.com" group-title="Radyo" yolda-kbps="128",Türkiyem FM
+https://server7.streamserver24.com/proxy/turkiyemfm?mp=/stream
+#EXTINF:-1 group-title="Radyo" yolda-kbps="64",Gözyaşı FM
+http://yayin1.canliyayin.org:8700/;*.mp3
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Genç Kral FM
+https://anadolu.liderhost.com.tr:10853/;
+#EXTINF:-1 tvg-logo="https://images.keepone.net/1376-2022-10-17.png" group-title="Radyo" yolda-kbps="128",Damarın Merkezi Fm
+http://canli.arabeskinmerkezi.com:9180/stream
+#EXTINF:-1 tvg-logo="http://hatayradyosu.com/resgenel/radyo/tempo.png" group-title="Radyo" yolda-kbps="96",101.4 Hatay Tempo FM
+https://sslyayin.netyayin.net:1215/stream
+#EXTINF:-1 tvg-logo="https://kalpfm.com/favicon.ico" group-title="Radyo" yolda-kbps="128",Kalp FM
+https://yayin.kalpfm.com:8080/
+#EXTINF:-1 group-title="Radyo" yolda-kbps="32",Park Fm
+http://yayin.netradyom.com:8050/PARKFM/
+#EXTINF:-1 group-title="Radyo" yolda-kbps="64",Joy Fm
+http://29103.live.streamtheworld.com:3690/JOY_FMAAC_SC
+#EXTINF:-1 tvg-logo="https://www.radyoreklamankara.com/wp-content/uploads/2016/05/aşk-fm-300x300.png" group-title="Radyo" yolda-kbps="32",Aşk FM
+http://yayin.asymedya.com:8020/;
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",RS FM
+http://nfw.video.ria.ru/flv/audio.aspx?ID=99244423&type=mp3
+#EXTINF:-1 group-title="Radyo" yolda-kbps="96",TGRT FM
+https://icecasttgrt.ihlasdigitalassets.com/tgrtfm
+#EXTINF:-1 tvg-logo="https://www.karadutfm.com/resimler/sistem/20571KARADUT%20FM%20LOGO.png" group-title="Radyo" yolda-kbps="96",Karadut Fm
+https://yayin5.radyohizmeti.com/9982/stream
+#EXTINF:-1 tvg-logo="https://images.zeno.fm/kYv17oRTpTiaLU9XEU6GlRjghJXGtVyJlk63noxalGM/rs:fit:170:170/g:ce:0:0/aHR0cHM6Ly9zdHJlYW0tdG9vbHMuemVub21lZGlhLmNvbS9jb250ZW50L3N0YXRpb25zLzAyZTA5ODMxLTc2MTQtNGQ1NS05OWRmLTNmYTdkZWMxNGNlNi9pbWFnZS8_dT0xNzk0MzY1NDA5NzE3.webp" group-title="Radyo" yolda-kbps="128",LP Arabesk Fm
+https://stream.zeno.fm/n76ixlonticvv
+#EXTINF:-1 tvg-logo="https://www.fakirfm.com/favicon.ico" group-title="Radyo" yolda-kbps="128",Fakir Fm
+https://live.radyositesihazir.com/1025/stream/
+#EXTINF:-1 group-title="Radyo" yolda-kbps="64",Ribat FM
+http://yayin1.canliyayin.org:7010/;*.mp3
+#EXTINF:-1 group-title="Radyo" yolda-kbps="96",Bayram FM
+https://sslyayin.netyayin.net/3442/stream
+#EXTINF:-1 group-title="Radyo" yolda-kbps="48",lokum fm
+http://37.247.98.9/stream/493/?/;stream.mp3
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Radyo Munzur 97.7
+http://yayin1.yayindakiler.com:3002/;stream.nsv
+#EXTINF:-1 group-title="Radyo" yolda-kbps="96",Dost FM
+http://yayin.dostfm.com:8920/;.mp3?no_dl
+#EXTINF:-1 tvg-logo="https://tarsusfm.com.tr/favicon.ico" group-title="Radyo" yolda-kbps="128",Yaren FM
+https://yarenfmn.80.yayin.com.tr//stream
+#EXTINF:-1 tvg-logo="https://www.canliradyodinle.fm/wp-content/uploads/barisr-adyo.jpg" group-title="Radyo" yolda-kbps="128",Barış Radyo 104.8
+https://yayin2.canliyayin.org:9350/stream?/;stream.mp3
+#EXTINF:-1 tvg-logo="https://ercisstar.com.tr/public/default/images/etkinlik/2411129614062884.jpg" group-title="Radyo" yolda-kbps="128",Star FM 95.5
+https://anadolu.liderhost.com.tr/9078/stream
+#EXTINF:-1 tvg-logo="https://www.bizimfmsile.com/u/i/logo3.png" group-title="Radyo" yolda-kbps="128",Bizim Fm Şile
+https://stream.turkiyeradyolari.com/9300/stream?_t=1786859250066
+#EXTINF:-1 tvg-logo="https://onlineradio.com.tr/images/50_radio.png" group-title="Radyo" yolda-kbps="128",90lar
+http://37.247.98.8/stream/166/
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Ankara Havalari
+http://37.247.98.8/stream/30/;
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Türkülerle Türkiye
+http://37.247.98.8/stream/22/;
+#EXTINF:-1 tvg-logo="https://cdn.kanal7.com/radyo7//application/assets/home/common/images/apple-touch-icon-114x114.png" group-title="Radyo" yolda-kbps="64",Radyo 7
+http://46.20.3.250/;stream
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Radyo Şiran
+https://live.radyositesihazir.com/8078/stream
+#EXTINF:-1 group-title="Radyo" yolda-kbps="64",pop 90
+http://25643.live.streamtheworld.com:3690/POP90AAC_SC
+#EXTINF:-1 tvg-logo="https://radyokaradeniz.com/uploads/settings/logo_69fcfb84e4cd6.png" group-title="Radyo" yolda-kbps="128",Radyo Karadeniz
+https://radyomar.80.yayin.com.tr/;
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",NTV Radyo
+http://ntvrdwmp.radyotvonline.com/
+#EXTINF:-1 tvg-logo="https://cdn.img.anlatilaninotesi.com.tr/i/favicon/favicon-192x192.png" group-title="Radyo" yolda-kbps="128",Radyo Sputnik
+https://icecast-rian.cdnvideo.ru/voicestm
+#EXTINF:-1 group-title="Radyo" yolda-kbps="63",Radyo Voyage
+http://voyagewmp.radyotvonline.com/;stream.mp3
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Radyo Seymen
+https://yayin.radyoseymen.com.tr:1070/stream
+#EXTINF:-1 tvg-logo="https://kissapp.com.tr/content/files/IIMG_BE9E7FDE-27B7-466A-BE72-C344A3DCCD4C.jpg" group-title="Radyo" yolda-kbps="128",Kiss Türk
+https://kiss.radyotvonline.net/kissturk
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Radyo 45'lik
+http://stream.radyo45lik.com:4545/
+#EXTINF:-1 group-title="Radyo" yolda-kbps="96",Erzincan Cem Radyo
+https://erzincan.80.yayin.com.tr/stream
+#EXTINF:-1 tvg-logo="https://radyonida.com.tr/dist/img/radyo-nida.jpg?2" group-title="Radyo" yolda-kbps="112",Radyo Nida
+https://anadolu.liderhost.com.tr/8106/stream
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Radyo A (Radyo Anadolu Üniversitesi)
+http://canli.radyoa.anadolu.edu.tr:44445/Radyo_A_MP3
+#EXTINF:-1 tvg-logo="https://www.kentfm955.com.tr/icons/radyokent_logo_tunein_512.png" group-title="Radyo" yolda-kbps="128",Radyo Kent
+https://kentfm955.ozelip.com/9306/stream
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Govend radyo
+https://stream-56.zeno.fm/xzzu8kynq2zuv?zs=nZP7ZCRXQPOpDFenayr0bQ
+#EXTINF:-1 group-title="Radyo" yolda-kbps="104",Halk Radyo
+https://anadolu.liderhost.com.tr:10876/;
+#EXTINF:-1 group-title="Radyo" yolda-kbps="32",Radyo Banko
+http://yayin.netradyom.com:9910/RADYOBANKO
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Best Slow
+https://hepsibest.radyotvonline.net/bestslow
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Tezene
+http://37.247.98.8/stream/22/.mp3?%26token=Bsx3vK2u28-xMp98IZDV2Q%26expires=1618686860%27%20type=%27audio/mp3%27&rd2=%27https://radyo.vip/stream
+#EXTINF:-1 tvg-logo="https://www.radyo35.com/img/logo.png" group-title="Radyo" yolda-kbps="128",Radyo 35
+https://yayin.turkhosted.com/6012/stream
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Number 1 Türk Rap
+https://dijimedya.radyotvonline.net/turkrap
+#EXTINF:-1 tvg-logo="https://www.radyoakdeniz.com/wp-content/uploads/2024/03/cropped-radyoakdeniz-180x180.png" group-title="Radyo" yolda-kbps="128",Radyo Akdeniz
+https://yayin.radyoakdeniz.com/9470/stream
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Radyo İlahi
+https://anadolu.liderhost.com.tr:10994/;
+#EXTINF:-1 group-title="Radyo" yolda-kbps="64",retro turk
+http://23543.live.streamtheworld.com:3690/RETROTURKAAC_SC
+#EXTINF:-1 tvg-logo="https://radyomars.com/logo.png" group-title="Radyo" yolda-kbps="128",Radyo Mars
+https://yayin.radyomadyo.com:9400/stream
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Haber Türk Radyo
+http://haberturkradyo.radyotvonline.net/haberturkradyo
+#EXTINF:-1 group-title="Radyo" yolda-kbps="64",Borusan Klasik
+http://23543.live.streamtheworld.com:3690/BORUSAN_KLASIKAAC_SC
+#EXTINF:-1 tvg-logo="https://hemdemradyo.com/favicon.ico" group-title="Radyo" yolda-kbps="64",Hemdem Radyo
+http://yayin.hemdemradyo.com/
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Mydonose Türk
+https://27913.live.streamtheworld.com/MYDONOSE_TURK128AAC.aac?/;stream.mp3
+#EXTINF:-1 tvg-logo="https://www.gimsa.com.tr/images/apple-touch-icon.png" group-title="Radyo" yolda-kbps="128",Gi̇msa Radyo
+http://yayin1.canliyayin.org:9482/stream
+#EXTINF:-1 group-title="Radyo" yolda-kbps="128",Radyo ODTU - Rock
+http://stream.radyoodtu.com.tr/rock
+#EXTINF:-1 tvg-logo="https://www.apacikradyo.com.tr/themes/custom/acikradyo/assets/img/favicon.png" group-title="Radyo" yolda-kbps="128",Apacik Radyo
+http://stream.34bit.net/ar.aac
+#EXTINF:-1 tvg-logo="https://www.megasite.com.tr/wp-content/uploads/2022/10/logo.png" group-title="Radyo" yolda-kbps="64",Megasite
+https://stream.netradyom.com/listen/megasite/radio.mp3
