@@ -1344,7 +1344,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			fuelAskedAt = now;
 			Context app = ctx.getApplicationContext();
 			YoldaFuel.Prices before = YoldaFuel.cached(app);
-			me.aap.utils.function.CheckedSupplier<YoldaFuel.Prices, Throwable> job = () -> YoldaFuel.refresh(app, false);
+			me.aap.utils.function.CheckedSupplier<YoldaFuel.Prices, Throwable> job = () -> {
+				YoldaFuelLocal.refresh(app, false); // bulunduğun il / ilçe
+				return YoldaFuel.refresh(app, false);
+			};
 			me.aap.utils.app.App.get().execute(job).onSuccess(p -> {
 				if ((p != null) && !p.equals(before)) me.aap.utils.app.App.get().getHandler().post(() -> {
 					if (isAdded()) refreshCard(YoldaDeck.FUEL);
@@ -1354,8 +1357,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		YoldaFuel.Prices p = YoldaFuel.cached(ctx);
 		if (p == null) return "Benzin, motorin ve LPG fiyatları alınıyor…";
 		String ty = YoldaFuel.type(ctx);
-		return YoldaFuel.label(ty) + " " + YoldaFuel.money(p.of(ty)) + " · 100 km ≈ "
-				+ YoldaFuel.money(YoldaFuel.cost(100_000, YoldaFuel.consumption(ctx), p.of(ty)));
+		Object[] cur = YoldaFuelLocal.price(ctx, ty, p);
+		YoldaFuelLocal.Local loc = YoldaFuelLocal.cached(ctx);
+		return YoldaFuel.label(ty) + " " + YoldaFuel.money((double) cur[0]) + ((loc != null) ? (" · " + loc.province()) : "")
+				+ " · 100 km ≈ " + YoldaFuel.money(YoldaFuel.cost(100_000, YoldaFuel.consumption(ctx), (double) cur[0]));
 	}
 
 	private String parkLine() {
@@ -3202,7 +3207,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				LinearLayout row = hrow(ctx);
 				if (fp != null) for (String ty : new String[]{"gasoline", "diesel", "lpg"}) {
 					String ch = YoldaFuel.change(fp.changeOf(ty));
-					row.addView(chipBtn(ctx, YoldaFuel.label(ty) + " " + YoldaFuel.money(fp.of(ty)) + (ch.isEmpty() ? "" : ("  " + ch)), v -> {
+					row.addView(chipBtn(ctx, YoldaFuel.label(ty) + " " + YoldaFuel.money((double) YoldaFuelLocal.price(ctx, ty, fp)[0])
+							+ (ch.isEmpty() ? "" : ("  " + ch)), v -> {
 						YoldaFuel.setType(ctx, ty);
 						refreshCard(YoldaDeck.FUEL);
 					}), chipLp());
