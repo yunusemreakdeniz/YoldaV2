@@ -28,6 +28,16 @@ public final class YoldaDeck {
 	public static final String EQ = "eq";
 	/** Bilgi kartları: döviz ve altın, namaz vakitleri, haberler. */
 	public static final String FX = "fx", PRAYER = "prayer", NEWS = "news";
+	/** Telefon durumu: pil, bağlantı, mobil veri ve sınırı, hızlı ayarlar. */
+	public static final String STATUS = "status";
+	/** Elektrikli araç şarj istasyonları. */
+	public static final String CHARGER = "charger";
+	/** Sesli notlar ve hatırlatmalar. */
+	public static final String NOTES = "notes";
+	/** Hızlı mesaj: hazır cevaplar, varınca haber ver. */
+	public static final String QUICKMSG = "quickmsg";
+	/** Takvim (bugün / yarın) ve araç bakım defteri. */
+	public static final String CALENDAR = "calendar", CARCARE = "carcare";
 	public static final String RADAR = "radar";
 	/** Park yerleri (aracım). */
 	public static final String PARK = "park";
@@ -46,7 +56,7 @@ public final class YoldaDeck {
 	public static final String YT_CHANNEL = "ytch";
 	public static final String URL = "url";
 
-	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
+	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, STATUS, CHARGER, NOTES, QUICKMSG, CALENDAR, CARCARE, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
 			ADD};
 	private static final char FIELD = '\u001F';
 	private static final char RECORD = '\u001E';
@@ -98,6 +108,23 @@ public final class YoldaDeck {
 	}
 
 	/** Sabit kartın varsayılan adı. */
+	/**
+	 * Telefon görünümünün kartları: kart seti destedeki (araç) ile aynı, sırası ve gizlenenleri ayrı. Önce
+	 * {@code order}'daki sırayla, sonra sırada olmayan (yeni eklenen) kartlar destedeki sırayla; gizlenenler ve
+	 * "Ekle" kartı yok.
+	 */
+	public static List<Card> phoneCards(List<Card> deckCards, List<String> order, java.util.Set<String> hidden) {
+		List<Card> out = new ArrayList<>();
+		java.util.Map<String, Card> byKey = new java.util.LinkedHashMap<>();
+		for (Card c : deckCards) if (!ADD.equals(c.type())) byKey.put(c.key(), c);
+		for (String k : order) {
+			Card c = byKey.remove(k);
+			if ((c != null) && !hidden.contains(k)) out.add(c);
+		}
+		for (Card c : byKey.values()) if (!hidden.contains(c.key())) out.add(c);
+		return out;
+	}
+
 	/** Söylenen kart adı → kart türü ("radyo", "hava", "harita", "kişiler"…); bilinmiyorsa null. */
 	@Nullable
 	static String typeOfSpoken(String s) {
@@ -123,6 +150,12 @@ public final class YoldaDeck {
 			case "döviz", "kur", "kurlar", "altın", "dolar", "euro", "döviz ve altın" -> FX;
 			case "namaz", "namaz vakitleri", "ezan", "ezan vakitleri", "vakitler" -> PRAYER;
 			case "haber", "haberler", "son dakika", "gündem" -> NEWS;
+			case "telefon durumu", "durum", "pil", "veri", "mobil veri", "hızlı ayarlar" -> STATUS;
+			case "şarj istasyonu", "şarj istasyonları", "şarj", "elektrikli şarj", "ev şarj" -> CHARGER;
+			case "not", "notlar", "notlarım", "hatırlatma", "hatırlatmalar", "hatırlatıcı" -> NOTES;
+			case "hızlı mesaj", "mesaj", "mesajlar", "hazır mesaj", "hazır cevap" -> QUICKMSG;
+			case "takvim", "ajanda", "etkinlik", "etkinlikler", "toplantı", "toplantılar" -> CALENDAR;
+			case "bakım", "araç bakımı", "muayene", "sigorta", "kasko" -> CARCARE;
 			case "ekle", "ekleme" -> ADD;
 			case "kaldığım yer", "kaldığın yer", "kaldığın yerden", "kaldığım yerden", "devam" -> RESUME;
 			default -> null;
@@ -177,6 +210,12 @@ public final class YoldaDeck {
 			case FX -> "Döviz ve altın";
 			case PRAYER -> "Namaz vakitleri";
 			case NEWS -> "Haberler";
+			case STATUS -> "Telefon durumu";
+			case CHARGER -> "Şarj istasyonları";
+			case NOTES -> "Notlar";
+			case QUICKMSG -> "Hızlı mesaj";
+			case CALENDAR -> "Takvim";
+			case CARCARE -> "Araç bakımı";
 			case ADD -> "Ekle";
 			default -> type;
 		};

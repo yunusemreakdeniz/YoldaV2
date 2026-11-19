@@ -255,6 +255,14 @@ public class YoldaSetupFragment extends MainActivityFragment {
 						.onCompletion((r, err) -> {
 							if (isAdded()) render();
 						}), cp));
+		boolean ca = YoldaCalendar.hasPermission(ctx);
+		col.addView(step(ctx, ca ? "✓" : "★", "Takvim",
+				"Takvim kartında bugünkü ve yarınki etkinlikler, sesle \"bugün ne var\". Yalnız okunur.",
+				ca ? null : "İzni ver", v -> MainActivityDelegate.get(ctx).getAppActivity()
+						.checkPermissions(android.Manifest.permission.READ_CALENDAR)
+						.onCompletion((r, err) -> {
+							if (isAdded()) render();
+						}), ca));
 		boolean ma = YoldaMessages.hasAccess(ctx);
 		col.addView(step(ctx, ma ? "✓" : "★", "Mesajları sesli oku (WhatsApp, Telegram, SMS)",
 				"Araçta gelen mesaj sesli okunur, \"Hey Yolda, yanıtla geliyorum\" diye sesle yanıtlanır. Ayarlar → "

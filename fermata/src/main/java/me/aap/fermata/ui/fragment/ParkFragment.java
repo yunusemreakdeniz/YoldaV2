@@ -153,6 +153,18 @@ public class ParkFragment extends MainActivityFragment {
 		LinearLayout acts = new LinearLayout(ctx);
 		LinearLayout.LayoutParams al = new LinearLayout.LayoutParams(-1, dp(52));
 		al.topMargin = dp(16);
+		// Gideceğin yerin otoparkları (son yol tarifi verilen yerin 800 m çevresi)
+		String dest = NearbyFragment.destination(ctx);
+		if (dest != null) {
+			TextView nd = button(ctx, "🅿 Varınca: " + dest + " çevresindeki otoparklar", v -> {
+				NearbyFragment.mode = NearbyFragment.PARK_DEST;
+				NearbyFragment.place = null;
+				getActivityDelegate().showFragment(R.id.yolda_nearby_fragment);
+			});
+			LinearLayout.LayoutParams ndl = new LinearLayout.LayoutParams(-1, dp(52));
+			ndl.topMargin = dp(16);
+			col.addView(nd, ndl);
+		}
 		acts.addView(button(ctx, "🅿 Buraya park ettim", v -> {
 			YoldaStyle.toast(ctx, YoldaRadar.savePark(ctx, false) ? "Park yeri kaydedildi" : "Konum henüz bilinmiyor");
 			render();

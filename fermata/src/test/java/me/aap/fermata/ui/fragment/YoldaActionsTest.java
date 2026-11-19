@@ -49,6 +49,15 @@ public class YoldaActionsTest {
 	}
 
 	@Test
+	public void okumayiDurdurmaSozleri() {
+		assertTrue(YoldaVoice.isStopSpeech("sus"));
+		assertTrue(YoldaVoice.isStopSpeech("okumayı durdur"));
+		assertTrue(YoldaVoice.isStopSpeech("yeter"));
+		assertFalse(YoldaVoice.isStopSpeech("sesi kıs"));
+		assertFalse(YoldaVoice.isStopSpeech("dur bakalım ne çalıyor"));
+	}
+
+	@Test
 	public void geminiYanitiSeslendirilir() {
 		assertEquals("Merhaba", YoldaGemini.spoken("**Merhaba** 😊"));
 		assertEquals("bir iki", YoldaGemini.spoken("- bir\n- iki"));

@@ -83,7 +83,10 @@ public class FuelFragment extends MainActivityFragment {
 		if (loading) return;
 		loading = true;
 		Context app = requireContext().getApplicationContext();
-		me.aap.utils.function.CheckedSupplier<YoldaFuel.Prices, Throwable> job = () -> YoldaFuel.refresh(app, force);
+		me.aap.utils.function.CheckedSupplier<YoldaFuel.Prices, Throwable> job = () -> {
+			YoldaFuelLocal.refresh(app, force); // bulunduğun il / ilçe fiyatı (Opet), alınamazsa ortalama
+			return YoldaFuel.refresh(app, force);
+		};
 		me.aap.utils.app.App.get().execute(job).onCompletion((p, err) -> me.aap.utils.app.App.get().getHandler().post(() -> {
 			loading = false;
 			render();
@@ -125,7 +128,8 @@ public class FuelFragment extends MainActivityFragment {
 				b.setPadding(dp(16), dp(12), dp(16), dp(12));
 				b.setBackground(sel ? YoldaStyle.selected(ctx, 20) : YoldaStyle.glass(ctx, t, 20));
 				b.addView(text(ctx, YoldaFuel.label(ty) + (sel ? " · seçili" : ""), 14, sel, sel ? t.ink : t.muted));
-				TextView pr = text(ctx, YoldaFuel.money(p.of(ty)), 26, true, t.ink);
+				double tp = (double) YoldaFuelLocal.price(ctx, ty, p)[0];
+				TextView pr = text(ctx, YoldaFuel.money(tp), 26, true, t.ink);
 				pr.setSingleLine(true);
 				b.addView(pr);
 				String ch = YoldaFuel.change(p.changeOf(ty));
@@ -133,7 +137,7 @@ public class FuelFragment extends MainActivityFragment {
 						ch.startsWith("▲") ? 0xFFF87171 : ch.startsWith("▼") ? 0xFF4ADE80 : t.muted);
 				b.addView(cv);
 				b.setClickable(true);
-				b.setContentDescription(YoldaFuel.label(ty) + " " + YoldaFuel.money(p.of(ty)) + (sel ? ", seçili" : ", seç"));
+				b.setContentDescription(YoldaFuel.label(ty) + " " + YoldaFuel.money(tp) + (sel ? ", seçili" : ", seç"));
 				b.setOnClickListener(v -> {
 					YoldaFuel.setType(ctx, ty);
 					render();
@@ -145,7 +149,12 @@ public class FuelFragment extends MainActivityFragment {
 			col.addView(rw, rl);
 
 			// Maliyet: 100 km ve son yolculuk
-			double per = YoldaFuel.consumption(ctx), price = p.of(type);
+			Object[] cur = YoldaFuelLocal.price(ctx, type, p);
+			double per = YoldaFuel.consumption(ctx), price = (double) cur[0];
+			// Fiyatın kaynağı: pompada girdiğin / Opet il-ilçe / Türkiye ortalaması
+			TextView srcLine = text(ctx, "Fiyat: " + cur[1], 14, true, t.accent | 0xFF000000);
+			srcLine.setPadding(0, dp(12), 0, 0);
+			col.addView(srcLine);
 			LinearLayout cost = card(ctx);
 			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(-1, -2);
 			cl.topMargin = dp(16);
@@ -180,6 +189,37 @@ public class FuelFragment extends MainActivityFragment {
 			col.addView(adj, al);
 		}
 
+		// İl fiyatları: resmi sayfalar (uygulama içinde) ve pompadaki fiyatı elle gir
+		YoldaFuelLocal.Local loc = YoldaFuelLocal.cached(ctx);
+		String il = (loc != null) ? (" · " + loc.province()) : "";
+		LinearLayout off = new LinearLayout(ctx);
+		LinearLayout.LayoutParams ol = new LinearLayout.LayoutParams(-1, dp(52));
+		ol.topMargin = dp(16);
+		off.addView(button(ctx, "Opet fiyatları" + il, v -> HomeFragment.openWeb(getActivityDelegate(), YoldaFuelLocal.OPET_PAGE)),
+				new LinearLayout.LayoutParams(0, -1, 1f));
+		LinearLayout.LayoutParams pol = new LinearLayout.LayoutParams(0, -1, 1f);
+		pol.leftMargin = dp(8);
+		off.addView(button(ctx, "Petrol Ofisi fiyatları" + il, v -> HomeFragment.openWeb(getActivityDelegate(), YoldaFuelLocal.PO_PAGE)), pol);
+		col.addView(off, ol);
+		String ty0 = YoldaFuel.type(ctx);
+		boolean hasManual = !Double.isNaN(YoldaFuelLocal.manual(ctx, ty0));
+		TextView man = button(ctx, hasManual ? ("Pompadaki fiyat: " + YoldaFuel.money(YoldaFuelLocal.manual(ctx, ty0)) + " · değiştir / sil")
+				: ("Pompadaki " + YoldaFuel.label(ty0).toLowerCase(new Locale("tr")) + " fiyatını gir"), v ->
+				me.aap.utils.ui.UiUtils.queryText(ctx, R.string.yolda_fuel_price, R.drawable.yi_fuel).onSuccess(s -> {
+					if (s == null) return;
+					String q = s.trim().replace(',', '.');
+					double val = Double.NaN;
+					try {
+						if (!q.isEmpty()) val = Double.parseDouble(q);
+					} catch (NumberFormatException ignore) {
+					}
+					YoldaFuelLocal.setManual(ctx, ty0, val);
+					render();
+				}));
+		LinearLayout.LayoutParams mml = new LinearLayout.LayoutParams(-1, dp(52));
+		mml.topMargin = dp(8);
+		col.addView(man, mml);
+
 		// Eylemler
 		LinearLayout acts = new LinearLayout(ctx);
 		LinearLayout.LayoutParams al = new LinearLayout.LayoutParams(-1, dp(52));
@@ -197,7 +237,8 @@ public class FuelFragment extends MainActivityFragment {
 			String d = p.fetchedAt().substring(0, 10); // yyyy-MM-dd
 			when = " · " + d.substring(8, 10) + "." + d.substring(5, 7) + "." + d.substring(0, 4);
 		}
-		TextView src = text(ctx, YoldaFuel.ATTRIBUTION + when + ". İstasyon fiyatları farklı olabilir.", 12, false, t.muted);
+		TextView src = text(ctx, "İl / ilçe benzin ve motorin: Opet'in fiyat servisi (alınamazsa ortalama). Ortalama ve LPG: "
+				+ YoldaFuel.ATTRIBUTION + when + ". İstasyon fiyatları farklı olabilir.", 12, false, t.muted);
 		src.setPadding(0, dp(16), 0, 0);
 		col.addView(src);
 	}

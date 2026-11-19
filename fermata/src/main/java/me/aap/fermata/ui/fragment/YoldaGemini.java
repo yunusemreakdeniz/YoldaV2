@@ -58,6 +58,17 @@ public final class YoldaGemini {
 		}
 	}
 
+	/** Son deneme: true anahtar çalıştı, false anahtar geçersiz / yetkisiz, null henüz bilinmiyor. */
+	@Nullable
+	public static volatile Boolean keyOk;
+	/** Son hata geçici mi (internet yok, kota, sunucu): öyleyse yerel asistan devralır. */
+	public static volatile boolean transientError;
+
+	/** Bütün sesli konuşma Gemini'den mi: anahtar girilmiş ve geçersiz olduğu anlaşılmamış. */
+	public static boolean leads(Context ctx) {
+		return isEnabled(ctx) && !Boolean.FALSE.equals(keyOk);
+	}
+
 	/** Sesli asistanın verdiği anlık durum (araç / telefon, çalan, hız); yönergeye eklenir. */
 	@Nullable
 	public static volatile String state;
@@ -134,8 +145,11 @@ public final class YoldaGemini {
 					}
 					if ((code[0] == 400) || (code[0] == 401) || (code[0] == 403)) {
 						problem = "Gemini anahtarı geçersiz ya da yetkisiz";
+						keyOk = false;
+						transientError = false;
 						break;
 					}
+					transientError = code[0] != 200;
 					if (code[0] == 429) {
 						problem = "Gemini kullanım sınırı doldu, biraz sonra tekrar dene";
 						break;
@@ -144,14 +158,17 @@ public final class YoldaGemini {
 						problem = "Gemini yanıt vermedi (" + code[0] + ")";
 						break;
 					}
+					keyOk = true;
 					answer = parse(resp);
 					if (answer == null) problem = "Gemini boş yanıt verdi";
 					break;
 				}
 			} catch (java.net.UnknownHostException | java.net.SocketTimeoutException ex) {
 				problem = "İnternet bağlantısı yok";
+				transientError = true;
 			} catch (Throwable ex) {
 				problem = "Gemini'ye ulaşılamadı";
+				transientError = true;
 				YoldaLog.add("Gemini hatası: " + ex.getClass().getSimpleName());
 			}
 			if (answer != null) {

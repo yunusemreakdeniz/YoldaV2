@@ -91,9 +91,24 @@ public final class YoldaVoice {
 		lastFeedback = null;
 		voiceSeq++; // yeni komut: daha önce sorulup yanıtı gelmemiş Gemini sorusu artık söylenmez
 
+		// "dur", "sus", "yeter": önce sesli okumayı kes (haberler, uzun yanıt); okuma yoksa olağan komut
+		if (isStopSpeech(YoldaIntents.clean(raws.get(0))) && (YoldaSpeak.isSpeaking() || YoldaSpeak.recentlySpoke())) {
+			YoldaSpeak.stop();
+			toast(a, "Durduruldu");
+			return true;
+		}
+
 		// "Hangisi?" sorusunun cevabı ("birinci", "Ahmet Yılmaz")
 		if (YoldaCalls.pending != null) {
 			for (String r : raws) if (YoldaCalls.answer(a, r)) return true;
+		}
+
+		// Gemini anahtarı girilmiş ve çalışıyorsa bütün sesli konuşma ve uygulama yönetimi Gemini'den: komutları
+		// katalogdaki kalıba çevirir, yerel çözücü yalnız yürütür. Gemini'ye ulaşılamazsa yerel asistan devralır.
+		if (!fromGemini && YoldaGemini.leads(a.getContext())) {
+			YoldaLog.add("Sesli komut Gemini'ye: “" + raws.get(0) + "”");
+			askGemini(a, raws.get(0), raws);
+			return true;
 		}
 
 		// Gemini bağlıysa: doğal cümle, sohbet ve bilgi soruları ona; kesin cihaz komutları yerelde (hızlı, internetsiz)
@@ -177,6 +192,60 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case CALENDAR -> {
+				if (!YoldaCalendar.hasPermission(ctx)) reply(a, "Takvim izni yok; Takvim kartından izin verebilirsin");
+				else reply(a, YoldaCalendar.spoken(YoldaCalendar.upcoming(ctx), System.currentTimeMillis()));
+			}
+			case CARCARE -> {
+				StringBuilder b = new StringBuilder();
+				long now = System.currentTimeMillis();
+				for (String[] x : YoldaCarCare.ITEMS) {
+					long d = YoldaCarCare.due(ctx, x[0]);
+					if (d >= 0) b.append((b.length() > 0) ? ", " : "").append(x[1]).append(' ').append(YoldaCarCare.left(YoldaCarCare.daysLeft(d, now)));
+				}
+				reply(a, (b.length() == 0) ? "Bakım tarihi girilmemiş; Araç bakımı kartından girebilirsin" : b.toString());
+			}
+			case NOTE_ADD -> {
+				YoldaNotes.add(ctx, it.arg());
+				List<YoldaNotes.Note> nl = YoldaNotes.notes(ctx);
+				reply(a, nl.isEmpty() ? "Not anlaşılamadı" : ("Not aldım: " + nl.get(0).text()));
+			}
+			case NOTE_READ -> reply(a, YoldaNotes.spoken(YoldaNotes.notes(ctx), 5));
+			case NOTE_CLEAR -> {
+				YoldaNotes.clear(ctx);
+				reply(a, "Notlar silindi");
+			}
+			case ALERTS -> {
+				if (it.num() == 1) {
+					String last = YoldaSpeak.lastSpoken;
+					reply(a, (last == null) ? "Henüz bir şey söylemedim" : last);
+					break;
+				}
+				List<YoldaAlertLog.Entry> al = YoldaAlertLog.all(ctx);
+				if (al.isEmpty()) {
+					reply(a, "Uyarı geçmişi boş");
+					break;
+				}
+				StringBuilder b = new StringBuilder("Son uyarılar: ");
+				long now = System.currentTimeMillis();
+				for (int i = 0; i < Math.min(3, al.size()); i++) {
+					YoldaAlertLog.Entry e = al.get(i);
+					b.append((i == 0) ? "" : ". ").append(YoldaPlayHistory.ago(e.at(), now)).append(", ").append(e.text());
+				}
+				reply(a, b.toString());
+			}
+			case PARK_DEST -> {
+				NearbyFragment.mode = NearbyFragment.PARK_DEST;
+				NearbyFragment.place = it.arg();
+				String d = (it.arg() != null) ? it.arg() : NearbyFragment.destination(ctx);
+				if (d == null) {
+					reply(a, "Önce bir yere yol tarifi al, sonra o yerin otoparklarını bulayım");
+					break;
+				}
+				a.showFragment(R.id.yolda_nearby_fragment);
+				reply(a, d + " çevresindeki otoparklara bakıyorum");
+			}
+			case STATUS -> reply(a, StatusFragment.line(ctx).replace(" · ", ", ").replace("%", "yüzde "));
 			case FX -> {
 				toast(a, "Kurlar alınıyor…");
 				String want = it.arg();
@@ -260,7 +329,7 @@ public final class YoldaVoice {
 						? "haber vereceğim" : "hatırlatacağım"));
 			}
 			case TIMER_CANCEL -> {
-				int n = YoldaAnswers.cancelReminders();
+				int n = YoldaAnswers.cancelReminders(ctx);
 				reply(a, (n > 0) ? "Hatırlatmalar silindi" : "Kurulu bir hatırlatma yok");
 			}
 			case WIKI -> {
@@ -309,7 +378,7 @@ public final class YoldaVoice {
 				reply(a, "Tamam, " + it.num() + " dakika sonra kapatacağım");
 			}
 			case SLEEP_CANCEL -> {
-				boolean was = (sleepAt != 0) | (YoldaAnswers.cancelReminders() > 0);
+				boolean was = (sleepAt != 0) | (YoldaAnswers.cancelReminders(ctx) > 0);
 				cancelSleep();
 				reply(a, was ? "Uyku zamanlayıcısı iptal edildi" : "Kurulu bir zamanlayıcı yok");
 			}
@@ -790,6 +859,19 @@ public final class YoldaVoice {
 
 	/** Soruyu Gemini'ye sor, yanıtı söyle (hata olursa nedenini). */
 	static void askGemini(MainActivityDelegate a, String q) {
+		askGemini(a, q, null);
+	}
+
+	/** Okumayı kesen sözler (yalnız bir şey okunurken / az önce okunduysa). */
+	static boolean isStopSpeech(String c) {
+		return c.matches("(dur|durdur|sus|yeter|kes|tamam|tamam yeter|okumayı (durdur|kes|bırak)|sessiz ol|kapa çeneni|bitir|bırak)");
+	}
+
+	/**
+	 * Soruyu Gemini'ye sor. {@code alts}: tanıyıcının bütün tahminleri; Gemini'ye geçici olarak ulaşılamazsa
+	 * (internet yok, kota, sunucu) aynı söz yerel asistanla yürütülür, böylece komut boşa gitmez.
+	 */
+	static void askGemini(MainActivityDelegate a, String q, @androidx.annotation.Nullable List<String> alts) {
 		toast(a, "Düşünüyorum…");
 		int seq = voiceSeq;
 		YoldaGemini.state = state(a);
@@ -823,7 +905,20 @@ public final class YoldaVoice {
 				if (i == 0) go.run();
 				else App.get().getHandler().postDelayed(go, 900L * i);
 			}
-		}, err -> reply(a, err));
+		}, err -> {
+			if (seq != voiceSeq) return;
+			if ((alts != null) && (YoldaGemini.transientError || Boolean.FALSE.equals(YoldaGemini.keyOk))) {
+				// Gemini'ye ulaşılamadı: yerel asistan (internetsiz komutlar yine çalışsın)
+				YoldaLog.add("Gemini yok (" + err + "), yerel asistan: “" + q + "”");
+				fromGemini = true;
+				try {
+					if (handle(a, alts)) return;
+				} finally {
+					fromGemini = false;
+				}
+			}
+			reply(a, err);
+		});
 	}
 
 	/** Gemini'nin çevirdiği komut yürütülürken: anlaşılmazsa yeniden Gemini'ye sorulmaz (döngü olmasın). */
@@ -839,6 +934,12 @@ public final class YoldaVoice {
 			String t = YoldaNowPlaying.titleOf(cb);
 			if (t != null) b.append(cb.isPlaying() ? "Şu an çalan: " : "Duraklatılmış: ").append(t).append(". ");
 			if (YoldaRadar.speed > 5) b.append("Hız ").append(YoldaRadar.speed).append(" km/s. ");
+			List<YoldaAlertLog.Entry> al = YoldaAlertLog.all(a.getContext());
+			if (!al.isEmpty()) { // Gemini "az önce ne uyarısı verdin" sorusunu da yanıtlayabilsin
+				b.append("Son uyarılar: ");
+				for (int i = 0; i < Math.min(3, al.size()); i++)
+					b.append(YoldaPlayHistory.ago(al.get(i).at(), System.currentTimeMillis())).append(" ").append(al.get(i).text()).append("; ");
+			}
 		} catch (Throwable ignore) {
 		}
 		return b.toString();

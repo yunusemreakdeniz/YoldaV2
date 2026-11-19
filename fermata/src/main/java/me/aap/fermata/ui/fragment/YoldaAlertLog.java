@@ -57,6 +57,7 @@ public final class YoldaAlertLog {
 			case 'f' -> "Mola";
 			case 'h' -> "Yol tehlikesi";
 			case 'w' -> "Hava";
+			case 'd' -> "Mobil veri";
 			default -> "Uyarı";
 		};
 	}

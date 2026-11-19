@@ -387,8 +387,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout top = hrow(ctx);
 		top.setGravity(Gravity.CENTER_VERTICAL);
 		TextView brand = text(ctx, "Yolda", 22, true, 0xFFFFFFFF);
-		top.addView(brand, new LinearLayout.LayoutParams(0, -2, 1f));
-		top.addView(segmented(ctx, true));
+		brand.setMaxLines(1);
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(brand, 14, 22, 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP);
+		top.addView(brand, new LinearLayout.LayoutParams(0, dp(32), 1f));
+		// Araç görünümüne geç: araba simgeli düğme (araç görünümündeki telefon simgeli düğmeyle eş)
+		ImageView carB = roundButton(ctx, R.drawable.yi_car, "Araç görünümü", v -> {
+			YoldaStyle.haptic(v);
+			setPhoneView(false);
+		});
+		top.addView(carB, new LinearLayout.LayoutParams(dp(48), dp(48)));
 		ImageView themeB = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx),
 				v -> me.aap.fermata.ui.view.YoldaThemePicker.show(a));
 		LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(dp(48), dp(48));
@@ -482,7 +490,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout drive = hrow(ctx);
 		LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(-1, dp(64));
 		dl.topMargin = dp(8);
-		phLimit = statBox(ctx, drive, "Hız sınırı", v -> a.showFragment(R.id.yolda_radar_fragment), false);
+		phLimit = statBox(ctx, drive, "Sınır", v -> a.showFragment(R.id.yolda_radar_fragment), false);
 		// Hız sınırı levhası: beyaz zemin, kırmızı halka, sayı (tasarım taslağı); kutunun solunda
 		phLimitSign = text(ctx, "—", 13, true, 0xFF111111);
 		phLimitSign.setGravity(Gravity.CENTER);
@@ -537,8 +545,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int per = (w / getResources().getDisplayMetrics().density > 600) ? 4 : 2;
 		LinearLayout row = null;
 		int n = 0;
-		List<YoldaDeck.Card> cs = new ArrayList<>();
-		for (YoldaDeck.Card c : deck.cards()) if (!YoldaDeck.ADD.equals(c.type())) cs.add(c);
+		List<YoldaDeck.Card> cs = new ArrayList<>(phoneCards(ctx)); // telefonun kendi sırası (araçtaki desteden ayrı)
 		cs.add(null); // sonda "＋ Kart ekle"
 		for (YoldaDeck.Card c : cs) {
 			if (n % per == 0) {
@@ -592,10 +599,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		b.addView(lb);
 		TextView v = text(ctx, "—", 15, true, 0xFFFFFFFF);
 		v.setIncludeFontPadding(false);
-		v.setSingleLine(true);
+		v.setMaxLines(1);
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(v, 11, 15, 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP);
 		v.setEllipsize(TextUtils.TruncateAt.END);
 		v.setPadding(0, dp(4), 0, 0);
-		b.addView(v);
+		b.addView(v, new LinearLayout.LayoutParams(-1, dp(22)));
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
 		if (gap) lp.leftMargin = dp(8);
 		parent.addView(b, lp);
@@ -694,20 +703,62 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	/** Telefon görünümü: kartları sırala / kaldır (sürükle, ▲ ▼, ✕). */
+	private static final String PREF_PHONE_ORDER = "phone_order", PREF_PHONE_HIDDEN = "phone_hidden";
+
+	/** Telefon görünümünün kartları: araçtaki desteden ayrı sıra ve gizleme (ilk açılışta destenin sırasıyla başlar). */
+	private List<YoldaDeck.Card> phoneCards(Context ctx) {
+		android.content.SharedPreferences p = prefs(ctx);
+		List<String> order = new ArrayList<>();
+		String js = p.getString(PREF_PHONE_ORDER, null);
+		if (js == null) { // ilk kez: bugünkü sıradan başla, bundan sonra ayrı
+			for (YoldaDeck.Card c : deck.cards()) if (!YoldaDeck.ADD.equals(c.type())) order.add(c.key());
+			savePhoneOrder(ctx, order, new java.util.HashSet<>());
+		} else {
+			try {
+				org.json.JSONArray a = new org.json.JSONArray(js);
+				for (int i = 0; i < a.length(); i++) order.add(a.getString(i));
+			} catch (Exception ignore) {
+			}
+		}
+		return YoldaDeck.phoneCards(deck.cards(), order, p.getStringSet(PREF_PHONE_HIDDEN, java.util.Collections.emptySet()));
+	}
+
+	private void savePhoneOrder(Context ctx, List<String> order, java.util.Set<String> hidden) {
+		org.json.JSONArray a = new org.json.JSONArray();
+		for (String k : order) a.put(k);
+		prefs(ctx).edit().putString(PREF_PHONE_ORDER, a.toString()).putStringSet(PREF_PHONE_HIDDEN, hidden).apply();
+	}
+
+	/** Telefonda gizlenmiş kartlar ("＋ Kart ekle"de geri getirilir). */
+	private List<YoldaDeck.Card> phoneHiddenCards(Context ctx) {
+		java.util.Set<String> h = prefs(ctx).getStringSet(PREF_PHONE_HIDDEN, java.util.Collections.emptySet());
+		List<YoldaDeck.Card> out = new ArrayList<>();
+		for (YoldaDeck.Card c : deck.cards()) if (h.contains(c.key())) out.add(c);
+		return out;
+	}
+
+	private void unhidePhoneCard(Context ctx, YoldaDeck.Card c) {
+		java.util.Set<String> h = new java.util.HashSet<>(prefs(ctx).getStringSet(PREF_PHONE_HIDDEN, java.util.Collections.emptySet()));
+		h.remove(c.key());
+		List<String> order = new ArrayList<>();
+		for (YoldaDeck.Card x : phoneCards(ctx)) order.add(x.key());
+		order.add(c.key()); // geri gelen sona
+		savePhoneOrder(ctx, order, h);
+		rebuildPhone();
+	}
+
+	/** Telefon görünümü: kartları sırala / kaldır (sürükle, ▲ ▼, ✕); araçtaki desteye dokunmaz. */
 	private void showPhoneCardsEditor(Context ctx) {
-		List<YoldaDeck.Card> work = new ArrayList<>();
-		for (YoldaDeck.Card c : deck.cards()) if (!YoldaDeck.ADD.equals(c.type())) work.add(c);
-		orderEditor(ctx, "Kartları düzenle", "ızgarada bu sırayla · ✕ kaldırır (↺ ile geri gelir)", work,
+		List<YoldaDeck.Card> work = new ArrayList<>(phoneCards(ctx));
+		orderEditor(ctx, "Telefon kartlarını düzenle", "yalnız telefonda bu sırayla · araçtaki sıra ayrı · ✕ telefonda gizler", work,
 				YoldaDeck.Card::title, l -> {
-					// silinenler kaldırılan kartlara, kalanlar bu sırayla
-					for (YoldaDeck.Card c : deck.cards()) {
-						if (YoldaDeck.ADD.equals(c.type()) || l.contains(c)) continue;
-						if (!c.isBuiltIn()) stashRemoved(c);
-					}
-					deck.setOrder(l);
-					save();
+					List<String> order = new ArrayList<>();
+					for (YoldaDeck.Card c : l) order.add(c.key());
+					java.util.Set<String> hidden = new java.util.HashSet<>();
+					for (YoldaDeck.Card c : deck.cards()) if (!YoldaDeck.ADD.equals(c.type()) && !order.contains(c.key())) hidden.add(c.key());
+					savePhoneOrder(ctx, order, hidden);
 					rebuildPhone();
-				}, YoldaDeck.Card::isRemovable);
+				}, c -> true);
 	}
 
 	private void rebuildPhone() {
@@ -753,11 +804,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 		if (phPlay != null) phPlay.setImageResource(playing ? R.drawable.yi_pause : R.drawable.yi_play);
 		if (phLimitSign != null) phLimitSign.setText((YoldaRadar.limit > 0) ? String.valueOf(YoldaRadar.limit) : "—");
-		if (phLimit != null) phLimit.setText((YoldaRadar.limit > 0)
-				? (YoldaRadar.limit + " km/s" + (YoldaRadar.limitEstimated ? " ~" : "")) : (YoldaRadar.isEnabled(ctx) ? "Bekleniyor" : "Kapalı"));
+		if (phLimit != null) phLimit.setText((YoldaRadar.limit > 0) ? ("km/s" + (YoldaRadar.limitEstimated ? " ~" : ""))
+				: (YoldaRadar.isEnabled(ctx) ? "Yok" : "Kapalı")); // sayı levhada; dar kutuda kısa yazı
 		if (phRadar != null) {
 			YoldaRadarCore.Ahead ah = YoldaRadar.ahead;
-			phRadar.setText((ah != null) ? (RadarFragment.meters(ah.meters()) + " önde") : (YoldaRadar.isEnabled(ctx) ? "Önde yok" : "Kapalı"));
+			phRadar.setText((ah != null) ? RadarFragment.meters(ah.meters()) : (YoldaRadar.isEnabled(ctx) ? "Yok" : "Kapalı"));
 		}
 		if (phPark != null) {
 			double[] pk = YoldaRadar.park(ctx);
@@ -865,7 +916,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG, YoldaDeck.CALENDAR, YoldaDeck.CARCARE}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -912,6 +963,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		clock.setFormat24Hour("HH:mm");
 		clock.setFormat12Hour("HH:mm");
 		clock.setTextSize(car ? 24 : 28);
+		clock.setSingleLine(true); // dar satırda iki satıra kırılıp başlığı (ve kartları) büyütmesin
 		clock.setTypeface(Typeface.DEFAULT_BOLD);
 		clock.setTextColor(t.ink);
 		TextView date = YoldaStyle.turkishDate(ctx, "EEEE, d MMMM");
@@ -1017,8 +1069,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (!car) { // telefonda her zaman: Araç görünümünden tek dokunuşla telefon görünümüne dön (dar ekranda da)
 			ImageView pv = roundButton(ctx, R.drawable.yi_phone, "Telefon görünümü", v -> setPhoneView(true));
 			LinearLayout.LayoutParams pvl = new LinearLayout.LayoutParams(dp(48), dp(48));
-			pvl.rightMargin = dp(10);
-			top.addView(pv, top.indexOfChild(themeBtn), pvl);
+			if (narrowHeader) { // dar ekranda tema düğmesinin yerinde (tema Ayarlar'da ve telefon görünümünde): üst satır taşmasın
+				pvl.rightMargin = dp(10);
+				int at = top.indexOfChild(themeBtn);
+				top.removeView(themeBtn);
+				top.addView(pv, Math.max(0, at), pvl);
+			} else {
+				pvl.rightMargin = dp(10);
+				top.addView(pv, top.indexOfChild(themeBtn), pvl);
+			}
 		}
 		// Ayarlar: tema düğmesinin yanında (menü / ayarlar ekranı)
 		ImageView setBtn = setBtnView = roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> {
@@ -1256,6 +1315,95 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 	}
 
+	/** Takvim izni (bir kez); verilince kart yenilenir. */
+	private void askCalendarPermission(MainActivityDelegate a) {
+		a.getAppActivity().checkPermissions(android.Manifest.permission.READ_CALENDAR).onCompletion((r, err) -> {
+			if (isAdded()) refreshCard(YoldaDeck.CALENDAR);
+		});
+	}
+
+	private String calendarLine() {
+		Context ctx = requireContext();
+		if (!YoldaCalendar.hasPermission(ctx)) return "Bugünkü etkinlikler · izin gerekli";
+		List<YoldaCalendar.Event> l = YoldaCalendar.upcoming(ctx);
+		if (l.isEmpty()) return "Bugün ve yarın etkinlik yok";
+		YoldaCalendar.Event e = l.get(0);
+		return "Sıradaki: " + YoldaCalendar.when(e, System.currentTimeMillis()) + " " + e.title()
+				+ (e.location().isEmpty() ? "" : (" · " + e.location()));
+	}
+
+	private String carCareLine() {
+		Object[] n = YoldaCarCare.nearest(requireContext(), System.currentTimeMillis());
+		return (n == null) ? "Muayene, sigorta, kasko, yağ değişimi tarihlerini gir; 7 gün kala hatırlatır"
+				: ("En yakın: " + n[0] + " · " + YoldaCarCare.left((int) n[1]));
+	}
+
+	private void showCarCareMenu(Context ctx) {
+		List<Row> rows = new ArrayList<>();
+		long now = System.currentTimeMillis();
+		for (String[] it : YoldaCarCare.ITEMS) {
+			long due = YoldaCarCare.due(ctx, it[0]);
+			rows.add(new Row(it[1], (due < 0) ? "Tarih gir" : (YoldaCarCare.format(due) + " · " + YoldaCarCare.left(YoldaCarCare.daysLeft(due, now))),
+					null, R.drawable.yi_settings, () -> editCarCare(ctx, it)));
+		}
+		showPicker("Araç bakımı", rows, null);
+	}
+
+	private void editCarCare(Context ctx, String[] it) {
+		askText(it[1] + " tarihi", "GG.AA.YYYY (ör. 15.03.2027) · silmek için 0", s -> {
+			long d = "0".equals(s.trim()) ? -1 : YoldaCarCare.parseDate(s);
+			if ((d < 0) && !"0".equals(s.trim())) {
+				YoldaStyle.toast(ctx, "Tarih anlaşılamadı (ör. 15.03.2027)");
+				return;
+			}
+			YoldaCarCare.setDue(ctx, it[0], d);
+			YoldaStyle.toast(ctx, (d < 0) ? (it[1] + " silindi") : (it[1] + ": " + YoldaCarCare.format(d)));
+			refreshCard(YoldaDeck.CARCARE);
+		});
+	}
+
+	/** Hızlı mesaj kartının alt satırı: kime yanıt gider. */
+	private String quickMsgLine() {
+		YoldaMessages.Msg m = YoldaQuickMsg.replyTarget(YoldaMessages.last, System.currentTimeMillis());
+		if (m != null) return "Dokununca " + m.sender() + " (" + m.app() + ") kişisine yanıt";
+		String who = YoldaQuickMsg.arrivalNotice(requireContext());
+		return (who != null) ? ("Varınca " + who + " için hatırlatacağım") : "Hazır cevap seç; kişiyi gönderirken seçersin";
+	}
+
+	private void showQuickMsgEditor(Context ctx) {
+		List<String> work = new ArrayList<>(YoldaQuickMsg.presets(ctx));
+		orderEditor(ctx, "Hazır cevaplar", "kartta bu sırayla · 🗑 siler", work, x -> x, l -> {
+			YoldaQuickMsg.savePresets(ctx, new ArrayList<>(l));
+			refreshCard(YoldaDeck.QUICKMSG);
+		}, x -> true);
+	}
+
+	/** Notlar kartının alt satırı: sıradaki hatırlatma ve not sayısı. */
+	private String notesLine() {
+		Context ctx = requireContext();
+		List<YoldaNotes.Reminder> rl = YoldaNotes.reminders(ctx);
+		int n = YoldaNotes.notes(ctx).size();
+		String r = rl.isEmpty() ? "" : ("Sıradaki hatırlatma " + YoldaNotes.left(rl.get(0).due(), System.currentTimeMillis()) + " · ");
+		return r + ((n == 0) ? "Sesle: “not al: lastikleri kontrol et”" : (n + " not"));
+	}
+
+	/** Şarj kartının alt satırı; konum biliniyorsa 30 dakikada bir arka planda en yakınları bulur. */
+	private String chargerLine() {
+		List<YoldaNearby.Spot> sl = NearbyFragment.lastChargers;
+		double la = YoldaRadar.lat, lo = YoldaRadar.lon;
+		if (!Double.isNaN(la) && (System.currentTimeMillis() - NearbyFragment.lastChargersAt > 30 * 60_000L)) {
+			NearbyFragment.lastChargersAt = System.currentTimeMillis();
+			me.aap.utils.function.CheckedSupplier<List<YoldaNearby.Spot>, Throwable> job = () -> YoldaNearby.find(la, lo, true, 10_000, 30);
+			me.aap.utils.app.App.get().execute(job).onSuccess(l -> me.aap.utils.app.App.get().getHandler().post(() -> {
+				NearbyFragment.lastChargers = l;
+				if (isAdded()) refreshCard(YoldaDeck.CHARGER);
+			}));
+		}
+		if (sl.isEmpty()) return Double.isNaN(la) ? "Konum bekleniyor · yakındaki istasyonlar" : "Yakındaki istasyonlar aranıyor…";
+		YoldaNearby.Spot s = sl.get(0);
+		return "En yakın: " + s.name() + " · " + YoldaPlaceSuggest.distance(s.meters()) + (s.info().isEmpty() ? "" : (" · " + s.info()));
+	}
+
 	private static long fuelAskedAt;
 
 	/** Akaryakıt kartının alt satırı: seçili yakıtın fiyatı ve 100 km maliyeti; gerekirse arka planda yeniler. */
@@ -1266,7 +1414,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			fuelAskedAt = now;
 			Context app = ctx.getApplicationContext();
 			YoldaFuel.Prices before = YoldaFuel.cached(app);
-			me.aap.utils.function.CheckedSupplier<YoldaFuel.Prices, Throwable> job = () -> YoldaFuel.refresh(app, false);
+			me.aap.utils.function.CheckedSupplier<YoldaFuel.Prices, Throwable> job = () -> {
+				YoldaFuelLocal.refresh(app, false); // bulunduğun il / ilçe
+				return YoldaFuel.refresh(app, false);
+			};
 			me.aap.utils.app.App.get().execute(job).onSuccess(p -> {
 				if ((p != null) && !p.equals(before)) me.aap.utils.app.App.get().getHandler().post(() -> {
 					if (isAdded()) refreshCard(YoldaDeck.FUEL);
@@ -1276,8 +1427,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		YoldaFuel.Prices p = YoldaFuel.cached(ctx);
 		if (p == null) return "Benzin, motorin ve LPG fiyatları alınıyor…";
 		String ty = YoldaFuel.type(ctx);
-		return YoldaFuel.label(ty) + " " + YoldaFuel.money(p.of(ty)) + " · 100 km ≈ "
-				+ YoldaFuel.money(YoldaFuel.cost(100_000, YoldaFuel.consumption(ctx), p.of(ty)));
+		Object[] cur = YoldaFuelLocal.price(ctx, ty, p);
+		YoldaFuelLocal.Local loc = YoldaFuelLocal.cached(ctx);
+		return YoldaFuel.label(ty) + " " + YoldaFuel.money((double) cur[0]) + ((loc != null) ? (" · " + loc.province()) : "")
+				+ " · 100 km ≈ " + YoldaFuel.money(YoldaFuel.cost(100_000, YoldaFuel.consumption(ctx), (double) cur[0]));
 	}
 
 	private String parkLine() {
@@ -2165,14 +2318,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dots.removeAllViews();
 		int cur = centerPosition();
 		int home = homeCardIndex();
+		// Kart çoksa noktalar ekrana sığacak kadar küçülür (26 kartta dar telefonda sağdan taşıyordu)
+		int n = Math.max(1, deck.size());
+		int avail = Math.max(dp(120), ((dots.getWidth() > 0) ? dots.getWidth() : getResources().getDisplayMetrics().widthPixels) - dp(32));
+		int per = (avail - dp(15)) / n; // ortadaki uzun nokta için pay
+		int mg = Math.max(1, Math.min(dp(3), per / 4));
+		int sz = Math.max(dp(3), Math.min(dp(7), per - 2 * mg));
+		int curW = Math.min(dp(22), sz * 3);
 		for (int i = 0; i < deck.size(); i++) {
 			if (i == home) { // ana kart: nokta yerine ev simgesi (ortadaysa parlak, değilse soluk)
 				android.widget.ImageView hv = new android.widget.ImageView(ctx);
 				hv.setImageResource(R.drawable.yi_home_fill);
 				hv.setImageTintList(android.content.res.ColorStateList.valueOf((i == cur) ? 0xFFFFFFFF : 0x99FFFFFF));
 				hv.setContentDescription("Ana kart");
-				LinearLayout.LayoutParams hl = new LinearLayout.LayoutParams(dp((i == cur) ? 15 : 12), dp((i == cur) ? 15 : 12));
-				hl.leftMargin = hl.rightMargin = dp(3);
+				int hs = Math.max(sz + dp(4), Math.min(dp((i == cur) ? 15 : 12), sz * 2));
+				LinearLayout.LayoutParams hl = new LinearLayout.LayoutParams(hs, hs);
+				hl.leftMargin = hl.rightMargin = mg;
 				hl.gravity = Gravity.CENTER_VERTICAL;
 				dots.addView(hv, hl);
 				continue;
@@ -2182,8 +2343,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			g.setCornerRadius(dp(4));
 			g.setColor((i == cur) ? 0xFFFFFFFF : 0x55FFFFFF);
 			d.setBackground(g);
-			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp((i == cur) ? 22 : 7), dp(7));
-			lp.leftMargin = lp.rightMargin = dp(3);
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((i == cur) ? curW : sz, sz);
+			lp.leftMargin = lp.rightMargin = mg;
 			lp.gravity = Gravity.CENTER_VERTICAL;
 			dots.addView(d, lp);
 		}
@@ -2645,6 +2806,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.CALENDAR -> new Look(0xFF93C5FD, 0xFF1D4ED8, R.drawable.yi_list, true, "TAKVİM", calendarLine());
+			case YoldaDeck.CARCARE -> new Look(0xFFFCA5A5, 0xFF991B1B, R.drawable.yi_settings, true, "ARAÇ BAKIMI", carCareLine());
+			case YoldaDeck.QUICKMSG -> new Look(0xFF86EFAC, 0xFF166534, R.drawable.yi_phone, true, "HIZLI MESAJ", quickMsgLine());
+			case YoldaDeck.NOTES -> new Look(0xFFFDE68A, 0xFFB45309, R.drawable.yi_edit, true, "NOTLAR · HATIRLATMA", notesLine());
+			case YoldaDeck.CHARGER -> new Look(0xFF2DD4BF, 0xFF0D9488, R.drawable.yi_ev, true, "ŞARJ İSTASYONLARI", chargerLine());
+			case YoldaDeck.STATUS -> new Look(0xFF93C5FD, 0xFF1E3A8A, R.drawable.yi_phone, true, "TELEFON DURUMU",
+					StatusFragment.line(requireContext()));
 			case YoldaDeck.FX -> new Look(0xFF4ADE80, 0xFF166534, R.drawable.yi_fuel, true, "DÖVİZ · ALTIN", infoLine(YoldaDeck.FX));
 			case YoldaDeck.PRAYER -> new Look(0xFF5EEAD4, 0xFF115E59, R.drawable.yi_history, true, "NAMAZ VAKİTLERİ",
 					infoLine(YoldaDeck.PRAYER));
@@ -3013,6 +3181,102 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
 			}
+			case YoldaDeck.CALENDAR -> { // sıradaki etkinlikler: dokun → konumu varsa yol tarifi, yoksa okunur
+				LinearLayout row = hrow(ctx);
+				if (!YoldaCalendar.hasPermission(ctx)) {
+					row.addView(chipBtn(ctx, "📅 Takvim iznini ver", v -> askCalendarPermission(a)), chipLp());
+					return row;
+				}
+				long now = System.currentTimeMillis();
+				for (YoldaCalendar.Event e : YoldaCalendar.upcoming(ctx)) {
+					if (row.getChildCount() >= 4) break;
+					String tt = YoldaCalendar.when(e, now) + " · " + ((e.title().length() > 28) ? (e.title().substring(0, 28) + "…") : e.title());
+					row.addView(chipBtn(ctx, (e.location().isEmpty() ? "" : "📍 ") + tt, v -> {
+						if (!e.location().isEmpty()) NavFragment.navigateTo(ctx, e.location(), true);
+						else YoldaSpeak.sayAlways(ctx, YoldaCalendar.when(e, System.currentTimeMillis()) + ", " + e.title());
+					}), chipLp());
+				}
+				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
+			}
+			case YoldaDeck.CARCARE -> { // her kalem: kalan gün (7 gün kala vurgulu), dokun → tarihi gir
+				LinearLayout row = hrow(ctx);
+				long now = System.currentTimeMillis();
+				for (String[] it : YoldaCarCare.ITEMS) {
+					long due = YoldaCarCare.due(ctx, it[0]);
+					String lbl = it[1] + " · " + ((due < 0) ? "tarih gir" : YoldaCarCare.left(YoldaCarCare.daysLeft(due, now)));
+					TextView ch = chipBtn(ctx, lbl, v -> editCarCare(ctx, it));
+					if ((due >= 0) && (YoldaCarCare.daysLeft(due, now) <= 7)) {
+						GradientDrawable wb = new GradientDrawable();
+						wb.setCornerRadius(dp(999));
+						wb.setColor(0xFFFFF4D6);
+						ch.setBackground(wb);
+						ch.setTextColor(0xFF111827);
+					}
+					row.addView(ch, chipLp());
+				}
+				return scroll(ctx, row);
+			}
+			case YoldaDeck.QUICKMSG -> { // hazır cevaplar: dokun → son mesaja yanıt ya da paylaş; varınca haber ver
+				LinearLayout row = hrow(ctx);
+				String who = YoldaQuickMsg.arrivalNotice(ctx);
+				row.addView(chipBtn(ctx, (who == null) ? "📍 Varınca haber ver" : ("📍 Varınca: " + who + " · kapat"), v -> {
+					if (YoldaQuickMsg.arrivalNotice(ctx) != null) {
+						YoldaQuickMsg.setArrivalNotice(ctx, null);
+						refreshCard(YoldaDeck.QUICKMSG);
+					} else {
+						askText("Varınca kime haber verilsin?", "Kişi (ör. Annem)", s -> {
+							YoldaQuickMsg.setArrivalNotice(ctx, s);
+							YoldaStyle.toast(ctx, "Yolculuk bitince " + s + " için hatırlatacağım");
+							refreshCard(YoldaDeck.QUICKMSG);
+						});
+					}
+				}), chipLp());
+				for (String m : YoldaQuickMsg.presets(ctx))
+					row.addView(chipBtn(ctx, m, v -> YoldaStyle.toast(ctx, YoldaQuickMsg.send(ctx, m))), chipLp());
+				return withActions(ctx, scroll(ctx, row), "Hazır cevap ekle", () -> askText("Hazır cevap ekle", "Ör. 5 dakikaya oradayım", s -> {
+					List<String> l = YoldaQuickMsg.presets(ctx);
+					l.add(s);
+					YoldaQuickMsg.savePresets(ctx, l);
+					refreshCard(YoldaDeck.QUICKMSG);
+				}), "Hazır cevapları düzenle", () -> showQuickMsgEditor(ctx));
+			}
+			case YoldaDeck.NOTES -> { // sıradaki hatırlatmalar ve son notlar (dokun: okunur), sesli not ekle
+				LinearLayout row = hrow(ctx);
+				long now = System.currentTimeMillis();
+				for (YoldaNotes.Reminder r : YoldaNotes.reminders(ctx)) {
+					if (row.getChildCount() >= 2) break;
+					row.addView(chipBtn(ctx, "⏰ " + YoldaNotes.left(r.due(), now), v -> YoldaSpeak.sayAlways(ctx, r.text())), chipLp());
+				}
+				List<YoldaNotes.Note> nl = YoldaNotes.notes(ctx);
+				for (int i = 0; i < Math.min(3, nl.size()); i++) {
+					YoldaNotes.Note n = nl.get(i);
+					String tt = (n.text().length() > 32) ? (n.text().substring(0, 32) + "…") : n.text();
+					row.addView(chipBtn(ctx, tt, v -> YoldaSpeak.sayAlways(ctx, n.text())), chipLp());
+				}
+				return withActions(ctx, scroll(ctx, row), "Sesli not ekle", () -> a.startVoiceAssistant(), null, null);
+			}
+			case YoldaDeck.CHARGER -> { // en yakın üç istasyon: dokun → yol tarifi
+				List<YoldaNearby.Spot> sl = NearbyFragment.lastChargers;
+				if (sl.isEmpty()) return null;
+				LinearLayout row = hrow(ctx);
+				for (int i = 0; i < Math.min(3, sl.size()); i++) {
+					YoldaNearby.Spot s = sl.get(i);
+					row.addView(chipBtn(ctx, "⚡ " + s.name() + " · " + YoldaPlaceSuggest.distance(s.meters()), v -> NavFragment.navigateTo(ctx,
+							String.format(java.util.Locale.ROOT, "%.6f,%.6f", s.lat(), s.lon()), false)), chipLp());
+				}
+				return scroll(ctx, row);
+			}
+			case YoldaDeck.STATUS -> { // pil, bağlantı, veri; dokun → sayfa
+				LinearLayout row = hrow(ctx);
+				int[] bt = StatusFragment.battery(ctx);
+				row.addView(chipBtn(ctx, "🔋 " + ((bt[0] >= 0) ? ("%" + bt[0]) : "?") + ((bt[1] == 1) ? " ⚡" : ""), v -> open(c)), chipLp());
+				row.addView(chipBtn(ctx, "📶 " + StatusFragment.network(ctx), v -> open(c)), chipLp());
+				int lim = YoldaData.limitMb(ctx);
+				long used = YoldaData.usedThisMonth(ctx);
+				row.addView(chipBtn(ctx, "Veri " + YoldaData.size(used) + ((lim > 0) ? (" · %" + YoldaData.percent(used, lim)) : ""),
+						v -> open(c)), chipLp());
+				return scroll(ctx, row);
+			}
 			case YoldaDeck.FX -> { // kurlar ve altın çipleri
 				LinearLayout row = hrow(ctx);
 				for (YoldaInfo.Rate r : YoldaInfo.rates(ctx, false))
@@ -3042,11 +3306,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				List<YoldaInfo.News> nl = YoldaInfo.news(ctx, false);
 				if (nl.isEmpty()) return null;
 				LinearLayout row = hrow(ctx);
-				row.addView(chipBtn(ctx, "🔊 Başlıkları oku", v -> YoldaSpeak.sayAlways(ctx, YoldaInfo.newsSpoken(nl, 5))), chipLp());
+				row.addView(chipBtn(ctx, "🔊 Başlıkları oku / ⏹", v -> {
+					if (YoldaSpeak.isSpeaking()) YoldaSpeak.stop();
+					else YoldaSpeak.sayAlways(ctx, YoldaInfo.newsSpoken(nl, 5));
+				}), chipLp());
 				for (int i = 0; i < Math.min(4, nl.size()); i++) {
 					YoldaInfo.News n = nl.get(i);
 					String tt = (n.title().length() > 42) ? (n.title().substring(0, 42) + "…") : n.title();
-					row.addView(chipBtn(ctx, tt, v -> YoldaSpeak.sayAlways(ctx, n.title())), chipLp());
+					row.addView(chipBtn(ctx, tt, v -> {
+						if (YoldaSpeak.isSpeaking()) YoldaSpeak.stop();
+						else YoldaSpeak.sayAlways(ctx, n.title());
+					}), chipLp());
 				}
 				return scroll(ctx, row);
 			}
@@ -3077,7 +3347,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				LinearLayout row = hrow(ctx);
 				if (fp != null) for (String ty : new String[]{"gasoline", "diesel", "lpg"}) {
 					String ch = YoldaFuel.change(fp.changeOf(ty));
-					row.addView(chipBtn(ctx, YoldaFuel.label(ty) + " " + YoldaFuel.money(fp.of(ty)) + (ch.isEmpty() ? "" : ("  " + ch)), v -> {
+					row.addView(chipBtn(ctx, YoldaFuel.label(ty) + " " + YoldaFuel.money((double) YoldaFuelLocal.price(ctx, ty, fp)[0])
+							+ (ch.isEmpty() ? "" : ("  " + ch)), v -> {
 						YoldaFuel.setType(ctx, ty);
 						refreshCard(YoldaDeck.FUEL);
 					}), chipLp());
@@ -3391,6 +3662,24 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.PARK -> a.showFragment(R.id.yolda_park_fragment);
 			case YoldaDeck.FUEL -> a.showFragment(R.id.yolda_fuel_fragment);
 			case YoldaDeck.EQ -> a.showFragment(R.id.yolda_eq_fragment); // kendi sayfası: hazır ayarlar ve bant ayarları
+			case YoldaDeck.STATUS -> a.showFragment(R.id.yolda_status_fragment);
+			case YoldaDeck.NOTES -> a.showFragment(R.id.yolda_notes_fragment);
+			case YoldaDeck.QUICKMSG -> showQuickMsgEditor(ctx); // hazır cevapları düzenle (sırala, sil, ekle)
+			case YoldaDeck.CALENDAR -> {
+				if (!YoldaCalendar.hasPermission(ctx)) askCalendarPermission(a);
+				else try { // telefonun takvim uygulaması
+					startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+							android.net.Uri.parse("content://com.android.calendar/time/" + System.currentTimeMillis()))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+				} catch (Throwable ex) {
+					YoldaStyle.toast(ctx, YoldaCalendar.spoken(YoldaCalendar.upcoming(ctx), System.currentTimeMillis()));
+				}
+			}
+			case YoldaDeck.CARCARE -> showCarCareMenu(ctx);
+			case YoldaDeck.CHARGER -> {
+				NearbyFragment.mode = NearbyFragment.CHARGER;
+				a.showFragment(R.id.yolda_nearby_fragment);
+			}
 			case YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS -> {
 				InfoFragment.mode = c.type(); // fx / prayer / news
 				a.showFragment(R.id.yolda_info_fragment);
@@ -3748,6 +4037,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		rows.add(new Row("YouTube kanalı", "Kanal ya da konu adı", null, R.drawable.yi_youtube, this::addYoutube));
 		rows.add(new Row("Web sayfası", "Bir adres", null, R.drawable.yi_globe, this::addWeb));
 		addRestoreRows(rows);
+		if (phoneBuilt) for (YoldaDeck.Card hc : phoneHiddenCards(requireContext())) // telefonda gizlenenler
+			rows.add(new Row(hc.title(), "Telefonda gizli · geri getir", null, R.drawable.yi_add,
+					() -> unhidePhoneCard(requireContext(), hc)));
 		rows.add(new Row("Kartları düzenle", "Sırala ya da kaldır", null, R.drawable.yi_edit, () -> setEditing(true)));
 		rows.add(new Row("Desteyi varsayılana döndür", "Eklenen kartlar silinir", null, R.drawable.yi_close, () -> {
 			deck.reset();

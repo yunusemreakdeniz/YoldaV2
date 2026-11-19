@@ -7,7 +7,7 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 Her paket ayrı dalda geliştirilir, ara derlemeler o dalda denenir; paket bitince main'e tek seferde birleşir (tek sürüm).
 
-- **Paket A — işlev ve yeni kartlar** (dal: paket-a): 10 TV görüntüsünün gitmesi · 9 mobil veri sınırı · 8 Medya kartı · Q5 Podcast / sesli kitap · Q10 Telefon durumu · 11 Gidilen yerdeki otoparklar · Q7 Şarj istasyonları · Q6 Trafik · R2 Son uyarılar sesli · Q1 Takvim · Q2 Hatırlatıcı / sesli not · Q11 Hızlı mesaj · Q8 Bakım defteri · Q12 Spor · R3 PiP dönüşü
+- **Paket A — işlev ve yeni kartlar** (dal: paket-a): Akaryakıt fiyatı bulunulan il / ilçeye göre (Opet servisi + resmi sayfalar + pompadaki fiyatı elle gir) · Sesli okumayı durdurma (haberler) · Gemini anahtarı çalışıyorsa bütün sesli konuşma ve uygulama yönetimi Gemini'den (ulaşılamazsa yerel) · 10 TV görüntüsünün gitmesi · 9 mobil veri sınırı · 8 Medya kartı · Q5 Podcast / sesli kitap · Q10 Telefon durumu · 11 Gidilen yerdeki otoparklar · Q7 Şarj istasyonları · Q6 Trafik · R2 Son uyarılar sesli · Q1 Takvim · Q2 Hatırlatıcı / sesli not · Q11 Hızlı mesaj · Q8 Bakım defteri · Q12 Spor · R3 PiP dönüşü
 - **Paket B — görünüm ve sağlamlık** (dal: paket-b): N Pro tasarım dili · 12 Android Auto sadeleştirme · 13 hava temalı arka plan · 14 animasyonlar · P kart yüzlerinde 3 iş · 18 boşluklar · O her tıklamanın testi · 15 reklam engelleyici · M hız sınırı kaynağı; telefon görünümü ve tasarım taslağı birlikte güncellenir
 
 ## Açık (sırayla)
@@ -29,9 +29,9 @@ B. [x] (v2-173) Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucu
 0. [ ] Kalıcı imza anahtarı: güncellemeler eskinin üzerine kurulsun, ayarlar / kart düzeni / görünüm silinmesin (kullanıcı onayı bekliyor: anahtar oluşturma ve GitHub gizli ayarları)
 7. [x] (v2-174) Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)
 8. [ ] Medya kartı: telefondaki videolar (en yeni üstte, klasörler, kaldığı yerden) ve fotoğraflar (yalnız telefonda)
-9. [ ] Mobil veri sınırı ve uyarısı (aç / kapat); aşınca devam edene devam
+9. [x] (v2-181) Mobil veri sınırı ve uyarısı (aç / kapat); aşınca devam edene devam
 10. [ ] TV'de çok kanal değiştirince görüntünün gitmesi (tanı günlüğüyle)
-11. [ ] Gidilen yerdeki otoparklar (OpenStreetMap)
+11. [x] (v2-181) Gidilen yerdeki otoparklar (OpenStreetMap)
 12. [ ] Android Auto'da profesyonel görünüm: kalan sadeleştirmeler
 13. [ ] Hava durumuna göre animasyonlu tema (gece / gündüz ayarlı)
 14. [ ] Sisteme ölçülü animasyonlar (geçişler, kart açılışı)
@@ -46,20 +46,20 @@ P. [ ] Kartları kullanışlı ve modern yapma turu: her kartın yüzünde en s�
 
 ### Yeni kart fikirleri (sırayla eklenecek)
 
-Q1. [ ] Takvim (bugünkü etkinlikler, sıradaki toplantıya yol tarifi)
-Q2. [ ] Hatırlatıcılar ve sesli notlar
+Q1. [x] (v2-181) Takvim (bugünkü etkinlikler, sıradaki toplantıya yol tarifi)
+Q2. [x] (v2-181) Hatırlatıcılar ve sesli notlar
 Q3. [x] (v2-179) Döviz / altın
 Q4. [x] (v2-179) Haberler (başlıklar, sesli okuma)
 Q5. [ ] Podcast ve sesli kitap
 Q6. [ ] Trafik durumu (eve / işe varış süresi)
-Q7. [ ] Elektrikli araç şarj istasyonları
-Q8. [ ] Araç bakım ve yakıt defteri (muayene, sigorta, yağ değişimi hatırlatma)
+Q7. [x] (v2-181) Elektrikli araç şarj istasyonları
+Q8. [x] (v2-181) Araç bakım ve yakıt defteri (muayene, sigorta, yağ değişimi hatırlatma)
 Q9. [x] (v2-179) Namaz vakitleri
-Q10. [ ] Telefon durumu (pil, veri, sinyal) ve hızlı ayarlar
-Q11. [ ] Hızlı mesaj (WhatsApp / SMS hazır cevaplar, "varınca haber ver")
+Q10. [x] (v2-181) Telefon durumu (pil, veri, sinyal) ve hızlı ayarlar
+Q11. [x] (v2-181) Hızlı mesaj (WhatsApp / SMS hazır cevaplar, "varınca haber ver")
 Q12. [ ] Spor skorları
-R3. [ ] Dayanıklılık testinde donma (ANR "no focused window"): neden bulundu (v2-175): rastgele dokunuş "Video + harita"yı açıyor, uygulama küçük pencereye (PiP) geçiyor, harita mağazaya yönleniyor; uygulama küçük penceredeyken gelen tuşlar odaksız pencereye düşüyor. v2-175: harita uygulaması yoksa küçük pencereye geçilmez. Kalan: başlatıcıdan dönünce küçük pencereden tam ekrana çıkış (onNewIntent'te PiP'ten çık), sonra monkey yeniden denenecek
-R2. [ ] Uyarı geçmişi için sesli komut ("son uyarılar", "az önce ne dedin") ve Gemini'nin geçmişi okuyabilmesi
+R3. [x] (v2-181) Dayanıklılık testinde donma (ANR "no focused window"): neden bulundu (v2-175): rastgele dokunuş "Video + harita"yı açıyor, uygulama küçük pencereye (PiP) geçiyor, harita mağazaya yönleniyor; uygulama küçük penceredeyken gelen tuşlar odaksız pencereye düşüyor. v2-175: harita uygulaması yoksa küçük pencereye geçilmez. Kalan: başlatıcıdan dönünce küçük pencereden tam ekrana çıkış (onNewIntent'te PiP'ten çık), sonra monkey yeniden denenecek
+R2. [x] (v2-181) Uyarı geçmişi için sesli komut ("son uyarılar", "az önce ne dedin") ve Gemini'nin geçmişi okuyabilmesi
 
 ## Sürekli (her 3 turda bir)
 
