@@ -372,4 +372,28 @@ public final class YoldaDeck {
 	private static String clean(String s) {
 		return s.replace(FIELD, ' ').replace(RECORD, ' ').trim();
 	}
+
+	// ---- Android Auto sadeleştirme (sürüş dikkat yönergeleri: kısa liste, kısa yazı) ----
+
+	/** Araçta bir kart yüzündeki şeritte en çok kaç öğe (Android Auto sürüşte liste sınırı 6). */
+	public static final int CAR_MAX_ITEMS = 6;
+	/** Araçta çip yazısının en çok uzunluğu (göz kısa bakışta okusun). */
+	public static final int CAR_MAX_CHARS = 22;
+
+	/** Araçta şeritte kalacak öğe sayısı. */
+	public static int carItems(int n) {
+		return Math.max(0, Math.min(n, CAR_MAX_ITEMS));
+	}
+
+	/** Araç için kısaltılmış çip yazısı: tek satır, sözcük ortasında kesmeden, sonunda "…". */
+	public static String carLabel(@androidx.annotation.Nullable String s) {
+		if (s == null) return "";
+		String t = s.replace('\n', ' ').replaceAll("\\s+", " ").trim();
+		if (t.length() <= CAR_MAX_CHARS) return t;
+		String cut = t.substring(0, CAR_MAX_CHARS - 1);
+		int sp = cut.lastIndexOf(' ');
+		if (sp >= CAR_MAX_CHARS / 2) cut = cut.substring(0, sp);
+		cut = cut.replaceAll("[\\s·,.:;-]+$", "");
+		return cut + "…";
+	}
 }

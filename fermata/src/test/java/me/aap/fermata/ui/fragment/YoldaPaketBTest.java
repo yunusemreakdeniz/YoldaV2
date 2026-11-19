@@ -69,6 +69,22 @@ public class YoldaPaketBTest {
 	}
 
 	@Test
+	public void aracSadelestirme() {
+		assertEquals(6, YoldaDeck.carItems(20)); // sürüşte liste sınırı
+		assertEquals(3, YoldaDeck.carItems(3));
+		assertEquals(0, YoldaDeck.carItems(0));
+		assertEquals("Galatasaray 2-1 Fenerbahçe".length() > YoldaDeck.CAR_MAX_CHARS ? "Galatasaray 2-1…" : "Galatasaray 2-1 Fenerbahçe",
+				YoldaDeck.carLabel("Galatasaray 2-1 Fenerbahçe"));
+		assertEquals("TRT 1", YoldaDeck.carLabel("TRT 1"));
+		assertEquals("Benzin 71,09 ₺", YoldaDeck.carLabel(" Benzin  71,09 ₺ "));
+		String l = YoldaDeck.carLabel("▶ Fularsız Entellik · son bölüm · 42 dk · %30");
+		assertTrue(l, l.length() <= YoldaDeck.CAR_MAX_CHARS && l.endsWith("…"));
+		assertTrue(l, !l.contains("·…")); // ayraçta bitmez
+		assertTrue(YoldaDeck.carLabel("Çokuzunsözcükaralarındaboşlukyokbuyazıda").endsWith("…"));
+		assertEquals("", YoldaDeck.carLabel(null));
+	}
+
+	@Test
 	public void yerlesimAlani() throws Exception {
 		JSONArray el = new JSONArray("[{\"type\":\"way\",\"tags\":{\"highway\":\"primary\"}},"
 				+ "{\"type\":\"area\",\"tags\":{\"landuse\":\"residential\"}}]");

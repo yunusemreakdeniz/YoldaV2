@@ -3266,6 +3266,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		bottom.setGravity(Gravity.BOTTOM);
 		cardEdit = cardAdd = null;
 		View content = content(ctx, c);
+		if (lowFx && (content != null)) carSimplify(content); // araçta kısa şerit, kısa yazı
 		if (content != null) bottom.addView(content, new LinearLayout.LayoutParams(0, -2, 1f));
 		else bottom.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
 		Runnable ad = cardAdd;
@@ -4930,6 +4931,35 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		r.setOrientation(LinearLayout.HORIZONTAL);
 		r.setGravity(Gravity.CENTER_VERTICAL);
 		return r;
+	}
+
+	/**
+	 * Android Auto sadeleştirme: kart yüzündeki kaydırılan şeritlerde en çok 6 öğe kalır (kalanı kartın "Aç"
+	 * sayfasında), çip yazıları tek satır ve kısa. Sürüşte göz kısa bakışta okusun, uzun liste kaydırılmasın.
+	 */
+	private void carSimplify(View v) {
+		if (v instanceof HorizontalScrollView hs) {
+			if ((hs.getChildCount() > 0) && (hs.getChildAt(0) instanceof LinearLayout row)) {
+				int keep = YoldaDeck.carItems(row.getChildCount());
+				while (row.getChildCount() > keep) row.removeViewAt(row.getChildCount() - 1);
+				for (int i = 0; i < row.getChildCount(); i++) {
+					if (row.getChildAt(i) instanceof TextView tv) {
+						CharSequence txt = tv.getText();
+						if (txt != null) {
+							String sh = YoldaDeck.carLabel(txt.toString());
+							if (!sh.contentEquals(txt)) {
+								if (tv.getContentDescription() == null) tv.setContentDescription(txt); // tam yazı erişilebilirlikte
+								tv.setText(sh);
+							}
+						}
+						tv.setMaxLines(1);
+						tv.setEllipsize(android.text.TextUtils.TruncateAt.END);
+					}
+				}
+			}
+			return;
+		}
+		if (v instanceof android.view.ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) carSimplify(g.getChildAt(i));
 	}
 
 	private View scroll(Context ctx, View row) {
