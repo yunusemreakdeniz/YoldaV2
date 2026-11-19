@@ -775,7 +775,7 @@ public class HomeFragment extends MainActivityFragment {
 		FrameLayout b = pressable(ctx, YoldaStyle.selected(ctx, 999), click);
 		ImageView iv = glyph(ctx, res, true);
 		b.addView(iv, new FrameLayout.LayoutParams(dp(20), dp(20), Gravity.CENTER));
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(40), dp(40));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48)); // en az 48dp dokunma
 		lp.leftMargin = lp.rightMargin = dp(4);
 		b.setLayoutParams(lp);
 		return b;

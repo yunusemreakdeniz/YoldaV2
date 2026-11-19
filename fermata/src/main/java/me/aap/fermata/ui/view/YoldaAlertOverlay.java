@@ -131,7 +131,7 @@ public final class YoldaAlertOverlay extends FrameLayout {
 		x.setBackground(xb);
 		x.setContentDescription("Uyarıyı kapat");
 		x.setOnClickListener(v -> dismiss());
-		FrameLayout.LayoutParams xl = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP | Gravity.END);
+		FrameLayout.LayoutParams xl = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.TOP | Gravity.END);
 		xl.topMargin = dp(8);
 		xl.rightMargin = dp(8);
 		top.addView(x, xl);

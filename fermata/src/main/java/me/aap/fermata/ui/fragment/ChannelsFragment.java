@@ -591,7 +591,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		iv.setImageResource(res);
 		iv.setImageTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
 		b.addView(iv, new FrameLayout.LayoutParams(dp(22), dp(22), Gravity.CENTER));
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(42), dp(42));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48)); // en az 48dp dokunma
 		lp.setMargins(dp(4), dp(6), dp(4), 0);
 		b.setLayoutParams(lp);
 		return b;

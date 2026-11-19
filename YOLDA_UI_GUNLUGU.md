@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-173 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-173
+
+- 48dp'nin altında kalan son dokunma alanları büyüdü: destenin üst çubuğundaki tema, telefon görünümü, ayarlar, kaldırılan kartlar ve düzenle düğmeleri; düzenlerken kartlardaki ✕ ve ✎ (44 → 48dp).
+- Kanallar ekranındaki gizle / göster düğmeleri (42 → 48dp), ana ekrandaki küçük oynatma düğmeleri (40 → 48dp) ve radar uyarısındaki ✕ (44 → 48dp).
+- ✎ düğmesi büyüyen ✕'in altında 8dp boşlukla; kart yazıları ✕'in altına girmez.
+
 ## 2026-11-19 · v2-172 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-172
 
 - Video kalitesi oynatıcının menüsünden: "Video kalitesi: 480p" → 360p, 480p (veri dostu), 720p, 1080p, Otomatik; seçim çalan videoda hemen geçerli (TV ve YouTube).

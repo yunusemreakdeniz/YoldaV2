@@ -380,11 +380,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		top.addView(segmented(ctx, true));
 		ImageView themeB = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx),
 				v -> me.aap.fermata.ui.view.YoldaThemePicker.show(a));
-		LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(dp(44), dp(44));
+		LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(dp(48), dp(48));
 		tl.leftMargin = dp(8);
 		top.addView(themeB, tl);
 		ImageView setB = roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> a.showFragment(R.id.yolda_menu_fragment));
-		LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(dp(44), dp(44));
+		LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(dp(48), dp(48));
 		sl.leftMargin = dp(6);
 		top.addView(setB, sl);
 		col.addView(top);
@@ -919,12 +919,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaStyle.toast(ctx, "Tema: " + YoldaStyle.label(ctx));
 			return true;
 		});
-		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(44), dp(44));
+		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(48), dp(48));
 		tlp.rightMargin = dp(10);
 		top.addView(themeBtn, tlp);
 		if (!car && !narrowHeader) { // geniş telefonda başlıkta; dar ekranda Menü → Görünüm
 			ImageView pv = roundButton(ctx, R.drawable.yi_phone, "Telefon görünümü", v -> setPhoneView(true));
-			LinearLayout.LayoutParams pvl = new LinearLayout.LayoutParams(dp(44), dp(44));
+			LinearLayout.LayoutParams pvl = new LinearLayout.LayoutParams(dp(48), dp(48));
 			pvl.rightMargin = dp(10);
 			top.addView(pv, top.indexOfChild(themeBtn), pvl);
 		}
@@ -933,19 +933,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaStyle.haptic(v);
 			getActivityDelegate().showFragment(R.id.yolda_menu_fragment);
 		});
-		LinearLayout.LayoutParams slp2 = new LinearLayout.LayoutParams(dp(44), dp(44));
+		LinearLayout.LayoutParams slp2 = new LinearLayout.LayoutParams(dp(48), dp(48));
 		slp2.rightMargin = dp(10);
 		top.addView(setBtn, slp2);
 		restoreBtn = roundButton(ctx, R.drawable.yi_history, "Kaldırılan kartlar", v -> {
 			YoldaStyle.haptic(v);
 			showRestoreMenu();
 		});
-		LinearLayout.LayoutParams rlp2 = new LinearLayout.LayoutParams(dp(44), dp(44));
+		LinearLayout.LayoutParams rlp2 = new LinearLayout.LayoutParams(dp(48), dp(48));
 		rlp2.rightMargin = dp(10);
 		top.addView(restoreBtn, rlp2);
 		restoreBtn.setVisibility(View.GONE);
 		editBtn = roundButton(ctx, R.drawable.yi_edit, "Düzenle", v -> setEditing(!editing));
-		top.addView(editBtn, new LinearLayout.LayoutParams(dp(44), dp(44)));
+		top.addView(editBtn, new LinearLayout.LayoutParams(dp(48), dp(48)));
 		col.addView(top);
 
 		// Deste
@@ -2600,8 +2600,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				eb.setBackground(ebg);
 				eb.setImageTintList(ColorStateList.valueOf(0xFF111827));
 				eb.setTranslationZ(dp(20));
-				FrameLayout.LayoutParams el = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP | Gravity.END);
-				el.topMargin = c.isRemovable() ? dp(62) : dp(10);
+				FrameLayout.LayoutParams el = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.TOP | Gravity.END);
+				el.topMargin = c.isRemovable() ? dp(66) : dp(10); // ✕ (48dp) ve 8dp boşluğun altında
 				el.rightMargin = dp(10);
 				f.addView(eb, el);
 			}
@@ -2615,7 +2615,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			rm.setBackground(rb);
 			rm.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
 			rm.setElevation(dp(6));
-			FrameLayout.LayoutParams rl = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP | Gravity.END);
+			FrameLayout.LayoutParams rl = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.TOP | Gravity.END);
 			rl.topMargin = rl.rightMargin = dp(10);
 			rm.setTranslationZ(dp(20)); // içeriğin üstünde çizilir ve dokunuşu önce alır
 			f.addView(rm, rl);
@@ -2639,7 +2639,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		v.setPadding(p, p, p, p);
 		if (fz.row()) v.setPadding(dp(18), p, dp(18), p);
 		if (editing && c.isRemovable()) // sağ üstteki ✕ başlığın / düğmelerin üstüne binmesin
-			v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight() + dp(fz.row() ? 50 : 40), v.getPaddingBottom());
+			v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight() + dp(fz.row() ? 54 : 44), v.getPaddingBottom());
 		watchOverflow(v);
 		f.addView(v, new FrameLayout.LayoutParams(-1, -1));
 
