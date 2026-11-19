@@ -2,6 +2,10 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-186 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-186 · Hey Yolda düzeltmesi
+
+- "Hey Yolda" denmeden açılıyordu: sıkı kip (varsayılan) yalnız kesin sonuçta, yüksek güvenle (>= 0.88), doğal sürede ve sohbetin ortasında değilken uyanır; tek "yola" uyandırmaz. Menü'de "Hey Yolda hassasiyeti: Sıkı / Normal".
+
 ## 2026-11-19 · v2-185 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-185 · Paket B
 
 - Zemin hava durumuna göre: yağmurda damla, karda tane, açık gündüz güneş, açık gece yıldız, sis, bulut, fırtına; araçta ve animasyon kapalıyken sabit; Tema seçicide aç / kapa.
