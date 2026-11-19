@@ -58,6 +58,13 @@ class YoutubeMediaEngine implements MediaEngine, OverlayMenu.SelectionHandler {
 	private String qualityUrl;
 	private boolean ignorePause;
 
+	@Override
+	public void yoldaVideoQualityChanged() {
+		String vq = me.aap.fermata.ui.view.YoldaStyle.videoQuality(web.getContext());
+		qualityUrl = null;
+		if (!"auto".equals(vq)) web.setPreferredVideoQuality(vq); // çalan videoda hemen
+	}
+
 	public YoutubeMediaEngine(YoutubeWebView web, MainActivityDelegate a) {
 		this.web = web;
 		cb = a.getMediaSessionCallback();

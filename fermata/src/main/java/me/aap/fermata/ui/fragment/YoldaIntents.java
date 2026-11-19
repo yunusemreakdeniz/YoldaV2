@@ -37,7 +37,9 @@ public final class YoldaIntents {
 		MSG_REPLY, MSG_READ,
 		DATE, CALC, TIMER, TIMER_CANCEL, BATTERY, SPEED, FORECAST, WHERE_AM_I, WIKI,
 		/** Ekolayzer hazır ayarı (arg: ayar adı; null: kartı aç). */
-		EQ
+		EQ,
+		/** Video kalitesi (arg: söylenen cümle; kaliteyi YoldaStyle.spokenVideoQuality çıkarır). */
+		VIDEO_Q
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -221,6 +223,9 @@ public final class YoldaIntents {
 		// yardım, tekrar
 		if (c.matches("(yardım|ne yapabilirsin|neler yapabilirsin|komutlar|ne diyebilirim|nasıl kullanılır)")) return Intent.of(Kind.HELP);
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
+
+		// video kalitesi: "video kalitesini 720 yap", "kaliteyi düşür", "görüntü kalitesi otomatik"
+		if (c.matches(".*(video kalite|kaliteyi|kalitesini|görüntü kalite|çözünürlü).*")) return Intent.of(Kind.VIDEO_Q, c);
 
 		// ekolayzer: "rock ekolayzer", "ekolayzeri kapat", "ses modunu konuşma yap", "bas ses ayarı"
 		if (c.matches(".*(ekolayz|ekolaz|ekualayz|ses modu|ses ayarı).*"))

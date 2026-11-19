@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-172 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-172
+
+- Video kalitesi oynatıcının menüsünden: "Video kalitesi: 480p" → 360p, 480p (veri dostu), 720p, 1080p, Otomatik; seçim çalan videoda hemen geçerli (TV ve YouTube).
+- Sesle: "video kalitesini 720 yap", "full hd yap", "kaliteyi düşür / artır", "video kalitesi ne"; Gemini de aynı komutu kullanır.
+
 ## 2026-11-19 · v2-171 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-171
 
 - Hava ekranında uzun yer adları artık gerçekten sığana kadar küçülüyor (önceki düzeltme tek satır ayarı yüzünden işlemiyordu).

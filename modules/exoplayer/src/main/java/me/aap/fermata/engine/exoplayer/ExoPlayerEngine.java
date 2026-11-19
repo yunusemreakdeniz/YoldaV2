@@ -176,6 +176,11 @@ public class ExoPlayerEngine extends MediaEngineBase implements Player.Listener 
 	// ---- Yolda: mobil veri ----
 
 	@Override
+	public void yoldaVideoQualityChanged() {
+		applyDataLimits(); // yeni kalite sınırı çalan yayında hemen geçerli
+	}
+
+	@Override
 	public void setVideoHidden(boolean hidden) {
 		if (videoHidden == hidden) return;
 		videoHidden = hidden;

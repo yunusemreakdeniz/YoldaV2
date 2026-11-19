@@ -858,6 +858,19 @@ public class ControlPanelView extends ConstraintLayout
 				b.addItem(R.id.audio_effects_fragment, R.drawable.equalizer, R.string.audio_effects);
 			}
 
+			if (pi.isVideo()) { // Yolda: video kalitesi (veri kullanımı) çalan videoda hemen değişir
+				String cur = YoldaStyle.videoQuality(a.getContext());
+				b.addItem(R.id.yolda_vq, R.drawable.speed, "Video kalitesi: " + YoldaStyle.videoQualityLabel(cur)).setSubmenu(s -> {
+					s.setSelectionHandler(this);
+					int[] ids = {R.id.yolda_vq_360, R.id.yolda_vq_480, R.id.yolda_vq_720, R.id.yolda_vq_1080, R.id.yolda_vq_auto};
+					for (int k = 0; k < ids.length; k++) {
+						String q = YoldaStyle.VIDEO_QUALITIES[k];
+						s.addItem(ids[k], (q.equals(cur) ? "✓ " : "   ") + YoldaStyle.videoQualityLabel(q)
+								+ ("480".equals(q) ? " (veri dostu)" : ""));
+					}
+				});
+			}
+
 			if (!stream) {
 				b.addItem(R.id.speed, R.drawable.speed, R.string.speed)
 						.setSubmenu(s -> new SpeedMenuHandler().build(s, getItem()));
@@ -879,6 +892,15 @@ public class ControlPanelView extends ConstraintLayout
 			PlayableItem pi;
 			MediaEngine eng;
 
+			String vq = (id == R.id.yolda_vq_360) ? "360" : (id == R.id.yolda_vq_480) ? "480" : (id == R.id.yolda_vq_720) ? "720"
+					: (id == R.id.yolda_vq_1080) ? "1080" : (id == R.id.yolda_vq_auto) ? "auto" : null;
+			if (vq != null) {
+				YoldaStyle.setVideoQuality(getActivity().getContext(), vq);
+				eng = getActivity().getMediaSessionCallback().getEngine();
+				if (eng != null) eng.yoldaVideoQualityChanged();
+				YoldaStyle.toast(getActivity().getContext(), "Video kalitesi: " + YoldaStyle.videoQualityLabel(vq));
+				return true;
+			}
 			if (id == R.id.audio_effects_fragment) {
 				eng = getActivity().getMediaSessionCallback().getEngine();
 				if ((eng != null) && (eng.getAudioEffects() != null))

@@ -256,6 +256,26 @@ public final class YoldaStyle {
 		return n;
 	}
 
+	/**
+	 * Söylenen kalite: "720", "720p", "hd" → 720, "full hd" / "1080" / "en yüksek" → 1080, "düşük" → 360,
+	 * "orta" / "normal" → 480, "otomatik" → auto; "artır" / "düşür" geçerli kalitenin bir üstü / altı.
+	 * Anlaşılmazsa null.
+	 */
+	@androidx.annotation.Nullable
+	public static String spokenVideoQuality(String s, String current) {
+		String t = s.toLowerCase(new java.util.Locale("tr"));
+		if (t.contains("1080") || t.contains("full") || t.contains("en yüksek") || t.contains("en iyi")) return "1080";
+		if (t.contains("720") || t.matches(".*\\bhd\\b.*")) return "720";
+		if (t.contains("480") || t.contains("orta") || t.contains("normal")) return "480";
+		if (t.contains("360") || t.contains("en düşük") || t.contains("düşük")) return "360";
+		if (t.contains("otomatik") || t.contains("oto")) return "auto";
+		java.util.List<String> fixed = java.util.Arrays.asList("360", "480", "720", "1080");
+		int i = fixed.indexOf(current);
+		if (t.contains("artır") || t.contains("yükselt") || t.contains("yüksek")) return fixed.get(Math.min(3, (i < 0) ? 2 : i + 1));
+		if (t.contains("düşür") || t.contains("azalt")) return fixed.get(Math.max(0, (i < 0) ? 1 : i - 1));
+		return null;
+	}
+
 	public static String videoQualityLabel(String q) {
 		return "auto".equals(q) ? "Otomatik" : (q + "p");
 	}

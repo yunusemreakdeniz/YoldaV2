@@ -169,6 +169,18 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case VIDEO_Q -> {
+				String cur = me.aap.fermata.ui.view.YoldaStyle.videoQuality(ctx);
+				String q = me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality(it.arg(), cur);
+				if (q == null) {
+					reply(a, "Video kalitesi " + me.aap.fermata.ui.view.YoldaStyle.videoQualityLabel(cur)
+							+ ". 360, 480, 720, 1080 ya da otomatik diyebilirsin");
+				} else {
+					me.aap.fermata.ui.view.YoldaStyle.setVideoQuality(ctx, q);
+					if ((cb != null) && (cb.getEngine() != null)) cb.getEngine().yoldaVideoQualityChanged();
+					reply(a, "Video kalitesi " + me.aap.fermata.ui.view.YoldaStyle.videoQualityLabel(q));
+				}
+			}
 			case EQ -> {
 				if (it.arg() == null) {
 					run(a, Intent.of(Kind.CARD, "ekolayzer"), raw); // desteyi Ekolayzer kartına götür

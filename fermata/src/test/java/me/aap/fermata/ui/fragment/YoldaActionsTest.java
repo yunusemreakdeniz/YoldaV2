@@ -30,4 +30,19 @@ public class YoldaActionsTest {
 		}
 		assertTrue(YoldaActions.forPrompt().contains("kartına geç"));
 	}
+
+	@Test
+	public void videoKalitesi() {
+		assertEquals(YoldaIntents.Kind.VIDEO_Q, YoldaIntents.parse("video kalitesini 720 yap").kind());
+		assertEquals(YoldaIntents.Kind.VIDEO_Q, YoldaIntents.parse("kaliteyi düşür").kind());
+		assertEquals(YoldaIntents.Kind.EQ, YoldaIntents.parse("rock ekolayzer").kind());
+		assertEquals("720", me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("video kalitesini 720 yap", "480"));
+		assertEquals("1080", me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("full hd yap", "480"));
+		assertEquals("720", me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("hd olsun", "480"));
+		assertEquals("auto", me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("kalite otomatik", "480"));
+		assertEquals("360", me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("kaliteyi düşür", "480"));
+		assertEquals("720", me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("kaliteyi artır", "480"));
+		assertEquals("1080", me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("kaliteyi artır", "1080"));
+		assertEquals(null, me.aap.fermata.ui.view.YoldaStyle.spokenVideoQuality("video kalitesi ne", "480"));
+	}
 }

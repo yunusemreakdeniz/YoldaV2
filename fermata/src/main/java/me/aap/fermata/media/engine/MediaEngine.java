@@ -78,6 +78,10 @@ public interface MediaEngine extends Closeable {
 	void setVideoView(@Nullable VideoView view);
 
 	/** Yolda: görüntü ekranda değilken (yalnız ses) en düşük görüntü kalitesine in (mobil veri). */
+	/** Yolda: kullanıcı video kalitesini değiştirdi (menü / sesli komut); destekleyen motor hemen uygular. */
+	default void yoldaVideoQualityChanged() {
+	}
+
 	default void setVideoHidden(boolean hidden) {
 	}
 

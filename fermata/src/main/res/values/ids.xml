@@ -43,6 +43,12 @@
     <item name="yolda_contacts_fragment" type="id" />
     <item name="yolda_park_fragment" type="id" />
     <item name="yolda_fuel_fragment" type="id" />
+    <item name="yolda_vq" type="id" />
+    <item name="yolda_vq_360" type="id" />
+    <item name="yolda_vq_480" type="id" />
+    <item name="yolda_vq_720" type="id" />
+    <item name="yolda_vq_1080" type="id" />
+    <item name="yolda_vq_auto" type="id" />
     <item name="yolda_menu_fragment" type="id" />
     <item name="yolda_setup_fragment" type="id" />
     <item name="tv_fragment" type="id" />
