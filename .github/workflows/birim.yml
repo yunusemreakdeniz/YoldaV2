@@ -1,0 +1,51 @@
+name: Yolda V2 birim testleri (paket dalları)
+
+# Paket dallarında hızlı geri bildirim: yalnız birim testleri, emülatör kuyruğunu beklemeden; en yeni gönderim
+# eskisini iptal eder. Emülatör testleri tests.yml'de (main'e birleşince ve elle).
+on:
+  push:
+    branches: ['paket-*']
+    paths-ignore:
+      - "kanallar/**"
+      - "**.md"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
+  GRADLE_ARGS: '-PABI=x86_64 -PAPP_NAME=YoldaV2 -PAPP_ID_SFX=.yoldav2'
+
+jobs:
+  birim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: NDK sürümü
+        run: echo "ANDROID_NDK_VERSION=$(grep -Po '(?<=ndkVersion).+' gradle/libs.versions.toml | sed -e 's/[= \"]//g')" >> $GITHUB_ENV
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Birim testleri
+        env:
+          NO_GS: true
+        run: |
+          chmod +x gradlew
+          # Bütün Yolda birim testleri (yeni test sınıfları da kendiliğinden); Fermata'nın eski altyazı testi hariç
+          ./gradlew fermata:testAutoDebugUnitTest --tests 'me.aap.fermata.ui.fragment.Yolda*' --tests 'me.aap.fermata.media.radio.RadioBrowserTest' --tests 'me.aap.fermata.media.engine.YoldaEqTest' web:testAutoDebugUnitTest --tests 'me.aap.fermata.addon.web.AdFilterTest' $GRADLE_ARGS
+      - name: Sonuçlar
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: birim-test-raporu
+          path: |
+            fermata/build/reports/tests/
+            modules/web/build/reports/tests/
