@@ -45,6 +45,38 @@ public class YoldaPaketBTest {
 	}
 
 	@Test
+	public void havaEfektiKipi() {
+		// otomatik: havaya göre; kapalı: yok; sabit: hava ne olursa olsun seçilen
+		assertEquals(YoldaSky.SNOW, YoldaSky.modeScene("auto", YoldaSky.SNOW));
+		assertEquals(YoldaSky.NONE, YoldaSky.modeScene("off", YoldaSky.SNOW));
+		assertEquals(YoldaSky.RAIN, YoldaSky.modeScene("rain", YoldaSky.SUN));
+		assertEquals(YoldaSky.STORM, YoldaSky.modeScene("storm", YoldaSky.NONE));
+		assertEquals(YoldaSky.SUN, YoldaSky.modeScene(null, YoldaSky.SUN));
+		assertEquals("Yağmur", YoldaSky.modeLabel("rain"));
+		assertEquals("Otomatik", YoldaSky.modeLabel("bilinmeyen"));
+		// her seçenek bir sahneye karşılık gelir (otomatik ve kapalı hariç)
+		for (String[] m : YoldaSky.MODES)
+			if (!m[0].equals("auto") && !m[0].equals("off")) assertTrue(m[0], YoldaSky.modeScene(m[0], YoldaSky.NONE) != YoldaSky.NONE);
+	}
+
+	@Test
+	public void yerOnerileriYakindan() throws Exception {
+		// Türkiye'de: yakına ağırlık ve ülke kutusu; yurt dışında kutu yok
+		String u = YoldaPlaceSuggest.url("kızılay", 39.92, 32.85);
+		assertTrue(u, u.contains("&lat=39.9200&lon=32.8500&zoom=12&location_bias_scale=0.3"));
+		assertTrue(u, u.contains("&bbox=25.6,35.7,44.9,42.2"));
+		assertTrue(!YoldaPlaceSuggest.url("louvre", 48.86, 2.34).contains("bbox"));
+		assertTrue(YoldaPlaceSuggest.url("kızılay", Double.NaN, Double.NaN).contains("bbox")); // konum yok: Türkiye
+		// yakınlar (50 km) öne, sıra korunur
+		java.util.List<YoldaPlaceSuggest.Suggestion> l = java.util.List.of(
+				new YoldaPlaceSuggest.Suggestion("A", "", "A", 400_000), new YoldaPlaceSuggest.Suggestion("B", "", "B", 3_000),
+				new YoldaPlaceSuggest.Suggestion("C", "", "C", -1), new YoldaPlaceSuggest.Suggestion("D", "", "D", 20_000));
+		java.util.List<String> o = new java.util.ArrayList<>();
+		for (YoldaPlaceSuggest.Suggestion s : YoldaPlaceSuggest.nearFirst(l)) o.add(s.title());
+		assertEquals(java.util.List.of("B", "D", "A", "C"), o);
+	}
+
+	@Test
 	public void parcaciklarOlcekli() {
 		// küçük ekranda da en az 12, büyük ekranda üst sınır; güneşte parçacık yok
 		assertTrue(YoldaSky.particles(YoldaSky.RAIN, 360, 640) >= 12);

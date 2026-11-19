@@ -275,7 +275,12 @@ public class NavFragment extends MainActivityFragment {
 		LinearLayout box = new LinearLayout(ctx);
 		box.setOrientation(LinearLayout.VERTICAL);
 		box.setPadding(dp(8), dp(8), dp(8), dp(8));
-		box.setBackground(YoldaStyle.glass(ctx, t, 24));
+		// Opak koyu zemin ve belirgin kenar: öneriler haritanın / zeminin üstünde okunsun (önce %14 cam, okunmuyordu)
+		android.graphics.drawable.GradientDrawable sbg = new android.graphics.drawable.GradientDrawable();
+		sbg.setCornerRadius(dp(24));
+		sbg.setColor((t.base & 0x00FFFFFF) | 0xF5000000);
+		sbg.setStroke(Math.max(1, dp(1)), 0x4DFFFFFF);
+		box.setBackground(sbg);
 		box.setVisibility(View.GONE);
 		sugBox = box;
 		if (YoldaStyle.DECK) {
@@ -319,17 +324,68 @@ public class NavFragment extends MainActivityFragment {
 				prefs().getString("nav_work", null));
 		showSuggestions(ctx, loc, null);
 		if (q.length() < 3) return;
+		sugStatus(ctx, "Aranıyor…");
 		double la = YoldaRadar.lat, lo = YoldaRadar.lon;
+		Context app = ctx.getApplicationContext();
 		sugPending[0] = () -> {
-			me.aap.utils.function.CheckedSupplier<List<YoldaPlaceSuggest.Suggestion>, Throwable> job =
-					() -> YoldaPlaceSuggest.fetch(q, la, lo);
+			me.aap.utils.function.CheckedSupplier<List<YoldaPlaceSuggest.Suggestion>, Throwable> job = () -> {
+				List<YoldaPlaceSuggest.Suggestion> l = null;
+				try {
+					l = YoldaPlaceSuggest.fetch(q, la, lo);
+				} catch (Throwable ex) {
+					Log.d(ex, "Yer önerileri alınamadı (Photon)");
+				}
+				if ((l == null) || l.isEmpty()) l = geocoderSuggest(app, q, la, lo); // yedek: telefonun adres araması
+				return l;
+			};
 			me.aap.utils.app.App.get().execute(job).onCompletion((l, err) -> h.post(() -> {
 				if ((seq != sugSeq) || (sugBox == null) || !isAdded()) return; // daha yeni yazı var
 				if (err != null) Log.d(err, "Yer önerileri alınamadı");
 				showSuggestions(ctx, loc, l);
+				if (((l == null) || l.isEmpty()) && loc.isEmpty()) sugStatus(ctx, "Sonuç yok · tam adresi yazıp ara");
 			}));
 		};
 		h.postDelayed(sugPending[0], 350);
+	}
+
+	/** Öneri kutusunda durum satırı ("Aranıyor…", "Sonuç yok"). */
+	private void sugStatus(Context ctx, String s) {
+		LinearLayout box = sugBox;
+		if (box == null) return;
+		for (int i = box.getChildCount() - 1; i >= 0; i--) if ("sug_status".equals(box.getChildAt(i).getTag())) box.removeViewAt(i);
+		TextView st = text(ctx, s, 15, false);
+		st.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
+		st.setTag("sug_status");
+		st.setPadding(dp(12), dp(10), dp(12), dp(10));
+		box.addView(st);
+		box.setVisibility(View.VISIBLE);
+	}
+
+	/** Yedek öneriler: Android'in adres araması (Photon yanıt vermezse ya da boşsa). */
+	private static List<YoldaPlaceSuggest.Suggestion> geocoderSuggest(Context ctx, String q, double la, double lo) {
+		List<YoldaPlaceSuggest.Suggestion> out = new ArrayList<>();
+		try {
+			if (!android.location.Geocoder.isPresent()) return out;
+			android.location.Geocoder g = new android.location.Geocoder(ctx, new java.util.Locale("tr", "TR"));
+			@SuppressWarnings("deprecation")
+			List<android.location.Address> as = YoldaPlaceSuggest.inTurkey(la, lo) || Double.isNaN(la)
+					? g.getFromLocationName(q, 5, 35.7, 25.6, 42.2, 44.9) : g.getFromLocationName(q, 5);
+			if (as == null) return out;
+			for (android.location.Address ad : as) {
+				String title = (ad.getFeatureName() != null) ? ad.getFeatureName() : ad.getAddressLine(0);
+				if (title == null) continue;
+				List<String> parts = new ArrayList<>();
+				for (String s : new String[]{ad.getThoroughfare(), ad.getSubLocality(), ad.getLocality(), ad.getAdminArea()})
+					if ((s != null) && !s.equals(title) && !parts.contains(s)) parts.add(s);
+				String sub = String.join(", ", parts);
+				int m = (!Double.isNaN(la) && ad.hasLatitude()) ? (int) YoldaRadarCore.dist(la, lo, ad.getLatitude(), ad.getLongitude()) : -1;
+				String dest = (ad.getAddressLine(0) != null) ? ad.getAddressLine(0) : (sub.isEmpty() ? title : (title + ", " + sub));
+				out.add(new YoldaPlaceSuggest.Suggestion(title, sub, dest, m));
+			}
+		} catch (Throwable ex) {
+			Log.d(ex, "Adres araması başarısız");
+		}
+		return out;
 	}
 
 	private void showSuggestions(Context ctx, List<YoldaPlaceSuggest.Suggestion> loc,

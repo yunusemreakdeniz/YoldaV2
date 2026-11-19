@@ -30,18 +30,40 @@ public final class YoldaPlaceSuggest {
 	}
 
 	/** Ağdan öneriler (arka planda çağır). */
+	/** Türkiye kutusu (boylam / enlem): içindeyken ya da konum bilinmiyorsa arama bununla sınırlanır. */
+	static final double[] TR_BOX = {25.6, 35.7, 44.9, 42.2};
+
+	static boolean inTurkey(double lat, double lon) {
+		return !Double.isNaN(lat) && (lon >= TR_BOX[0]) && (lon <= TR_BOX[2]) && (lat >= TR_BOX[1]) && (lat <= TR_BOX[3]);
+	}
+
+	/** İstek adresi: yakına ağırlık (konum + yakınlaştırma), Türkiye'deyken ülke kutusu. */
+	static String url(String q, double lat, double lon) throws Exception {
+		StringBuilder u = new StringBuilder(API).append("?q=").append(URLEncoder.encode(q, "UTF-8")).append("&limit=10");
+		boolean known = !Double.isNaN(lat) && !Double.isNaN(lon);
+		if (known) u.append(String.format(Locale.ROOT, "&lat=%.4f&lon=%.4f&zoom=12&location_bias_scale=0.3", lat, lon));
+		if (!known || inTurkey(lat, lon))
+			u.append(String.format(Locale.ROOT, "&bbox=%.1f,%.1f,%.1f,%.1f", TR_BOX[0], TR_BOX[1], TR_BOX[2], TR_BOX[3]));
+		return u.toString();
+	}
+
+	/** Yakın olanlar (50 km içi) öne; kendi aralarında servisin sırası korunur. */
+	static List<Suggestion> nearFirst(List<Suggestion> l) {
+		List<Suggestion> near = new ArrayList<>(), far = new ArrayList<>();
+		for (Suggestion s : l) ((s.meters() >= 0) && (s.meters() <= 50_000) ? near : far).add(s);
+		near.addAll(far);
+		return near;
+	}
+
 	public static List<Suggestion> fetch(String q, double lat, double lon) throws Exception {
-		StringBuilder u = new StringBuilder(API).append("?q=").append(URLEncoder.encode(q, "UTF-8")).append("&limit=7");
-		if (!Double.isNaN(lat) && !Double.isNaN(lon))
-			u.append(String.format(Locale.ROOT, "&lat=%.4f&lon=%.4f", lat, lon));
-		HttpURLConnection c = (HttpURLConnection) new URL(u.toString()).openConnection();
+		HttpURLConnection c = (HttpURLConnection) new URL(url(q, lat, lon)).openConnection();
 		c.setConnectTimeout(6000);
 		c.setReadTimeout(8000);
 		c.setRequestProperty("User-Agent", "YoldaV2/2 (Android)");
 		try (InputStream in = c.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 			byte[] b = new byte[8192];
 			for (int n; (n = in.read(b)) > 0; ) out.write(b, 0, n);
-			return parse(out.toString(StandardCharsets.UTF_8.name()), lat, lon);
+			return nearFirst(parse(out.toString(StandardCharsets.UTF_8.name()), lat, lon));
 		} finally {
 			c.disconnect();
 		}

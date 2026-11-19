@@ -38,10 +38,75 @@ public final class YoldaEq {
 		return ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
 	}
 
+	/** Kullanıcının dikey bantlarla kurduğu ayar. */
+	public static final String CUSTOM = "Özel";
+	/** Bant aralığı (dB): dikey sürgüler. */
+	public static final int MIN_DB = -10, MAX_DB = 10;
+
 	public static String[] names() {
-		String[] n = new String[PRESETS.length];
-		for (int i = 0; i < n.length; i++) n[i] = (String) PRESETS[i][0];
+		String[] n = new String[PRESETS.length + 1];
+		for (int i = 0; i < PRESETS.length; i++) n[i] = (String) PRESETS[i][0];
+		n[PRESETS.length] = CUSTOM;
 		return n;
+	}
+
+	/** Bandın etiketi ("60 Hz", "3,6 kHz"). */
+	public static String bandLabel(int i) {
+		int hz = REF_HZ[i];
+		if (hz < 1000) return hz + " Hz";
+		double k = hz / 1000.0;
+		return ((k == Math.floor(k)) ? String.valueOf((int) k) : String.format(new java.util.Locale("tr"), "%.1f", k)) + " kHz";
+	}
+
+	/** Bir ayarın beş bant değeri (dB); Özel kullanıcınınki. */
+	public static int[] gains(Context ctx, String name) {
+		if (CUSTOM.equals(name)) return custom(ctx);
+		Object[] p = find(name);
+		int[] g = new int[REF_HZ.length];
+		if (p != null) for (int i = 0; i < g.length; i++) g[i] = ((Number) p[i + 1]).intValue();
+		return g;
+	}
+
+	public static int[] custom(Context ctx) {
+		return decode(prefs(ctx).getString("custom", null));
+	}
+
+	/** Özel bantları kaydet ve Özel'i seç. */
+	public static void setCustom(Context ctx, int[] db) {
+		prefs(ctx).edit().putString("custom", encode(db)).putString("preset", CUSTOM).apply();
+	}
+
+	static String encode(int[] db) {
+		StringBuilder b = new StringBuilder();
+		for (int i = 0; i < REF_HZ.length; i++) {
+			if (i > 0) b.append(',');
+			b.append(clampDb((i < db.length) ? db[i] : 0));
+		}
+		return b.toString();
+	}
+
+	static int[] decode(@Nullable String s) {
+		int[] g = new int[REF_HZ.length];
+		if (s == null) return g;
+		String[] f = s.split(",");
+		for (int i = 0; i < Math.min(f.length, g.length); i++) {
+			try {
+				g[i] = clampDb(Integer.parseInt(f[i].trim()));
+			} catch (NumberFormatException ignore) {
+			}
+		}
+		return g;
+	}
+
+	static int clampDb(int v) {
+		return Math.max(MIN_DB, Math.min(MAX_DB, v));
+	}
+
+	/** Dikey sürgü: dokunulan yükseklikten dB (üst +10, orta 0, alt -10). */
+	public static int dbAt(float y, float top, float height) {
+		if (height <= 0) return 0;
+		float k = 1f - Math.max(0f, Math.min(1f, (y - top) / height)); // 0 alt, 1 üst
+		return clampDb(Math.round(MIN_DB + k * (MAX_DB - MIN_DB)));
 	}
 
 	public static String current(Context ctx) {
@@ -49,7 +114,7 @@ public final class YoldaEq {
 	}
 
 	public static void setCurrent(Context ctx, String name) {
-		prefs(ctx).edit().putString("preset", (find(name) != null) ? name : "Kapalı").apply();
+		prefs(ctx).edit().putString("preset", (CUSTOM.equals(name) || (find(name) != null)) ? name : "Kapalı").apply();
 	}
 
 	@Nullable
@@ -96,7 +161,14 @@ public final class YoldaEq {
 
 	/** Seçili ayarı oynatıcıya uygula. @return uygulandıysa true (Kapalı ya da ekolayzer yoksa false). */
 	public static boolean apply(Context ctx, @Nullable AudioEffects ae) {
-		Object[] p = find(current(ctx));
+		String cur = current(ctx);
+		Object[] p;
+		if (CUSTOM.equals(cur)) { // kullanıcının bantları (bas güçlendirme yok)
+			int[] g = custom(ctx);
+			p = new Object[]{CUSTOM, g[0], g[1], g[2], g[3], g[4], 0};
+		} else {
+			p = find(cur);
+		}
 		if ((ae == null) || (p == null) || "Kapalı".equals(p[0])) return false;
 		Equalizer eq = ae.getEqualizer();
 		if (eq == null) return false;

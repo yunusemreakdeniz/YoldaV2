@@ -31,6 +31,28 @@ public class YoldaEqTest {
 		assertEquals("Araç", YoldaEq.spoken("araç ses ayarı"));
 		assertEquals("Kapalı", YoldaEq.spoken("ekolayzeri kapat"));
 		assertNull(YoldaEq.spoken("ekolayzer"));
-		assertEquals(8, YoldaEq.names().length);
+		assertEquals(9, YoldaEq.names().length); // 8 hazır ayar + Özel
+	}
+
+	@Test
+	public void ozelBantlar() {
+		// dikey sürgü: üst +10, orta 0, alt -10, dışarısı sınırda
+		org.junit.Assert.assertEquals(10, YoldaEq.dbAt(0, 0, 200));
+		org.junit.Assert.assertEquals(0, YoldaEq.dbAt(100, 0, 200));
+		org.junit.Assert.assertEquals(-10, YoldaEq.dbAt(200, 0, 200));
+		org.junit.Assert.assertEquals(5, YoldaEq.dbAt(50, 0, 200));
+		org.junit.Assert.assertEquals(-10, YoldaEq.dbAt(999, 0, 200));
+		org.junit.Assert.assertEquals(10, YoldaEq.dbAt(-50, 0, 200));
+		// kaydet / oku: sınırlanır, eksik 0
+		org.junit.Assert.assertEquals("4,-2,0,10,-10", YoldaEq.encode(new int[]{4, -2, 0, 15, -99}));
+		org.junit.Assert.assertArrayEquals(new int[]{4, -2, 0, 10, -10}, YoldaEq.decode("4,-2,0,10,-10"));
+		org.junit.Assert.assertArrayEquals(new int[]{3, 0, 0, 0, 0}, YoldaEq.decode("3,x"));
+		org.junit.Assert.assertArrayEquals(new int[5], YoldaEq.decode(null));
+		// adlar: Özel listede, bant etiketleri
+		String[] n = YoldaEq.names();
+		org.junit.Assert.assertEquals(YoldaEq.CUSTOM, n[n.length - 1]);
+		org.junit.Assert.assertEquals("60 Hz", YoldaEq.bandLabel(0));
+		org.junit.Assert.assertEquals("3,6 kHz", YoldaEq.bandLabel(3));
+		org.junit.Assert.assertEquals("14 kHz", YoldaEq.bandLabel(4));
 	}
 }

@@ -115,24 +115,28 @@ public final class YoldaThemePicker extends FrameLayout {
 		}), ml);
 		col.addView(mode);
 
-		// Hava durumuna göre zemin (yağmurda damla, karda tane, açık gecede yıldız)
-		LinearLayout wx = new LinearLayout(ctx);
-		wx.setGravity(Gravity.CENTER_VERTICAL);
-		wx.setPadding(0, dp(8), 0, dp(4));
-		wx.setMinimumHeight(dp(56));
-		TextView wl = text(ctx, "Hava durumuna göre zemin", 16, true, 0xFFFFFFFF);
-		wx.addView(wl, new LinearLayout.LayoutParams(0, -2, 1f));
-		View sw = YoldaStyle.toggleSwitch(ctx, YoldaSky.enabled, 0xFF34D399);
-		wx.addView(sw, new LinearLayout.LayoutParams(dp(52), dp(32)));
-		wx.setClickable(true);
-		wx.setOnClickListener(v -> {
-			YoldaSky.setEnabled(ctx, !YoldaSky.enabled);
-			YoldaStyle.invalidateBackdrop();
-			render();
-		});
-		col.addView(wx);
-		col.addView(note(ctx, YoldaSky.enabled ? ("Şu an: " + YoldaSky.label(YoldaSky.current())
-				+ ". Araçta ve animasyonlar kapalıyken sahne sabit durur.") : "Kapalı: yalnız tema ışıltısı."));
+		// Hava efekti: Otomatik (havaya göre), Kapalı ya da her zaman seçilen efekt
+		col.addView(section(ctx, "Hava efekti"));
+		String fx = YoldaSky.mode;
+		LinearLayout fr = null;
+		for (int i = 0; i < YoldaSky.MODES.length; i++) {
+			if (i % 3 == 0) {
+				fr = new LinearLayout(ctx);
+				fr.setPadding(0, dp(4), 0, dp(4));
+				col.addView(fr);
+			}
+			String m = YoldaSky.MODES[i][0];
+			LinearLayout.LayoutParams fl = new LinearLayout.LayoutParams(0, dp(48), 1f);
+			if (i % 3 != 0) fl.leftMargin = dp(8);
+			fr.addView(seg(ctx, YoldaSky.MODES[i][1], m.equals(fx), () -> {
+				YoldaSky.setMode(ctx, m);
+				YoldaStyle.invalidateBackdrop();
+				render();
+			}), fl);
+		}
+		col.addView(note(ctx, "auto".equals(fx) ? ("Otomatik: havaya göre, şu an " + YoldaSky.label(YoldaSky.current())
+				+ ". Araçta ve animasyonlar kapalıyken sahne sabit durur.")
+				: ("off".equals(fx) ? "Kapalı: yalnız tema ışıltısı." : (YoldaSky.modeLabel(fx) + ": hava ne olursa olsun her zaman."))));
 
 		if (!auto) {
 			col.addView(note(ctx, "Seçtiğin tema her zaman kullanılır."));

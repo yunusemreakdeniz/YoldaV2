@@ -26,8 +26,41 @@ public final class YoldaSky {
 	public static final int NONE = 0, SUN = 1, STARS = 2, CLOUDS = 3, FOG = 4, RAIN = 5, SNOW = 6, STORM = 7;
 	public static final String PREF = "weather_bg";
 
-	/** Kullanıcı ayarı (Tema seçicide "Hava durumuna göre zemin"); varsayılan açık. */
+	/** Kullanıcı ayarı (Tema seçicide "Hava efekti"): kapalı değilse true. */
 	public static volatile boolean enabled = true;
+	/** Efekt kipi: "auto" (havaya göre), "off" ya da sabit sahne ("rain", "snow"...). */
+	public static volatile String mode = "auto";
+	public static final String PREF_MODE = "weather_fx";
+	/** Tema seçicideki seçenekler: {kip, ad}. */
+	public static final String[][] MODES = {{"auto", "Otomatik"}, {"off", "Kapalı"}, {"sun", "Güneş"}, {"stars", "Yıldızlı gece"},
+			{"clouds", "Bulut"}, {"fog", "Sis"}, {"rain", "Yağmur"}, {"snow", "Kar"}, {"storm", "Fırtına"}};
+
+	/** Kipe göre sahne: otomatikte havanınki, kapalıda yok, sabitte seçilen. */
+	public static int modeScene(String m, int weatherScene) {
+		return switch ((m == null) ? "auto" : m) {
+			case "off" -> NONE;
+			case "sun" -> SUN;
+			case "stars" -> STARS;
+			case "clouds" -> CLOUDS;
+			case "fog" -> FOG;
+			case "rain" -> RAIN;
+			case "snow" -> SNOW;
+			case "storm" -> STORM;
+			default -> weatherScene;
+		};
+	}
+
+	public static String modeLabel(String m) {
+		for (String[] x : MODES) if (x[0].equals(m)) return x[1];
+		return "Otomatik";
+	}
+
+	public static void setMode(Context ctx, String m) {
+		mode = (m == null) ? "auto" : m;
+		enabled = !"off".equals(mode);
+		ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).edit()
+				.putString(PREF_MODE, mode).putBoolean(PREF, enabled).apply();
+	}
 	/** Testler ve önizleme için zorla sahne (-1: havadan). */
 	public static volatile int forced = -1;
 
@@ -67,12 +100,15 @@ public final class YoldaSky {
 	}
 
 	public static void load(Context ctx) {
-		enabled = ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).getBoolean(PREF, true);
+		android.content.SharedPreferences p = ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
+		String m = p.getString(PREF_MODE, null);
+		if (m == null) m = p.getBoolean(PREF, true) ? "auto" : "off"; // eski aç / kapa ayarı
+		mode = m;
+		enabled = !"off".equals(m);
 	}
 
 	public static void setEnabled(Context ctx, boolean on) {
-		enabled = on;
-		ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).edit().putBoolean(PREF, on).apply();
+		setMode(ctx, on ? "auto" : "off");
 	}
 
 	/** Gece mi: konum biliniyorsa gün batımına göre, yoksa saat 19-06. */
@@ -86,7 +122,9 @@ public final class YoldaSky {
 	/** Şu anki sahne (hava bilinmiyorsa sahnesiz). */
 	public static int current() {
 		if (forced >= 0) return forced;
-		if (!enabled) return NONE;
+		String m = mode;
+		if ("off".equals(m)) return NONE;
+		if (!"auto".equals(m)) return modeScene(m, NONE); // kullanıcının seçtiği efekt, hava ne olursa olsun
 		YoldaWeather.Now n = YoldaWeather.cachedNow();
 		return (n == null) ? NONE : scene(n.code(), night(System.currentTimeMillis()));
 	}

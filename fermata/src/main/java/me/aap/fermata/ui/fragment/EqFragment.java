@@ -83,6 +83,7 @@ public class EqFragment extends MainActivityFragment {
 			case "Araç" -> "Yol uğultusuna karşı";
 			case "Klasik" -> "Geniş, dengeli";
 			case "Caz" -> "Sıcak, yumuşak";
+			case "Özel" -> "Aşağıdaki bantlarla kendi ayarın";
 			default -> "";
 		};
 	}
@@ -149,13 +150,15 @@ public class EqFragment extends MainActivityFragment {
 			col.addView(rw, rl);
 		}
 
+		col.addView(bandsPanel(ctx, a, cur));
+
 		var eng = a.getMediaSessionCallback().getEngine();
 		boolean can = (eng != null) && (eng.getAudioEffects() != null);
-		TextView bands = text(ctx, can ? "Bant ayarları" : "Bant ayarları (önce bir şey çal)", 16, true, can ? t.ink : t.muted);
+		TextView bands = text(ctx, can ? "Gelişmiş ayarlar (Fermata)" : "Gelişmiş ayarlar (önce bir şey çal)", 16, true, can ? t.ink : t.muted);
 		bands.setGravity(Gravity.CENTER);
 		bands.setBackground(YoldaStyle.glass(ctx, t, 999));
 		bands.setClickable(true);
-		bands.setContentDescription("Bant ayarları");
+		bands.setContentDescription("Gelişmiş ekolayzer ayarları");
 		bands.setOnClickListener(v -> {
 			var e = a.getMediaSessionCallback().getEngine();
 			if ((e != null) && (e.getAudioEffects() != null)) a.showFragment(R.id.audio_effects_fragment);
@@ -164,6 +167,76 @@ public class EqFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(-1, dp(56));
 		bl.topMargin = dp(24);
 		col.addView(bands, bl);
+	}
+
+	/**
+	 * Bantlar: beş büyük dikey sürgü (60 Hz - 14 kHz, -10..+10 dB). Seçili hazır ayarın değerlerini gösterir;
+	 * bir sürgü oynatılınca "Özel" seçilir, ses kısa aralıklarla ve bırakınca hemen uygulanır.
+	 */
+	private View bandsPanel(Context ctx, MainActivityDelegate a, String cur) {
+		LinearLayout box = new LinearLayout(ctx);
+		box.setOrientation(LinearLayout.VERTICAL);
+		box.setPadding(dp(16), dp(16), dp(16), dp(12));
+		box.setBackground(YoldaStyle.glass(ctx, t, 24));
+		LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2);
+		blp.topMargin = dp(16);
+		box.setLayoutParams(blp);
+		boolean custom = YoldaEq.CUSTOM.equals(cur);
+		box.addView(text(ctx, custom ? "Bantlar · Özel" : ("Bantlar · " + cur + " (oynatınca Özel olur)"), 17, true, t.ink));
+		int[] g = YoldaEq.gains(ctx, cur);
+		LinearLayout row = new LinearLayout(ctx);
+		row.setOrientation(LinearLayout.HORIZONTAL);
+		row.setPadding(0, dp(12), 0, 0);
+		boolean car = a.isCarActivity();
+		int h = dp(car ? 200 : 260);
+		TextView[] vals = new TextView[g.length];
+		long[] lastApply = {0};
+		for (int i = 0; i < g.length; i++) {
+			int bi = i;
+			LinearLayout c = new LinearLayout(ctx);
+			c.setOrientation(LinearLayout.VERTICAL);
+			c.setGravity(Gravity.CENTER_HORIZONTAL);
+			TextView v = text(ctx, YoldaEqBand.fmt(g[i]), 16, true, t.ink);
+			v.setGravity(Gravity.CENTER);
+			vals[i] = v;
+			c.addView(v, new LinearLayout.LayoutParams(-1, -2));
+			YoldaEqBand band = new YoldaEqBand(ctx, g[i], 0xFFFFD27A);
+			band.setContentDescription(YoldaEq.bandLabel(i) + " bandı, " + YoldaEqBand.fmt(g[i]) + " desibel");
+			band.listener = (db, done) -> {
+				g[bi] = db;
+				vals[bi].setText(YoldaEqBand.fmt(db));
+				band.setContentDescription(YoldaEq.bandLabel(bi) + " bandı, " + YoldaEqBand.fmt(db) + " desibel");
+				long now = System.currentTimeMillis();
+				if (done || (now - lastApply[0] > 300)) { // ses kısa aralıklarla: sürüklerken de duyulsun
+					lastApply[0] = now;
+					YoldaEq.setCustom(ctx, g);
+					a.getMediaSessionCallback().yoldaEqChanged();
+				}
+				if (done && !YoldaEq.CUSTOM.equals(cur)) render(); // başlık "Özel", kutucuk seçimi
+			};
+			LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(-1, h);
+			bl.topMargin = dp(8);
+			c.addView(band, bl);
+			TextView f = text(ctx, YoldaEq.bandLabel(i), 13, false, t.muted);
+			f.setGravity(Gravity.CENTER);
+			f.setPadding(0, dp(8), 0, 0);
+			c.addView(f, new LinearLayout.LayoutParams(-1, -2));
+			row.addView(c, new LinearLayout.LayoutParams(0, -2, 1f));
+		}
+		box.addView(row);
+		TextView reset = text(ctx, "Sıfırla", 15, true, t.ink);
+		reset.setGravity(Gravity.CENTER);
+		reset.setBackground(YoldaStyle.glass(ctx, t, 999));
+		reset.setClickable(true);
+		reset.setOnClickListener(v -> {
+			YoldaEq.setCustom(ctx, new int[g.length]);
+			a.getMediaSessionCallback().yoldaEqChanged();
+			render();
+		});
+		LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(48));
+		rl.topMargin = dp(12);
+		box.addView(reset, rl);
+		return box;
 	}
 
 	private static TextView text(Context ctx, String s, float size, boolean bold, int color) {
