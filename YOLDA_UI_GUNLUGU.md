@@ -2,6 +2,10 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-190 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-190 · Tek kanal düzenleyici
+
+- TV ve radyo: Kanallar sayfasındaki Düzenle ile kartın içindeki düzenleme aynı pencere: sürükle / ▲ ▼ sırala, ★ favori, ada dokun gizle; her değişiklik hemen kaydedilir.
+
 ## 2026-11-19 · v2-189 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-189 · Ekolayzer, yer önerileri, hava efekti
 
 - Ekolayzer sayfasında beş büyük dikey bant (-10..+10 dB), oynatınca Özel ayar, Sıfırla.
