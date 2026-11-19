@@ -31,7 +31,7 @@ public final class YoldaGemini {
 	private static final String PREFS = "yolda_ai";
 	private static final String KEY = "gemini_key";
 	/** Önce en yeni hızlı model takma adı; bulunamazsa sabit sürüm. */
-	private static final String[] MODELS = {"gemini-flash-latest", "gemini-2.5-flash"};
+	private static final String[] MODELS = {"gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"};
 	private static final int MAX_TURNS = 6;
 	private static final ArrayDeque<String[]> history = new ArrayDeque<>();
 	private static volatile int modelIdx;
@@ -134,34 +134,54 @@ public final class YoldaGemini {
 				contents.put(turn("user", question));
 				body.put("contents", contents);
 				body.put("generationConfig", new JSONObject().put("maxOutputTokens", 400).put("temperature", 0.7));
-				for (int attempt = 0; attempt < MODELS.length; attempt++) {
-					int mi = Math.min(modelIdx, MODELS.length - 1);
-					int[] code = new int[1];
-					String resp = post("https://generativelanguage.googleapis.com/v1beta/models/" + MODELS[mi] + ":generateContent",
-							key.trim(), body.toString(), code);
-					if (code[0] == 404 && (mi + 1 < MODELS.length)) { // model adı yok: sonrakini dene
-						modelIdx = mi + 1;
-						continue;
-					}
-					if ((code[0] == 400) || (code[0] == 401) || (code[0] == 403)) {
-						problem = "Gemini anahtarı geçersiz ya da yetkisiz";
-						keyOk = false;
+				// Sunucu yoğunsa (503 "model aşırı yüklü", 500/502/504) aynı modeli kısa beklemeyle bir kez daha dene,
+				// olmazsa sıradaki modele geç (bu soru için; yük geçici olduğundan kalıcı geçiş yok).
+				int start = Math.min(modelIdx, MODELS.length - 1);
+				int lastCode = 0;
+				outer:
+				for (int mi = start; mi < MODELS.length; mi++) {
+					for (int tryNo = 0; tryNo < 2; tryNo++) {
+						int[] code = new int[1];
+						String resp = post("https://generativelanguage.googleapis.com/v1beta/models/" + MODELS[mi] + ":generateContent",
+								key.trim(), body.toString(), code);
+						lastCode = code[0];
+						if (code[0] == 404) { // model adı yok: kalıcı olarak sonrakine
+							if (mi + 1 < MODELS.length) modelIdx = mi + 1;
+							continue outer;
+						}
+						if ((code[0] == 400) || (code[0] == 401) || (code[0] == 403)) {
+							problem = "Gemini anahtarı geçersiz ya da yetkisiz";
+							keyOk = false;
+							transientError = false;
+							break outer;
+						}
+						if (code[0] == 429) {
+							problem = "Gemini kullanım sınırı doldu, biraz sonra tekrar dene";
+							transientError = true;
+							break outer;
+						}
+						if (overloaded(code[0])) {
+							YoldaLog.add("Gemini " + MODELS[mi] + " yoğun (" + code[0] + "): " + errorMessage(resp));
+							if (tryNo == 0) Thread.sleep(900);
+							continue;
+						}
+						if (code[0] != 200) {
+							problem = "Gemini yanıt vermedi (" + code[0] + ")";
+							transientError = true;
+							break outer;
+						}
+						keyOk = true;
 						transientError = false;
-						break;
+						answer = parse(resp);
+						if (answer == null) problem = "Gemini boş yanıt verdi";
+						if (mi != start) YoldaLog.add("Gemini yedek modelden yanıtladı: " + MODELS[mi]);
+						break outer;
 					}
-					transientError = code[0] != 200;
-					if (code[0] == 429) {
-						problem = "Gemini kullanım sınırı doldu, biraz sonra tekrar dene";
-						break;
-					}
-					if (code[0] != 200) {
-						problem = "Gemini yanıt vermedi (" + code[0] + ")";
-						break;
-					}
-					keyOk = true;
-					answer = parse(resp);
-					if (answer == null) problem = "Gemini boş yanıt verdi";
-					break;
+				}
+				if ((answer == null) && (problem == null)) {
+					transientError = true;
+					problem = overloaded(lastCode) ? "Gemini sunucuları şu an yoğun, biraz sonra tekrar dene"
+							: ("Gemini yanıt vermedi (" + lastCode + ")");
 				}
 			} catch (java.net.UnknownHostException | java.net.SocketTimeoutException ex) {
 				problem = "İnternet bağlantısı yok";
@@ -183,6 +203,23 @@ public final class YoldaGemini {
 				else err.accept(fp);
 			});
 		});
+	}
+
+	/** Google tarafı geçici yoğunluk / arıza: tekrar denenir, başka modele geçilir. */
+	static boolean overloaded(int code) {
+		return (code == 500) || (code == 502) || (code == 503) || (code == 504);
+	}
+
+	/** Hata yanıtından kısa açıklama (günlük için; anahtar içermez). */
+	static String errorMessage(@Nullable String json) {
+		try {
+			JSONObject e = new JSONObject(json).optJSONObject("error");
+			if (e == null) return "";
+			String m = e.optString("status", "") + " " + e.optString("message", "");
+			return (m.length() > 120) ? m.substring(0, 120) : m.trim();
+		} catch (Throwable ex) {
+			return "";
+		}
 	}
 
 	private static JSONObject turn(String role, String text) throws Exception {

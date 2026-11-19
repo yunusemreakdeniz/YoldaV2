@@ -25,4 +25,15 @@ public class YoldaGeminiTest {
 		assertTrue(s.contains("Yenimahalle"));
 		assertTrue(!YoldaGemini.system(null).contains("bulunduğu yer"));
 	}
+
+	@Test
+	public void yogunlukTekrarDenenir() {
+		org.junit.Assert.assertTrue(YoldaGemini.overloaded(503));
+		org.junit.Assert.assertTrue(YoldaGemini.overloaded(500));
+		org.junit.Assert.assertTrue(!YoldaGemini.overloaded(429)); // kota: tekrar denenmez
+		org.junit.Assert.assertTrue(!YoldaGemini.overloaded(403));
+		org.junit.Assert.assertEquals("UNAVAILABLE The model is overloaded. Please try again later.", YoldaGemini.errorMessage(
+				"{\"error\":{\"code\":503,\"message\":\"The model is overloaded. Please try again later.\",\"status\":\"UNAVAILABLE\"}}"));
+		org.junit.Assert.assertEquals("", YoldaGemini.errorMessage("bozuk"));
+	}
 }
