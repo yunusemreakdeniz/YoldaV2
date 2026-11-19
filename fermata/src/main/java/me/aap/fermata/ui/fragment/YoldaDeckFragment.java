@@ -375,6 +375,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private View phoneHome(Context ctx) {
 		MainActivityDelegate a = getActivityDelegate();
 		ScrollView sv = new ScrollView(ctx);
+		sv.setOnScrollChangeListener((v, x, y, ox, oy) -> me.aap.fermata.ui.view.YoldaGlow.hold(250)); // kaydırırken zemin beklesin
 		sv.setVerticalScrollBarEnabled(false);
 		sv.setClipToPadding(false);
 		LinearLayout col = new LinearLayout(ctx);
@@ -1204,11 +1205,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		list.addOnScrollListener(new RecyclerView.OnScrollListener() {
 			@Override
 			public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+				me.aap.fermata.ui.view.YoldaGlow.hold(250); // kaydırırken zemin beklesin
 				transform();
 			}
 
 			@Override
 			public void onScrollStateChanged(@NonNull RecyclerView rv, int state) {
+				// Kaydırma süresince kartlar donanım katmanında: ölçek / saydamlık / dönüş değişimi her karede
+				// kartın yeniden çizilmesini gerektirmesin (karmaşık kartlarda takılmanın başlıca nedeni)
+				int lt = (state == RecyclerView.SCROLL_STATE_IDLE) ? View.LAYER_TYPE_NONE : View.LAYER_TYPE_HARDWARE;
+				for (int i = 0; i < rv.getChildCount(); i++) {
+					View ch = rv.getChildAt(i);
+					if (ch.getLayerType() != lt) ch.setLayerType(lt, null);
+				}
+				if (state != RecyclerView.SCROLL_STATE_IDLE) me.aap.fermata.ui.view.YoldaGlow.hold(400);
 				if (state == RecyclerView.SCROLL_STATE_IDLE) {
 					int p = centerPosition();
 					if (p >= 0) prefs(rv.getContext()).edit().putInt(PREF_POS, p).apply();

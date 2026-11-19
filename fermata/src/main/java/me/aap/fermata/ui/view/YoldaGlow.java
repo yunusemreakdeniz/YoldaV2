@@ -24,7 +24,7 @@ public final class YoldaGlow extends Drawable {
 	private final Paint sky = new Paint(Paint.ANTI_ALIAS_FLAG);
 	private final int base;
 	private int c1, c2, t1, t2;
-	private final long start = SystemClock.uptimeMillis();
+	private long start = SystemClock.uptimeMillis();
 	private boolean drift = true;
 
 	public YoldaGlow(YoldaStyle.Theme t) {
@@ -52,6 +52,23 @@ public final class YoldaGlow extends Drawable {
 	}
 
 	private final Runnable tick = this::invalidateSelf;
+
+	/**
+	 * Kullanıcı kaydırırken / dokunurken zemin animasyonu bekler (ekran kartı ve ana iş parçacığı kaydırmaya
+	 * kalsın): bu zamana kadar sahne ve ışıklar donuk çizilir. {@link #hold} her kaydırma olayında uzatılır.
+	 */
+	private static volatile long holdUntil;
+	private long frozenAt = -1;
+
+	/** Kaydırma / dokunma: zemin {@code ms} boyunca beklesin (sonra kaldığı yerden devam eder). */
+	public static void hold(long ms) {
+		holdUntil = Math.max(holdUntil, SystemClock.uptimeMillis() + ms);
+	}
+
+	/** Şu an bekliyor mu (birim testi ve çizim). */
+	static boolean holding(long now) {
+		return now < holdUntil;
+	}
 
 	public void setDrift(boolean d) {
 		if (drift == d) return;
@@ -81,7 +98,14 @@ public final class YoldaGlow extends Drawable {
 		boolean anim = drift && motion;
 		c1 = motion ? towards(c1, t1, 0.12f) : t1;
 		c2 = motion ? towards(c2, t2, 0.12f) : t2;
-		float s = anim ? (SystemClock.uptimeMillis() - start) / 1000f : 0f;
+		long now = SystemClock.uptimeMillis();
+		boolean hold = holding(now);
+		if (hold && (frozenAt < 0)) frozenAt = now; // kaydırma başladı: zamanı dondur
+		else if (!hold && (frozenAt >= 0)) { // kaydırma bitti: donuk kalan süre animasyondan düşülsün (sıçrama yok)
+			start += now - frozenAt;
+			frozenAt = -1;
+		}
+		float s = anim ? (((hold ? frozenAt : now) - start) / 1000f) : 0f;
 		float r = Math.max(w, h) * 0.62f;
 		blob(c, c1, bd.left + w * (0.25f + 0.08f * (float) Math.sin(s * 0.21)),
 				bd.top + h * (0.30f + 0.10f * (float) Math.cos(s * 0.17)), r, 0x99);
@@ -92,8 +116,13 @@ public final class YoldaGlow extends Drawable {
 		int scene = YoldaSky.current();
 		YoldaSky.draw(c, sky, bd, scene, s); // hava durumuna göre sahne (yağmur, kar, güneş, yıldız)
 		boolean settling = motion && ((c1 != t1) || (c2 != t2));
-		if (settling) invalidateSelf(); // renk geçişi kısa: akıcı
-		else if (anim) { // damla / kar / yıldız ~30 kare, güneş / bulut / sis ~20 kare, sahnesiz ~12 kare (pil)
+		if (settling) { // renk geçişi: en çok ~30 kare (her vsync'te tam ekran yeniden çizim kaydırmayı yoruyordu)
+			unscheduleSelf(tick);
+			scheduleSelf(tick, now + 33);
+		} else if (hold) { // kaydırma bitince yeniden başla
+			unscheduleSelf(tick);
+			scheduleSelf(tick, holdUntil + 16);
+		} else if (anim) { // damla / kar / yıldız ~30 kare, güneş / bulut / sis ~20 kare, sahnesiz ~12 kare (pil)
 			unscheduleSelf(tick);
 			scheduleSelf(tick, SystemClock.uptimeMillis() + YoldaSky.frameMs(scene));
 		}

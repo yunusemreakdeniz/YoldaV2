@@ -1867,6 +1867,16 @@ public class MainActivityDelegate extends ActivityDelegate
 		radarAttached = true;
 		me.aap.fermata.ui.fragment.YoldaChannelAlt.warmUp(ctx); // TV yedek adres listesi (haftada bir yenilenir)
 		me.aap.fermata.ui.fragment.YoldaData.start(ctx); // mobil veri sayacı ve sınır uyarısı
+		// Yavaş kare ölçer: takılan / donan ekran tanı günlüğüne (gerçek telefonda akıcılık sorununu bulmak için)
+		me.aap.fermata.ui.view.YoldaJank.attach((android.app.Activity) getAppActivity(), () -> {
+			int id = getActiveFragmentId();
+			if (id == 0) return isCarActivity() ? "araç" : "telefon";
+			try {
+				return (isCarActivity() ? "araç/" : "") + ctx.getResources().getResourceEntryName(id);
+			} catch (Exception ex) {
+				return String.valueOf(id);
+			}
+		});
 		me.aap.fermata.ui.fragment.YoldaNotes.restoreReminders(ctx);
 		me.aap.fermata.ui.fragment.YoldaCarCare.remindIfDue(ctx); // muayene / sigorta / kasko 7 gün kala // kapanmadan önce kurulan hatırlatmalar
 		// Uzun sesli okumada (haberler) ekranın altında "Okumayı durdur" düğmesi

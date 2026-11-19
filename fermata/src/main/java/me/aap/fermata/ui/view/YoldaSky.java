@@ -162,11 +162,17 @@ public final class YoldaSky {
 	private static final java.util.Map<Long, RadialGradient> glows = new java.util.HashMap<>();
 
 	/** Birim yarıçaplı ışık (renk ve saydamlık başına bir kez kurulur); matrisle yerine ve boyuna taşınır. */
+	/** Renk önbellek anahtarı: kanal başına 32 basamak (renk geçişinde her ara renk için yeni ışık kurulmasın). */
+	public static int quantize(int color) {
+		return color & 0x00F8F8F8;
+	}
+
 	private static RadialGradient unitGlow(int color, int a) {
+		color = quantize(color) | 0xFF000000;
 		long k = ((long) (color & 0x00FFFFFF) << 8) | (a & 0xFF);
 		RadialGradient g = glows.get(k);
 		if (g == null) {
-			if (glows.size() > 64) glows.clear();
+			if (glows.size() > 256) glows.clear();
 			g = new RadialGradient(0, 0, 1, new int[]{(color & 0x00FFFFFF) | (a << 24), (color & 0x00FFFFFF) | ((a / 3) << 24),
 					color & 0x00FFFFFF}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP);
 			glows.put(k, g);
