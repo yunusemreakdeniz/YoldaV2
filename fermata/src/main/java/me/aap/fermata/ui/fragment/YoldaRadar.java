@@ -380,6 +380,13 @@ public final class YoldaRadar {
 		} else {
 			limit = 0;
 		}
+		// OSM'de sınır yazılı değilse (yok ya da tahmin): kullanıcının TomTom anahtarı varsa TomTom'un sınırı
+		int tt = YoldaTomTom.onPosition(ctx, la, lo, hd, (r == null) || r.estimated() || (r.limit() == 0));
+		if ((tt > 0) && ((r == null) || r.estimated() || (r.limit() == 0))) {
+			if ((limit != tt) || limitEstimated) YoldaLog.add("Hız sınırı " + tt + " · TomTom");
+			limit = tt;
+			limitEstimated = false;
+		}
 		if ((r == null) || needFetch(la, lo)) fetchRoads(la, lo);
 
 		// radar
