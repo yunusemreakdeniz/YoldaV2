@@ -391,7 +391,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(brand, 14, 22, 1,
 				android.util.TypedValue.COMPLEX_UNIT_SP);
 		top.addView(brand, new LinearLayout.LayoutParams(0, dp(32), 1f));
-		top.addView(segmented(ctx, true));
+		// Araç görünümüne geç: araba simgeli düğme (araç görünümündeki telefon simgeli düğmeyle eş)
+		ImageView carB = roundButton(ctx, R.drawable.yi_car, "Araç görünümü", v -> {
+			YoldaStyle.haptic(v);
+			setPhoneView(false);
+		});
+		top.addView(carB, new LinearLayout.LayoutParams(dp(48), dp(48)));
 		ImageView themeB = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx),
 				v -> me.aap.fermata.ui.view.YoldaThemePicker.show(a));
 		LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(dp(48), dp(48));
