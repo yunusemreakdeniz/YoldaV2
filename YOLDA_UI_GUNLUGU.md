@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-189 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-189 · Ekolayzer, yer önerileri, hava efekti
+
+- Ekolayzer sayfasında beş büyük dikey bant (-10..+10 dB), oynatınca Özel ayar, Sıfırla.
+- Navigasyon önerileri opak zeminde okunur; yakına ağırlık, Türkiye kutusu, telefonun adres araması yedeği, Aranıyor / Sonuç yok.
+- Tema: hava efekti Otomatik, Kapalı ya da her zaman seçilen (Güneş, Yıldız, Bulut, Sis, Yağmur, Kar, Fırtına).
+
 ## 2026-11-19 · v2-188 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-188 · Akıcı hava sahnesi
 
 - Yağmur / kar / yıldız / fırtına saniyede ~30 kare ve takılmasız (ışıklar önbellekte); yağmur iki derinlikte parlak başlı damla, kar salınan haleli taneler, kayan yıldız, güneş ışınları, yumuşak şimşek.
