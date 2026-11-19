@@ -50,7 +50,7 @@ Q1. [x] (v2-181) Takvim (bugünkü etkinlikler, sıradaki toplantıya yol tarifi
 Q2. [x] (v2-181) Hatırlatıcılar ve sesli notlar
 Q3. [x] (v2-179) Döviz / altın
 Q4. [x] (v2-179) Haberler (başlıklar, sesli okuma)
-Q5. [ ] Podcast ve sesli kitap
+Q5. [x] (v2-182, podcast; sesli kitap kaynağı yok) Podcast ve sesli kitap
 Q6. [ ] Trafik durumu (eve / işe varış süresi)
 Q7. [x] (v2-181) Elektrikli araç şarj istasyonları
 Q8. [x] (v2-181) Araç bakım ve yakıt defteri (muayene, sigorta, yağ değişimi hatırlatma)

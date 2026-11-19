@@ -916,7 +916,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG, YoldaDeck.CALENDAR, YoldaDeck.CARCARE}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG, YoldaDeck.CALENDAR, YoldaDeck.CARCARE, YoldaDeck.PODCAST}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -1313,6 +1313,82 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return (b.length() == 0) ? "Dolar, euro ve altın alınıyor…" : b.toString();
 			}
 		}
+	}
+
+	// ---- Podcast ----
+
+	private String podcastLine() {
+		List<YoldaPodcast.Show> s = YoldaPodcast.subscriptions(requireContext());
+		return s.isEmpty() ? "Podcast ara, abone ol; son bölüm tek dokunuşla · sesle “X podcastini aç”"
+				: (s.size() + " abonelik · " + s.get(0).name());
+	}
+
+	/** Podcast'in son bölümünü çal (bölümler RSS'ten, arka planda). */
+	void playLatestEpisode(MainActivityDelegate a, YoldaPodcast.Show s) {
+		YoldaStyle.toast(a.getContext(), s.name() + " · son bölüm açılıyor…");
+		me.aap.utils.function.CheckedSupplier<List<YoldaPodcast.Episode>, Throwable> job = () -> YoldaPodcast.episodes(s.feed());
+		me.aap.utils.app.App.get().execute(job).onCompletion((l, err) -> me.aap.utils.app.App.get().getHandler().post(() -> {
+			if ((l == null) || l.isEmpty()) {
+				YoldaStyle.toast(a.getContext(), s.name() + " bölümleri alınamadı");
+				return;
+			}
+			playEpisode(a, s, l.get(0));
+		}));
+	}
+
+	private void playEpisode(MainActivityDelegate a, YoldaPodcast.Show s, YoldaPodcast.Episode e) {
+		playItem(a, me.aap.fermata.media.radio.YoldaStreamItem.create(a.getLib(), e.audio(), e.title(), s.art(), s.name()));
+	}
+
+	/** Abonelikler → podcast seç → bölümler (en yeni üstte) → çal. */
+	private void showPodcasts(MainActivityDelegate a, Context ctx) {
+		List<Row> rows = new ArrayList<>();
+		for (YoldaPodcast.Show s : YoldaPodcast.subscriptions(ctx)) rows.add(new Row(s.name(), s.author(), s.art(), R.drawable.yi_mic, () -> {
+			YoldaStyle.toast(ctx, "Bölümler alınıyor…");
+			me.aap.utils.function.CheckedSupplier<List<YoldaPodcast.Episode>, Throwable> job = () -> YoldaPodcast.episodes(s.feed());
+			me.aap.utils.app.App.get().execute(job).onCompletion((l, err) -> me.aap.utils.app.App.get().getHandler().post(() -> {
+				if ((l == null) || l.isEmpty() || !isAdded()) {
+					YoldaStyle.toast(ctx, "Bölümler alınamadı");
+					return;
+				}
+				List<Row> er = new ArrayList<>();
+				for (YoldaPodcast.Episode e : l) {
+					String sub = e.date() + (YoldaPodcast.durText(e.durSec()).isEmpty() ? "" : (" · " + YoldaPodcast.durText(e.durSec())));
+					er.add(new Row(e.title(), sub, s.art(), R.drawable.yi_play, () -> playEpisode(a, s, e)));
+				}
+				showPicker(s.name(), er, null);
+			}));
+		}));
+		rows.add(new Row("Podcast ara", "Ad ya da konu (ör. Fularsız Entellik, tarih)", null, R.drawable.yi_search, () -> searchPodcast(a, ctx)));
+		showPicker("Podcast", rows, null);
+	}
+
+	private void searchPodcast(MainActivityDelegate a, Context ctx) {
+		askText("Podcast ara", "Ad ya da konu", q -> {
+			YoldaStyle.toast(ctx, "Aranıyor…");
+			me.aap.utils.function.CheckedSupplier<List<YoldaPodcast.Show>, Throwable> job = () -> YoldaPodcast.search(q);
+			me.aap.utils.app.App.get().execute(job).onCompletion((l, err) -> me.aap.utils.app.App.get().getHandler().post(() -> {
+				if ((l == null) || l.isEmpty() || !isAdded()) {
+					YoldaStyle.toast(ctx, (err != null) ? "Podcast dizinine ulaşılamadı" : "Sonuç yok");
+					return;
+				}
+				List<Row> rows = new ArrayList<>();
+				for (YoldaPodcast.Show s : l) rows.add(new Row(s.name(), s.author() + " · abone ol", s.art(), R.drawable.yi_add, () -> {
+					YoldaPodcast.subscribe(ctx, s);
+					YoldaStyle.toast(ctx, "Abone olundu: " + s.name());
+					refreshCard(YoldaDeck.PODCAST);
+				}));
+				showPicker("Podcast ekle", rows, null);
+			}));
+		});
+	}
+
+	private void editPodcasts(Context ctx) {
+		List<YoldaPodcast.Show> work = new ArrayList<>(YoldaPodcast.subscriptions(ctx));
+		orderEditor(ctx, "Podcast abonelikleri", "kartta bu sırayla · 🗑 abonelikten çık", work, YoldaPodcast.Show::name, l -> {
+			YoldaPodcast.saveSubscriptions(ctx, new ArrayList<>(l));
+			refreshCard(YoldaDeck.PODCAST);
+		}, x -> true);
 	}
 
 	/** Takvim izni (bir kez); verilince kart yenilenir. */
@@ -2806,6 +2882,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.PODCAST -> new Look(0xFFC4B5FD, 0xFF5B21B6, R.drawable.yi_mic, true, "PODCAST", podcastLine());
 			case YoldaDeck.CALENDAR -> new Look(0xFF93C5FD, 0xFF1D4ED8, R.drawable.yi_list, true, "TAKVİM", calendarLine());
 			case YoldaDeck.CARCARE -> new Look(0xFFFCA5A5, 0xFF991B1B, R.drawable.yi_settings, true, "ARAÇ BAKIMI", carCareLine());
 			case YoldaDeck.QUICKMSG -> new Look(0xFF86EFAC, 0xFF166534, R.drawable.yi_phone, true, "HIZLI MESAJ", quickMsgLine());
@@ -3180,6 +3257,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
+			}
+			case YoldaDeck.PODCAST -> { // aboneliklerin son bölümü tek dokunuşla; ＋ podcast ara, ✎ abonelikleri düzenle
+				LinearLayout row = hrow(ctx);
+				List<YoldaPodcast.Show> subs = YoldaPodcast.subscriptions(ctx);
+				for (YoldaPodcast.Show s : subs) {
+					if (row.getChildCount() >= 6) break;
+					row.addView(imageTile(ctx, s.art(), null, tile, false, s.name(), v -> playLatestEpisode(a, s)), tileLp(tile));
+				}
+				return withActions(ctx, (row.getChildCount() == 0) ? null : scroll(ctx, row), "Podcast ara", () -> searchPodcast(a, ctx),
+						subs.isEmpty() ? null : "Abonelikleri düzenle", subs.isEmpty() ? null : () -> editPodcasts(ctx));
 			}
 			case YoldaDeck.CALENDAR -> { // sıradaki etkinlikler: dokun → konumu varsa yol tarifi, yoksa okunur
 				LinearLayout row = hrow(ctx);
@@ -3676,6 +3763,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				}
 			}
 			case YoldaDeck.CARCARE -> showCarCareMenu(ctx);
+			case YoldaDeck.PODCAST -> showPodcasts(a, ctx);
 			case YoldaDeck.CHARGER -> {
 				NearbyFragment.mode = NearbyFragment.CHARGER;
 				a.showFragment(R.id.yolda_nearby_fragment);

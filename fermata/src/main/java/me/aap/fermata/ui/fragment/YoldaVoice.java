@@ -192,6 +192,34 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case PODCAST -> {
+				String want = it.arg();
+				List<YoldaPodcast.Show> subs = YoldaPodcast.subscriptions(ctx);
+				YoldaPodcast.Show pick = null;
+				if (want == null) pick = subs.isEmpty() ? null : subs.get(0);
+				else for (YoldaPodcast.Show s : subs) if (YoldaChannelAlt.norm(s.name()).contains(YoldaChannelAlt.norm(want))) pick = s;
+				if ((pick == null) && (want == null)) {
+					run(a, Intent.of(Kind.CARD, "podcast"), raw);
+					break;
+				}
+				YoldaPodcast.Show chosen = pick;
+				me.aap.utils.function.CheckedSupplier<YoldaPodcast.Show, Throwable> find = () -> {
+					if (chosen != null) return chosen;
+					List<YoldaPodcast.Show> l = YoldaPodcast.search(want); // abone değilse dizinde ara
+					return l.isEmpty() ? null : l.get(0);
+				};
+				toast(a, "Podcast aranıyor…");
+				me.aap.utils.app.App.get().execute(find).onCompletion((s, err) -> App.get().getHandler().post(() -> {
+					if (s == null) {
+						reply(a, "“" + want + "” podcasti bulunamadı");
+						return;
+					}
+					a.showFragment(R.id.home_fragment);
+					App.get().getHandler().postDelayed(() -> {
+						if (a.getActiveFragment() instanceof YoldaDeckFragment d) d.playLatestEpisode(a, s);
+					}, 200);
+				}));
+			}
 			case CALENDAR -> {
 				if (!YoldaCalendar.hasPermission(ctx)) reply(a, "Takvim izni yok; Takvim kartından izin verebilirsin");
 				else reply(a, YoldaCalendar.spoken(YoldaCalendar.upcoming(ctx), System.currentTimeMillis()));

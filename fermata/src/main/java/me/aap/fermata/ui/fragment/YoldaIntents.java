@@ -53,7 +53,9 @@ public final class YoldaIntents {
 		/** Uyarı geçmişi: son uyarılar; az önce söylenen (num 1). */
 		ALERTS,
 		/** Takvim: bugünkü / yarınki etkinlikler; araç bakımı: muayene, sigorta, kasko, yağ değişimi. */
-		CALENDAR, CARCARE
+		CALENDAR, CARCARE,
+		/** Podcast: arg = podcast adı ("X podcastini aç"). */
+		PODCAST
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -243,6 +245,11 @@ public final class YoldaIntents {
 		if (c.matches("(bütün |tüm )?notları (sil|temizle)")) return Intent.of(Kind.NOTE_CLEAR);
 		if (c.matches("(şunu |bunu )?(not al|not et|not düş)\\b.+|.+ (diye )?(not al|not et|not düş)"))
 			return Intent.of(Kind.NOTE_ADD, raw.trim());
+
+		// podcast: "fularsız entellik podcastini aç", "podcast dinle"
+		m = Pattern.compile("^(.+?) (?:podcastini|podcasti|podkastını|podcast'ini) (?:aç|çal|dinle|oynat)$").matcher(c);
+		if (m.matches()) return Intent.of(Kind.PODCAST, m.group(1));
+		if (c.matches("podcast (aç|dinle|çal)|podcast dinlemek istiyorum")) return Intent.of(Kind.PODCAST, (String) null);
 
 		// takvim: "bugün ne var", "takvimimde ne var", "toplantım ne zaman", "yarın ne var"
 		if (c.matches("(bugün|yarın|bugün ve yarın) (ne var|neler var|programım ne|programımda ne var)|takvim(im|imde)?( ne var| neler var)?|"
