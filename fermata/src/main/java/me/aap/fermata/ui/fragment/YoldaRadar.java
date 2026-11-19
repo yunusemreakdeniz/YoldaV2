@@ -371,12 +371,21 @@ public final class YoldaRadar {
 		synchronized (roads) {
 			r = YoldaRadarCore.matchRoad(la, lo, hd, new ArrayList<>(roads.values()));
 		}
+		if ((r != null) && ((road == null) || (road.id() != r.id()))) // yol değişti: sınırın dayanağı tanı günlüğüne
+			YoldaLog.add(YoldaRadarCore.limitLog(r.highway(), r.limit(), r.estimated(), inSettlement));
 		road = r;
 		if (r != null) {
 			limit = r.limit();
 			limitEstimated = r.estimated();
 		} else {
 			limit = 0;
+		}
+		// OSM'de sınır yazılı değilse (yok ya da tahmin): kullanıcının TomTom anahtarı varsa TomTom'un sınırı
+		int tt = YoldaTomTom.onPosition(ctx, la, lo, hd, (r == null) || r.estimated() || (r.limit() == 0));
+		if ((tt > 0) && ((r == null) || r.estimated() || (r.limit() == 0))) {
+			if ((limit != tt) || limitEstimated) YoldaLog.add("Hız sınırı " + tt + " · TomTom");
+			limit = tt;
+			limitEstimated = false;
 		}
 		if ((r == null) || needFetch(la, lo)) fetchRoads(la, lo);
 
@@ -895,11 +904,13 @@ public final class YoldaRadar {
 					+ "primary|secondary|tertiary|unclassified|residential|living_street|motorway_link|trunk_link|primary_link|"
 					+ "secondary_link|tertiary_link)$\"];out tags geom;"
 					// bulunulan noktayı kapsayan yerleşim alanı (şehir içi / dışı ayrımı için)
+					// alanı çizilmemiş küçük yerler için yakındaki yerleşim noktaları
+					+ "node(around:3000,%1$.5f,%2$.5f)[\"place\"~\"^(city|town|village|suburb|neighbourhood|quarter|hamlet)$\"];out;"
 					+ "is_in(%1$.5f,%2$.5f)->.a;(area.a[\"landuse\"~\"^(residential|commercial|retail)$\"];"
 					+ "area.a[\"place\"~\"^(city|town|village|suburb|neighbourhood|quarter|hamlet)$\"];);out tags;", la, lo);
 			try {
 				JSONArray el = new JSONObject(overpass(q, 20_000)).getJSONArray("elements");
-				boolean settlement = YoldaRadarCore.settlementFromAreas(el);
+				boolean settlement = YoldaRadarCore.settlementFromAreas(el) || YoldaRadarCore.settlementNear(el, la, lo);
 				inSettlement = settlement;
 				List<Road> got = new ArrayList<>();
 				for (int i = 0; i < el.length(); i++) {

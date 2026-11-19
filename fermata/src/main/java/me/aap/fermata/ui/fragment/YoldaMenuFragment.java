@@ -171,6 +171,24 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			return true;
 		});
 		set.addView(gi);
+		// TomTom: haritada sınırı yazılı olmayan yollarda hız sınırı (isteğe bağlı, kullanıcının ücretsiz anahtarı)
+		boolean tt = YoldaTomTom.isEnabled(ctx);
+		View ti = item(ctx, R.drawable.yi_radar, "TomTom hız sınırı: " + (tt ? (YoldaTomTom.keyBad ? "Anahtar geçersiz — yeniden gir"
+						: "Bağlı (kaldırmak için basılı tut)") : "Bağlı değil — anahtar gir"),
+				0xFFFDE68A, 0xFFD97706, v -> me.aap.utils.ui.UiUtils.queryText(ctx, R.string.yolda_tomtom_key, R.drawable.yi_edit)
+						.onSuccess(k -> {
+							if ((k == null) || k.trim().isEmpty()) return;
+							YoldaTomTom.setKey(ctx, k);
+							YoldaStyle.toast(ctx, "TomTom anahtarı kaydedildi: sınırı yazılı olmayan yollarda kullanılacak");
+							if (isAdded()) render();
+						}));
+		ti.setOnLongClickListener(v -> {
+			YoldaTomTom.setKey(ctx, null);
+			YoldaStyle.toast(ctx, "TomTom bağlantısı kaldırıldı");
+			render();
+			return true;
+		});
+		set.addView(ti);
 		// Temalar: renk örnekleriyle seçim; tek tema ya da gündüz / gece otomatik (araçta farlara, telefonda gün batımına göre)
 		boolean autoTheme = YoldaStyle.isAuto(ctx);
 		String tl = autoTheme ? ("Tema: ☀ " + YoldaStyle.THEMES[YoldaStyle.dayTheme(ctx)].name + " / 🌙 "

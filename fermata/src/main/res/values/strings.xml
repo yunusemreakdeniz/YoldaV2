@@ -14,6 +14,7 @@
     <string name="yolda_fav_name" translatable="false">Favorinin adı</string>
     <string name="yolda_fuel_price" translatable="false">Pompadaki litre fiyatı (ör. 72,24; boş bırak: otomatik)</string>
     <string name="yolda_gemini_key" translatable="false">Gemini API anahtarı (Google AI Studio)</string>
+    <string name="yolda_tomtom_key" translatable="false">TomTom API anahtarı (developer.tomtom.com, ücretsiz)</string>
     <string name="yolda_add_yt" translatable="false">YouTube kanalı ekle (@kanal ya da bağlantı)</string>
     <string name="mirror_service_name_release" translatable="false">Yolda Telefon</string>
     <string name="mirror_service_name_debug" translatable="false">Debug Fermata Mirror</string>

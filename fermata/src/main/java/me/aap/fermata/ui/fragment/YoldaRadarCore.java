@@ -181,6 +181,45 @@ public final class YoldaRadarCore {
 		return false;
 	}
 
+	/**
+	 * Yerleşim noktasına (OSM place düğümü: köy, kasaba, mahalle...) göre yerleşim yerinde mi: alanı çizilmemiş
+	 * küçük yerler için yedek. Yarıçap yerin büyüklüğüne göre: mezra 300 m, köy 600, mahalle / semt 500,
+	 * banliyö 1000, kasaba 1500, şehir 3000 (merkez noktası).
+	 */
+	public static boolean settlementNear(org.json.JSONArray el, double la, double lo) {
+		if (el == null) return false;
+		for (int i = 0; i < el.length(); i++) {
+			org.json.JSONObject o = el.optJSONObject(i);
+			if ((o == null) || !"node".equals(o.optString("type"))) continue;
+			org.json.JSONObject t = o.optJSONObject("tags");
+			if (t == null) continue;
+			int r = placeRadius(t.optString("place"));
+			if (r <= 0) continue;
+			if (dist(la, lo, o.optDouble("lat"), o.optDouble("lon")) <= r) return true;
+		}
+		return false;
+	}
+
+	/** Yerleşim türüne göre etki yarıçapı (m); yerleşim değilse 0. */
+	static int placeRadius(String place) {
+		return switch ((place == null) ? "" : place) {
+			case "hamlet" -> 300;
+			case "neighbourhood", "quarter" -> 500;
+			case "village" -> 600;
+			case "suburb" -> 1000;
+			case "town" -> 1500;
+			case "city" -> 3000;
+			default -> 0;
+		};
+	}
+
+	/** Tanı günlüğü satırı: yol türü, sınır ve dayanağı. */
+	public static String limitLog(String highway, int limit, boolean estimated, boolean settlement) {
+		if (limit <= 0) return "Hız sınırı yok · yol: " + highway;
+		return "Hız sınırı " + (estimated ? "~" : "") + limit + " · yol: " + highway
+				+ (estimated ? (" · tahmin, " + (settlement ? "yerleşim içi" : "yerleşim dışı")) : " · haritada yazılı");
+	}
+
 	// ---- geometri ----
 
 	public static double dist(double lat1, double lon1, double lat2, double lon2) {
