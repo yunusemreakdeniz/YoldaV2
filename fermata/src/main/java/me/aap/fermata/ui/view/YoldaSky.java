@@ -238,6 +238,76 @@ public final class YoldaSky {
 		if (lit) glowOval(c, p, x, y - size * 0.3f, size * 0.9f, size * 0.35f, 0xFFFFFFFF, a / 2); // üst kenarda ışık
 	}
 
+	/** Saydamlık 16'lık basamaklara (ışık önbelleği küçük kalsın). */
+	static int qa(float a) {
+		return Math.max(0, Math.min(255, Math.round(a / 16f) * 16));
+	}
+
+	private static final Path bolt = new Path();
+
+	/** Dallanan şimşek: k. çakış için hep aynı biçim (yukarıdan aşağı, kırık çizgi ve iki dal). */
+	private static void lightning(Canvas c, Paint p, Rect bd, int k, float strength, float u) {
+		float w = bd.width(), h = bd.height();
+		float x = bd.left + w * (0.18f + 0.64f * rnd(k, 91)), y = bd.top - u * 4;
+		float end = bd.top + h * (0.42f + 0.18f * rnd(k, 92)), step = (end - y) / 11f;
+		bolt.rewind();
+		bolt.moveTo(x, y);
+		float bx1 = 0, by1 = 0, bx2 = 0, by2 = 0;
+		for (int j = 1; j <= 11; j++) {
+			x += (rnd(k * 17 + j, 93) - 0.5f) * w * 0.07f;
+			y += step;
+			bolt.lineTo(x, y);
+			if (j == 3) {
+				bx1 = x;
+				by1 = y;
+			} else if (j == 6) {
+				bx2 = x;
+				by2 = y;
+			}
+		}
+		for (int b = 0; b < 2; b++) { // iki dal: ana gövdeden yana inen kısa kırık çizgi
+			float dx = ((b == 0) ? -1f : 1f) * w * 0.03f, xx = (b == 0) ? bx1 : bx2, yy = (b == 0) ? by1 : by2;
+			bolt.moveTo(xx, yy);
+			for (int j = 1; j <= 4; j++) {
+				xx += dx + (rnd(k * 29 + j + b * 7, 94) - 0.5f) * w * 0.04f;
+				yy += step * 0.8f;
+				bolt.lineTo(xx, yy);
+			}
+		}
+		p.setShader(null);
+		p.setStyle(Paint.Style.STROKE);
+		p.setStrokeJoin(Paint.Join.ROUND);
+		p.setStrokeCap(Paint.Cap.ROUND);
+		p.setColor(((int) (60 * strength) << 24) | 0xB8C8FF); // dış parıltı
+		p.setStrokeWidth(u * 7f);
+		c.drawPath(bolt, p);
+		p.setColor(((int) (120 * strength) << 24) | 0xDDE6FF);
+		p.setStrokeWidth(u * 3f);
+		c.drawPath(bolt, p);
+		p.setColor(((int) (250 * strength) << 24) | 0xFFFFFF); // parlak çekirdek
+		p.setStrokeWidth(Math.max(1f, u * 1.1f));
+		c.drawPath(bolt, p);
+		p.setStyle(Paint.Style.FILL);
+	}
+
+	/** Camdaki su damlası: yumuşak gölge, saydam gövde, ince kenar, sol üstte parlak yansıma, altta ışık kırılması. */
+	private static void droplet(Canvas c, Paint p, float x, float y, float r, float u) {
+		glow(c, p, x + r * 0.15f, y + r * 0.25f, r * 1.5f, 0xFF050A14, 0x30);
+		p.setShader(null);
+		p.setStyle(Paint.Style.FILL);
+		p.setColor(0x1AFFFFFF);
+		c.drawCircle(x, y, r, p);
+		p.setStyle(Paint.Style.STROKE);
+		p.setStrokeWidth(Math.max(1f, u * 0.5f));
+		p.setColor(0x47FFFFFF);
+		c.drawCircle(x, y, r, p);
+		p.setStyle(Paint.Style.FILL);
+		p.setColor(0xC8FFFFFF);
+		c.drawCircle(x - r * 0.35f, y - r * 0.38f, Math.max(u * 0.5f, r * 0.24f), p);
+		p.setColor(0x40DCEBFF);
+		c.drawCircle(x + r * 0.25f, y + r * 0.45f, r * 0.3f, p);
+	}
+
 	/** Sahneyi çiz; s = saniye (sabitken 0). Animasyon gerekiyorsa true. */
 	static boolean draw(Canvas c, Paint p, Rect bd, int scene, float s) {
 		float w = bd.width(), h = bd.height();
@@ -274,37 +344,57 @@ public final class YoldaSky {
 				return true;
 			}
 			case STARS -> {
-				p.setShader(null);
-				p.setStyle(Paint.Style.FILL);
+				// Samanyolu: çapraz uzanan çok soluk, yumuşak bant
+				c.save();
+				c.rotate(-28f, bd.left + w * 0.5f, bd.top + h * 0.3f);
+				for (int i = 0; i < 5; i++)
+					glowOval(c, p, bd.left + w * (-0.1f + i * 0.3f), bd.top + h * (0.3f + 0.03f * (rnd(i, 101) - 0.5f)),
+							w * 0.32f, h * 0.06f, i % 2 == 0 ? 0xFFB8C4FF : 0xFFE6D8FF, 0x14);
+				c.restore();
+				glow(c, p, bd.left + w * 0.14f, bd.top + h * 0.08f, Math.min(w, h) * 0.30f, 0xFFDDE6FF, 0x2C); // ay ışığı
+				int[] tone = {0xFFFFFF, 0xCFE0FF, 0xFFF0D6, 0xE6ECFF}; // yıldızların renk sıcaklığı
 				int n = particles(scene, w, h);
 				for (int i = 0; i < n; i++) {
-					float tw = 0.5f + 0.5f * (float) Math.sin(s * (0.6f + 1.4f * rnd(i, 3)) + i * 1.7f); // yumuşak parıldama
-					float x = bd.left + rnd(i, 1) * w, y = bd.top + rnd(i, 2) * h * 0.62f, rr = u * (0.5f + 1.2f * rnd(i, 5));
-					int a = (int) (50 + 150 * tw * (0.4f + 0.6f * rnd(i, 4)));
-					if (rr > u * 1.2f) { // parlak yıldızlarda hafif hale
-						p.setColor((a / 5 << 24) | 0xDDE6FF);
-						c.drawCircle(x, y, rr * 2.6f, p);
+					float tw = 0.5f + 0.5f * (float) Math.sin(s * (0.5f + 1.2f * rnd(i, 3)) + i * 1.7f); // yumuşak parıldama
+					float x = bd.left + rnd(i, 1) * w, y = bd.top + rnd(i, 2) * h * 0.65f;
+					boolean bright = rnd(i, 6) > 0.85f;
+					float rr = u * (bright ? 1.2f + 0.6f * rnd(i, 5) : 0.45f + 0.7f * rnd(i, 5));
+					int col = tone[(int) (rnd(i, 7) * tone.length) % tone.length];
+					float a = (bright ? 170 : 60) + (bright ? 80 : 120) * tw * (0.5f + 0.5f * rnd(i, 4));
+					if (bright) { // yumuşak hale ve dört kollu ışık kırınımı
+						glow(c, p, x, y, rr * 5f, 0xFF000000 | col, qa(a * 0.28f));
+						p.setShader(null);
+						p.setStyle(Paint.Style.STROKE);
+						p.setStrokeCap(Paint.Cap.ROUND);
+						p.setStrokeWidth(Math.max(1f, u * 0.35f));
+						p.setColor(((int) (a * 0.45f) << 24) | col);
+						float L = rr * (5f + 2f * tw);
+						c.drawLine(x - L, y, x + L, y, p);
+						c.drawLine(x, y - L, x, y + L, p);
 					}
-					p.setColor((a << 24) | 0xFFFFFF);
+					p.setShader(null);
+					p.setStyle(Paint.Style.FILL);
+					p.setColor(((int) Math.min(255, a) << 24) | col);
 					c.drawCircle(x, y, rr, p);
 				}
-				// kayan yıldız: ~11 sn'de bir, 0.9 sn
+				// kayan yıldız: ~11 sn'de bir, 0.9 sn; kuyruk sönerek uzanır
 				float cyc = s % 11f;
 				if (cyc < 0.9f) {
 					int k = (int) (s / 11f);
 					float t = cyc / 0.9f, sx = bd.left + w * (0.15f + 0.6f * rnd(k, 41)), sy = bd.top + h * (0.05f + 0.2f * rnd(k, 42));
-					float dx = w * 0.35f * t, dy = h * 0.12f * t, tail = w * 0.12f;
+					float hx = sx + w * 0.35f * t, hy = sy + h * 0.12f * t, tail = w * 0.16f;
+					float life = (float) Math.sin(Math.PI * t);
 					p.setStyle(Paint.Style.STROKE);
 					p.setStrokeCap(Paint.Cap.ROUND);
-					p.setStrokeWidth(Math.max(1f, u * 1.4f));
-					int a = (int) (200 * Math.sin(Math.PI * t));
-					p.setColor((a / 3 << 24) | 0xFFFFFF);
-					c.drawLine(sx + dx, sy + dy, sx + dx - tail, sy + dy - tail * 0.34f, p);
-					p.setColor((a << 24) | 0xFFFFFF);
-					c.drawLine(sx + dx, sy + dy, sx + dx - tail * 0.3f, sy + dy - tail * 0.1f, p);
+					for (int j = 0; j < 6; j++) { // baştan kuyruğa incelen ve sönen parçalar
+						float f0 = j / 6f, f1 = (j + 1) / 6f;
+						p.setStrokeWidth(Math.max(1f, u * 1.6f * (1f - f0)));
+						p.setColor(((int) (220 * life * (1f - f0)) << 24) | 0xEEF4FF);
+						c.drawLine(hx - tail * f0, hy - tail * 0.34f * f0, hx - tail * f1, hy - tail * 0.34f * f1, p);
+					}
 					p.setStyle(Paint.Style.FILL);
+					glow(c, p, hx, hy, u * 6f, 0xFFFFFFFF, qa(150 * life));
 				}
-				glow(c, p, bd.left + w * 0.14f, bd.top + h * 0.08f, Math.min(w, h) * 0.30f, 0xFFDDE6FF, 0x30); // ay ışığı
 				return true;
 			}
 			case CLOUDS -> {
@@ -343,50 +433,100 @@ public final class YoldaSky {
 				return true;
 			}
 			case RAIN, STORM -> {
-				c.drawColor(scene == STORM ? 0x22000814 : 0x14000A1A); // yağmurda zemin biraz kararır
+				boolean storm = scene == STORM;
+				// gökyüzü: üstte koyu bulut tonu, alta doğru serin pus
+				glowOval(c, p, bd.left + w * 0.5f, bd.top, w * 1.1f, h * 0.5f, storm ? 0xFF0A0F1C : 0xFF141C2C, storm ? 0x70 : 0x50);
+				glowOval(c, p, bd.left + w * 0.5f, bd.bottom, w * 1.2f, h * 0.35f, 0xFF9FB4D6, 0x1A);
+				// şimşek (fırtına): ~7 sn'de bir dallanan parlak çakış, ardından gökyüzü aydınlanıp söner; kısa ikinci çakış
+				if (storm) {
+					float ph = s % 7f;
+					int k = (int) (s / 7f);
+					float f = (ph < 0.35f) ? (1f - ease(ph / 0.35f)) : ((ph > 0.45f) && (ph < 0.7f) ? 0.55f * (1f - ease((ph - 0.45f) / 0.25f)) : 0f);
+					if (f > 0f) {
+						float bx = bd.left + w * (0.18f + 0.64f * rnd(k, 91));
+						glowOval(c, p, bx, bd.top + h * 0.15f, w * 0.9f, h * 0.45f, 0xFFDCE4FF, qa(110 * f));
+						c.drawColor(((int) (34 * f) << 24) | 0xEEF2FF);
+						if ((ph < 0.22f) || ((ph > 0.45f) && (ph < 0.55f))) lightning(c, p, bd, k, f, u);
+					}
+				}
+				// üç derinlikte yağmur: uzak ince ve soluk, yakın kalın, net ve hızlı (soluk iz + parlak baş)
 				p.setShader(null);
 				p.setStyle(Paint.Style.STROKE);
 				p.setStrokeCap(Paint.Cap.ROUND);
 				int n = particles(scene, w, h);
-				float wind = (scene == STORM) ? 0.42f : 0.26f; // eğim
+				float wind = storm ? 0.42f : 0.24f; // eğim
 				for (int i = 0; i < n; i++) {
-					boolean near = rnd(i, 14) > 0.62f; // yakın damlalar kalın, uzun, hızlı
-					float sp = (near ? 1.15f : 0.7f) * (0.85f + 0.3f * rnd(i, 12));
-					float len = u * (near ? 22f : 12f), dx = len * wind;
-					float y = ((rnd(i, 11) + s * 0.55f * sp) % 1.15f) - 0.08f;
+					float d = rnd(i, 14); // 0 uzak, 1 yakın
+					int layer = (d < 0.45f) ? 0 : ((d < 0.8f) ? 1 : 2);
+					float sp = (layer == 0 ? 0.45f : layer == 1 ? 0.7f : 1.1f) * (0.85f + 0.3f * rnd(i, 12));
+					float len = u * (layer == 0 ? 9f : layer == 1 ? 15f : 27f), dx = len * wind;
+					float y = ((rnd(i, 11) + s * 0.6f * sp) % 1.15f) - 0.08f;
 					float x = (rnd(i, 13) + y * 0.1f * wind) % 1f;
 					float px = bd.left + x * w, py = bd.top + y * h;
-					p.setStrokeWidth(Math.max(1f, u * (near ? 1.5f : 0.8f)));
-					p.setColor(((near ? 60 : 34) << 24) | 0xBFD7FF); // soluk iz
+					p.setStrokeWidth(Math.max(1f, u * (layer == 0 ? 0.55f : layer == 1 ? 0.9f : 1.6f)));
+					p.setColor(((layer == 0 ? 26 : layer == 1 ? 44 : 64) << 24) | 0xBFD3F2); // soluk iz
 					c.drawLine(px, py, px - dx, py - len, p);
-					p.setColor(((near ? 150 : 80) << 24) | 0xE3EEFF); // parlak baş
-					c.drawLine(px, py, px - dx * 0.3f, py - len * 0.3f, p);
+					p.setColor(((layer == 0 ? 52 : layer == 1 ? 96 : 170) << 24) | 0xE6F0FF); // parlak baş
+					c.drawLine(px, py, px - dx * 0.35f, py - len * 0.35f, p);
+				}
+				// zeminde sıçrama halkaları (ekranın alt kenarında açılıp sönen ince elipsler)
+				p.setStrokeWidth(Math.max(1f, u * 0.7f));
+				for (int i = 0; i < 12; i++) {
+					float per = 0.9f + 0.6f * rnd(i, 111), t = ((s + rnd(i, 112) * per) % per) / per;
+					float x = bd.left + w * rnd(i + (int) ((s + rnd(i, 112) * per) / per) * 13, 113);
+					float y = bd.top + h * (0.92f + 0.07f * rnd(i, 114));
+					float rx = u * (2f + 12f * t);
+					p.setColor(((int) (110 * (1f - t)) << 24) | 0xD6E4FF);
+					oval.set(x - rx, y - rx * 0.28f, x + rx, y + rx * 0.28f);
+					c.drawOval(oval, p);
 				}
 				p.setStyle(Paint.Style.FILL);
-				if (scene == STORM) { // ~7 sn'de bir, yumuşak sönen şimşek (iki çakış)
-					float ph = s % 7f;
-					float f = (ph < 0.35f) ? (1f - ease(ph / 0.35f)) : ((ph > 0.45f) && (ph < 0.7f) ? 0.5f * (1f - ease((ph - 0.45f) / 0.25f)) : 0f);
-					if (f > 0f) c.drawColor(((int) (70 * f) << 24) | 0xEEF2FF);
+				// camda damlalar: ışık yansıtan su damlaları; arada biri iz bırakarak aşağı kayar, sonra başka yerde belirir
+				for (int i = 0; i < 18; i++) {
+					float per = 9f + 8f * rnd(i, 121), cyc = (s + rnd(i, 122) * per) % per;
+					int gen = (int) ((s + rnd(i, 122) * per) / per); // her dönemde yeni yer
+					float x0 = bd.left + w * rnd(i * 31 + gen, 123), y0 = bd.top + h * (0.05f + 0.85f * rnd(i * 31 + gen, 124));
+					float r = u * (2.2f + 4.5f * rnd(i * 31 + gen, 125));
+					float slide = (cyc > per - 1.4f) ? ease((cyc - (per - 1.4f)) / 1.4f) : 0f; // son 1.4 sn kayar
+					float y = y0 + slide * h * 0.22f;
+					if (slide > 0f) { // kayarken arkasında ince ıslak iz
+						p.setColor(0x14FFFFFF);
+						oval.set(x0 - r * 0.35f, y0, x0 + r * 0.35f, y);
+						c.drawRoundRect(oval, r * 0.35f, r * 0.35f, p);
+					}
+					float fade = (cyc < 0.6f) ? ease(cyc / 0.6f) : 1f; // belirirken yumuşak
+					if (fade < 1f) {
+						c.saveLayerAlpha(x0 - r * 2, y - r * 2, x0 + r * 2, y + r * 2, (int) (255 * fade));
+						droplet(c, p, x0, y, r, u);
+						c.restore();
+					} else {
+						droplet(c, p, x0, y, r, u);
+					}
 				}
 				return true;
 			}
 			case SNOW -> {
-				p.setShader(null);
-				p.setStyle(Paint.Style.FILL);
+				// soğuk, aydınlık gökyüzü ve altta yumuşak kar birikintisi parıltısı
+				glowOval(c, p, bd.left + w * 0.5f, bd.top, w * 1.1f, h * 0.45f, 0xFFD6E2F5, 0x1C);
+				glowOval(c, p, bd.left + w * 0.5f, bd.bottom + h * 0.02f, w * 1.0f, h * 0.13f, 0xFFFFFFFF, 0x30);
 				int n = particles(scene, w, h);
 				for (int i = 0; i < n; i++) {
 					float depth = rnd(i, 25); // 0 uzak, 1 yakın
-					float sp = 0.35f + 0.65f * depth;
-					float y = ((rnd(i, 21) + s * 0.06f * sp) % 1.1f) - 0.05f;
-					float sway = 0.018f * (0.5f + depth) * (float) Math.sin(s * (0.5f + 0.6f * rnd(i, 26)) + i * 2.3f);
+					float sp = 0.3f + 0.7f * depth;
+					float y = ((rnd(i, 21) + s * 0.055f * sp) % 1.1f) - 0.05f;
+					float sway = 0.02f * (0.4f + depth) * (float) Math.sin(s * (0.4f + 0.6f * rnd(i, 26)) + i * 2.3f);
 					float x = (rnd(i, 23) + sway + 1f) % 1f;
-					float rr = u * (0.9f + 2.6f * depth);
-					int a = (int) (90 + 120 * depth);
 					float px = bd.left + x * w, py = bd.top + y * h;
-					p.setColor((a / 5 << 24) | 0xFFFFFF); // hale
-					c.drawCircle(px, py, rr * 2.2f, p);
-					p.setColor((a << 24) | 0xFFFFFF);
-					c.drawCircle(px, py, rr, p);
+					float rr = u * (0.7f + 3.4f * depth * depth);
+					if (depth > 0.78f) { // çok yakın: odak dışı, büyük ve flu ışık lekesi (bokeh)
+						glow(c, p, px, py, rr * 2.6f, 0xFFFFFFFF, qa(60 + 50 * depth));
+					} else { // yumuşak tane: flu hale ve küçük parlak çekirdek
+						glow(c, p, px, py, rr * 2.4f, 0xFFF2F6FF, qa(40 + 70 * depth));
+						p.setShader(null);
+						p.setStyle(Paint.Style.FILL);
+						p.setColor(((int) (120 + 110 * depth) << 24) | 0xFFFFFF);
+						c.drawCircle(px, py, Math.max(u * 0.4f, rr * 0.55f), p);
+					}
 				}
 				return true;
 			}

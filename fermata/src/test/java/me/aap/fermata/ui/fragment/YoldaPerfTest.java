@@ -29,4 +29,15 @@ public class YoldaPerfTest {
 		assertEquals("Akıcılık · Ana sayfa: 1800 kare, 42 yavaş (%2,3), 1 donma",
 				me.aap.fermata.ui.view.YoldaJankAccess.line("Ana sayfa", 1800, 42, 1));
 	}
+
+	@Test
+	public void saydamlikBasamakli() {
+		// yumuşak parçacıkların saydamlığı 16'lık basamaklarda: ışık önbelleği en çok 17 saydamlık
+		java.util.Set<Integer> a = new java.util.HashSet<>();
+		for (int i = 0; i <= 300; i++) a.add(me.aap.fermata.ui.view.YoldaSkyAccess.qa(i));
+		assertTrue(a.size() <= 17);
+		assertEquals(0, me.aap.fermata.ui.view.YoldaSkyAccess.qa(-5));
+		assertEquals(255, me.aap.fermata.ui.view.YoldaSkyAccess.qa(999));
+		assertEquals(64, me.aap.fermata.ui.view.YoldaSkyAccess.qa(66));
+	}
 }
