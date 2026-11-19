@@ -2,6 +2,10 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-198 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-198 · Yolculuk mesafesi
+
+- Android Auto bağlanınca başlayan yolculuk eski konumdan mesafe saymıyor (ilk taze konum başlangıç).
+
 ## 2026-11-19 · v2-197 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-197 · Daha çok kanal, az veri radyo
 
 - TV 50 → 95 kanal (denenmiş resmi yayınlar; yeni gruplar Yerel, Dini, Eğitim), radyo 21 → 85 istasyon (FM istasyonları önde).
