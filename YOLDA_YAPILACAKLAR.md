@@ -52,7 +52,7 @@ Q10. [ ] Telefon durumu (pil, veri, sinyal) ve hızlı ayarlar
 Q11. [ ] Hızlı mesaj (WhatsApp / SMS hazır cevaplar, "varınca haber ver")
 Q12. [ ] Spor skorları
 R1. [ ] Araç hareket edince videodan sese geçiş (araştırma: Android Auto 2026 "video-to-audio handoff"): TV / YouTube videosu araç 10 km/s'yi geçince yalnız ses olarak sürer (görüntü kapanır, veri azalır), park edince görüntü geri gelir; Sürüş ekranından aç / kapat
-R3. [ ] Dayanıklılık testinde donma (ANR, "Input dispatching timed out — no focused window", 19 Kasım): rastgele dokunuşta uygulama arka plandan dönerken; ana iş parçacığı dökümünü incele, açılışta ağır işi arka plana al
+R3. [ ] Dayanıklılık testinde donma (ANR, "Input dispatching timed out — no focused window", 19 Kasım): rastgele dokunuşta. İnceleme (v2-171): ana iş parçacığı o anda boşta (iş yükü yok); pencere odak alamıyor — büyük olasılıkla uygulama başka bir ekrana (ayarlar / dış uygulama) geçerken ya da üstte bir pencere varken. Sonraki adım: odak kaybında açılan ekranları (izin, dış uygulama) günlüğe yaz, monkey sırasında hangi ekran olduğunu bul
 R2. [ ] Uyarı geçmişi için sesli komut ("son uyarılar", "az önce ne dedin") ve Gemini'nin geçmişi okuyabilmesi
 
 ## Sürekli (her 3 turda bir)

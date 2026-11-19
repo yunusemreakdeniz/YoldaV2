@@ -117,7 +117,7 @@ public class WeatherFragment extends MainActivityFragment {
 		head.setOrientation(LinearLayout.HORIZONTAL);
 		head.setGravity(Gravity.CENTER_VERTICAL);
 		TextView title = text(ctx, (data != null) ? data.place() : "Hava durumu", YoldaStyle.titleSp(ctx), true, t.ink);
-		title.setSingleLine(true);
+		title.setMaxLines(1); // setSingleLine otomatik küçültmeyi bozar: tek satır maxLines ile
 		title.setEllipsize(TextUtils.TruncateAt.END);
 		// uzun yer adı ("Mendocino County", "Kahramanmaraş Merkez") kesilmesin: sığana kadar küçülür (en az 18 sp)
 		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(title, 18,

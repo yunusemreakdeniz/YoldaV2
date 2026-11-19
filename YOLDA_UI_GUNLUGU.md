@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-171 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-171
+
+- Hava ekranında uzun yer adları artık gerçekten sığana kadar küçülüyor (önceki düzeltme tek satır ayarı yüzünden işlemiyordu).
+- Emülatör testleri takılmadan baştan sona çalışıyor: kalan tek UI sorunu buydu; dayanıklılık testindeki donmalar incelendi (uygulama boştayken pencere odak alamıyor), listede R3.
+
 ## 2026-11-19 · v2-170 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-170
 
 - Yeni Ekolayzer kartı: Kapalı, Pop, Rock, Konuşma, Bas, Araç, Klasik, Caz; dokununca çalan yayına hemen uygulanır, seçili olan vurgulu.
