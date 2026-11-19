@@ -1128,8 +1128,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaStyle.haptic(v);
 			YoldaNowPlaying.open(getActivityDelegate());
 		});
+		int hg = narrowHeader ? dp(6) : dp(10); // dar ekranda düğme aralığı daralır: tema düğmesi de sığsın
 		LinearLayout.LayoutParams plp = new LinearLayout.LayoutParams(pillIconOnly ? dp(44) : -2, dp(44));
-		plp.rightMargin = dp(10);
+		plp.rightMargin = hg;
 		top.addView(playing, plp);
 		nowPill = playing;
 		Runnable tick = new Runnable() {
@@ -1153,20 +1154,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			return true;
 		});
 		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(48), dp(48));
-		tlp.rightMargin = dp(10);
+		tlp.rightMargin = hg;
 		top.addView(themeBtn, tlp);
 		if (!car) { // telefonda her zaman: Araç görünümünden tek dokunuşla telefon görünümüne dön (dar ekranda da)
 			ImageView pv = roundButton(ctx, R.drawable.yi_phone, "Telefon görünümü", v -> setPhoneView(true));
 			LinearLayout.LayoutParams pvl = new LinearLayout.LayoutParams(dp(48), dp(48));
-			if (narrowHeader) { // dar ekranda tema düğmesinin yerinde (tema Ayarlar'da ve telefon görünümünde): üst satır taşmasın
-				pvl.rightMargin = dp(10);
-				int at = top.indexOfChild(themeBtn);
-				top.removeView(themeBtn);
-				top.addView(pv, Math.max(0, at), pvl);
-			} else {
-				pvl.rightMargin = dp(10);
-				top.addView(pv, top.indexOfChild(themeBtn), pvl);
-			}
+			pvl.rightMargin = hg; // tema düğmesi kalır (önceden dar ekranda kaldırılıyordu); sığması için saat küçülür
+			top.addView(pv, top.indexOfChild(themeBtn), pvl);
 		}
 		// Ayarlar: tema düğmesinin yanında (menü / ayarlar ekranı)
 		ImageView setBtn = setBtnView = roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> {
@@ -1174,19 +1168,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			getActivityDelegate().showFragment(R.id.yolda_menu_fragment);
 		});
 		LinearLayout.LayoutParams slp2 = new LinearLayout.LayoutParams(dp(48), dp(48));
-		slp2.rightMargin = dp(10);
+		slp2.rightMargin = hg;
 		top.addView(setBtn, slp2);
 		restoreBtn = roundButton(ctx, R.drawable.yi_history, "Kaldırılan kartlar", v -> {
 			YoldaStyle.haptic(v);
 			showRestoreMenu();
 		});
 		LinearLayout.LayoutParams rlp2 = new LinearLayout.LayoutParams(dp(48), dp(48));
-		rlp2.rightMargin = dp(10);
+		rlp2.rightMargin = hg;
 		top.addView(restoreBtn, rlp2);
 		restoreBtn.setVisibility(View.GONE);
 		editBtn = roundButton(ctx, R.drawable.yi_edit, "Düzenle", v -> setEditing(!editing));
 		top.addView(editBtn, new LinearLayout.LayoutParams(dp(48), dp(48)));
 		col.addView(top);
+		if (narrowHeader) fitClock(clock, 28, 16); // düğmeler çoksa (çalan + tema + telefon + ayarlar) saat sığacak kadar küçülür
 
 		// Deste
 		list = new RecyclerView(ctx);
@@ -2865,6 +2860,30 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private boolean narrowHeader;
+
+	/**
+	 * Saat yazısını kendine kalan genişliğe sığdırır (en çok maxSp, en az minSp): "88:88" ölçülür, saat değişince
+	 * boyut oynamaz. Dar başlıkta düğmeler kesilmesin, saat iki satıra kırılmasın.
+	 */
+	private static void fitClock(TextView clock, float maxSp, float minSp) {
+		clock.addOnLayoutChangeListener((v, l, t0, r, b, ol, ot, or, ob) -> {
+			int avail = v.getWidth() - v.getPaddingLeft() - v.getPaddingRight();
+			if (avail <= 0) return;
+			float d = v.getResources().getDisplayMetrics().scaledDensity;
+			android.graphics.Paint pt = new android.graphics.Paint(((TextView) v).getPaint());
+			float sp = maxSp;
+			while (sp > minSp) {
+				pt.setTextSize(sp * d);
+				if (pt.measureText("88:88") <= avail) break;
+				sp -= 1f;
+			}
+			float cur = ((TextView) v).getTextSize() / d;
+			if (Math.abs(cur - sp) >= 0.5f) {
+				float fs = sp;
+				v.post(() -> ((TextView) v).setTextSize(fs));
+			}
+		});
+	}
 	@androidx.annotation.Nullable
 	private LinearLayout dateLine;
 	@androidx.annotation.Nullable

@@ -28,6 +28,23 @@ public class YoldaPaketBTest {
 	}
 
 	@Test
+	public void hareketliSahnelerAkici() {
+		// damla / kar / yıldız saniyede ~30 kare (hızlı), güneş / bulut / sis yavaş (pil)
+		assertTrue(YoldaSky.fast(YoldaSky.RAIN));
+		assertTrue(YoldaSky.fast(YoldaSky.SNOW));
+		assertTrue(YoldaSky.fast(YoldaSky.STORM));
+		assertTrue(YoldaSky.fast(YoldaSky.STARS));
+		assertTrue(!YoldaSky.fast(YoldaSky.SUN) && !YoldaSky.fast(YoldaSky.CLOUDS) && !YoldaSky.fast(YoldaSky.FOG));
+		assertTrue(!YoldaSky.fast(YoldaSky.NONE));
+		// yumuşak sönme: uçlarda 0 ve 1, ortada yarım, tekdüze artan
+		assertEquals(0f, YoldaSky.ease(0f), 0f);
+		assertEquals(1f, YoldaSky.ease(1f), 0f);
+		assertEquals(0.5f, YoldaSky.ease(0.5f), 1e-6f);
+		assertEquals(0f, YoldaSky.ease(-3f), 0f);
+		for (int i = 1; i <= 10; i++) assertTrue(YoldaSky.ease(i / 10f) >= YoldaSky.ease((i - 1) / 10f));
+	}
+
+	@Test
 	public void parcaciklarOlcekli() {
 		// küçük ekranda da en az 12, büyük ekranda üst sınır; güneşte parçacık yok
 		assertTrue(YoldaSky.particles(YoldaSky.RAIN, 360, 640) >= 12);

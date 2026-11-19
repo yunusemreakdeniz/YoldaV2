@@ -2,7 +2,9 @@ package me.aap.fermata.ui.view;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
 import android.graphics.Shader;
@@ -11,10 +13,14 @@ import me.aap.fermata.ui.fragment.YoldaRadar;
 import me.aap.fermata.ui.fragment.YoldaWeather;
 
 /**
- * Hava durumuna göre zemin: tema ışıltısının üstüne hafif bir sahne çizer. Açık gündüz güneş ışığı, açık
- * gece yıldızlar, bulutlu / kapalı gri bulut kümeleri, sis yatay pus, yağmur ve sağanak eğik damlalar, kar
- * süzülen taneler, fırtına seyrek şimşek. Sahne yazıyı bastırmasın diye düşük saydamlıkta; animasyon kapalıyken
- * ve araçta (YoldaGlow sabitken) aynı sahne kımıldamadan çizilir.
+ * Hava durumuna göre zemin: tema ışıltısının üstüne hafif bir sahne çizer. Açık gündüz dönen soluk ışınlarıyla
+ * güneş, açık gece parıldayan yıldızlar ve ara sıra kayan yıldız, bulutlu / kapalı süzülen bulutlar, sis yatay pus,
+ * yağmur iki derinlikte (uzak ince, yakın kalın) parlak başlı damlalar, kar üç derinlikte salınan taneler, fırtına
+ * yağmur ve yumuşak sönen şimşek. Sahne yazıyı bastırmasın diye düşük saydamlıkta.
+ * <p>
+ * Akıcılık: hareketli sahneler (damla, kar, yıldız) saniyede ~30 kare çizilir; ışık geçişleri her karede yeniden
+ * kurulmaz (bir kez kurulur, matrisle taşınır), çizimde nesne üretilmez → çöp toplayıcı takılması yok. Araçta ve
+ * sistem animasyonları kapalıyken sahne kımıldamadan çizilir.
  */
 public final class YoldaSky {
 	public static final int NONE = 0, SUN = 1, STARS = 2, CLOUDS = 3, FOG = 4, RAIN = 5, SNOW = 6, STORM = 7;
@@ -53,6 +59,11 @@ public final class YoldaSky {
 			case STORM -> "fırtınalı";
 			default -> "sade";
 		};
+	}
+
+	/** Hızlı hareket eden sahne mi (saniyede ~30 kare gerekir); yavaş olanlar ~12 karede de akıcı. */
+	public static boolean fast(int s) {
+		return (s == RAIN) || (s == SNOW) || (s == STORM) || (s == STARS);
 	}
 
 	public static void load(Context ctx) {
@@ -100,6 +111,43 @@ public final class YoldaSky {
 		return (x & 0xFFFFFF) / (float) 0x1000000;
 	}
 
+	/** 0..1 → yumuşak çan (şimşek ve kayan yıldızın sönmesi için). */
+	public static float ease(float t) {
+		t = Math.max(0f, Math.min(1f, t));
+		return t * t * (3 - 2 * t);
+	}
+
+	// ---- çizim (ana iş parçacığında; yeniden kullanılan nesneler) ----
+
+	private static final Matrix gm = new Matrix();
+	private static final Path ray = new Path();
+	private static final java.util.Map<Long, RadialGradient> glows = new java.util.HashMap<>();
+
+	/** Birim yarıçaplı ışık (renk ve saydamlık başına bir kez kurulur); matrisle yerine ve boyuna taşınır. */
+	private static RadialGradient unitGlow(int color, int a) {
+		long k = ((long) (color & 0x00FFFFFF) << 8) | (a & 0xFF);
+		RadialGradient g = glows.get(k);
+		if (g == null) {
+			if (glows.size() > 64) glows.clear();
+			g = new RadialGradient(0, 0, 1, new int[]{(color & 0x00FFFFFF) | (a << 24), (color & 0x00FFFFFF) | ((a / 3) << 24),
+					color & 0x00FFFFFF}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP);
+			glows.put(k, g);
+		}
+		return g;
+	}
+
+	static void glow(Canvas c, Paint p, float x, float y, float r, int color, int a) {
+		r = Math.max(1f, r);
+		RadialGradient g = unitGlow(color, a);
+		gm.setScale(r, r);
+		gm.postTranslate(x, y);
+		g.setLocalMatrix(gm);
+		p.setStyle(Paint.Style.FILL);
+		p.setShader(g);
+		c.drawCircle(x, y, r, p);
+		p.setShader(null);
+	}
+
 	/** Sahneyi çiz; s = saniye (sabitken 0). Animasyon gerekiyorsa true. */
 	static boolean draw(Canvas c, Paint p, Rect bd, int scene, float s) {
 		float w = bd.width(), h = bd.height();
@@ -107,9 +155,23 @@ public final class YoldaSky {
 		float u = Math.min(w, h) / 400f; // ekrana göre birim
 		switch (scene) {
 			case SUN -> {
+				float cx = bd.left + w * 0.86f, cy = bd.top + h * 0.04f;
 				float r = Math.max(w, h) * 0.55f, pulse = 1f + 0.04f * (float) Math.sin(s * 0.5);
-				glow(c, p, bd.left + w * 0.86f, bd.top + h * 0.04f, r * pulse, 0xFFFFD27A, 0x70);
-				glow(c, p, bd.left + w * 0.86f, bd.top + h * 0.04f, r * 0.22f, 0xFFFFF4D6, 0x80);
+				glow(c, p, cx, cy, r * pulse, 0xFFFFD27A, 0x70);
+				// yavaşça dönen soluk ışınlar
+				p.setStyle(Paint.Style.FILL);
+				p.setColor(0x12FFF1C2);
+				float len = Math.max(w, h) * 0.75f, rot = (float) Math.toRadians(s * 2.5);
+				for (int i = 0; i < 9; i++) {
+					double a0 = rot + i * (Math.PI * 2 / 9), da = 0.07 + 0.03 * rnd(i, 31);
+					ray.rewind();
+					ray.moveTo(cx, cy);
+					ray.lineTo(cx + (float) Math.cos(a0 - da) * len, cy + (float) Math.sin(a0 - da) * len);
+					ray.lineTo(cx + (float) Math.cos(a0 + da) * len, cy + (float) Math.sin(a0 + da) * len);
+					ray.close();
+					c.drawPath(ray, p);
+				}
+				glow(c, p, cx, cy, r * 0.22f, 0xFFFFF4D6, 0x80);
 				return true;
 			}
 			case STARS -> {
@@ -117,9 +179,31 @@ public final class YoldaSky {
 				p.setStyle(Paint.Style.FILL);
 				int n = particles(scene, w, h);
 				for (int i = 0; i < n; i++) {
-					float tw = 0.55f + 0.45f * (float) Math.sin(s * (0.8f + rnd(i, 3)) + i);
-					p.setColor(alpha(0xFFFFFFFF, (int) (40 + 120 * tw * rnd(i, 4))));
-					c.drawCircle(bd.left + rnd(i, 1) * w, bd.top + rnd(i, 2) * h * 0.6f, u * (0.6f + 1.1f * rnd(i, 5)), p);
+					float tw = 0.5f + 0.5f * (float) Math.sin(s * (0.6f + 1.4f * rnd(i, 3)) + i * 1.7f); // yumuşak parıldama
+					float x = bd.left + rnd(i, 1) * w, y = bd.top + rnd(i, 2) * h * 0.62f, rr = u * (0.5f + 1.2f * rnd(i, 5));
+					int a = (int) (50 + 150 * tw * (0.4f + 0.6f * rnd(i, 4)));
+					if (rr > u * 1.2f) { // parlak yıldızlarda hafif hale
+						p.setColor((a / 5 << 24) | 0xDDE6FF);
+						c.drawCircle(x, y, rr * 2.6f, p);
+					}
+					p.setColor((a << 24) | 0xFFFFFF);
+					c.drawCircle(x, y, rr, p);
+				}
+				// kayan yıldız: ~11 sn'de bir, 0.9 sn
+				float cyc = s % 11f;
+				if (cyc < 0.9f) {
+					int k = (int) (s / 11f);
+					float t = cyc / 0.9f, sx = bd.left + w * (0.15f + 0.6f * rnd(k, 41)), sy = bd.top + h * (0.05f + 0.2f * rnd(k, 42));
+					float dx = w * 0.35f * t, dy = h * 0.12f * t, tail = w * 0.12f;
+					p.setStyle(Paint.Style.STROKE);
+					p.setStrokeCap(Paint.Cap.ROUND);
+					p.setStrokeWidth(Math.max(1f, u * 1.4f));
+					int a = (int) (200 * Math.sin(Math.PI * t));
+					p.setColor((a / 3 << 24) | 0xFFFFFF);
+					c.drawLine(sx + dx, sy + dy, sx + dx - tail, sy + dy - tail * 0.34f, p);
+					p.setColor((a << 24) | 0xFFFFFF);
+					c.drawLine(sx + dx, sy + dy, sx + dx - tail * 0.3f, sy + dy - tail * 0.1f, p);
+					p.setStyle(Paint.Style.FILL);
 				}
 				glow(c, p, bd.left + w * 0.14f, bd.top + h * 0.08f, Math.min(w, h) * 0.30f, 0xFFDDE6FF, 0x30); // ay ışığı
 				return true;
@@ -135,24 +219,30 @@ public final class YoldaSky {
 				return true;
 			}
 			case RAIN, STORM -> {
+				c.drawColor(scene == STORM ? 0x22000814 : 0x14000A1A); // yağmurda zemin biraz kararır
 				p.setShader(null);
 				p.setStyle(Paint.Style.STROKE);
 				p.setStrokeCap(Paint.Cap.ROUND);
-				p.setStrokeWidth(Math.max(1f, u * 1.1f));
 				int n = particles(scene, w, h);
-				float len = u * 16f, dx = len * 0.28f;
+				float wind = (scene == STORM) ? 0.42f : 0.26f; // eğim
 				for (int i = 0; i < n; i++) {
-					float sp = 0.55f + 0.45f * rnd(i, 12); // her damla farklı hızda
-					float y = ((rnd(i, 11) + s * 0.45f * sp) % 1.1f) - 0.05f;
-					float x = (rnd(i, 13) + y * 0.08f) % 1f;
-					p.setColor(alpha(0xFFBFD7FF, (int) (45 + 50 * sp)));
+					boolean near = rnd(i, 14) > 0.62f; // yakın damlalar kalın, uzun, hızlı
+					float sp = (near ? 1.15f : 0.7f) * (0.85f + 0.3f * rnd(i, 12));
+					float len = u * (near ? 22f : 12f), dx = len * wind;
+					float y = ((rnd(i, 11) + s * 0.55f * sp) % 1.15f) - 0.08f;
+					float x = (rnd(i, 13) + y * 0.1f * wind) % 1f;
 					float px = bd.left + x * w, py = bd.top + y * h;
-					c.drawLine(px, py, px - dx, py + len, p);
+					p.setStrokeWidth(Math.max(1f, u * (near ? 1.5f : 0.8f)));
+					p.setColor(((near ? 60 : 34) << 24) | 0xBFD7FF); // soluk iz
+					c.drawLine(px, py, px - dx, py - len, p);
+					p.setColor(((near ? 150 : 80) << 24) | 0xE3EEFF); // parlak baş
+					c.drawLine(px, py, px - dx * 0.3f, py - len * 0.3f, p);
 				}
 				p.setStyle(Paint.Style.FILL);
-				if (scene == STORM) { // ~7 sn'de bir kısa şimşek
-					float ph = (s % 7f);
-					if (ph < 0.12f) c.drawColor(alpha(0xFFFFFFFF, (int) (40 * (1f - ph / 0.12f))));
+				if (scene == STORM) { // ~7 sn'de bir, yumuşak sönen şimşek (iki çakış)
+					float ph = s % 7f;
+					float f = (ph < 0.35f) ? (1f - ease(ph / 0.35f)) : ((ph > 0.45f) && (ph < 0.7f) ? 0.5f * (1f - ease((ph - 0.45f) / 0.25f)) : 0f);
+					if (f > 0f) c.drawColor(((int) (70 * f) << 24) | 0xEEF2FF);
 				}
 				return true;
 			}
@@ -161,11 +251,18 @@ public final class YoldaSky {
 				p.setStyle(Paint.Style.FILL);
 				int n = particles(scene, w, h);
 				for (int i = 0; i < n; i++) {
-					float sp = 0.4f + 0.6f * rnd(i, 22);
-					float y = ((rnd(i, 21) + s * 0.05f * sp) % 1.08f) - 0.04f;
-					float x = (rnd(i, 23) + 0.02f * (float) Math.sin(s * 0.7f + i)) % 1f;
-					p.setColor(alpha(0xFFFFFFFF, (int) (70 + 90 * sp)));
-					c.drawCircle(bd.left + x * w, bd.top + y * h, u * (1.2f + 2.2f * rnd(i, 24)), p);
+					float depth = rnd(i, 25); // 0 uzak, 1 yakın
+					float sp = 0.35f + 0.65f * depth;
+					float y = ((rnd(i, 21) + s * 0.06f * sp) % 1.1f) - 0.05f;
+					float sway = 0.018f * (0.5f + depth) * (float) Math.sin(s * (0.5f + 0.6f * rnd(i, 26)) + i * 2.3f);
+					float x = (rnd(i, 23) + sway + 1f) % 1f;
+					float rr = u * (0.9f + 2.6f * depth);
+					int a = (int) (90 + 120 * depth);
+					float px = bd.left + x * w, py = bd.top + y * h;
+					p.setColor((a / 5 << 24) | 0xFFFFFF); // hale
+					c.drawCircle(px, py, rr * 2.2f, p);
+					p.setColor((a << 24) | 0xFFFFFF);
+					c.drawCircle(px, py, rr, p);
 				}
 				return true;
 			}
@@ -173,17 +270,5 @@ public final class YoldaSky {
 				return false;
 			}
 		}
-	}
-
-	private static void glow(Canvas c, Paint p, float x, float y, float r, int color, int a) {
-		p.setStyle(Paint.Style.FILL);
-		p.setShader(new RadialGradient(x, y, Math.max(1f, r), new int[]{(color & 0x00FFFFFF) | (a << 24),
-				(color & 0x00FFFFFF) | ((a / 3) << 24), color & 0x00FFFFFF}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
-		c.drawCircle(x, y, Math.max(1f, r), p);
-		p.setShader(null);
-	}
-
-	private static int alpha(int c, int a) {
-		return (c & 0x00FFFFFF) | (Math.max(0, Math.min(255, a)) << 24);
 	}
 }

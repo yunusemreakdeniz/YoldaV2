@@ -89,20 +89,18 @@ public final class YoldaGlow extends Drawable {
 				bd.top + h * (0.72f + 0.09f * (float) Math.sin(s * 0.23)), r, 0x88);
 		blob(c, towards(c1, 0xFFFFFFFF, 0.25f), bd.left + w * (0.55f + 0.12f * (float) Math.sin(s * 0.13)),
 				bd.top + h * 0.10f, r * 0.55f, 0x33);
-		YoldaSky.draw(c, sky, bd, YoldaSky.current(), s); // hava durumuna göre sahne (yağmur, kar, güneş, yıldız)
+		int scene = YoldaSky.current();
+		YoldaSky.draw(c, sky, bd, scene, s); // hava durumuna göre sahne (yağmur, kar, güneş, yıldız)
 		boolean settling = motion && ((c1 != t1) || (c2 != t2));
 		if (settling) invalidateSelf(); // renk geçişi kısa: akıcı
-		else if (anim) { // yavaş süzülme: saniyede ~12 kare yeter, pil harcamaz
+		else if (anim) { // damla / kar / yıldız saniyede ~30 kare (akıcı); yavaş süzülme ~12 kare (pil harcamaz)
 			unscheduleSelf(tick);
-			scheduleSelf(tick, SystemClock.uptimeMillis() + 83);
+			scheduleSelf(tick, SystemClock.uptimeMillis() + (YoldaSky.fast(scene) ? 33 : 83));
 		}
 	}
 
 	private void blob(Canvas c, int color, float x, float y, float r, int alpha) {
-		p.setShader(new RadialGradient(x, y, r, new int[]{(color & 0x00FFFFFF) | (alpha << 24),
-				(color & 0x00FFFFFF) | ((alpha / 3) << 24), color & 0x00FFFFFF}, new float[]{0f, 0.45f, 1f},
-				Shader.TileMode.CLAMP));
-		c.drawCircle(x, y, r, p);
+		YoldaSky.glow(c, p, x, y, r, color, alpha); // ışık bir kez kurulur, her karede yalnız taşınır (takılma yok)
 	}
 
 	@Override
