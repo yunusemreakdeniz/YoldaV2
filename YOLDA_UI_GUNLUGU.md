@@ -2,6 +2,10 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-201 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-201 · Güneş, bulut, sis yeniden
+
+- Güneş: ılık gök geçişi, katmanlı sıcak güneş, aşağı inen sönen hüzmeler (sakin, dönmez). Bulut: mavi gök, hacimli gölgeli bulutlar, üç katman. Sis: renkleri bastıran örtü, içinden dağılan ışık, zıt yönlerde süzülen tabakalar.
+
 ## 2026-11-19 · v2-200 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-200 · Gerçekçi hava sahneleri
 
 - Yağmur: üç derinlik, sıçrama halkaları, camda yansıyan ve kayan su damlaları. Fırtına: dallanan parlak şimşek. Kar: yumuşak flu taneler, odak dışı yakın taneler, birikinti parıltısı. Yıldızlı gece: Samanyolu, renkli yıldızlar ve ışık kırınımı, sönen kuyruklu kayan yıldız.
