@@ -20,6 +20,7 @@ public final class YoldaActions {
 			{"youtube'da [konu] ara", "YouTube'da arar"},
 			{"[konu] radyosu aç", "internet radyolarında arayıp açar (caz radyosu aç)"},
 			{"duraklat / devam et / sonraki / önceki / durdur", "oynatma denetimi"},
+			{"sus / dur / yeter", "sesli okumayı (haberler, uzun yanıt) keser"},
 			{"on saniye ileri sar / otuz saniye geri sar / başa sar", "sarma"},
 			{"sesi aç / sesi kıs / sesi yüzde [sayı] yap / sessize al", "ses düzeyi"},
 			{"[sayı] dakika sonra kapat / uyku zamanlayıcısını iptal et", "uyku zamanlayıcısı"},

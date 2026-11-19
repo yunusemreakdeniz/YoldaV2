@@ -1347,6 +1347,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	public void startVoiceAssistant() {
+		me.aap.fermata.ui.fragment.YoldaSpeak.stop(); // okuma sürüyorsa kes: kullanıcı konuşmak istiyor
 		ActivityFragment f = getActiveFragment();
 		if (!(f instanceof MainActivityFragment) || !((MainActivityFragment) f).startVoiceAssistant())
 			voiceSearch(getCurrentFocus());
@@ -1798,6 +1799,42 @@ public class MainActivityDelegate extends ActivityDelegate
 		r.setLayoutParams(lp);
 	}
 
+	@Nullable
+	private android.widget.TextView speakStop;
+
+	/** Uzun sesli okuma sürerken altta ortada büyük "⏹ Okumayı durdur" düğmesi (araçta da). */
+	private void showSpeakStop(ConstraintLayout host, boolean on) {
+		if (!on) {
+			if (speakStop != null) host.removeView(speakStop);
+			speakStop = null;
+			return;
+		}
+		if (speakStop != null) return;
+		Context ctx = host.getContext();
+		float d = ctx.getResources().getDisplayMetrics().density;
+		android.widget.TextView b = new android.widget.TextView(ctx);
+		b.setText("⏹  Okumayı durdur");
+		b.setTextSize(isCarActivity() ? 18 : 16);
+		b.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+		b.setTextColor(0xFF111827);
+		b.setGravity(Gravity.CENTER);
+		b.setIncludeFontPadding(false);
+		b.setPadding(Math.round(24 * d), 0, Math.round(24 * d), 0);
+		android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+		g.setCornerRadius(999 * d);
+		g.setColor(0xFFFFF4D6);
+		b.setBackground(g);
+		b.setElevation(40 * d);
+		b.setClickable(true);
+		b.setContentDescription("Okumayı durdur");
+		b.setOnClickListener(v -> me.aap.fermata.ui.fragment.YoldaSpeak.stop());
+		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(-2, Math.round(56 * d));
+		lp.startToStart = lp.endToEnd = lp.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
+		lp.bottomMargin = Math.round(96 * d);
+		host.addView(b, lp);
+		speakStop = b;
+	}
+
 	/** Sol kenar: hız sınırı, hız ve öndeki radar (geri / ana sayfa düğmelerinin üstünde). */
 	private void addSpeedRail(ConstraintLayout host) {
 		Context ctx = host.getContext();
@@ -1805,6 +1842,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		radarAttached = true;
 		me.aap.fermata.ui.fragment.YoldaChannelAlt.warmUp(ctx); // TV yedek adres listesi (haftada bir yenilenir)
 		me.aap.fermata.ui.fragment.YoldaData.start(ctx); // mobil veri sayacı ve sınır uyarısı
+		// Uzun sesli okumada (haberler) ekranın altında "Okumayı durdur" düğmesi
+		me.aap.fermata.ui.fragment.YoldaSpeak.longListener = on -> showSpeakStop(host, on);
 		me.aap.fermata.ui.view.YoldaSpeedRail r = new me.aap.fermata.ui.view.YoldaSpeedRail(ctx);
 		r.setOnClickListener(v -> showFragment(R.id.yolda_radar_fragment));
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT,

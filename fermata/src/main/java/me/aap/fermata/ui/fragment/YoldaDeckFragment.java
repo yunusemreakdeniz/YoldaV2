@@ -3084,11 +3084,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				List<YoldaInfo.News> nl = YoldaInfo.news(ctx, false);
 				if (nl.isEmpty()) return null;
 				LinearLayout row = hrow(ctx);
-				row.addView(chipBtn(ctx, "🔊 Başlıkları oku", v -> YoldaSpeak.sayAlways(ctx, YoldaInfo.newsSpoken(nl, 5))), chipLp());
+				row.addView(chipBtn(ctx, "🔊 Başlıkları oku / ⏹", v -> {
+					if (YoldaSpeak.isSpeaking()) YoldaSpeak.stop();
+					else YoldaSpeak.sayAlways(ctx, YoldaInfo.newsSpoken(nl, 5));
+				}), chipLp());
 				for (int i = 0; i < Math.min(4, nl.size()); i++) {
 					YoldaInfo.News n = nl.get(i);
 					String tt = (n.title().length() > 42) ? (n.title().substring(0, 42) + "…") : n.title();
-					row.addView(chipBtn(ctx, tt, v -> YoldaSpeak.sayAlways(ctx, n.title())), chipLp());
+					row.addView(chipBtn(ctx, tt, v -> {
+						if (YoldaSpeak.isSpeaking()) YoldaSpeak.stop();
+						else YoldaSpeak.sayAlways(ctx, n.title());
+					}), chipLp());
 				}
 				return scroll(ctx, row);
 			}

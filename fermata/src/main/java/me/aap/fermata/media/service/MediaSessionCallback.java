@@ -627,6 +627,11 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 
 	@Override
 	public void onPause() {
+		// Yolda: sesli okuma sürüyorsa (haberler, uzun yanıt) duraklat tuşu önce okumayı keser, müzik sürer
+		if (me.aap.fermata.ui.fragment.YoldaSpeak.isSpeaking()) {
+			me.aap.fermata.ui.fragment.YoldaSpeak.stop();
+			return;
+		}
 		PlayableItem i;
 		MediaEngine eng = getEngine();
 		if ((eng == null) || ((i = eng.getSource()) == null)) return;

@@ -99,6 +99,7 @@ public final class YoldaSpeak {
 				@Override
 				public void onStart(String id) {
 					speaking = true;
+					notifyLong(longText);
 				}
 
 				@Override
@@ -106,6 +107,7 @@ public final class YoldaSpeak {
 					speaking = false;
 					spokeAt = android.os.SystemClock.elapsedRealtime();
 					abandon(app);
+					notifyLong(false);
 					runAfter();
 				}
 
@@ -114,6 +116,7 @@ public final class YoldaSpeak {
 					speaking = false;
 					spokeAt = android.os.SystemClock.elapsedRealtime();
 					abandon(app);
+					notifyLong(false);
 					runAfter();
 				}
 			});
@@ -124,7 +127,38 @@ public final class YoldaSpeak {
 		});
 	}
 
+	/** Ekranda "Okumayı durdur" düğmesini gösterecek dinleyici (true: uzun okuma başladı, false: bitti / durdu). */
+	@androidx.annotation.Nullable
+	public static volatile java.util.function.Consumer<Boolean> longListener;
+	private static volatile boolean longText;
+
+	private static void notifyLong(boolean on) {
+		java.util.function.Consumer<Boolean> l = longListener;
+		if (l != null) App.get().getHandler().post(() -> l.accept(on));
+	}
+
+	/** Şu an konuşuyor mu. */
+	public static boolean isSpeaking() {
+		return speaking;
+	}
+
+	/** Konuşmayı hemen kes (haber okuma, uzun yanıt): ekrandaki düğme, duraklat tuşu, "dur / sus", mikrofon. */
+	public static void stop() {
+		after = null;
+		pending = null;
+		boolean was = speaking;
+		speaking = false;
+		spokeAt = android.os.SystemClock.elapsedRealtime();
+		try {
+			if (tts != null) tts.stop();
+		} catch (Throwable ignore) {
+		}
+		if (was) YoldaLog.add("Sesli okuma durduruldu");
+		notifyLong(false);
+	}
+
 	private static void speak(Context app, String text) {
+		longText = text.length() > 120; // haber başlıkları, uzun yanıtlar: durdurma düğmesi göster
 		AudioManager am = (AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
 		if (am != null) {
 			focus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)

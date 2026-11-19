@@ -7,7 +7,7 @@ Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz
 
 Her paket ayrı dalda geliştirilir, ara derlemeler o dalda denenir; paket bitince main'e tek seferde birleşir (tek sürüm).
 
-- **Paket A — işlev ve yeni kartlar** (dal: paket-a): 10 TV görüntüsünün gitmesi · 9 mobil veri sınırı · 8 Medya kartı · Q5 Podcast / sesli kitap · Q10 Telefon durumu · 11 Gidilen yerdeki otoparklar · Q7 Şarj istasyonları · Q6 Trafik · R2 Son uyarılar sesli · Q1 Takvim · Q2 Hatırlatıcı / sesli not · Q11 Hızlı mesaj · Q8 Bakım defteri · Q12 Spor · R3 PiP dönüşü
+- **Paket A — işlev ve yeni kartlar** (dal: paket-a): Sesli okumayı durdurma (haberler) · Gemini anahtarı çalışıyorsa bütün sesli konuşma ve uygulama yönetimi Gemini'den (ulaşılamazsa yerel) · 10 TV görüntüsünün gitmesi · 9 mobil veri sınırı · 8 Medya kartı · Q5 Podcast / sesli kitap · Q10 Telefon durumu · 11 Gidilen yerdeki otoparklar · Q7 Şarj istasyonları · Q6 Trafik · R2 Son uyarılar sesli · Q1 Takvim · Q2 Hatırlatıcı / sesli not · Q11 Hızlı mesaj · Q8 Bakım defteri · Q12 Spor · R3 PiP dönüşü
 - **Paket B — görünüm ve sağlamlık** (dal: paket-b): N Pro tasarım dili · 12 Android Auto sadeleştirme · 13 hava temalı arka plan · 14 animasyonlar · P kart yüzlerinde 3 iş · 18 boşluklar · O her tıklamanın testi · 15 reklam engelleyici · M hız sınırı kaynağı; telefon görünümü ve tasarım taslağı birlikte güncellenir
 
 ## Açık (sırayla)

@@ -91,9 +91,24 @@ public final class YoldaVoice {
 		lastFeedback = null;
 		voiceSeq++; // yeni komut: daha önce sorulup yanıtı gelmemiş Gemini sorusu artık söylenmez
 
+		// "dur", "sus", "yeter": önce sesli okumayı kes (haberler, uzun yanıt); okuma yoksa olağan komut
+		if (isStopSpeech(YoldaIntents.clean(raws.get(0))) && (YoldaSpeak.isSpeaking() || YoldaSpeak.recentlySpoke())) {
+			YoldaSpeak.stop();
+			toast(a, "Durduruldu");
+			return true;
+		}
+
 		// "Hangisi?" sorusunun cevabı ("birinci", "Ahmet Yılmaz")
 		if (YoldaCalls.pending != null) {
 			for (String r : raws) if (YoldaCalls.answer(a, r)) return true;
+		}
+
+		// Gemini anahtarı girilmiş ve çalışıyorsa bütün sesli konuşma ve uygulama yönetimi Gemini'den: komutları
+		// katalogdaki kalıba çevirir, yerel çözücü yalnız yürütür. Gemini'ye ulaşılamazsa yerel asistan devralır.
+		if (!fromGemini && YoldaGemini.leads(a.getContext())) {
+			YoldaLog.add("Sesli komut Gemini'ye: “" + raws.get(0) + "”");
+			askGemini(a, raws.get(0), raws);
+			return true;
 		}
 
 		// Gemini bağlıysa: doğal cümle, sohbet ve bilgi soruları ona; kesin cihaz komutları yerelde (hızlı, internetsiz)
@@ -802,6 +817,19 @@ public final class YoldaVoice {
 
 	/** Soruyu Gemini'ye sor, yanıtı söyle (hata olursa nedenini). */
 	static void askGemini(MainActivityDelegate a, String q) {
+		askGemini(a, q, null);
+	}
+
+	/** Okumayı kesen sözler (yalnız bir şey okunurken / az önce okunduysa). */
+	static boolean isStopSpeech(String c) {
+		return c.matches("(dur|durdur|sus|yeter|kes|tamam|tamam yeter|okumayı (durdur|kes|bırak)|sessiz ol|kapa çeneni|bitir|bırak)");
+	}
+
+	/**
+	 * Soruyu Gemini'ye sor. {@code alts}: tanıyıcının bütün tahminleri; Gemini'ye geçici olarak ulaşılamazsa
+	 * (internet yok, kota, sunucu) aynı söz yerel asistanla yürütülür, böylece komut boşa gitmez.
+	 */
+	static void askGemini(MainActivityDelegate a, String q, @androidx.annotation.Nullable List<String> alts) {
 		toast(a, "Düşünüyorum…");
 		int seq = voiceSeq;
 		YoldaGemini.state = state(a);
@@ -835,7 +863,20 @@ public final class YoldaVoice {
 				if (i == 0) go.run();
 				else App.get().getHandler().postDelayed(go, 900L * i);
 			}
-		}, err -> reply(a, err));
+		}, err -> {
+			if (seq != voiceSeq) return;
+			if ((alts != null) && (YoldaGemini.transientError || Boolean.FALSE.equals(YoldaGemini.keyOk))) {
+				// Gemini'ye ulaşılamadı: yerel asistan (internetsiz komutlar yine çalışsın)
+				YoldaLog.add("Gemini yok (" + err + "), yerel asistan: “" + q + "”");
+				fromGemini = true;
+				try {
+					if (handle(a, alts)) return;
+				} finally {
+					fromGemini = false;
+				}
+			}
+			reply(a, err);
+		});
 	}
 
 	/** Gemini'nin çevirdiği komut yürütülürken: anlaşılmazsa yeniden Gemini'ye sorulmaz (döngü olmasın). */

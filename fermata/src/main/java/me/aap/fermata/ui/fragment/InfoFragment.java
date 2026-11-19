@@ -208,7 +208,10 @@ public class InfoFragment extends MainActivityFragment {
 			empty(ctx, col);
 			return;
 		}
-		TextView all = button(ctx, "🔊 İlk beş başlığı oku", v -> YoldaSpeak.sayAlways(ctx, YoldaInfo.newsSpoken(news, 5)));
+		TextView all = button(ctx, "🔊 İlk beş başlığı oku · ⏹ yeniden dokun: durdur", v -> {
+			if (YoldaSpeak.isSpeaking()) YoldaSpeak.stop();
+			else YoldaSpeak.sayAlways(ctx, YoldaInfo.newsSpoken(news, 5));
+		});
 		LinearLayout.LayoutParams al = new LinearLayout.LayoutParams(-1, dp(52));
 		al.topMargin = dp(16);
 		col.addView(all, al);
@@ -220,7 +223,10 @@ public class InfoFragment extends MainActivityFragment {
 			row.addView(tv, new LinearLayout.LayoutParams(-1, -2));
 			row.setClickable(true);
 			row.setContentDescription(n.title());
-			row.setOnClickListener(v -> YoldaSpeak.sayAlways(ctx, n.title()));
+			row.setOnClickListener(v -> {
+				if (YoldaSpeak.isSpeaking()) YoldaSpeak.stop();
+				else YoldaSpeak.sayAlways(ctx, n.title());
+			});
 			row.setOnLongClickListener(v -> {
 				if (n.link().isEmpty()) return false;
 				try {
