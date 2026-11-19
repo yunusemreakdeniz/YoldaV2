@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-193 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-193 · Sakin güneş
+
+- Güneşli sahne sakin: ışınlar dönmez (sabit, yalnız ışıkları çok yavaş belirip solar), uçuşan zerreler yok, iki soluk mercek parlaması.
+- Kart düzenlemede içerik kurulamazsa nedeni tanı günlüğüne yazılır.
+
 ## 2026-11-19 · v2-191 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-191 · Güneş, bulut, sis
 
 - Güneş: ılık gök tonu, hale, nefes alan ince ışınlar, mercek parlamaları, ışıkta süzülen zerreler. Bulut: gerçek bulut biçimi, iki katman, gündüz ışıklı / gece mavi-gri ve ay. Sis: alta koyulaşan pus, süzülen bantlar. Üçü de ~20 kare.
