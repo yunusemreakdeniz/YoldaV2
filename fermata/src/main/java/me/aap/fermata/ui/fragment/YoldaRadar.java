@@ -236,6 +236,9 @@ public final class YoldaRadar {
 		App.get().getHandler().post(YoldaRadar::adjustRate); // araçta her saniye, inince seyrek
 		if (connected) {
 			if (isEnabled(c) && feature(c, "bg") && hasUi()) YoldaDriveService.start(c);
+			// Android Auto bağlanınca yolculuk hemen başlar (bağlantı kesilince biter)
+			if (isEnabled(c) && feature(c, "trips") && trip.start(System.currentTimeMillis(), lat, lon, false))
+				YoldaLog.add("Yolculuk başladı (Android Auto)");
 			return;
 		}
 		if (isEnabled(c) && feature(c, "park")) savePark(c, true);
@@ -405,7 +408,9 @@ public final class YoldaRadar {
 		if (feature(ctx, "trips")) {
 			Long passed = null;
 			for (Ahead n : YoldaRadarCore.nearby(la, lo, effectiveCams(), 40, 1)) passed = n.cam().id();
-			YoldaDriveCore.TripRec rec = trip.update(SystemClock.elapsedRealtime(), System.currentTimeMillis(), la, lo, speedKmh, passed);
+			// hızla kendiliğinden başlama yalnız Android Auto bağlıyken; telefonda düğmeyle (Yolculuğu başlat)
+			YoldaDriveCore.TripRec rec = trip.update(SystemClock.elapsedRealtime(), System.currentTimeMillis(), la, lo, speedKmh, passed,
+					YoldaCar.isConnected());
 			if (rec != null) saveTrip(ctx, rec);
 		}
 
@@ -1159,6 +1164,44 @@ public final class YoldaRadar {
 	private static void endTrip(Context ctx) {
 		YoldaDriveCore.TripRec rec = trip.end();
 		if (rec != null) saveTrip(ctx, rec);
+	}
+
+	/** Yolculuk sürüyor mu (kart ve sayfadaki Başlat / Bitir düğmesi için). */
+	public static boolean tripActive() {
+		return trip.isActive();
+	}
+
+	/** Süren yolculuğun şimdiye kadarki mesafesi (m). */
+	public static int tripMeters() {
+		return trip.isActive() ? trip.meters() : 0;
+	}
+
+	/**
+	 * Telefonda elle yolculuk başlat: konum dinleme ve arka plan hizmeti açılır (ekran kapansa da kayıt sürer).
+	 * @return kullanıcıya söylenecek kısa yanıt
+	 */
+	public static String startTripByHand(Context ctx) {
+		Context a = ctx.getApplicationContext();
+		app = a;
+		if (!isEnabled(a)) return "Konum izni gerekli: Sürüş ayarlarından aç";
+		startListening(a);
+		YoldaDriveService.start(a);
+		boolean started = trip.start(System.currentTimeMillis(), lat, lon, true);
+		YoldaLog.add(started ? "Yolculuk başladı (elle)" : "Yolculuk zaten sürüyor");
+		return started ? "Yolculuk başladı; bitince ‘Yolculuğu bitir’" : "Yolculuk zaten sürüyor";
+	}
+
+	/** Elle yolculuğu bitir ve kaydet. @return kısa yanıt (kaydedildi / 1 km altı kaydedilmedi). */
+	public static String stopTripByHand(Context ctx) {
+		Context a = ctx.getApplicationContext();
+		if (!trip.isActive()) return "Süren yolculuk yok";
+		int m = trip.meters();
+		YoldaDriveCore.TripRec rec = trip.end();
+		if (rec != null) saveTrip(a, rec);
+		if (!YoldaCar.isConnected() && !hasUi()) YoldaDriveService.stop(a);
+		YoldaLog.add("Yolculuk bitti (elle): " + m + " m");
+		return (rec != null) ? String.format(java.util.Locale.forLanguageTag("tr"), "Yolculuk kaydedildi: %.1f km", m / 1000f)
+				: "Yolculuk 1 km'den kısa, kaydedilmedi";
 	}
 
 	/** Kısa (20 km altı) yolculuklardan saklanan; 20 km ve üstü olanlar silinene kadar kalır. */

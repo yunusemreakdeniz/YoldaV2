@@ -125,6 +125,27 @@ public class TripFragment extends MainActivityFragment {
 		root.addView(sv, new FrameLayout.LayoutParams(-1, -1));
 
 		col.addView(text(ctx, "Yolculuk özeti", YoldaStyle.titleSp(ctx), true, t.ink));
+		if (!getActivityDelegate().isCarActivity()) { // telefonda elle başlat / bitir; Android Auto'da kendiliğinden
+			boolean on = YoldaRadar.tripActive();
+			TextView tb = text(ctx, on ? String.format(new java.util.Locale("tr"), "■  Yolculuğu bitir · %.1f km", YoldaRadar.tripMeters() / 1000f)
+					: "▶  Yolculuğu başlat", 17, true, on ? 0xFFFFFFFF : 0xFF0B0E1A);
+			tb.setGravity(android.view.Gravity.CENTER);
+			android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+			g.setCornerRadius(dp(999));
+			g.setColor(on ? 0xFFDC2626 : 0xFF34D399);
+			tb.setBackground(g);
+			tb.setClickable(true);
+			tb.setOnClickListener(v -> {
+				YoldaStyle.toast(ctx, on ? YoldaRadar.stopTripByHand(ctx) : YoldaRadar.startTripByHand(ctx));
+				render();
+			});
+			LinearLayout.LayoutParams tbl = new LinearLayout.LayoutParams(-1, dp(56));
+			tbl.topMargin = dp(12);
+			col.addView(tb, tbl);
+			TextView th = text(ctx, "Android Auto'ya bağlanınca yolculuk kendiliğinden başlar ve biter.", 13, false, YoldaStyle.TEXT_2);
+			th.setPadding(0, dp(6), 0, dp(4));
+			col.addView(th);
+		}
 		TextView month = text(ctx, monthLine(ctx), 14, true, t.accent | 0xFF000000);
 		month.setPadding(0, dp(4), 0, 0);
 		col.addView(month);

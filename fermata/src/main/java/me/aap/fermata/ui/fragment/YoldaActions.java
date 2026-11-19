@@ -39,6 +39,7 @@ public final class YoldaActions {
 			{"şarj istasyonları kartına geç", "yakındaki elektrikli araç şarj istasyonları"},
 			{"neredeyim", "bulunduğun yer"},
 			{"eve kaç dakika / işe ne kadar sürer", "yol süresi (trafik hariç tahmini)"},
+			{"yolculuğu başlat / yolculuğu bitir", "telefonda yolculuk kaydı (Android Auto'da kendiliğinden)"},
 			{"maç sonuçları / [takım] maçı ne zaman", "Süper Lig sonuçları ve fikstür"},
 			// arama ve mesaj
 			{"[kişi] ara", "telefonla arar (annemi ara)"},

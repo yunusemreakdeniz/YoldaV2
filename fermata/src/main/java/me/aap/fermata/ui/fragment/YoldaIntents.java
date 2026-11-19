@@ -59,7 +59,9 @@ public final class YoldaIntents {
 		/** Podcast: arg = podcast adı ("X podcastini aç"). */
 		PODCAST,
 		/** Yol süresi: arg home / work. Spor: arg takım (null: son sonuçlar). */
-		TRAFFIC, SPORTS
+		TRAFFIC, SPORTS,
+		/** Yolculuk kaydı: arg start / stop. */
+		TRIP
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -257,6 +259,10 @@ public final class YoldaIntents {
 		if (c.matches("(bütün |tüm )?notları (sil|temizle)")) return Intent.of(Kind.NOTE_CLEAR);
 		if (c.matches("(şunu |bunu )?(not al|not et|not düş)\\b.+|.+ (diye )?(not al|not et|not düş)"))
 			return Intent.of(Kind.NOTE_ADD, raw.trim());
+
+		// yolculuk kaydı: "yolculuğu başlat", "yolculuğu bitir"
+		if (c.matches("(yolculu(ğu|k)|yolculuk kaydını) (başlat|başla)|yolculuk başlasın")) return Intent.of(Kind.TRIP, "start");
+		if (c.matches("(yolculu(ğu|k)|yolculuk kaydını) (bitir|durdur|sonlandır|kapat)|yolculuk bitti")) return Intent.of(Kind.TRIP, "stop");
 
 		// yol süresi: "eve kaç dakika", "işe ne kadar sürer", "eve ne zaman varırım"
 		if (c.matches("(eve|evime) (kaç dakika|ne kadar( sürer)?|ne zaman varırım|kaç saat)( var| kaldı)?"))

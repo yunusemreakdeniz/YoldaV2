@@ -170,7 +170,9 @@ public final class YoldaDriveCore {
 	 */
 	public static final class Trip {
 		public static final long STOP = 10 * 60_000L;
-		private boolean active;
+		/** Elle başlatılan yolculuk ancak bu kadar hareketsizlikte kendiliğinden biter (kullanıcı bitirir). */
+		public static final long STOP_MANUAL = 60 * 60_000L;
+		private boolean active, manual;
 		private long startWall, lastMs = -1, stopSince = -1, lastMoveWall, movingMs;
 		private double meters, lastLat = Double.NaN, lastLon, sLat, sLon, eLat, eLon;
 		private int max;
@@ -181,22 +183,22 @@ public final class YoldaDriveCore {
 		 * @return bu adımda biten yolculuk (kaydedilecekse), yoksa null
 		 */
 		public TripRec update(long nowMs, long wallMs, double lat, double lon, int speedKmh, Long passedCam) {
+			return update(nowMs, wallMs, lat, lon, speedKmh, passedCam, true);
+		}
+
+		/**
+		 * @param autoStart hızla kendiliğinden başlasın mı (yalnız Android Auto bağlıyken; telefonda düğmeyle)
+		 */
+		public TripRec update(long nowMs, long wallMs, double lat, double lon, int speedKmh, Long passedCam, boolean autoStart) {
 			long dt = (lastMs < 0) ? 0 : Math.min(nowMs - lastMs, 60_000);
 			lastMs = nowMs;
 			TripRec done = null;
+			if (active && Double.isNaN(sLat) && !Double.isNaN(lat)) { // konumsuz başladı (araç bağlanınca): ilk konum başlangıç
+				sLat = eLat = lat;
+				sLon = eLon = lon;
+			}
 			if (!active) {
-				if (speedKmh >= 15) {
-					active = true;
-					startWall = wallMs;
-					lastMoveWall = wallMs;
-					meters = 0;
-					movingMs = 0;
-					max = speedKmh;
-					stopSince = -1;
-					radars.clear();
-					sLat = eLat = lat;
-					sLon = eLon = lon;
-				}
+				if (autoStart && (speedKmh >= 15)) begin(wallMs, lat, lon, speedKmh, false);
 			} else {
 				if (!Double.isNaN(lastLat)) {
 					double d = YoldaRadarCore.dist(lastLat, lastLon, lat, lon);
@@ -210,7 +212,7 @@ public final class YoldaDriveCore {
 					eLon = lon;
 				} else {
 					if (stopSince < 0) stopSince = nowMs;
-					if (nowMs - stopSince >= STOP) done = finish();
+					if (nowMs - stopSince >= (manual ? STOP_MANUAL : STOP)) done = finish();
 				}
 				if (active) {
 					max = Math.max(max, speedKmh);
@@ -227,8 +229,42 @@ public final class YoldaDriveCore {
 			return active ? finish() : null;
 		}
 
+		/**
+		 * Yolculuğu şimdi başlat (Android Auto bağlanınca ya da telefonda "Yolculuğu başlat"). Zaten sürüyorsa
+		 * değişmez. Konum bilinmiyorsa (NaN) ilk konum başlangıç olur.
+		 *
+		 * @return yeni başladıysa true
+		 */
+		public boolean start(long wallMs, double lat, double lon, boolean byHand) {
+			if (active) {
+				if (byHand) manual = true;
+				return false;
+			}
+			begin(wallMs, lat, lon, 0, byHand);
+			return true;
+		}
+
+		private void begin(long wallMs, double lat, double lon, int speedKmh, boolean byHand) {
+			active = true;
+			manual = byHand;
+			startWall = wallMs;
+			lastMoveWall = wallMs;
+			meters = 0;
+			movingMs = 0;
+			max = speedKmh;
+			stopSince = -1;
+			radars.clear();
+			sLat = eLat = lat;
+			sLon = eLon = lon;
+		}
+
+		public boolean isManual() {
+			return active && manual;
+		}
+
 		private TripRec finish() {
 			active = false;
+			manual = false;
 			stopSince = -1;
 			if (meters < 1000) return null;
 			return new TripRec(startWall, lastMoveWall, (int) Math.round(meters), movingMs, max, radars.size(), sLat, sLon, eLat, eLon);

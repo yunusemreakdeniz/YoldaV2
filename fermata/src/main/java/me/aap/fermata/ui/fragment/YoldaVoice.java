@@ -192,6 +192,7 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case TRIP -> reply(a, "start".equals(it.arg()) ? YoldaRadar.startTripByHand(ctx) : YoldaRadar.stopTripByHand(ctx));
 			case TRAFFIC -> {
 				String d = ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE)
 						.getString("home".equals(it.arg()) ? "nav_home" : "nav_work", null);

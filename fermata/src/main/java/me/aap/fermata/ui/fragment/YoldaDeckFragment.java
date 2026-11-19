@@ -3767,8 +3767,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.TRIPS -> { // son yolculuklar: dokun → o yolculuğun ayrıntısı
 				List<YoldaRadar.TripItem> tl = YoldaRadar.tripItems(ctx);
-				if (tl.isEmpty()) return null;
 				LinearLayout row = hrow(ctx);
+				if (!a.isCarActivity()) { // telefonda elle: Yolculuğu başlat / bitir (araçta bağlanınca kendiliğinden)
+					boolean on = YoldaRadar.tripActive();
+					row.addView(chipBtn(ctx, on ? String.format(new java.util.Locale("tr"), "■ Yolculuğu bitir · %.1f km",
+							YoldaRadar.tripMeters() / 1000f) : "▶ Yolculuğu başlat", v -> {
+						YoldaStyle.toast(ctx, on ? YoldaRadar.stopTripByHand(ctx) : YoldaRadar.startTripByHand(ctx));
+						refreshCard(YoldaDeck.TRIPS);
+					}), chipLp());
+				}
+				if (tl.isEmpty()) return (row.getChildCount() == 0) ? null : scroll(ctx, row);
 				java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("d MMM", new java.util.Locale("tr"));
 				for (int i = 0; i < Math.min(4, tl.size()); i++) {
 					YoldaRadar.TripItem ti = tl.get(i);
