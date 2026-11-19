@@ -387,7 +387,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout top = hrow(ctx);
 		top.setGravity(Gravity.CENTER_VERTICAL);
 		TextView brand = text(ctx, "Yolda", 22, true, 0xFFFFFFFF);
-		top.addView(brand, new LinearLayout.LayoutParams(0, -2, 1f));
+		brand.setMaxLines(1);
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(brand, 14, 22, 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP);
+		top.addView(brand, new LinearLayout.LayoutParams(0, dp(32), 1f));
 		top.addView(segmented(ctx, true));
 		ImageView themeB = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx),
 				v -> me.aap.fermata.ui.view.YoldaThemePicker.show(a));
@@ -482,7 +485,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout drive = hrow(ctx);
 		LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(-1, dp(64));
 		dl.topMargin = dp(8);
-		phLimit = statBox(ctx, drive, "Hız sınırı", v -> a.showFragment(R.id.yolda_radar_fragment), false);
+		phLimit = statBox(ctx, drive, "Sınır", v -> a.showFragment(R.id.yolda_radar_fragment), false);
 		// Hız sınırı levhası: beyaz zemin, kırmızı halka, sayı (tasarım taslağı); kutunun solunda
 		phLimitSign = text(ctx, "—", 13, true, 0xFF111111);
 		phLimitSign.setGravity(Gravity.CENTER);
@@ -591,10 +594,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		b.addView(lb);
 		TextView v = text(ctx, "—", 15, true, 0xFFFFFFFF);
 		v.setIncludeFontPadding(false);
-		v.setSingleLine(true);
+		v.setMaxLines(1);
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(v, 11, 15, 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP);
 		v.setEllipsize(TextUtils.TruncateAt.END);
 		v.setPadding(0, dp(4), 0, 0);
-		b.addView(v);
+		b.addView(v, new LinearLayout.LayoutParams(-1, dp(22)));
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
 		if (gap) lp.leftMargin = dp(8);
 		parent.addView(b, lp);
@@ -794,11 +799,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 		if (phPlay != null) phPlay.setImageResource(playing ? R.drawable.yi_pause : R.drawable.yi_play);
 		if (phLimitSign != null) phLimitSign.setText((YoldaRadar.limit > 0) ? String.valueOf(YoldaRadar.limit) : "—");
-		if (phLimit != null) phLimit.setText((YoldaRadar.limit > 0)
-				? (YoldaRadar.limit + " km/s" + (YoldaRadar.limitEstimated ? " ~" : "")) : (YoldaRadar.isEnabled(ctx) ? "Bekleniyor" : "Kapalı"));
+		if (phLimit != null) phLimit.setText((YoldaRadar.limit > 0) ? ("km/s" + (YoldaRadar.limitEstimated ? " ~" : ""))
+				: (YoldaRadar.isEnabled(ctx) ? "Yok" : "Kapalı")); // sayı levhada; dar kutuda kısa yazı
 		if (phRadar != null) {
 			YoldaRadarCore.Ahead ah = YoldaRadar.ahead;
-			phRadar.setText((ah != null) ? (RadarFragment.meters(ah.meters()) + " önde") : (YoldaRadar.isEnabled(ctx) ? "Önde yok" : "Kapalı"));
+			phRadar.setText((ah != null) ? RadarFragment.meters(ah.meters()) : (YoldaRadar.isEnabled(ctx) ? "Yok" : "Kapalı"));
 		}
 		if (phPark != null) {
 			double[] pk = YoldaRadar.park(ctx);
@@ -953,6 +958,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		clock.setFormat24Hour("HH:mm");
 		clock.setFormat12Hour("HH:mm");
 		clock.setTextSize(car ? 24 : 28);
+		clock.setSingleLine(true); // dar satırda iki satıra kırılıp başlığı (ve kartları) büyütmesin
 		clock.setTypeface(Typeface.DEFAULT_BOLD);
 		clock.setTextColor(t.ink);
 		TextView date = YoldaStyle.turkishDate(ctx, "EEEE, d MMMM");
@@ -1058,8 +1064,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (!car) { // telefonda her zaman: Araç görünümünden tek dokunuşla telefon görünümüne dön (dar ekranda da)
 			ImageView pv = roundButton(ctx, R.drawable.yi_phone, "Telefon görünümü", v -> setPhoneView(true));
 			LinearLayout.LayoutParams pvl = new LinearLayout.LayoutParams(dp(48), dp(48));
-			pvl.rightMargin = dp(10);
-			top.addView(pv, top.indexOfChild(themeBtn), pvl);
+			if (narrowHeader && (dateLine != null)) { // dar ekranda ikinci satırda, tarihin yanında: üst satır taşmasın
+				pvl.leftMargin = dp(8);
+				dateLine.addView(pv, pvl);
+			} else {
+				pvl.rightMargin = dp(10);
+				top.addView(pv, top.indexOfChild(themeBtn), pvl);
+			}
 		}
 		// Ayarlar: tema düğmesinin yanında (menü / ayarlar ekranı)
 		ImageView setBtn = setBtnView = roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> {
