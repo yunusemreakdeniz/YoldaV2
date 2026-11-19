@@ -897,9 +897,9 @@ public class MainActivityDelegate extends ActivityDelegate
 		ActivityFragment f = super.showFragment(id, input);
 		updateBodyTopPadding();
 		// Yeni ekran yumuşakça gelsin (video oynarken ve aynı ekrana dönüşte yok)
-		if ((prev != id) && !b.isVideoMode() && (f instanceof Fragment fr)) {
+		if ((prev != id) && !b.isVideoMode() && (f != null)) {
 			boolean car = isCarActivity();
-			App.get().getHandler().post(() -> me.aap.fermata.ui.view.YoldaMotion.enter(fr.getView(), car));
+			App.get().getHandler().post(() -> me.aap.fermata.ui.view.YoldaMotion.enter(f.getView(), car));
 		}
 		App.get().getHandler().post(() -> me.aap.fermata.ui.view.YoldaQualityPill.update(this)); // YouTube'a girince / çıkınca
 		ControlPanelView cpv = getControlPanel();
