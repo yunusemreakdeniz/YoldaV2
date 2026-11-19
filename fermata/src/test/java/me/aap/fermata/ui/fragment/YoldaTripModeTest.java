@@ -61,6 +61,19 @@ public class YoldaTripModeTest {
 	}
 
 	@Test
+	public void eskiKonumSayilmaz() {
+		YoldaDriveCore.Trip t = new YoldaDriveCore.Trip();
+		t.update(0, 0, LA - 0.004, LO, 0, null, false); // araca binmeden önce, ~450 m geride (yolculuk yok)
+		assertTrue(t.start(1000, Double.NaN, Double.NaN, false)); // araç bağlandı: konumsuz başlar
+		long ms = 1000;
+		for (int i = 0; i <= 20; i++) { // 2 km
+			ms += 5000;
+			t.update(ms, ms, LA + i * 0.0009, LO, 50, null, true);
+		}
+		assertEquals(2000, t.meters(), 60); // eski konumdan gelen ~450 m eklenmedi
+	}
+
+	@Test
 	public void sesliKomut() {
 		assertEquals("start", YoldaIntents.parse("yolculuğu başlat").arg());
 		assertEquals("stop", YoldaIntents.parse("yolculuğu bitir").arg());

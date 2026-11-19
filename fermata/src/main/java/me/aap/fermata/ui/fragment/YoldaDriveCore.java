@@ -256,6 +256,8 @@ public final class YoldaDriveCore {
 			radars.clear();
 			sLat = eLat = lat;
 			sLon = eLon = lon;
+			lastLat = lat; // başlamadan önceki (eski) konumdan mesafe sayılmasın
+			lastLon = lon;
 		}
 
 		public boolean isManual() {
