@@ -2610,9 +2610,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		s.setElevation(dp(24));
 		s.setOnTouchListener((v, e) -> onJumpTouch(e)); // şerit üzerinde de kaydırılır / dokunulur
 		int n = Math.max(1, deck.size());
-		int gap = dp(4);
-		int avail = root.getWidth() - dp(40) - n * gap;
-		int w = Math.max(dp(20), Math.min(dp(48), avail / n));
+		// Bütün mini kartlar ekrana sığmalı (yoksa sağdakiler taşar, sağ uca kaydırınca son karta varılmaz):
+		// kart çoksa aralık ve genişlik daralır; simgeye yer kalmazsa yalnız renk
+		int gap = (n > 24) ? dp(2) : dp(4);
+		int avail = root.getWidth() - dp(40) - (n - 1) * gap;
+		int w = Math.max(dp(6), Math.min(dp(48), avail / n));
 		int h = dp(36);
 		boolean noble = noble();
 		for (int i = 0; i < deck.size(); i++) {
@@ -2630,7 +2632,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			ic.setImageResource(lk.icon());
 			if (lk.tint()) ic.setImageTintList(ColorStateList.valueOf(noble ? YoldaStyle.nobleAccent(lk.c1()) : 0xFFFFFFFF));
 			int is = Math.min(dp(18), w - dp(6));
-			m.addView(ic, new FrameLayout.LayoutParams(is, is, Gravity.CENTER));
+			if (is >= dp(10)) m.addView(ic, new FrameLayout.LayoutParams(is, is, Gravity.CENTER));
 			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(w, h);
 			if (i > 0) lp.leftMargin = gap;
 			s.addView(m, lp);
