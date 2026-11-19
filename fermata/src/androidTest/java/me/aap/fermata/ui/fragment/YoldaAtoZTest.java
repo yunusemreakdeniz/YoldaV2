@@ -912,6 +912,7 @@ public class YoldaAtoZTest {
 			});
 			waitIdle(800);
 			java.util.List<String> alerts = new java.util.ArrayList<>();
+			long t0 = System.currentTimeMillis();
 			for (int m = 0; m <= 2500; m += 25) {
 				double la = lat0 + m / 110_540d;
 				onMain(a -> {
@@ -922,6 +923,10 @@ public class YoldaAtoZTest {
 				if ((al != null) && (alerts.isEmpty() || !alerts.get(alerts.size() - 1).equals(al))) alerts.add(al);
 				SystemClock.sleep(20);
 			}
+			// Aynı konum güncellemesinde iki uyarı verilirse (koridor bitişi ve hastane) "son uyarı" ilkini
+			// kaçırıyordu: uyarı geçmişindekiler de eklenir (test kararsızdı)
+			for (YoldaAlertLog.Entry e : YoldaAlertLog.between(c, t0, System.currentTimeMillis() + 1000))
+				if (!alerts.contains(e.text())) alerts.add(e.text());
 			Log.i(TAG, "Sürüş yardımcısı uyarıları: " + alerts);
 			assertTrue("Koridor başlamalı: " + alerts, alerts.contains("Ortalama hız denetimi başladı, sınır 110"));
 			assertTrue("Koridor bitmeli: " + alerts, alerts.stream().anyMatch(x -> x.startsWith("Ortalama hız denetimi bitti")));
