@@ -347,7 +347,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	@Nullable
-	private TextView phNowTitle, phNowTag, phLimit, phRadar, phPark, phClock, phDate, phWeather;
+	private TextView phNowTitle, phNowTag, phLimit, phRadar, phPark, phClock, phDate, phWeather, phWeatherPlace, phWeatherIcon,
+			phLimitSign;
+	/** Şimdi çalıyor şeridindeki tür simgesi (radyo / TV / müzik / video) ve renkli kutusu. */
+	private ImageView phNowIcon;
+	private FrameLayout phNowPlate;
 	@Nullable
 	private ImageView phPlay;
 	@Nullable
@@ -404,25 +408,47 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		phDate = text(ctx, "", 14, false, 0xFFC5CBD8);
 		when.addView(phDate);
 		hero.addView(when, new LinearLayout.LayoutParams(0, -2, 1f));
-		phWeather = text(ctx, "Hava…", 15, true, 0xFFFFFFFF);
-		phWeather.setGravity(Gravity.CENTER);
-		phWeather.setPadding(dp(14), 0, dp(14), 0);
-		phWeather.setBackground(phoneSurface(ctx, 16));
-		phWeather.setClickable(true);
-		phWeather.setContentDescription("Hava durumu");
-		phWeather.setOnClickListener(v -> a.showFragment(R.id.yolda_weather_fragment));
-		hero.addView(phWeather, new LinearLayout.LayoutParams(-2, dp(56)));
+		// Hava: simge, büyük sıcaklık, altında yer (tasarım taslağındaki gibi)
+		LinearLayout wpill = hrow(ctx);
+		wpill.setGravity(Gravity.CENTER_VERTICAL);
+		wpill.setPadding(dp(12), dp(8), dp(16), dp(8));
+		wpill.setBackground(phoneSurface(ctx, 16));
+		wpill.setClickable(true);
+		wpill.setContentDescription("Hava durumu");
+		wpill.setOnClickListener(v -> a.showFragment(R.id.yolda_weather_fragment));
+		pressEffect(wpill);
+		phWeatherIcon = text(ctx, "☁", 24, false, 0xFFFFC857);
+		phWeatherIcon.setPadding(0, 0, dp(10), 0);
+		wpill.addView(phWeatherIcon);
+		LinearLayout wt = new LinearLayout(ctx);
+		wt.setOrientation(LinearLayout.VERTICAL);
+		phWeather = text(ctx, "—", 18, true, 0xFFFFFFFF);
+		wt.addView(phWeather);
+		phWeatherPlace = text(ctx, "Hava", 12, false, 0xFFC5CBD8);
+		phWeatherPlace.setMaxLines(1);
+		phWeatherPlace.setEllipsize(TextUtils.TruncateAt.END);
+		phWeatherPlace.setMaxWidth(dp(120));
+		wt.addView(phWeatherPlace);
+		wpill.addView(wt);
+		hero.addView(wpill, new LinearLayout.LayoutParams(-2, dp(64)));
 		col.addView(hero);
 
 		// Şimdi çalıyor
 		LinearLayout now = hrow(ctx);
 		now.setGravity(Gravity.CENTER_VERTICAL);
-		now.setPadding(dp(16), dp(8), dp(8), dp(8));
+		now.setPadding(dp(12), dp(12), dp(8), dp(12));
 		now.setBackground(phoneSurface(ctx, 20));
 		now.setClickable(true);
 		now.setOnClickListener(v -> YoldaNowPlaying.open(a));
+		phNowPlate = new FrameLayout(ctx); // türün renkli kutusu: radyo turuncu, TV mavi, müzik mor, video kırmızı
+		phNowIcon = new ImageView(ctx);
+		phNowIcon.setImageResource(R.drawable.yi_live);
+		phNowIcon.setImageTintList(ColorStateList.valueOf(0xFF1A1206));
+		phNowPlate.addView(phNowIcon, new FrameLayout.LayoutParams(dp(28), dp(28), Gravity.CENTER));
+		now.addView(phNowPlate, new LinearLayout.LayoutParams(dp(52), dp(52)));
 		LinearLayout nt = new LinearLayout(ctx);
 		nt.setOrientation(LinearLayout.VERTICAL);
+		nt.setPadding(dp(12), 0, dp(8), 0);
 		phNowTag = text(ctx, "", 11, true, t.accent | 0xFF000000);
 		phNowTag.setLetterSpacing(0.1f);
 		nt.addView(phNowTag);
@@ -450,6 +476,29 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(-1, dp(64));
 		dl.topMargin = dp(8);
 		phLimit = statBox(ctx, drive, "Hız sınırı", v -> a.showFragment(R.id.yolda_radar_fragment), false);
+		// Hız sınırı levhası: beyaz zemin, kırmızı halka, sayı (tasarım taslağı); kutunun solunda
+		phLimitSign = text(ctx, "—", 13, true, 0xFF111111);
+		phLimitSign.setGravity(Gravity.CENTER);
+		GradientDrawable sg = new GradientDrawable();
+		sg.setShape(GradientDrawable.OVAL);
+		sg.setColor(0xFFFFFFFF);
+		sg.setStroke(dp(4), 0xFFE53935);
+		phLimitSign.setBackground(sg);
+		LinearLayout lbox = (LinearLayout) phLimit.getParent();
+		lbox.setOrientation(LinearLayout.HORIZONTAL);
+		lbox.setGravity(Gravity.CENTER_VERTICAL);
+		lbox.setPadding(dp(10), 0, dp(10), 0);
+		LinearLayout ltx = new LinearLayout(ctx);
+		ltx.setOrientation(LinearLayout.VERTICAL);
+		while (lbox.getChildCount() > 0) {
+			View ch = lbox.getChildAt(0);
+			lbox.removeViewAt(0);
+			ltx.addView(ch);
+		}
+		lbox.addView(phLimitSign, new LinearLayout.LayoutParams(dp(40), dp(40)));
+		LinearLayout.LayoutParams ltl = new LinearLayout.LayoutParams(0, -2, 1f);
+		ltl.leftMargin = dp(8);
+		lbox.addView(ltx, ltl);
 		phRadar = statBox(ctx, drive, "Radar", v -> a.showFragment(R.id.yolda_radar_fragment), true);
 		phPark = statBox(ctx, drive, "🅿 Aracım", v -> YoldaRadar.walkToPark(ctx), true);
 		col.addView(drive, dl);
@@ -458,10 +507,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout quick = hrow(ctx);
 		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, dp(64));
 		ql.topMargin = dp(8);
-		quickBtn(ctx, quick, R.drawable.yi_home_fill, "Ev", v -> NavFragment.voiceGo(a, "home", null), false);
-		quickBtn(ctx, quick, R.drawable.yi_nav, "İş", v -> NavFragment.voiceGo(a, "work", null), true);
-		quickBtn(ctx, quick, R.drawable.yi_search, "Rota", v -> a.showFragment(R.id.yolda_nav_fragment), true);
-		quickBtn(ctx, quick, R.drawable.yi_mic, "Hey Yolda", v -> a.startVoiceAssistant(), true);
+		quickBtn(ctx, quick, R.drawable.yi_home_fill, "Ev", v -> NavFragment.voiceGo(a, "home", null), false, 0xFF7DD3FC);
+		quickBtn(ctx, quick, R.drawable.yi_work, "İş", v -> NavFragment.voiceGo(a, "work", null), true, 0xFFA5B4FC);
+		quickBtn(ctx, quick, R.drawable.yi_nav, "Rota", v -> a.showFragment(R.id.yolda_nav_fragment), true, 0xFF86EFAC);
+		quickBtn(ctx, quick, R.drawable.yi_mic, "Hey Yolda", v -> a.startVoiceAssistant(), true, 0xFFC7D2FE);
 		col.addView(quick, ql);
 
 		// Kartlar
@@ -505,8 +554,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		updatePhoneLive();
 		YoldaWeather.get(ctx).main().onSuccess(wn -> {
 			weather = wn;
-			if (phWeather != null)
-				phWeather.setText(YoldaWeather.emoji(wn.code()) + "  " + wn.temp() + "°  " + wn.place());
+			if (phWeather != null) phWeather.setText(wn.temp() + "°");
+			if (phWeatherIcon != null) phWeatherIcon.setText(YoldaWeather.emoji(wn.code()));
+			if (phWeatherPlace != null) phWeatherPlace.setText(wn.place());
 		});
 		return sv;
 	}
@@ -539,7 +589,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return v;
 	}
 
-	private void quickBtn(Context ctx, LinearLayout parent, int icon, String label, View.OnClickListener click, boolean gap) {
+	private void quickBtn(Context ctx, LinearLayout parent, int icon, String label, View.OnClickListener click, boolean gap,
+												int tint) {
 		LinearLayout b = new LinearLayout(ctx);
 		b.setOrientation(LinearLayout.VERTICAL);
 		b.setGravity(Gravity.CENTER);
@@ -550,8 +601,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		pressEffect(b);
 		ImageView iv = new ImageView(ctx);
 		iv.setImageResource(icon);
-		iv.setImageTintList(ColorStateList.valueOf(t.accent | 0xFF000000));
-		b.addView(iv, new LinearLayout.LayoutParams(dp(22), dp(22)));
+		iv.setImageTintList(ColorStateList.valueOf(tint)); // her düğmenin kendi rengi (taslaktaki gibi)
+		b.addView(iv, new LinearLayout.LayoutParams(dp(24), dp(24)));
 		TextView tv = text(ctx, label, 12, true, 0xFFFFFFFF);
 		tv.setPadding(0, dp(4), 0, 0);
 		b.addView(tv);
@@ -659,8 +710,25 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		boolean playing = cb.isPlaying();
 		if (phNow != null) phNow.setVisibility((title == null) ? View.GONE : View.VISIBLE);
 		if (phNowTitle != null) phNowTitle.setText((title != null) ? title : "");
-		if (phNowTag != null) phNowTag.setText(playing ? "ŞİMDİ ÇALIYOR" : "KALDIĞIN YER");
+		MediaLib.PlayableItem src = (pi != null) ? pi : lastItem;
+		boolean live = (src != null) && src.isStream();
+		boolean vid = (src != null) && src.isVideo();
+		if (phNowTag != null) {
+			phNowTag.setText((playing && live) ? ("● CANLI · " + (vid ? "TV" : "RADYO")) : playing ? "ŞİMDİ ÇALIYOR" : "KALDIĞIN YER");
+			phNowTag.setTextColor((playing && live) ? 0xFFFF8A8A : (t.accent | 0xFF000000));
+		}
+		if ((phNowPlate != null) && (phNowIcon != null)) {
+			int pc = live ? (vid ? 0xFF3B82F6 : 0xFFF59E0B) : (vid ? 0xFFEF4444 : 0xFFA855F7);
+			phNowIcon.setImageResource(live ? (vid ? R.drawable.yi_tv : R.drawable.yi_live)
+					: (vid ? R.drawable.yi_youtube : R.drawable.yi_music));
+			phNowIcon.setImageTintList(ColorStateList.valueOf((live && !vid) ? 0xFF1A1206 : 0xFFFFFFFF));
+			GradientDrawable pg = new GradientDrawable();
+			pg.setCornerRadius(dp(14));
+			pg.setColor(pc);
+			phNowPlate.setBackground(pg);
+		}
 		if (phPlay != null) phPlay.setImageResource(playing ? R.drawable.yi_pause : R.drawable.yi_play);
+		if (phLimitSign != null) phLimitSign.setText((YoldaRadar.limit > 0) ? String.valueOf(YoldaRadar.limit) : "—");
 		if (phLimit != null) phLimit.setText((YoldaRadar.limit > 0)
 				? (YoldaRadar.limit + " km/s" + (YoldaRadar.limitEstimated ? " ~" : "")) : (YoldaRadar.isEnabled(ctx) ? "Bekleniyor" : "Kapalı"));
 		if (phRadar != null) {

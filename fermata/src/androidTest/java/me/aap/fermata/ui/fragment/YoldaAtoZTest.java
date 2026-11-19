@@ -569,6 +569,42 @@ public class YoldaAtoZTest {
 		return null;
 	}
 
+	/**
+	 * Telefon görünümü (tasarım taslağındaki düzen): Telefon | Araç anahtarı, hava, hızlı erişim (Ev, İş, Rota,
+	 * Hey Yolda), destedeki her kart ızgarada ve "Kart ekle"; dokunulabilen her şey en az 48dp; Araç'a geri dönülür.
+	 */
+	@Test
+	public void telefonGorunumuTasarimdakiGibi() {
+		onMain(a -> {
+			call(deck(a), "setPhoneView", true);
+			return null;
+		});
+		waitIdle(2000);
+		try {
+			View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			for (String d : new String[]{"Hava durumu", "Ev", "İş", "Rota", "Hey Yolda", "Kart ekle"}) {
+				View v = onMain(a -> byDescExact(root, d));
+				assertNotNull("Telefon görünümünde olmalı: " + d, v);
+				int h = onMain(a -> v.getHeight());
+				float dens = onMain(a -> v.getResources().getDisplayMetrics().density);
+				assertTrue(d + " en az 48dp olmalı: " + (h / dens), h >= Math.round(48 * dens) - 1);
+			}
+			List<String> titles = onMain(a -> {
+				List<String> l = new ArrayList<>();
+				for (YoldaDeck.Card c : deck(a).getDeck().cards()) if (!YoldaDeck.ADD.equals(c.type())) l.add(c.title());
+				return l;
+			});
+			for (String t : titles) assertNotNull("Izgarada kart olmalı: " + t, onMain(a -> byDescExact(root, t)));
+			shot("telefon_gorunumu");
+		} finally {
+			onMain(a -> {
+				call(deck(a), "setPhoneView", false);
+				return null;
+			});
+			waitIdle(1500);
+		}
+	}
+
 	/** Telefon kartı: telefondaki uygulamalar eklenir, kartta görünür, düzenlenir. */
 	@Test
 	public void telefonUygulamalariEklenirDuzenlenir() {

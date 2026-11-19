@@ -2,6 +2,13 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-176 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-176
+
+- Telefon görünümü tasarım taslağına göre yenilendi: şimdi çalıyor şeridinde türün renkli kutusu (radyo turuncu, TV mavi, müzik mor, video kırmızı) ve canlı yayında kırmızı "● CANLI · RADYO / TV".
+- Hava kutusu iki satır (büyük sıcaklık, altında yer), hız sınırı kırmızı halkalı levha olarak, hızlı erişim düğmeleri kendi renkleriyle (Ev, İş, Rota, Hey Yolda).
+- Tasarım taslağı da bugünkü sürüme göre güncellendi (19 kart, tam sayfa): https://claude.ai/artifact/Wb9zRssqERUwyso4xH64YW
+- Yeni emülatör testi: telefon görünümünde hava, hızlı erişim, bütün kartlar ve "Kart ekle" var, hepsi en az 48dp.
+
 ## 2026-11-19 · v2-175 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-175
 
 - "Video + harita": telefonda harita uygulaması yoksa video artık küçük pencereye geçmiyor, "Harita uygulaması yok" deniyor (önceden küçük pencerede kalıp ekran yanıt vermiyor gibi görünüyordu).

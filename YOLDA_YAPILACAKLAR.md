@@ -29,7 +29,7 @@ B. [x] (v2-173) Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucu
 13. [ ] Hava durumuna göre animasyonlu tema (gece / gündüz ayarlı)
 14. [ ] Sisteme ölçülü animasyonlar (geçişler, kart açılışı)
 15. [ ] Reklam engelleyiciyi güçlendirme
-17. [ ] Telefon görünümüne cihaz testleri
+17. [x] (v2-176) Telefon görünümüne cihaz testleri
 18. [ ] Padding / boşluk sorunlarının kalanı (kullanıcıdan örnek ekran görüntüsü)
 
 M. [ ] Hız sınırı için daha iyi kaynak araştırması (ücretsiz / izinli API'ler, OSM verisinin daha geniş çekilmesi, yol sınıfı + yerleşim alanı poligonu ile daha doğru tahmin); hedef: hemen her yolda sınır
