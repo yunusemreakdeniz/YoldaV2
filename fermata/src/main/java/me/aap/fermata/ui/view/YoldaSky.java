@@ -228,14 +228,76 @@ public final class YoldaSky {
 		return nightNow;
 	}
 
-	/** Bir bulut: 7 yumuşak öbek (ortası kabarık, altı düz), üstte hafif ışık. */
-	private static void cloud(Canvas c, Paint p, float x, float y, float size, int color, int a, boolean lit) {
-		for (int k = 0; k < 7; k++) {
-			float ox = (k - 3) * 0.32f * size, oy = -(float) Math.cos((k - 3) / 3.0 * Math.PI / 2) * 0.28f * size;
-			float r = size * (0.42f + 0.18f * rnd(k, 51)) * (1f - Math.abs(k - 3) * 0.08f);
-			glowOval(c, p, x + ox, y + oy, r * 1.15f, r * 0.85f, color, a);
+	private static final java.util.Map<Long, android.graphics.LinearGradient> lin = new java.util.HashMap<>();
+
+	/** Dikey gökyüzü geçişi (önbellekli): üstte {@code top} renginde, {@code frac} yükseklikte saydamlaşır. */
+	private static void skyGradient(Canvas c, Paint p, Rect bd, int top, int a, float frac) {
+		long k = ((long) bd.height() << 40) ^ ((long) (top & 0x00FFFFFF) << 8) ^ (a & 0xFF) ^ ((long) (frac * 1000) << 32);
+		android.graphics.LinearGradient g = lin.get(k);
+		if (g == null) {
+			if (lin.size() > 32) lin.clear();
+			g = new android.graphics.LinearGradient(0, 0, 0, bd.height() * frac, new int[]{(top & 0x00FFFFFF) | (a << 24),
+					(top & 0x00FFFFFF) | ((a / 3) << 24), top & 0x00FFFFFF}, new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP);
+			lin.put(k, g);
 		}
-		if (lit) glowOval(c, p, x, y - size * 0.3f, size * 0.9f, size * 0.35f, 0xFFFFFFFF, a / 2); // üst kenarda ışık
+		gm.setTranslate(0, bd.top);
+		g.setLocalMatrix(gm);
+		p.setStyle(Paint.Style.FILL);
+		p.setShader(g);
+		c.drawRect(bd.left, bd.top, bd.right, bd.top + bd.height() * frac, p);
+		p.setShader(null);
+	}
+
+	/**
+	 * Güneş hüzmesi: güneşten uzanan geniş, uca doğru sönen ışık şeridi (Path + doğrusal geçiş, önbellekli).
+	 * {@code a}: güneşe yakın uçtaki saydamlık.
+	 */
+	private static void beam(Canvas c, Paint p, float cx, float cy, double ang, double half, float len, int a, int key) {
+		long k = (1L << 62) | ((long) key << 40) | ((long) Math.round(len) << 8) | (a & 0xFF);
+		android.graphics.LinearGradient g = lin.get(k);
+		if (g == null) {
+			if (lin.size() > 32) lin.clear();
+			g = new android.graphics.LinearGradient(0, 0, len, 0, new int[]{(a << 24) | 0xFFF3CF, ((a / 3) << 24) | 0xFFE7B0, 0x00FFE7B0},
+					new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP);
+			lin.put(k, g);
+		}
+		gm.setRotate((float) Math.toDegrees(ang));
+		gm.postTranslate(cx, cy);
+		g.setLocalMatrix(gm);
+		ray.rewind();
+		ray.moveTo(cx, cy);
+		ray.lineTo(cx + (float) Math.cos(ang - half) * len, cy + (float) Math.sin(ang - half) * len);
+		ray.lineTo(cx + (float) Math.cos(ang + half) * len, cy + (float) Math.sin(ang + half) * len);
+		ray.close();
+		p.setStyle(Paint.Style.FILL);
+		p.setShader(g);
+		c.drawPath(ray, p);
+		p.setShader(null);
+	}
+
+	/**
+	 * Hacimli bulut: düz tabanlı, kabarık tepeli 11 öbek. Önce altta gölge (koyu, aşağı kaymış), sonra gövde,
+	 * en son güneş yönünde (sol üst) ışık vurgusu. {@code seed} her bulutun biçimini sabitler.
+	 */
+	private static void cloud(Canvas c, Paint p, float x, float y, float size, int body, int shade, int a, boolean lit, int seed) {
+		int n = 11;
+		for (int pass = 0; pass < 2; pass++) { // 0: gölge, 1: gövde
+			for (int k = 0; k < n; k++) {
+				float t = (k - (n - 1) / 2f) / ((n - 1) / 2f); // -1..1
+				float ox = t * 0.75f * size;
+				float dome = (float) Math.cos(t * Math.PI / 2); // ortası yüksek
+				float r = size * (0.22f + 0.2f * dome + 0.08f * rnd(seed * 31 + k, 51));
+				float oy = -dome * 0.32f * size + 0.04f * size * rnd(seed * 31 + k, 52);
+				if (pass == 0) glowOval(c, p, x + ox, y + oy + r * 0.35f, r * 1.25f, r * 0.8f, shade, a / 2);
+				else glowOval(c, p, x + ox, y + oy, r * 1.2f, r, body, a);
+			}
+		}
+		// düz taban: geniş yassı gövde
+		glowOval(c, p, x, y + size * 0.08f, size * 0.95f, size * 0.22f, body, a);
+		if (lit) { // güneş yönünde parlak kenar
+			glowOval(c, p, x - size * 0.2f, y - size * 0.33f, size * 0.55f, size * 0.22f, 0xFFFFFFFF, a);
+			glowOval(c, p, x + size * 0.15f, y - size * 0.22f, size * 0.35f, size * 0.15f, 0xFFFFFFFF, a / 2);
+		}
 	}
 
 	/** Saydamlık 16'lık basamaklara (ışık önbelleği küçük kalsın). */
@@ -315,32 +377,27 @@ public final class YoldaSky {
 		float u = Math.min(w, h) / 400f; // ekrana göre birim
 		switch (scene) {
 			case SUN -> {
-				float cx = bd.left + w * 0.84f, cy = bd.top + h * 0.07f, big = Math.max(w, h);
-				// üstte ılık gökyüzü tonu (ekranın üst yarısı)
-				glowOval(c, p, bd.left + w * 0.6f, bd.top, w * 1.1f, h * 0.55f, 0xFFFFB86B, 0x2E);
-				// Sakin güneş (sık kullanılır, göz yormasın): dönme ve uçuşan zerre yok; hale çok yavaş nefes alır
-				// (~12 sn), sabit ışınlar yalnız ışıkça ve çok yavaş (15-20 sn) belirip solar.
+				// Sakin, sıcak güneş (sık kullanılır, göz yormasın): hiçbir şey dönmez ya da uçuşmaz; hale çok yavaş
+				// nefes alır (~12 sn), hüzmeler yalnız ışıkça çok yavaş (15-25 sn) güçlenip zayıflar.
+				float cx = bd.left + w * 0.82f, cy = bd.top + h * 0.06f, big = Math.max(w, h);
+				skyGradient(c, p, bd, 0xFFFFB066, 0x48, 0.6f); // üstten aşağı ılık gök
+				glowOval(c, p, bd.left + w * 0.5f, bd.bottom, w * 1.1f, h * 0.22f, 0xFFFFC98A, 0x22); // ufukta ılık pus
 				float pulse = 1f + 0.02f * (float) Math.sin(s * 0.52);
-				glow(c, p, cx, cy, big * 0.6f * pulse, 0xFFFFD27A, 0x50); // geniş hale
-				p.setStyle(Paint.Style.FILL);
-				for (int i = 0; i < 8; i++) { // sabit, geniş ve soluk ışınlar
-					double a0 = Math.PI * 0.55 + i * (Math.PI * 2 / 8) + 0.15 * rnd(i, 31), da = 0.06 + 0.03 * rnd(i, 32);
-					float len = big * (0.5f + 0.2f * rnd(i, 33));
-					float br = 0.5f + 0.5f * (float) Math.sin(s * (0.31f + 0.1f * rnd(i, 34)) + i * 1.9f);
-					p.setColor(((int) (8 + 9 * br) << 24) | 0xFFF1C2);
-					ray.rewind();
-					ray.moveTo(cx, cy);
-					ray.lineTo(cx + (float) Math.cos(a0 - da) * len, cy + (float) Math.sin(a0 - da) * len);
-					ray.lineTo(cx + (float) Math.cos(a0 + da) * len, cy + (float) Math.sin(a0 + da) * len);
-					ray.close();
-					c.drawPath(ray, p);
+				glow(c, p, cx, cy, big * 0.75f * pulse, 0xFFFFC870, 0x3C); // çok geniş, yumuşak ışık
+				// güneşten aşağı-sola inen geniş hüzmeler (uca doğru söner)
+				for (int i = 0; i < 6; i++) {
+					double ang = Math.PI * (0.58 + 0.07 * i + 0.02 * rnd(i, 31)), half = 0.035 + 0.025 * rnd(i, 32);
+					float br = 0.5f + 0.5f * (float) Math.sin(s * (0.25f + 0.08f * rnd(i, 34)) + i * 1.9f);
+					beam(c, p, cx, cy, ang, half, big * (0.75f + 0.25f * rnd(i, 33)), qa(26 + 26 * br), i);
 				}
-				glow(c, p, cx, cy, big * 0.13f, 0xFFFFF4D6, 0x90); // parlak güneş diski
-				glow(c, p, cx, cy, big * 0.05f, 0xFFFFFFFF, 0xB8);
-				// iki sabit, çok soluk mercek parlaması
-				float fx = bd.left + w * 0.5f - cx, fy = bd.top + h * 0.55f - cy;
-				glow(c, p, cx + fx * 0.55f, cy + fy * 0.55f, big * 0.025f, 0xFFB8E1FF, 0x24);
-				glow(c, p, cx + fx * 0.9f, cy + fy * 0.9f, big * 0.05f, 0xFFFFC7A0, 0x1E);
+				glow(c, p, cx, cy, big * 0.2f, 0xFFFFE2A8, 0x70); // sıcak taç
+				glow(c, p, cx, cy, big * 0.085f, 0xFFFFF6E0, 0xC0); // parlak disk
+				glow(c, p, cx, cy, big * 0.04f, 0xFFFFFFFF, 0xF0); // beyaz çekirdek
+				// çok soluk, sabit mercek parlamaları (güneşten ekranın ortasına)
+				float fx = bd.left + w * 0.45f - cx, fy = bd.top + h * 0.6f - cy;
+				glow(c, p, cx + fx * 0.45f, cy + fy * 0.45f, big * 0.02f, 0xFFB8E1FF, 0x20);
+				glow(c, p, cx + fx * 0.75f, cy + fy * 0.75f, big * 0.045f, 0xFFFFC7A0, 0x18);
+				glowOval(c, p, cx + fx * 1.05f, cy + fy * 1.05f, big * 0.07f, big * 0.07f, 0xFFD9C8FF, 0x12);
 				return true;
 			}
 			case STARS -> {
@@ -399,36 +456,47 @@ public final class YoldaSky {
 			}
 			case CLOUDS -> {
 				boolean night = nightCached();
-				if (night) glow(c, p, bd.left + w * 0.2f, bd.top + h * 0.1f, Math.min(w, h) * 0.45f, 0xFFDDE6FF, 0x26); // bulut ardında ay
-				int far = night ? 0xFF6B7891 : 0xFFAFBBCD, near = night ? 0xFF8C99B3 : 0xFFDCE3EE;
-				// uzak katman: küçük, soluk, yavaş
-				for (int i = 0; i < 4; i++) {
-					float x = ((rnd(i, 71) + s * 0.0035f * (0.7f + 0.6f * rnd(i, 72))) % 1.4f) - 0.2f;
-					cloud(c, p, bd.left + x * w, bd.top + h * (0.08f + 0.16f * rnd(i, 73)), w * (0.16f + 0.06f * rnd(i, 74)),
-							far, night ? 0x22 : 0x2C, false);
-				}
-				// yakın katman: büyük, belirgin, biraz daha hızlı, üstü ışıklı
-				for (int i = 0; i < 3; i++) {
-					float x = ((rnd(i, 75) + s * 0.007f * (0.7f + 0.6f * rnd(i, 76))) % 1.5f) - 0.25f;
-					cloud(c, p, bd.left + x * w, bd.top + h * (0.18f + 0.2f * rnd(i, 77)), w * (0.26f + 0.08f * rnd(i, 78)),
-							near, night ? 0x2A : 0x3A, !night);
+				// gök: gündüz üstten aşağı açılan mavi, gece koyu lacivert; gece bulut ardında ay ışığı
+				skyGradient(c, p, bd, night ? 0xFF0B1426 : 0xFF6E9BD1, night ? 0x60 : 0x50, 0.7f);
+				if (night) glow(c, p, bd.left + w * 0.22f, bd.top + h * 0.12f, Math.min(w, h) * 0.5f, 0xFFDDE6FF, 0x30);
+				else glow(c, p, bd.left + w * 0.85f, bd.top + h * 0.02f, Math.max(w, h) * 0.45f, 0xFFFFF2D6, 0x2A); // bulut ardında güneş
+				int body = night ? 0xFF7D8AA6 : 0xFFF4F7FC, shade = night ? 0xFF2A3348 : 0xFF9AA8BF;
+				// üç katman: uzak (küçük, soluk, yavaş), orta, yakın (büyük, belirgin, hızlı); gündüz üstü ışıklı
+				float[][] L = {{0.0025f, 0.13f, 0.06f, 0.10f}, {0.0045f, 0.2f, 0.16f, 0.14f}, {0.0075f, 0.3f, 0.26f, 0.16f}};
+				int[] cnt = {4, 3, 2}, al = night ? new int[]{0x20, 0x28, 0x34} : new int[]{0x30, 0x40, 0x56};
+				for (int l = 0; l < 3; l++) {
+					for (int i = 0; i < cnt[l]; i++) {
+						int seed = l * 10 + i;
+						float x = ((rnd(seed, 71) + s * L[l][0] * (0.8f + 0.4f * rnd(seed, 72))) % 1.5f) - 0.25f;
+						float y = L[l][2] + L[l][3] * rnd(seed, 73);
+						cloud(c, p, bd.left + x * w, bd.top + y * h, w * L[l][1] * (0.85f + 0.3f * rnd(seed, 74)),
+								body, shade, al[l], !night && (l > 0), seed);
+					}
 				}
 				return true;
 			}
 			case FOG -> {
 				boolean night = nightCached();
-				int fc = night ? 0xFFB6C0D0 : 0xFFE8ECF2;
-				// alta doğru koyulaşan pus
-				glowOval(c, p, bd.left + w * 0.5f, bd.bottom, w * 1.2f, h * 0.6f, fc, night ? 0x26 : 0x3A);
-				// farklı hız ve yönde süzülen geniş, yassı pus bantları
-				for (int i = 0; i < 7; i++) {
-					float dir = (i % 2 == 0) ? 1f : -1f, sp = 0.006f + 0.006f * rnd(i, 81);
-					float x = (((rnd(i, 82) + dir * s * sp) % 1f) + 1f) % 1f;
-					float y = 0.12f + i * 0.13f + 0.02f * (float) Math.sin(s * 0.15f + i);
-					int a = (int) ((night ? 0x16 : 0x22) + 0x10 * rnd(i, 83));
-					float rx = w * (0.55f + 0.3f * rnd(i, 84)), ry = h * (0.05f + 0.03f * rnd(i, 85));
-					glowOval(c, p, bd.left + x * w, bd.top + y * h, rx, ry, fc, a);
-					glowOval(c, p, bd.left + (x - 1f) * w, bd.top + y * h, rx, ry, fc, a); // kenardan taşan kısmı karşı yandan
+				int fc = night ? 0xFFAEB8C8 : 0xFFE6EAF0;
+				// renkleri bastıran hafif bir örtü ve alta doğru koyulaşan pus
+				c.drawColor(night ? 0x14A0AAB8 : 0x1CE6EAF0);
+				skyGradient(c, p, bd, fc, night ? 0x20 : 0x30, 1f);
+				glowOval(c, p, bd.left + w * 0.5f, bd.bottom, w * 1.3f, h * 0.55f, fc, night ? 0x30 : 0x48);
+				// sisin içinden dağılan ışık: gündüz soluk güneş, gece sokak lambası gibi sıcak bir kaynak
+				if (night) glow(c, p, bd.left + w * 0.72f, bd.top + h * 0.3f, Math.min(w, h) * 0.55f, 0xFFFFD49A, 0x26);
+				else glow(c, p, bd.left + w * 0.7f, bd.top + h * 0.1f, Math.max(w, h) * 0.5f, 0xFFFFFFFF, 0x2C);
+				// üç derinlikte süzülen sis tabakaları (uzak yavaş ve ince, yakın hızlı ve yoğun; komşular ters yönde)
+				for (int l = 0; l < 3; l++) {
+					for (int i = 0; i < 3; i++) {
+						int seed = l * 10 + i;
+						float dir = ((l + i) % 2 == 0) ? 1f : -1f, sp = (0.004f + 0.004f * l) * (0.8f + 0.4f * rnd(seed, 81));
+						float x = (((rnd(seed, 82) + dir * s * sp) % 1f) + 1f) % 1f;
+						float y = 0.2f + 0.22f * l + 0.18f * rnd(seed, 86) + 0.015f * (float) Math.sin(s * 0.12f + seed);
+						int a = (night ? 0x10 : 0x18) + (night ? 0x08 : 0x0C) * l;
+						float rx = w * (0.6f + 0.25f * l + 0.2f * rnd(seed, 84)), ry = h * (0.04f + 0.025f * l + 0.02f * rnd(seed, 85));
+						glowOval(c, p, bd.left + x * w, bd.top + y * h, rx, ry, fc, a);
+						glowOval(c, p, bd.left + (x - 1f) * w, bd.top + y * h, rx, ry, fc, a); // kenardan taşan kısmı karşı yandan
+					}
 				}
 				return true;
 			}
