@@ -194,17 +194,17 @@ public class ChannelsFragment extends MainActivityFragment {
 		}
 		LinearLayout actions = (segRow != null) ? segRow : head;
 		actions.addView(adv, new LinearLayout.LayoutParams(dp(48), dp(48)));
-		TextView edit = text(ctx, editing ? "Bitti" : "Düzenle", 15, true, t.ink);
+		TextView edit = text(ctx, "Düzenle", 15, true, t.ink);
 		edit.setSingleLine(true);
 		edit.setGravity(Gravity.CENTER);
 		edit.setPadding(dp(14), dp(12), dp(14), dp(12));
-		edit.setBackground(editing ? YoldaStyle.selected(ctx, 999) : YoldaStyle.glass(ctx, t, 999));
+		edit.setBackground(YoldaStyle.glass(ctx, t, 999));
 		edit.setClickable(true);
-		edit.setOnClickListener(v -> {
-			editing = !editing;
-			edit.setText(editing ? "Bitti" : "Düzenle");
-			edit.setBackground(editing ? YoldaStyle.selected(ctx, 999) : YoldaStyle.glass(ctx, t, 999));
-			showGrid();
+		edit.setContentDescription(radio ? "Radyoları düzenle: sırala, favori, gizle" : "Kanalları düzenle: sırala, favori, gizle");
+		edit.setOnClickListener(v -> { // tek düzenleyici (TV / Radyo kartındakiyle aynı): sırala, favori, gizle
+			List<MediaLib.PlayableItem> mine = new ArrayList<>();
+			for (MediaLib.PlayableItem pi : items) if (radio == RADIO_GROUP.equals(groupOf(pi))) mine.add(pi);
+			YoldaChannelEditor.show(a, radio, mine, this::showGrid);
 		});
 		LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(-2, -2);
 		elp.leftMargin = dp(8);

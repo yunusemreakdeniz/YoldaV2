@@ -1852,12 +1852,23 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Kanal şeridinin sonunda "Sırala" düğmesi. */
 	private View withOrderButton(Context ctx, @Nullable View row, boolean radio) {
-		return withActions(ctx, row, null, null, radio ? "Radyoları sırala" : "Kanalları sırala",
+		return withActions(ctx, row, null, null, radio ? "Radyoları düzenle" : "Kanalları düzenle",
 				() -> showOrderEditor(ctx, radio));
 	}
 
 	/** Sıralama: her satırda ▲ ▼; sıra kaydedilir, kart ve Kanallar ekranı bu sırayla gösterir. */
 	private void showOrderEditor(Context ctx, boolean radio) {
+		// Tek düzenleyici: Kanallar sayfasındaki "Düzenle" ile aynı pencere (sırala, favori, gizle)
+		List<MediaLib.PlayableItem> target = radio ? radioChannels : tvChannels;
+		YoldaChannelEditor.show(getActivityDelegate(), radio, target, () -> {
+			YoldaChannelOrder.sort(target, YoldaChannelOrder.order(ctx), MediaLib.PlayableItem::getId);
+			refreshCard(radio ? YoldaDeck.RADIO : YoldaDeck.TV);
+		});
+	}
+
+	/** Eski (kart içi) sıralama penceresi: artık YoldaChannelEditor kullanılıyor. */
+	@SuppressWarnings("unused")
+	private void showOrderEditorOld(Context ctx, boolean radio) {
 		List<MediaLib.PlayableItem> work = new ArrayList<>(radio ? radioChannels : tvChannels);
 		if (work.isEmpty()) {
 			YoldaStyle.toast(ctx, "Kanal listesi henüz yüklenmedi");
