@@ -2,6 +2,13 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-179 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-179
+
+- Video izlerken kalite: sağ üstte "HD 480p ▾" düğmesi; dokununca 360p · 480p · 720p · 1080p · Otomatik, seçilen kalite çalan videoya (TV ve YouTube) hemen uygulanır; bir süre sonra soluklaşır.
+- Yeni Döviz ve altın kartı ve sayfası: dolar, euro, sterlin (TCMB), gram ve çeyrek altın; sesle "dolar kaç", "gram altın ne kadar".
+- Yeni Namaz vakitleri kartı ve sayfası: bulunduğun yere göre altı vakit (Diyanet hesap yöntemi), sıradaki vurgulu ve kalan süre; sesle "akşam ezanı ne zaman".
+- Yeni Haberler kartı ve sayfası: son dakika başlıkları (TRT Haber, AA); dokununca okunur, "Başlıkları oku", sesle "haberleri oku". Deste 23 kart; tasarım taslağı güncellendi.
+
 ## 2026-11-19 · v2-178 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-178
 
 - Gemini ile yerel sesli asistan artık karışmıyor: kesin cihaz komutları (ses, oynatma, kanal adı, kart, arama, tema, sürüş, saat) yerelde ve hızlı; sohbet, bilgi soruları, anlaşılmayan ve uzun doğal cümleler ("yol boyunca dinleyebileceğim güzel şarkılar çal") doğrudan Gemini'ye.

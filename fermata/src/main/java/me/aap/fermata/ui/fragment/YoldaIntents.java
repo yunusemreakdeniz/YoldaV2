@@ -41,7 +41,9 @@ public final class YoldaIntents {
 		/** Video kalitesi (arg: söylenen cümle; kaliteyi YoldaStyle.spokenVideoQuality çıkarır). */
 		VIDEO_Q,
 		/** Telefonda görünüm: num 1 telefon (ızgara), 0 araç (deste). */
-		VIEW_MODE
+		VIEW_MODE,
+		/** Bilgi: döviz / altın (arg: dolar, euro, sterlin, gram, çeyrek ya da null), namaz vakti, haberleri oku. */
+		FX, PRAYER, NEWS
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -225,6 +227,23 @@ public final class YoldaIntents {
 		// yardım, tekrar
 		if (c.matches("(yardım|ne yapabilirsin|neler yapabilirsin|komutlar|ne diyebilirim|nasıl kullanılır)")) return Intent.of(Kind.HELP);
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
+
+		// bilgi: "dolar kaç", "altın ne kadar", "akşam ezanı ne zaman", "haberleri oku"
+		if (c.matches(".*(dolar|euro|avro|sterlin|döviz|kur(lar)?|gram altın|çeyrek altın|altın) (kaç|ne kadar|kaçtan|fiyatı|olmuş|kuru).*")
+				|| c.matches("(dolar|euro|döviz|altın|kurlar|döviz kurları|altın fiyatları)")) {
+			String w = c.contains("çeyrek") ? "Çeyrek altın" : c.contains("altın") ? "Gram altın" : c.contains("euro") || c.contains("avro")
+					? "Euro" : c.contains("sterlin") ? "Sterlin" : c.contains("dolar") ? "Dolar" : null;
+			return Intent.of(Kind.FX, w);
+		}
+		if (c.matches(".*(namaz|ezan|imsak|iftar|sahur|öğle|ikindi|akşam|yatsı).*(vakti|vakitleri|ne zaman|kaçta|saat kaç).*")
+				|| c.matches("(namaz vakitleri|ezan vakitleri|ezan ne zaman|namaz ne zaman)")) {
+			String w = c.contains("imsak") || c.contains("sahur") ? "İmsak" : c.contains("öğle") ? "Öğle"
+					: c.contains("ikindi") ? "İkindi" : (c.contains("akşam") || c.contains("iftar")) ? "Akşam" : c.contains("yatsı") ? "Yatsı" : null;
+			return Intent.of(Kind.PRAYER, w);
+		}
+		if (c.matches("(haberleri|haber|son dakika|son dakika haberlerini|manşetleri|gündemi) ?(oku|anlat|neler|ne var|söyle)?")
+				|| c.matches("(bugün )?(neler oluyor|ne haber var|haberlerde ne var)"))
+			return Intent.of(Kind.NEWS);
 
 		// görünüm: "telefon görünümüne geç", "araç görünümü", "ızgara görünümü"
 		if (c.matches("(telefon|ızgara) (görünümü|görünümüne geç|görünümünü aç|modu|moduna geç)"))

@@ -41,13 +41,13 @@ P. [ ] Kartları kullanışlı ve modern yapma turu: her kartın yüzünde en s�
 
 Q1. [ ] Takvim (bugünkü etkinlikler, sıradaki toplantıya yol tarifi)
 Q2. [ ] Hatırlatıcılar ve sesli notlar
-Q3. [ ] Döviz / altın
-Q4. [ ] Haberler (başlıklar, sesli okuma)
+Q3. [x] (v2-179) Döviz / altın
+Q4. [x] (v2-179) Haberler (başlıklar, sesli okuma)
 Q5. [ ] Podcast ve sesli kitap
 Q6. [ ] Trafik durumu (eve / işe varış süresi)
 Q7. [ ] Elektrikli araç şarj istasyonları
 Q8. [ ] Araç bakım ve yakıt defteri (muayene, sigorta, yağ değişimi hatırlatma)
-Q9. [ ] Namaz vakitleri
+Q9. [x] (v2-179) Namaz vakitleri
 Q10. [ ] Telefon durumu (pil, veri, sinyal) ve hızlı ayarlar
 Q11. [ ] Hızlı mesaj (WhatsApp / SMS hazır cevaplar, "varınca haber ver")
 Q12. [ ] Spor skorları

@@ -50,6 +50,9 @@ public final class YoldaActions {
 			{"bu yolculuk nasıldı", "yolculuk özeti"},
 			// bilgi
 			{"saat kaç / bugün günlerden ne", "saat ve tarih"},
+			{"dolar kaç / euro ne kadar / gram altın ne kadar / çeyrek altın kaç", "döviz ve altın"},
+			{"akşam ezanı ne zaman / namaz vakitleri / imsak kaçta", "namaz vakitleri"},
+			{"haberleri oku / son dakika", "son dakika haberleri sesli"},
 			{"hava nasıl / yarın hava nasıl / [şehir] hava durumu", "hava durumu ve tahmin"},
 			{"şarjım kaç / hızım kaç", "pil, hız"},
 			{"[sayı] dakika sonra [iş] hatırlat / hatırlatmaları sil", "hatırlatıcı"},

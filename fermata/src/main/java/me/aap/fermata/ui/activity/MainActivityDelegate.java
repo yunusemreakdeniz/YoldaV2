@@ -759,6 +759,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			if (cp != null) cp.disableVideoMode();
 		}
 		showYoldaBack(videoMode);
+		me.aap.fermata.ui.view.YoldaQualityPill.update(this); // video izlerken sağ üstte kalite düğmesi
 		updateBodyTopPadding(); // tam ekran videoda soldaki pay kalkar
 		if (cp != null) cp.yoldaRefreshVisibility();
 
@@ -877,6 +878,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 		ActivityFragment f = super.showFragment(id, input);
 		updateBodyTopPadding();
+		App.get().getHandler().post(() -> me.aap.fermata.ui.view.YoldaQualityPill.update(this)); // YouTube'a girince / çıkınca
 		ControlPanelView cpv = getControlPanel();
 		if (cpv != null) cpv.yoldaRefreshVisibility();
 		return f;
@@ -934,6 +936,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.HistoryFragment();
 		} else if (id == R.id.yolda_eq_fragment) {
 			return new me.aap.fermata.ui.fragment.EqFragment();
+		} else if (id == R.id.yolda_info_fragment) {
+			return new me.aap.fermata.ui.fragment.InfoFragment();
 		} else if (id == R.id.yolda_menu_fragment) {
 			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
 		} else if (id == R.id.yolda_setup_fragment) {
@@ -1192,7 +1196,8 @@ public class MainActivityDelegate extends ActivityDelegate
 				|| (id == R.id.yolda_setup_fragment) || (id == R.id.yolda_pharmacy_fragment) || (id == R.id.yolda_radar_fragment)
 				|| (id == R.id.yolda_weather_fragment) || (id == R.id.yolda_trip_fragment) || (id == R.id.yolda_contacts_fragment)
 				|| (id == R.id.yolda_park_fragment) || (id == R.id.yolda_fuel_fragment)
-				|| (id == R.id.yolda_history_fragment) || (id == R.id.yolda_eq_fragment);
+				|| (id == R.id.yolda_history_fragment) || (id == R.id.yolda_eq_fragment)
+				|| (id == R.id.yolda_info_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
 		int left = (me.aap.fermata.ui.view.YoldaStyle.sideRail(getContext()) && yolda && (id != R.id.home_fragment)
 				&& !videoMode)
@@ -2281,6 +2286,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	private void updateDeckButtons() {
+		me.aap.fermata.ui.view.YoldaQualityPill.update(this); // YouTube ekranı açılınca / kapanınca da
 		if (!me.aap.fermata.ui.view.YoldaStyle.DECK) return;
 		if (yoldaPip) return;
 		yoldaFloatingBarMargin();

@@ -865,7 +865,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -1213,6 +1213,49 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	/** Park kartının alt yazısı: aracın ne kadar uzakta, ne zaman bırakıldı. */
+	private static final java.util.Map<String, Long> infoAskedAt = new java.util.HashMap<>();
+
+	/** Bilgi kartının alt satırı (önbellekten); 10 dakikada bir arka planda yeniler, değişince kartı tazeler. */
+	private String infoLine(String type) {
+		Context ctx = requireContext();
+		long now = System.currentTimeMillis();
+		Long at = infoAskedAt.get(type);
+		if ((at == null) || (now - at > 10 * 60_000L)) {
+			infoAskedAt.put(type, now);
+			Context app = ctx.getApplicationContext();
+			me.aap.utils.app.App.get().execute(() -> {
+				switch (type) {
+					case YoldaDeck.PRAYER -> YoldaInfo.prayers(app, true);
+					case YoldaDeck.NEWS -> YoldaInfo.news(app, true);
+					default -> YoldaInfo.rates(app, true);
+				}
+			}).onSuccess(v -> me.aap.utils.app.App.get().getHandler().post(() -> {
+				if (isAdded()) refreshCard(type);
+			}));
+		}
+		switch (type) {
+			case YoldaDeck.PRAYER -> {
+				java.util.Calendar cal = java.util.Calendar.getInstance();
+				int m = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
+				YoldaInfo.Prayer nx = YoldaInfo.next(YoldaInfo.prayers(ctx, false), m);
+				return (nx == null) ? "Bulunduğun yere göre vakitler alınıyor…"
+						: ("Sıradaki: " + nx.name() + " " + nx.time() + " · " + YoldaInfo.left(nx, m) + " kaldı");
+			}
+			case YoldaDeck.NEWS -> {
+				List<YoldaInfo.News> nl = YoldaInfo.news(ctx, false);
+				return nl.isEmpty() ? "Son dakika haberleri alınıyor…" : nl.get(0).title();
+			}
+			default -> {
+				StringBuilder b = new StringBuilder();
+				for (YoldaInfo.Rate r : YoldaInfo.rates(ctx, false)) {
+					if (b.length() > 60) break;
+					b.append((b.length() > 0) ? " · " : "").append(r.name()).append(' ').append(YoldaInfo.money(r.sell()));
+				}
+				return (b.length() == 0) ? "Dolar, euro ve altın alınıyor…" : b.toString();
+			}
+		}
+	}
+
 	private static long fuelAskedAt;
 
 	/** Akaryakıt kartının alt satırı: seçili yakıtın fiyatı ve 100 km maliyeti; gerekirse arka planda yeniler. */
@@ -2602,6 +2645,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.FX -> new Look(0xFF4ADE80, 0xFF166534, R.drawable.yi_fuel, true, "DÖVİZ · ALTIN", infoLine(YoldaDeck.FX));
+			case YoldaDeck.PRAYER -> new Look(0xFF5EEAD4, 0xFF115E59, R.drawable.yi_history, true, "NAMAZ VAKİTLERİ",
+					infoLine(YoldaDeck.PRAYER));
+			case YoldaDeck.NEWS -> new Look(0xFFF87171, 0xFF7F1D1D, R.drawable.yi_globe, true, "SON DAKİKA", infoLine(YoldaDeck.NEWS));
 			case YoldaDeck.EQ -> new Look(0xFFC084FC, 0xFF6B21A8, R.drawable.equalizer, true, "SES",
 					"Ses ayarı: " + me.aap.fermata.media.engine.YoldaEq.current(requireContext()) + " · sesle: “rock ekolayzer”");
 			case YoldaDeck.FUEL -> new Look(0xFFFBBF24, 0xFFB45309, R.drawable.yi_fuel, true, "AKARYAKIT", fuelLine());
@@ -2966,6 +3013,43 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
 			}
+			case YoldaDeck.FX -> { // kurlar ve altın çipleri
+				LinearLayout row = hrow(ctx);
+				for (YoldaInfo.Rate r : YoldaInfo.rates(ctx, false))
+					row.addView(chipBtn(ctx, r.name() + " " + YoldaInfo.money(r.sell()), v -> open(c)), chipLp());
+				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
+			}
+			case YoldaDeck.PRAYER -> { // altı vakit, sıradaki vurgulu
+				LinearLayout row = hrow(ctx);
+				java.util.Calendar cal = java.util.Calendar.getInstance();
+				int now = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
+				List<YoldaInfo.Prayer> pl = YoldaInfo.prayers(ctx, false);
+				YoldaInfo.Prayer nx = YoldaInfo.next(pl, now);
+				for (YoldaInfo.Prayer p : pl) {
+					TextView ch = chipBtn(ctx, p.name() + " " + p.time(), v -> open(c));
+					if ((nx != null) && p.name().equals(nx.name())) {
+						GradientDrawable sb = new GradientDrawable();
+						sb.setCornerRadius(dp(999));
+						sb.setColor(0xFFFFF4D6);
+						ch.setBackground(sb);
+						ch.setTextColor(0xFF111827);
+					}
+					row.addView(ch, chipLp());
+				}
+				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
+			}
+			case YoldaDeck.NEWS -> { // oku + ilk başlıklar (dokun: okunur)
+				List<YoldaInfo.News> nl = YoldaInfo.news(ctx, false);
+				if (nl.isEmpty()) return null;
+				LinearLayout row = hrow(ctx);
+				row.addView(chipBtn(ctx, "🔊 Başlıkları oku", v -> YoldaSpeak.sayAlways(ctx, YoldaInfo.newsSpoken(nl, 5))), chipLp());
+				for (int i = 0; i < Math.min(4, nl.size()); i++) {
+					YoldaInfo.News n = nl.get(i);
+					String tt = (n.title().length() > 42) ? (n.title().substring(0, 42) + "…") : n.title();
+					row.addView(chipBtn(ctx, tt, v -> YoldaSpeak.sayAlways(ctx, n.title())), chipLp());
+				}
+				return scroll(ctx, row);
+			}
 			case YoldaDeck.EQ -> { // hazır ayar çipleri: seçili olan vurgulu, dokununca çalan yayına hemen uygulanır
 				LinearLayout row = hrow(ctx);
 				String cur = me.aap.fermata.media.engine.YoldaEq.current(ctx);
@@ -3307,6 +3391,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.PARK -> a.showFragment(R.id.yolda_park_fragment);
 			case YoldaDeck.FUEL -> a.showFragment(R.id.yolda_fuel_fragment);
 			case YoldaDeck.EQ -> a.showFragment(R.id.yolda_eq_fragment); // kendi sayfası: hazır ayarlar ve bant ayarları
+			case YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS -> {
+				InfoFragment.mode = c.type(); // fx / prayer / news
+				a.showFragment(R.id.yolda_info_fragment);
+			}
 			case YoldaDeck.TRIPS -> {
 				TripFragment.showIndex = 0;
 				a.showFragment(R.id.yolda_trip_fragment);

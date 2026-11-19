@@ -177,6 +177,35 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case FX -> {
+				toast(a, "Kurlar alınıyor…");
+				String want = it.arg();
+				me.aap.utils.app.App.get().execute((me.aap.utils.function.CheckedSupplier<List<YoldaInfo.Rate>, Throwable>) () -> YoldaInfo.rates(ctx, true)).onSuccess(l -> App.get().getHandler().post(() -> {
+					StringBuilder b = new StringBuilder();
+					for (YoldaInfo.Rate r : l) {
+						if ((want != null) && !r.name().equals(want)) continue;
+						b.append((b.length() > 0) ? ", " : "").append(r.name()).append(' ').append(YoldaInfo.money(r.sell()).replace(" ₺", " lira"));
+					}
+					reply(a, (b.length() == 0) ? "Kurlar alınamadı" : b.toString());
+				}));
+			}
+			case PRAYER -> {
+				String want = it.arg();
+				me.aap.utils.app.App.get().execute((me.aap.utils.function.CheckedSupplier<List<YoldaInfo.Prayer>, Throwable>) () -> YoldaInfo.prayers(ctx, true)).onSuccess(l -> App.get().getHandler().post(() -> {
+					java.util.Calendar cal = java.util.Calendar.getInstance();
+					int m = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
+					YoldaInfo.Prayer p = null;
+					if (want != null) for (YoldaInfo.Prayer x : l) if (x.name().equals(want)) p = x;
+					if (p == null) p = YoldaInfo.next(l, m);
+					reply(a, (p == null) ? "Namaz vakitleri alınamadı"
+							: (p.name() + " " + p.time() + ", " + YoldaInfo.left(p, m) + " sonra"));
+				}));
+			}
+			case NEWS -> {
+				toast(a, "Haberler alınıyor…");
+				me.aap.utils.app.App.get().execute((me.aap.utils.function.CheckedSupplier<List<YoldaInfo.News>, Throwable>) () -> YoldaInfo.news(ctx, true)).onSuccess(l -> App.get().getHandler().post(() ->
+						reply(a, l.isEmpty() ? "Haberler alınamadı" : ("Son dakika. " + YoldaInfo.newsSpoken(l, 5)))));
+			}
 			case VIEW_MODE -> {
 				if (a.isCarActivity()) {
 					reply(a, "Araçta her zaman kart destesi görünür");
