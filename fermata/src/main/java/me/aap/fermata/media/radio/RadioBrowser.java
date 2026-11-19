@@ -40,7 +40,8 @@ public final class RadioBrowser {
 			String t = tags.replace(",", ", ");
 			if (t.length() > 40) t = t.substring(0, 40) + "…";
 			if (!t.isEmpty()) b.append((b.length() > 0) ? " · " : "").append(t);
-			if (bitrate > 0) b.append((b.length() > 0) ? " · " : "").append(bitrate).append(" kbps");
+			if (bitrate > 0) b.append((b.length() > 0) ? " · " : "").append(bitrate).append(" kbps · saatte ~")
+					.append(mbPerHour(bitrate)).append(" MB");
 			return (b.length() > 0) ? b.toString() : country;
 		}
 	}
@@ -170,6 +171,22 @@ public final class RadioBrowser {
 		}
 	}
 
+	/**
+	 * Az veri: aynı istasyonun iki yayınından hangisi seçilsin. 48 kbps ve üstünün en düşüğü (ses kalitesi çok
+	 * düşmesin; 64 kbps saatte ~29 MB, 128 kbps ~58 MB); bit hızı bilinmeyen 128 sayılır.
+	 */
+	static boolean lessData(int candKbps, int curKbps) {
+		int c = (candKbps > 0) ? candKbps : 128, o = (curKbps > 0) ? curKbps : 128;
+		boolean cOk = c >= 48, oOk = o >= 48;
+		if (cOk != oOk) return cOk;
+		return cOk ? (c < o) : (c > o);
+	}
+
+	/** Saatte yaklaşık veri (MB): kbps × 3600 / 8 / 1000. */
+	public static int mbPerHour(int kbps) {
+		return Math.round(((kbps > 0) ? kbps : 128) * 0.45f);
+	}
+
 	static List<Station> parse(String json) throws Exception {
 		JSONArray a = new JSONArray(json);
 		List<Station> out = new ArrayList<>();
@@ -181,11 +198,13 @@ public final class RadioBrowser {
 			if (url.isEmpty() || name.isEmpty()) continue;
 			if (o.has("lastcheckok") && (o.optInt("lastcheckok", 1) == 0)) continue; // son denetimde çalışmıyordu
 			String logo = o.optString("favicon", "");
-			boolean dup = false;
-			for (Station s : out) dup |= s.url().equals(url) || s.name().equalsIgnoreCase(name);
-			if (dup) continue;
-			out.add(new Station(name, url, logo.startsWith("http") ? logo : null, o.optString("tags", ""),
-					o.optString("countrycode", ""), o.optString("state", "").trim(), o.optInt("bitrate", 0)));
+			Station st = new Station(name, url, logo.startsWith("http") ? logo : null, o.optString("tags", ""),
+					o.optString("countrycode", ""), o.optString("state", "").trim(), o.optInt("bitrate", 0));
+			int dup = -1;
+			for (int k = 0; k < out.size(); k++)
+				if (out.get(k).url().equals(url) || out.get(k).name().equalsIgnoreCase(name)) dup = k;
+			if (dup < 0) out.add(st);
+			else if (lessData(st.bitrate(), out.get(dup).bitrate())) out.set(dup, st); // aynı istasyonun az veri yiyen yayını
 		}
 		return out;
 	}
