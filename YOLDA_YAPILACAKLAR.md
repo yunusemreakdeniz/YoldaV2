@@ -3,6 +3,13 @@
 Her turda sıradaki ilk açık madde yapılır, sürüm çıkınca [x] ile işaretlenir ve sürüm yazılır.
 Yapılamayan ya da Android'in izin vermediği maddeler gerekçesiyle "Yapılamaz" altına taşınır.
 
+## Plan: iki paket (19 Kasım, kullanıcı isteği)
+
+Her paket ayrı dalda geliştirilir, ara derlemeler o dalda denenir; paket bitince main'e tek seferde birleşir (tek sürüm).
+
+- **Paket A — işlev ve yeni kartlar** (dal: paket-a): 10 TV görüntüsünün gitmesi · 9 mobil veri sınırı · 8 Medya kartı · Q5 Podcast / sesli kitap · Q10 Telefon durumu · 11 Gidilen yerdeki otoparklar · Q7 Şarj istasyonları · Q6 Trafik · R2 Son uyarılar sesli · Q1 Takvim · Q2 Hatırlatıcı / sesli not · Q11 Hızlı mesaj · Q8 Bakım defteri · Q12 Spor · R3 PiP dönüşü
+- **Paket B — görünüm ve sağlamlık** (dal: paket-b): N Pro tasarım dili · 12 Android Auto sadeleştirme · 13 hava temalı arka plan · 14 animasyonlar · P kart yüzlerinde 3 iş · 18 boşluklar · O her tıklamanın testi · 15 reklam engelleyici · M hız sınırı kaynağı; telefon görünümü ve tasarım taslağı birlikte güncellenir
+
 ## Açık (sırayla)
 
 V2. [x] (v2-172) Video kalitesini oynatıcının içinden de değiştirme ve sesle ("video kalitesini 720 yap")
@@ -51,7 +58,6 @@ Q9. [x] (v2-179) Namaz vakitleri
 Q10. [ ] Telefon durumu (pil, veri, sinyal) ve hızlı ayarlar
 Q11. [ ] Hızlı mesaj (WhatsApp / SMS hazır cevaplar, "varınca haber ver")
 Q12. [ ] Spor skorları
-R1. [ ] Araç hareket edince videodan sese geçiş (araştırma: Android Auto 2026 "video-to-audio handoff"): TV / YouTube videosu araç 10 km/s'yi geçince yalnız ses olarak sürer (görüntü kapanır, veri azalır), park edince görüntü geri gelir; Sürüş ekranından aç / kapat
 R3. [ ] Dayanıklılık testinde donma (ANR "no focused window"): neden bulundu (v2-175): rastgele dokunuş "Video + harita"yı açıyor, uygulama küçük pencereye (PiP) geçiyor, harita mağazaya yönleniyor; uygulama küçük penceredeyken gelen tuşlar odaksız pencereye düşüyor. v2-175: harita uygulaması yoksa küçük pencereye geçilmez. Kalan: başlatıcıdan dönünce küçük pencereden tam ekrana çıkış (onNewIntent'te PiP'ten çık), sonra monkey yeniden denenecek
 R2. [ ] Uyarı geçmişi için sesli komut ("son uyarılar", "az önce ne dedin") ve Gemini'nin geçmişi okuyabilmesi
 
@@ -82,6 +88,7 @@ R2. [ ] Uyarı geçmişi için sesli komut ("son uyarılar", "az önce ne dedin"
 - [x] Kanal sırası ve başa dönme, pil, kart düğmeleri, tema renkleri, imza, araçta büyük yazı (v2-134)
 
 ## Yapılamaz / sınırlı
+- R1. İptal (kullanıcı istemedi, 19 Kasım): araç hareket edince videodan sese geçiş yapılmayacak.
 
 - Netflix vb. korumalı videolar araç ekranına aktarılınca siyah görünür (Android koruması).
 - Telefon ekranını araçta kullanmak için Android her oturumda telefonda bir kez "paylaşımı başlat" onayı ister.
