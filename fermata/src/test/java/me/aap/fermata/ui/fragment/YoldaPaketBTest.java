@@ -131,6 +131,16 @@ public class YoldaPaketBTest {
 	}
 
 	@Test
+	public void geminiKartListesiniBilir() {
+		YoldaDeck d = YoldaDeck.decode(null); // varsayılan deste
+		String l = YoldaVoice.cardsLine(d.cards(), java.util.List.of(YoldaDeck.SPORTS));
+		assertTrue(l, l.startsWith("Kartlar sırayla: Kaldığın yerden, YouTube"));
+		assertTrue(l, !l.contains("Ekle,") && !l.endsWith("Ekle. "));
+		assertTrue(l, l.contains("Kaldırılmış (geri getirilebilir): Spor."));
+		assertTrue(YoldaVoice.cardsLine(d.cards(), java.util.List.of()).indexOf("Kaldırılmış") < 0);
+	}
+
+	@Test
 	public void kartHedefSirasi() {
 		assertEquals(0, YoldaDeck.targetIndex(5, "first", -1, 10));
 		assertEquals(9, YoldaDeck.targetIndex(5, "last", -1, 10));
