@@ -542,7 +542,7 @@ public class HomeFragment extends MainActivityFragment {
 		hello.setOrientation(LinearLayout.VERTICAL);
 		TextView date = YoldaStyle.turkishDate(ctx, "EEEE, d MMMM · HH:mm");
 		date.setTextSize(15 * YoldaStyle.textScale(ctx));
-		date.setTextColor(0xBFFFFFFF);
+		date.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 		date.setShadowLayer(dp(6), 0, dp(1), 0x40000000);
 		hello.addView(date);
 		TextView g = text(ctx, greeting(), YoldaStyle.compact(ctx) ? 30 : 40, true);
@@ -812,7 +812,7 @@ public class HomeFragment extends MainActivityFragment {
 		for (String k : BUILTIN) if (available(k) && !cur.contains(k)) hidden.add(k);
 		if (!hidden.isEmpty()) {
 			TextView h = text(ctx, "YOLDA", 12, true);
-			h.setTextColor(0xBFFFFFFF);
+			h.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 			h.setLetterSpacing(0.1f);
 			h.setPadding(dp(4), dp(18), 0, dp(10));
 			col.addView(h);
@@ -832,7 +832,7 @@ public class HomeFragment extends MainActivityFragment {
 		}
 
 		TextView h2 = text(ctx, "TELEFONUNDAKİ UYGULAMALAR", 12, true);
-		h2.setTextColor(0xBFFFFFFF);
+		h2.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 		h2.setLetterSpacing(0.1f);
 		h2.setPadding(dp(4), dp(22), 0, dp(10));
 		col.addView(h2);

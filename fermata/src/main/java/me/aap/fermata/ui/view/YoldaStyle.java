@@ -860,6 +860,12 @@ public final class YoldaStyle {
 	public static volatile boolean webNoToolbar;
 
 	/** Yazı ölçeği: alçak geniş ekranda (araç, yatay telefon) yazılar daha küçük; yer kaplamasın. */
+	/**
+	 * Tasarım dili: yazı rengi tokenları (koyu cam zemin üstünde). Ana yazı tam beyaz; ikincil (alt satır,
+	 * açıklama) %80; üçüncül (ipucu, saat) en az %65: araçta kısa bakışta okunur, soluk kalmaz.
+	 */
+	public static final int TEXT_1 = 0xFFFFFFFF, TEXT_2 = 0xCCFFFFFF, TEXT_3 = 0xA6FFFFFF;
+
 	/** Tasarım dili: yazı ölçeği (sp). Bütün ekranların yazıları bu basamaklardan birine oturur. */
 	public static final float[] TYPE_SCALE = {12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 34, 44, 56, 72};
 

@@ -156,7 +156,7 @@ public class YoldaPlayerBar extends FrameLayout implements MediaSessionCallback.
 		llp.rightMargin = dp(6);
 		subRow.addView(live, llp);
 		sub = new TextView(ctx);
-		sub.setTextColor(0xB3FFFFFF);
+		sub.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 		sub.setTextSize(13 * YoldaStyle.textScale(ctx));
 		sub.setSingleLine(true);
 		sub.setEllipsize(TextUtils.TruncateAt.END);

@@ -249,7 +249,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		} catch (Throwable ignore) {
 		}
 		s.setTextSize(38);
-		s.setTextColor(0x8CFFFFFF);
+		s.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 		s.setShadowLayer(dp(3), 0, dp(1), 0x40000000);
 		s.setRotation(-6f);
 		s.setIncludeFontPadding(false);

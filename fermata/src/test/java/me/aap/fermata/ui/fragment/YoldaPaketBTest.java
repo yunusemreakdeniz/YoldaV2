@@ -84,6 +84,32 @@ public class YoldaPaketBTest {
 		assertEquals("", YoldaDeck.carLabel(null));
 	}
 
+	/** Saydam rengi zemine bindir (0..1 kanallar). */
+	private static double[] over(int c, double[] bg) {
+		double a = ((c >>> 24) & 0xFF) / 255.0;
+		return new double[]{((c >> 16) & 0xFF) / 255.0 * a + bg[0] * (1 - a), ((c >> 8) & 0xFF) / 255.0 * a + bg[1] * (1 - a),
+				(c & 0xFF) / 255.0 * a + bg[2] * (1 - a)};
+	}
+
+	private static double lum(double[] c) {
+		double[] l = new double[3];
+		for (int i = 0; i < 3; i++) l[i] = (c[i] <= 0.03928) ? c[i] / 12.92 : Math.pow((c[i] + 0.055) / 1.055, 2.4);
+		return 0.2126 * l[0] + 0.7152 * l[1] + 0.0722 * l[2];
+	}
+
+	@Test
+	public void yaziRenkleriOkunur() {
+		// her temada cam kutu (beyaz %14) üstünde: ikincil yazı en az 4.5:1, üçüncül en az 3:1 (WCAG)
+		for (me.aap.fermata.ui.view.YoldaStyle.Theme t : me.aap.fermata.ui.view.YoldaStyle.THEMES) {
+			double[] bg = over(0x24FFFFFF, over(t.base | 0xFF000000, new double[]{0, 0, 0}));
+			double lb = lum(bg);
+			double c2 = (lum(over(me.aap.fermata.ui.view.YoldaStyle.TEXT_2, bg)) + 0.05) / (lb + 0.05);
+			double c3 = (lum(over(me.aap.fermata.ui.view.YoldaStyle.TEXT_3, bg)) + 0.05) / (lb + 0.05);
+			assertTrue(t.name + " ikincil " + c2, c2 >= 4.5);
+			assertTrue(t.name + " üçüncül " + c3, c3 >= 3.0);
+		}
+	}
+
 	@Test
 	public void yerlesimAlani() throws Exception {
 		JSONArray el = new JSONArray("[{\"type\":\"way\",\"tags\":{\"highway\":\"primary\"}},"

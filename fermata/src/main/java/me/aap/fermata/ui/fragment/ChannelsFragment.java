@@ -558,7 +558,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		name.setPadding(dp(4), dp(10), dp(4), 0);
 		name.setGravity(Gravity.CENTER_HORIZONTAL);
 		f.addView(name, new LinearLayout.LayoutParams(-1, -2));
-		TextView grp = text(ctx, groupOf(pi), 12, false, 0xB3FFFFFF);
+		TextView grp = text(ctx, groupOf(pi), 12, false, me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 		grp.setMaxLines(1);
 		grp.setEllipsize(android.text.TextUtils.TruncateAt.END);
 		grp.setGravity(Gravity.CENTER_HORIZONTAL);

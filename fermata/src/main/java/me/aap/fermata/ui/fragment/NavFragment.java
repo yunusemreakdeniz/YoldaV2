@@ -255,7 +255,7 @@ public class NavFragment extends MainActivityFragment {
 
 		TextView info = text(ctx, (waze() ? "Waze" : "Google Haritalar")
 				+ " yol tarifini başlatır; araç ekranında navigasyon açılır. Müzik ve yayın Yolda'da devam eder.", 14, false);
-		info.setTextColor(0xB3FFFFFF);
+		info.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 		info.setPadding(dp(4), dp(24), 0, 0);
 		col.addView(info);
 	}
@@ -366,7 +366,7 @@ public class NavFragment extends MainActivityFragment {
 		tx.addView(n);
 		if (!s.sub().isEmpty()) {
 			TextView sb = text(ctx, s.sub(), 13, false);
-			sb.setTextColor(0xB3FFFFFF);
+			sb.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 			sb.setSingleLine(true);
 			sb.setEllipsize(android.text.TextUtils.TruncateAt.END);
 			tx.addView(sb);
@@ -375,7 +375,7 @@ public class NavFragment extends MainActivityFragment {
 		String d = YoldaPlaceSuggest.distance(s.meters());
 		if (!d.isEmpty()) {
 			TextView dv = text(ctx, d, 14, true);
-			dv.setTextColor(0xB3FFFFFF);
+			dv.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 			r.addView(dv);
 		}
 		r.setOnClickListener(v -> {
@@ -444,7 +444,7 @@ public class NavFragment extends MainActivityFragment {
 		tt.setPadding(0, dp(12), 0, 0);
 		c.addView(tt, new LinearLayout.LayoutParams(-1, -2));
 		TextView st = text(ctx, sub, 12, false);
-		st.setTextColor(0xB3FFFFFF);
+		st.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 		st.setGravity(Gravity.CENTER);
 		st.setMaxLines(1);
 		st.setEllipsize(android.text.TextUtils.TruncateAt.END);
