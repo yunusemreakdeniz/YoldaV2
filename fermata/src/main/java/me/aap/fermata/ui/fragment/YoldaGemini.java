@@ -30,8 +30,11 @@ import me.aap.utils.app.App;
 public final class YoldaGemini {
 	private static final String PREFS = "yolda_ai";
 	private static final String KEY = "gemini_key";
-	/** Önce en yeni hızlı model takma adı; bulunamazsa sabit sürüm. */
-	private static final String[] MODELS = {"gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"};
+	/**
+	 * Model sırası: sesli asistan için önce hızlı Lite modeller (2-3 sn, yoğunlukta da çoğunlukla açık), sonra
+	 * Flash. 2.5 modelleri yeni anahtarlara kapalı (404); Flash modelleri yoğunlukta 503 ya da uzun süre yanıtsız.
+	 */
+	static final String[] MODELS = {"gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.5-flash", "gemini-flash-latest"};
 	private static final int MAX_TURNS = 6;
 	private static final ArrayDeque<String[]> history = new ArrayDeque<>();
 	private static volatile int modelIdx;
@@ -142,11 +145,22 @@ public final class YoldaGemini {
 				for (int mi = start; mi < MODELS.length; mi++) {
 					for (int tryNo = 0; tryNo < 2; tryNo++) {
 						int[] code = new int[1];
-						String resp = post("https://generativelanguage.googleapis.com/v1beta/models/" + MODELS[mi] + ":generateContent",
-								key.trim(), body.toString(), code);
+						String resp;
+						try {
+							resp = post("https://generativelanguage.googleapis.com/v1beta/models/" + MODELS[mi] + ":generateContent",
+									key.trim(), body.toString(), code);
+						} catch (java.net.SocketTimeoutException ex) { // model yanıtsız (yoğun): sıradakine geç
+							YoldaLog.add("Gemini " + MODELS[mi] + " zaman aşımı");
+							lastCode = 504;
+							continue outer;
+						}
 						lastCode = code[0];
 						if (code[0] == 404) { // model adı yok: kalıcı olarak sonrakine
 							if (mi + 1 < MODELS.length) modelIdx = mi + 1;
+							continue outer;
+						}
+						if ((code[0] == 400) && !keyError(resp)) { // anahtar değil, istek / model sorunu: sıradaki model
+							YoldaLog.add("Gemini " + MODELS[mi] + " 400: " + errorMessage(resp));
 							continue outer;
 						}
 						if ((code[0] == 400) || (code[0] == 401) || (code[0] == 403)) {
@@ -183,7 +197,7 @@ public final class YoldaGemini {
 					problem = overloaded(lastCode) ? "Gemini sunucuları şu an yoğun, biraz sonra tekrar dene"
 							: ("Gemini yanıt vermedi (" + lastCode + ")");
 				}
-			} catch (java.net.UnknownHostException | java.net.SocketTimeoutException ex) {
+			} catch (java.net.UnknownHostException | java.net.ConnectException ex) {
 				problem = "İnternet bağlantısı yok";
 				transientError = true;
 			} catch (Throwable ex) {
@@ -208,6 +222,11 @@ public final class YoldaGemini {
 	/** Google tarafı geçici yoğunluk / arıza: tekrar denenir, başka modele geçilir. */
 	static boolean overloaded(int code) {
 		return (code == 500) || (code == 502) || (code == 503) || (code == 504);
+	}
+
+	/** 400 yanıtı anahtar hatası mı (API_KEY_INVALID); değilse istek / model sorunudur. */
+	static boolean keyError(@Nullable String json) {
+		return (json != null) && (json.contains("API_KEY") || json.contains("API key"));
 	}
 
 	/** Hata yanıtından kısa açıklama (günlük için; anahtar içermez). */
@@ -249,7 +268,7 @@ public final class YoldaGemini {
 	private static String post(String url, String key, String body, int[] code) throws Exception {
 		HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
 		c.setConnectTimeout(8000);
-		c.setReadTimeout(20000);
+		c.setReadTimeout(12000); // yanıtsız model sürücüyü bekletmesin: sıradakine geçilir
 		c.setRequestMethod("POST");
 		c.setDoOutput(true);
 		c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
