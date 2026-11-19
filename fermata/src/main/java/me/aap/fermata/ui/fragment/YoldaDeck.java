@@ -24,6 +24,8 @@ public final class YoldaDeck {
 	public static final String PHARMACY = "pharmacy";
 	/** Akaryakıt fiyatları ve yakıt maliyeti. */
 	public static final String FUEL = "fuel";
+	/** Ekolayzer hazır ayarları. */
+	public static final String EQ = "eq";
 	public static final String RADAR = "radar";
 	/** Park yerleri (aracım). */
 	public static final String PARK = "park";
@@ -42,7 +44,7 @@ public final class YoldaDeck {
 	public static final String YT_CHANNEL = "ytch";
 	public static final String URL = "url";
 
-	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, PHONE, CALLS, MIRROR, WEB, SETTINGS,
+	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
 			ADD};
 	private static final char FIELD = '\u001F';
 	private static final char RECORD = '\u001E';
@@ -115,6 +117,7 @@ public final class YoldaDeck {
 			case "yansıtma", "ekran yansıtma", "ayna" -> MIRROR;
 			case "tarayıcı", "internet", "web" -> WEB;
 			case "ayar", "ayarlar" -> SETTINGS;
+			case "ekolayzer", "ekolayzır", "ekolayzeri", "ses ayarı", "ses ayarları", "ses modu", "eq" -> EQ;
 			case "ekle", "ekleme" -> ADD;
 			case "kaldığım yer", "kaldığın yer", "kaldığın yerden", "kaldığım yerden", "devam" -> RESUME;
 			default -> null;
@@ -165,6 +168,7 @@ public final class YoldaDeck {
 			case MIRROR -> "Ekran yansıtma";
 			case WEB -> "Tarayıcı";
 			case SETTINGS -> "Ayarlar";
+			case EQ -> "Ekolayzer";
 			case ADD -> "Ekle";
 			default -> type;
 		};

@@ -17,7 +17,7 @@ D. [x] (v2-163) Kartlardaki erişim düğmeleri büyük olsun (TV / radyo kanal 
 E. [x] (v2-166) TV ve radyo düzenleme: tek sıralama; kartın içinden tüm liste düzenlenir; kartın yüzünde ve Kanallar ekranında aynı sıra
 F. [x] (v2-168) Sesli asistan: Gemini bağlıysa anlama da Gemini ile (doğal cümleler: "en yakın eczaneye yol tarifi", "biraz rahatlatıcı bir şey aç" → komut), bağlı değilse yerel model; hemen her soruya yanıt. Gemini bütün uygulamayı yönetebilsin: her ekran / kart / düğme için bir eylem kataloğu (araç çağırma), yerel motor da aynı kataloğu kullanır
 G. [x] (v2-169) "Kaldığın yerden" kartında daha çok veri: son dinlenen / izlenen birkaç öğe, ilerleme, ne zaman
-H. [ ] Ekolayzer kartı (hazır ayarlar: Pop, Rock, Konuşma, Bas, Araç; bant ayarları)
+H. [x] (v2-170) Ekolayzer kartı (hazır ayarlar: Pop, Rock, Konuşma, Bas, Araç; bant ayarları)
 B. [ ] Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, kısayol çipleri) 48dp altında kalmasın
 0. [ ] Kalıcı imza anahtarı: güncellemeler eskinin üzerine kurulsun, ayarlar / kart düzeni / görünüm silinmesin (kullanıcı onayı bekliyor: anahtar oluşturma ve GitHub gizli ayarları)
 7. [ ] Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)

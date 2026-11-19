@@ -24,6 +24,7 @@ public final class YoldaActions {
 			{"sesi aç / sesi kıs / sesi yüzde [sayı] yap / sessize al", "ses düzeyi"},
 			{"[sayı] dakika sonra kapat / uyku zamanlayıcısını iptal et", "uyku zamanlayıcısı"},
 			{"ne çalıyor", "çalan parçayı söyler"},
+			{"[pop / rock / konuşma / bas / araç / klasik / caz] ekolayzer / ekolayzeri kapat", "ses ayarı (ekolayzer hazır ayarı)"},
 			{"kaldığım yerden devam et", "son dinleneni sürdürür"},
 			{"favorilere ekle / favorileri aç", "favoriler"},
 			// navigasyon

@@ -169,6 +169,16 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case EQ -> {
+				if (it.arg() == null) {
+					run(a, Intent.of(Kind.CARD, "ekolayzer"), raw); // desteyi Ekolayzer kartına götür
+					reply(a, "Ses ayarları: Pop, Rock, Konuşma, Bas, Araç, Klasik ya da Caz deyebilirsin");
+				} else {
+					me.aap.fermata.media.engine.YoldaEq.setCurrent(ctx, it.arg());
+					if (cb != null) cb.yoldaEqChanged();
+					reply(a, "Kapalı".equals(it.arg()) ? "Ekolayzer kapatıldı" : ("Ses ayarı " + it.arg()));
+				}
+			}
 			case DATE -> reply(a, YoldaAnswers.date());
 			case CALC -> reply(a, it.arg());
 			case BATTERY -> reply(a, YoldaAnswers.battery(ctx));

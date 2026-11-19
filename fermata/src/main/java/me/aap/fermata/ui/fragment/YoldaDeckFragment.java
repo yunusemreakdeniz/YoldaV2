@@ -773,7 +773,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -2510,6 +2510,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.EQ -> new Look(0xFFC084FC, 0xFF6B21A8, R.drawable.equalizer, true, "SES",
+					"Ses ayarı: " + me.aap.fermata.media.engine.YoldaEq.current(requireContext()) + " · sesle: “rock ekolayzer”");
 			case YoldaDeck.FUEL -> new Look(0xFFFBBF24, 0xFFB45309, R.drawable.yi_fuel, true, "AKARYAKIT", fuelLine());
 			case YoldaDeck.PARK -> new Look(0xFF34D399, 0xFF047857, R.drawable.yi_parking, true, "PARK YERİ", parkLine());
 			case YoldaDeck.TRIPS -> new Look(0xFF818CF8, 0xFF3730A3, R.drawable.yi_nav, true, "SÜRÜŞ GEÇMİŞİ",
@@ -2870,6 +2872,28 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
 			}
+			case YoldaDeck.EQ -> { // hazır ayar çipleri: seçili olan vurgulu, dokununca çalan yayına hemen uygulanır
+				LinearLayout row = hrow(ctx);
+				String cur = me.aap.fermata.media.engine.YoldaEq.current(ctx);
+				for (String n : me.aap.fermata.media.engine.YoldaEq.names()) {
+					TextView ch = chipBtn(ctx, n, v -> {
+						me.aap.fermata.media.engine.YoldaEq.setCurrent(ctx, n);
+						a.getMediaSessionCallback().yoldaEqChanged();
+						YoldaStyle.toast(ctx, "Ses ayarı: " + n);
+						refreshCard(YoldaDeck.EQ);
+					});
+					if (n.equals(cur)) {
+						GradientDrawable sb = new GradientDrawable();
+						sb.setCornerRadius(dp(999));
+						sb.setColor(0xFFFFF4D6);
+						ch.setBackground(sb);
+						ch.setTextColor(0xFF111827);
+					}
+					ch.setContentDescription("Ses ayarı " + n + (n.equals(cur) ? ", seçili" : ""));
+					row.addView(ch, chipLp());
+				}
+				return scroll(ctx, row);
+			}
 			case YoldaDeck.FUEL -> { // üç fiyat çipi (dokun: o yakıtı seç) ve en yakın benzinlik
 				YoldaFuel.Prices fp = YoldaFuel.cached(ctx);
 				LinearLayout row = hrow(ctx);
@@ -3188,6 +3212,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.RADAR -> a.showFragment(R.id.yolda_radar_fragment);
 			case YoldaDeck.PARK -> a.showFragment(R.id.yolda_park_fragment);
 			case YoldaDeck.FUEL -> a.showFragment(R.id.yolda_fuel_fragment);
+			case YoldaDeck.EQ -> { // bant bant ayar: Fermata'nın ses efektleri ekranı (bir şey çalarken)
+				var eng = a.getMediaSessionCallback().getEngine();
+				if ((eng != null) && (eng.getAudioEffects() != null)) a.showFragment(R.id.audio_effects_fragment);
+				else YoldaStyle.toast(ctx, "Bant ayarları için önce bir şey çal; hazır ayarlar kartta");
+			}
 			case YoldaDeck.TRIPS -> {
 				TripFragment.showIndex = 0;
 				a.showFragment(R.id.yolda_trip_fragment);

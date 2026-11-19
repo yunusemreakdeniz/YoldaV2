@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-170 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-170
+
+- Yeni Ekolayzer kartı: Kapalı, Pop, Rock, Konuşma, Bas, Araç, Klasik, Caz; dokununca çalan yayına hemen uygulanır, seçili olan vurgulu.
+- Ayarlar her cihazın kendi bantlarına uyarlanır (bant sayısı ve frekansları cihaza göre değişir); "Araç" yol uğultusuna karşı basları ve tizleri öne çıkarır.
+- Karta dokununca bant bant ayar ekranı (bir şey çalarken); sesle: "rock ekolayzer", "ses modunu konuşma yap", "ekolayzeri kapat".
+
 ## 2026-11-19 · v2-169 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-169
 
 - "Kaldığın yerden" kartı artık son çalınanların geçmişini tutar (en çok 12): TV, radyo, müzik ve videolar, ne zaman açıldıkları ("5 dk önce", "dün") ve ne kadarı dinlendiği (%42).

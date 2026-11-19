@@ -1614,6 +1614,25 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 	}
 
 	private void setAudiEffects(MediaEngine engine, PreferenceStore... stores) {
+		setAudiEffects0(engine, stores);
+		// Yolda: Ekolayzer kartında seçilen hazır ayar (Kapalı değilse) Fermata ayarının üstüne uygulanır
+		me.aap.fermata.media.engine.YoldaEq.apply(lib.getContext(), engine.getAudioEffects());
+	}
+
+	/** Ekolayzer kartında ayar değişti: çalan yayına hemen uygula (Kapalı: Fermata'nın kendi ayarına dön). */
+	public void yoldaEqChanged() {
+		MediaEngine eng = engine;
+		PlayableItem i = (eng != null) ? eng.getSource() : null;
+		if (i == null) return;
+		me.aap.fermata.media.engine.YoldaEq.off(eng.getAudioEffects());
+		try {
+			setAudiEffects(eng, i.getPrefs(), i.getParent().getPrefs(), getPlaybackControlPrefs());
+		} catch (Throwable ex) {
+			Log.e(ex, "Ekolayzer uygulanamadı");
+		}
+	}
+
+	private void setAudiEffects0(MediaEngine engine, PreferenceStore... stores) {
 		AudioEffects ae = engine.getAudioEffects();
 		if (ae == null) return;
 

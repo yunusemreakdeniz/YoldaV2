@@ -35,7 +35,9 @@ public final class YoldaIntents {
 		WAKE_OFF, SUN, THEME_SET, TEST_ALERT, NAV_APP,
 		/** Mesaj: son mesaja sesle yanıt (arg: metin), son mesajı tekrar oku. */
 		MSG_REPLY, MSG_READ,
-		DATE, CALC, TIMER, TIMER_CANCEL, BATTERY, SPEED, FORECAST, WHERE_AM_I, WIKI
+		DATE, CALC, TIMER, TIMER_CANCEL, BATTERY, SPEED, FORECAST, WHERE_AM_I, WIKI,
+		/** Ekolayzer hazır ayarı (arg: ayar adı; null: kartı aç). */
+		EQ
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -219,6 +221,10 @@ public final class YoldaIntents {
 		// yardım, tekrar
 		if (c.matches("(yardım|ne yapabilirsin|neler yapabilirsin|komutlar|ne diyebilirim|nasıl kullanılır)")) return Intent.of(Kind.HELP);
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
+
+		// ekolayzer: "rock ekolayzer", "ekolayzeri kapat", "ses modunu konuşma yap", "bas ses ayarı"
+		if (c.matches(".*(ekolayz|ekolaz|ekualayz|ses modu|ses ayarı).*"))
+			return Intent.of(Kind.EQ, me.aap.fermata.media.engine.YoldaEq.spoken(c));
 
 		// kart: "radyo kartına geç", "hava durumu kartı", "kişiler kartını göster"
 		if (c.matches("kart(ları)?(mı)? düzenle|kartları sırala|kartları düzenleyelim")) return Intent.of(Kind.EDIT_CARDS);
