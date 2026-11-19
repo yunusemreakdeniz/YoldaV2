@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-182 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-182 · Paket A (tamamı)
+
+- Yeni kartlar: Podcast (arama, abonelik, son bölümü çal), Medya (telefondaki videolar kaldığı yerden, fotoğraflar), Trafik (eve / işe süre ve mesafe, trafik hariç tahmini; canlı trafik Google Haritalar'da), Spor (Süper Lig son sonuçlar ve fikstür, tuttuğun takım öne). Deste 33 kart.
+- Sesli: "eve kaç dakika", "işe ne kadar sürer", "maç sonuçları", "galatasaray maçı ne zaman", "X podcastini aç".
+- TV'de çok kanal değiştirince görüntü gidiyordu: görüntü gelmezse yüzey kendiliğinden yeniden bağlanır (en çok iki kez), tanı günlüğüne yazılır.
+
 ## 2026-11-19 · v2-181 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-181 · Paket A (1. bölüm)
 
 - Yeni kartlar: Telefon durumu (pil, bağlantı, sinyal, aylık mobil veri ve sınırı, hızlı ayarlar), Şarj istasyonları, Notlar (sesli not, kalıcı hatırlatmalar), Hızlı mesaj (hazır cevaplar, varınca haber ver), Takvim (bugün / yarın), Araç bakımı (muayene, sigorta, kasko, yağ değişimi; 7 gün kala hatırlatma). Deste 29 kart.
