@@ -186,6 +186,52 @@ public final class YoldaSky {
 		p.setShader(null);
 	}
 
+	private static final android.graphics.RectF oval = new android.graphics.RectF();
+
+	/** Elips biçimli yumuşak ışık (sis bandı, bulut öbeği): aynı önbellekli ışık, yatay / dikey ayrı ölçek. */
+	static void glowOval(Canvas c, Paint p, float x, float y, float rx, float ry, int color, int a) {
+		rx = Math.max(1f, rx);
+		ry = Math.max(1f, ry);
+		RadialGradient g = unitGlow(color, a);
+		gm.setScale(rx, ry);
+		gm.postTranslate(x, y);
+		g.setLocalMatrix(gm);
+		p.setStyle(Paint.Style.FILL);
+		p.setShader(g);
+		oval.set(x - rx, y - ry, x + rx, y + ry);
+		c.drawOval(oval, p);
+		p.setShader(null);
+	}
+
+	/** Saniyede kaç kare (ms aralık): damla / kar / yıldız 30, güneş / bulut / sis 20, sahnesiz 12. */
+	public static long frameMs(int s) {
+		if (fast(s)) return 33;
+		return ((s == SUN) || (s == CLOUDS) || (s == FOG)) ? 50 : 83;
+	}
+
+	private static long nightAt;
+	private static boolean nightNow;
+
+	/** Gece mi (dakikada bir hesaplanır; her karede değil). */
+	private static boolean nightCached() {
+		long now = System.currentTimeMillis();
+		if (now - nightAt > 60_000L) {
+			nightAt = now;
+			nightNow = night(now);
+		}
+		return nightNow;
+	}
+
+	/** Bir bulut: 7 yumuşak öbek (ortası kabarık, altı düz), üstte hafif ışık. */
+	private static void cloud(Canvas c, Paint p, float x, float y, float size, int color, int a, boolean lit) {
+		for (int k = 0; k < 7; k++) {
+			float ox = (k - 3) * 0.32f * size, oy = -(float) Math.cos((k - 3) / 3.0 * Math.PI / 2) * 0.28f * size;
+			float r = size * (0.42f + 0.18f * rnd(k, 51)) * (1f - Math.abs(k - 3) * 0.08f);
+			glowOval(c, p, x + ox, y + oy, r * 1.15f, r * 0.85f, color, a);
+		}
+		if (lit) glowOval(c, p, x, y - size * 0.3f, size * 0.9f, size * 0.35f, 0xFFFFFFFF, a / 2); // üst kenarda ışık
+	}
+
 	/** Sahneyi çiz; s = saniye (sabitken 0). Animasyon gerekiyorsa true. */
 	static boolean draw(Canvas c, Paint p, Rect bd, int scene, float s) {
 		float w = bd.width(), h = bd.height();
@@ -193,15 +239,18 @@ public final class YoldaSky {
 		float u = Math.min(w, h) / 400f; // ekrana göre birim
 		switch (scene) {
 			case SUN -> {
-				float cx = bd.left + w * 0.86f, cy = bd.top + h * 0.04f;
-				float r = Math.max(w, h) * 0.55f, pulse = 1f + 0.04f * (float) Math.sin(s * 0.5);
-				glow(c, p, cx, cy, r * pulse, 0xFFFFD27A, 0x70);
-				// yavaşça dönen soluk ışınlar
+				float cx = bd.left + w * 0.84f, cy = bd.top + h * 0.07f, big = Math.max(w, h);
+				// üstte ılık gökyüzü tonu (ekranın üst yarısı)
+				glowOval(c, p, bd.left + w * 0.6f, bd.top, w * 1.1f, h * 0.55f, 0xFFFFB86B, 0x2E);
+				float pulse = 1f + 0.035f * (float) Math.sin(s * 0.6);
+				glow(c, p, cx, cy, big * 0.6f * pulse, 0xFFFFD27A, 0x5C); // geniş hale
+				// ince, yavaş dönen ışınlar (uzunlukları hafifçe nefes alır)
 				p.setStyle(Paint.Style.FILL);
-				p.setColor(0x12FFF1C2);
-				float len = Math.max(w, h) * 0.75f, rot = (float) Math.toRadians(s * 2.5);
-				for (int i = 0; i < 9; i++) {
-					double a0 = rot + i * (Math.PI * 2 / 9), da = 0.07 + 0.03 * rnd(i, 31);
+				float rot = (float) Math.toRadians(s * 3);
+				for (int i = 0; i < 14; i++) {
+					double a0 = rot + i * (Math.PI * 2 / 14), da = 0.025 + 0.02 * rnd(i, 31);
+					float len = big * (0.55f + 0.25f * rnd(i, 32)) * (0.9f + 0.1f * (float) Math.sin(s * 0.8 + i));
+					p.setColor(((int) (14 + 10 * rnd(i, 33)) << 24) | 0xFFF1C2);
 					ray.rewind();
 					ray.moveTo(cx, cy);
 					ray.lineTo(cx + (float) Math.cos(a0 - da) * len, cy + (float) Math.sin(a0 - da) * len);
@@ -209,7 +258,22 @@ public final class YoldaSky {
 					ray.close();
 					c.drawPath(ray, p);
 				}
-				glow(c, p, cx, cy, r * 0.22f, 0xFFFFF4D6, 0x80);
+				glow(c, p, cx, cy, big * 0.13f, 0xFFFFF4D6, 0x9A); // parlak güneş diski
+				glow(c, p, cx, cy, big * 0.05f, 0xFFFFFFFF, 0xC0);
+				// mercek parlamaları: güneşten ekranın ortasına doğru çapraz, soluk halkalar
+				float fx = bd.left + w * 0.5f - cx, fy = bd.top + h * 0.55f - cy;
+				float[] at = {0.35f, 0.6f, 0.85f, 1.15f}, sz = {0.035f, 0.02f, 0.06f, 0.03f};
+				int[] col = {0xFFFFE7A8, 0xFFB8E1FF, 0xFFFFC7A0, 0xFFD9C8FF};
+				for (int i = 0; i < at.length; i++)
+					glow(c, p, cx + fx * at[i], cy + fy * at[i], big * sz[i], col[i], 0x30 + 0x08 * (int) (2 + Math.sin(s * 0.7 + i)));
+				// ışıkta süzülen zerreler (yavaşça yükselir, hafif salınır)
+				for (int i = 0; i < 26; i++) {
+					float y = 1.05f - ((rnd(i, 61) + s * 0.012f * (0.5f + rnd(i, 62))) % 1.1f);
+					float x = (rnd(i, 63) + 0.015f * (float) Math.sin(s * 0.5f + i)) % 1f;
+					int a = (int) (40 + 70 * (0.5f + 0.5f * Math.sin(s * (0.7f + rnd(i, 64)) + i)));
+					p.setColor((a << 24) | 0xFFF3D6);
+					c.drawCircle(bd.left + x * w, bd.top + y * h, u * (0.8f + 1.2f * rnd(i, 65)), p);
+				}
 				return true;
 			}
 			case STARS -> {
@@ -246,13 +310,38 @@ public final class YoldaSky {
 				glow(c, p, bd.left + w * 0.14f, bd.top + h * 0.08f, Math.min(w, h) * 0.30f, 0xFFDDE6FF, 0x30); // ay ışığı
 				return true;
 			}
-			case CLOUDS, FOG -> {
-				boolean fog = scene == FOG;
-				for (int i = 0; i < (fog ? 5 : 4); i++) {
-					float x = ((rnd(i, 7) + s * (0.004f + 0.003f * rnd(i, 8))) % 1.3f) - 0.15f;
-					float y = fog ? (0.18f + i * 0.17f) : (0.06f + 0.22f * rnd(i, 9));
-					float r = Math.max(w, h) * (fog ? 0.45f : 0.30f + 0.12f * rnd(i, 10));
-					glow(c, p, bd.left + x * w, bd.top + y * h, r, fog ? 0xFFE5E9F0 : 0xFFC9D2E0, fog ? 0x26 : 0x30);
+			case CLOUDS -> {
+				boolean night = nightCached();
+				if (night) glow(c, p, bd.left + w * 0.2f, bd.top + h * 0.1f, Math.min(w, h) * 0.45f, 0xFFDDE6FF, 0x26); // bulut ardında ay
+				int far = night ? 0xFF6B7891 : 0xFFAFBBCD, near = night ? 0xFF8C99B3 : 0xFFDCE3EE;
+				// uzak katman: küçük, soluk, yavaş
+				for (int i = 0; i < 4; i++) {
+					float x = ((rnd(i, 71) + s * 0.0035f * (0.7f + 0.6f * rnd(i, 72))) % 1.4f) - 0.2f;
+					cloud(c, p, bd.left + x * w, bd.top + h * (0.08f + 0.16f * rnd(i, 73)), w * (0.16f + 0.06f * rnd(i, 74)),
+							far, night ? 0x22 : 0x2C, false);
+				}
+				// yakın katman: büyük, belirgin, biraz daha hızlı, üstü ışıklı
+				for (int i = 0; i < 3; i++) {
+					float x = ((rnd(i, 75) + s * 0.007f * (0.7f + 0.6f * rnd(i, 76))) % 1.5f) - 0.25f;
+					cloud(c, p, bd.left + x * w, bd.top + h * (0.18f + 0.2f * rnd(i, 77)), w * (0.26f + 0.08f * rnd(i, 78)),
+							near, night ? 0x2A : 0x3A, !night);
+				}
+				return true;
+			}
+			case FOG -> {
+				boolean night = nightCached();
+				int fc = night ? 0xFFB6C0D0 : 0xFFE8ECF2;
+				// alta doğru koyulaşan pus
+				glowOval(c, p, bd.left + w * 0.5f, bd.bottom, w * 1.2f, h * 0.6f, fc, night ? 0x26 : 0x3A);
+				// farklı hız ve yönde süzülen geniş, yassı pus bantları
+				for (int i = 0; i < 7; i++) {
+					float dir = (i % 2 == 0) ? 1f : -1f, sp = 0.006f + 0.006f * rnd(i, 81);
+					float x = (((rnd(i, 82) + dir * s * sp) % 1f) + 1f) % 1f;
+					float y = 0.12f + i * 0.13f + 0.02f * (float) Math.sin(s * 0.15f + i);
+					int a = (int) ((night ? 0x16 : 0x22) + 0x10 * rnd(i, 83));
+					float rx = w * (0.55f + 0.3f * rnd(i, 84)), ry = h * (0.05f + 0.03f * rnd(i, 85));
+					glowOval(c, p, bd.left + x * w, bd.top + y * h, rx, ry, fc, a);
+					glowOval(c, p, bd.left + (x - 1f) * w, bd.top + y * h, rx, ry, fc, a); // kenardan taşan kısmı karşı yandan
 				}
 				return true;
 			}

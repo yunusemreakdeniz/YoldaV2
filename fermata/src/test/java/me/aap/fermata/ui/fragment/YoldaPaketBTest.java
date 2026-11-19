@@ -45,6 +45,17 @@ public class YoldaPaketBTest {
 	}
 
 	@Test
+	public void sahneKareHizi() {
+		// hızlı hareket 30 kare, güneş / bulut / sis 20 kare (akıcı süzülme), sahnesiz 12 kare (pil)
+		assertEquals(33, YoldaSky.frameMs(YoldaSky.RAIN));
+		assertEquals(33, YoldaSky.frameMs(YoldaSky.SNOW));
+		assertEquals(50, YoldaSky.frameMs(YoldaSky.SUN));
+		assertEquals(50, YoldaSky.frameMs(YoldaSky.CLOUDS));
+		assertEquals(50, YoldaSky.frameMs(YoldaSky.FOG));
+		assertEquals(83, YoldaSky.frameMs(YoldaSky.NONE));
+	}
+
+	@Test
 	public void havaEfektiKipi() {
 		// otomatik: havaya göre; kapalı: yok; sabit: hava ne olursa olsun seçilen
 		assertEquals(YoldaSky.SNOW, YoldaSky.modeScene("auto", YoldaSky.SNOW));

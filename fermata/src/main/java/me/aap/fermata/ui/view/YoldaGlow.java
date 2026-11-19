@@ -93,9 +93,9 @@ public final class YoldaGlow extends Drawable {
 		YoldaSky.draw(c, sky, bd, scene, s); // hava durumuna göre sahne (yağmur, kar, güneş, yıldız)
 		boolean settling = motion && ((c1 != t1) || (c2 != t2));
 		if (settling) invalidateSelf(); // renk geçişi kısa: akıcı
-		else if (anim) { // damla / kar / yıldız saniyede ~30 kare (akıcı); yavaş süzülme ~12 kare (pil harcamaz)
+		else if (anim) { // damla / kar / yıldız ~30 kare, güneş / bulut / sis ~20 kare, sahnesiz ~12 kare (pil)
 			unscheduleSelf(tick);
-			scheduleSelf(tick, SystemClock.uptimeMillis() + (YoldaSky.fast(scene) ? 33 : 83));
+			scheduleSelf(tick, SystemClock.uptimeMillis() + YoldaSky.frameMs(scene));
 		}
 	}
 
