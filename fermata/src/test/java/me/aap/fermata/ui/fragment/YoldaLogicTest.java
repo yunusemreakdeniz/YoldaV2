@@ -112,33 +112,56 @@ public class YoldaLogicTest {
 
 	@Test
 	public void heyYolda() {
-		assertTrue(YoldaWake.isWake("{\"partial\" : \"hey yolda\"}"));
+		// gerçek (sentetik) "hey yolda" kayıtlarının Vosk sonucu: model "hey"i duymaz, tek "yolda" verir
+		String real1 = "{\"result\" : [{\"conf\" : 0.938070, \"end\" : 0.720000, \"start\" : 0.300000, \"word\" : \"yolda\"}], \"text\" : \"yolda\"}";
+		String real2 = "{\"result\" : [{\"conf\" : 0.991270, \"end\" : 1.290000, \"start\" : 0.720000, \"word\" : \"yolda\"}], \"text\" : \"yolda\"}";
+		assertTrue(YoldaWake.isWake(real1));
+		assertTrue(YoldaWake.isWake(real2));
+		assertTrue(YoldaWake.isWake("{\"text\" : \"hey yolda\"}"));
 		assertTrue(YoldaWake.isWake("{\"text\" : \"hey yol da\"}"));
 		assertTrue(YoldaWake.isWake("{\"text\" : \"HEY YOLDA\"}"));
-		// sözlükte "hey" yoksa: bilinmeyen sözcük + yolda, ya da yalnız "yolda"
-		assertTrue(YoldaWake.isWake("{\"text\" : \"[unk] yolda\"}"));
-		assertTrue(YoldaWake.isWake("{\"text\" : \"yolda\"}"));
-		// tek "yolda" / "yola" ara sonuçta uyandırmaz ("yola çıkalım" henüz bitmemiş olabilir)
-		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"partial\" : \"yolda\"}"));
-		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"yola [unk]\"}"));
-		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"hey yolda [unk]\"}"));
-		// bir şey çalarken yalnız açıkça "hey yolda"
-		assertTrue(YoldaWake.isWake("{\"partial\" : \"hey yolda\"}", true));
-		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"yolda\"}", true));
-		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"[unk] yolda\"}", true));
-		// sözcük güveni düşük: uyandırmaz
-		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"result\" : [{\"conf\" : 0.31, \"word\" : \"hey\"}, "
-				+ "{\"conf\" : 0.42, \"word\" : \"yolda\"}], \"text\" : \"hey yolda\"}"));
+		assertTrue(YoldaWake.isWake("{\"text\" : \"ey yolda\"}"));
 		assertTrue(YoldaWake.isWake("{\"result\" : [{\"conf\" : 1.0, \"word\" : \"hey\"}, "
 				+ "{\"conf\" : 0.97, \"word\" : \"yolda\"}], \"text\" : \"hey yolda\"}"));
-		assertTrue(YoldaWake.isWake("{\"text\" : \"ey yolda\"}"));
-		assertTrue(YoldaWake.isWake("{\"text\" : \"hey yola\"}"));
-		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"partial\" : \"yola\"}"));
-		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"[unk] [unk] yola [unk]\"}"));
-		// uzun cümle içinde geçen "yolda" uyandırmaz
+		// sıkı kip: ara sonuç sayılmaz
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"partial\" : \"hey yolda\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"partial\" : \"yolda\"}"));
+		// sıkı kip: güven düşük (sohbette "yoldayım", "yolda kaldık" benzeri)
+		org.junit.Assert.assertFalse(YoldaWake.isWake(real1.replace("0.938070", "0.71")));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"result\" : [{\"conf\" : 0.31, \"word\" : \"hey\"}, "
+				+ "{\"conf\" : 0.42, \"word\" : \"yolda\"}], \"text\" : \"hey yolda\"}"));
+		// sıkı kip: süre doğal değil (0.1 sn çıtırtı, 2 sn uzatılmış)
+		org.junit.Assert.assertFalse(YoldaWake.isWake(real1.replace("\"end\" : 0.720000", "\"end\" : 0.400000")));
+		org.junit.Assert.assertFalse(YoldaWake.isWake(real1.replace("\"end\" : 0.720000", "\"end\" : 2.300000")));
+		// tek "yola" artık uyandırmaz; "hey yola" yalnız normal kipte
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"yola\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"hey yola\"}"));
+		assertTrue(YoldaWake.isWake("{\"text\" : \"hey yola\"}", false, false));
+		// devamı olan ya da uzun cümle içi uyandırmaz
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"yola [unk]\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"hey yolda [unk]\"}"));
 		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"[unk] [unk] yolda [unk]\"}"));
+		// bir şey çalarken: tek "yolda" uyandırmaz, açık "hey yolda" yüksek güvenle uyandırır
+		org.junit.Assert.assertFalse(YoldaWake.isWake(real2, true));
+		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"text\" : \"[unk] yolda\"}", true));
+		assertTrue(YoldaWake.isWake("{\"result\" : [{\"conf\" : 0.99, \"word\" : \"hey\"}, {\"conf\" : 0.98, \"word\" : \"yolda\"}], "
+				+ "\"text\" : \"hey yolda\"}", true));
+		// normal kip (daha duyarlı): eski davranış
+		assertTrue(YoldaWake.isWake("{\"partial\" : \"hey yolda\"}", false, false));
+		assertTrue(YoldaWake.isWake(real1.replace("0.938070", "0.71"), false, false));
 		org.junit.Assert.assertFalse(YoldaWake.isWake("{\"partial\" : \"\"}"));
 		org.junit.Assert.assertFalse(YoldaWake.isWake(null));
+	}
+
+	@Test
+	public void heyYoldaTekBasina() {
+		// sohbetin ortasında: önceki konuşmadan 2 sn geçmeden "yolda" uyandırmaz (sıkı kip)
+		org.junit.Assert.assertFalse(YoldaWake.isolated(10_000, 9_000, true));
+		assertTrue(YoldaWake.isolated(10_000, 7_500, true));
+		assertTrue(YoldaWake.isolated(10_000, 9_900, false));
+		assertTrue(YoldaWake.hasSpeech("{\"text\" : \"[unk] [unk]\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.hasSpeech("{\"text\" : \"\"}"));
+		org.junit.Assert.assertFalse(YoldaWake.hasSpeech("{\"partial\" : \"yolda\"}"));
 	}
 
 	// ---- radyo sesli komutu ----
