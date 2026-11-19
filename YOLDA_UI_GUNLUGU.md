@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-188 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-188 · Akıcı hava sahnesi
+
+- Yağmur / kar / yıldız / fırtına saniyede ~30 kare ve takılmasız (ışıklar önbellekte); yağmur iki derinlikte parlak başlı damla, kar salınan haleli taneler, kayan yıldız, güneş ışınları, yumuşak şimşek.
+- Dar telefon başlığında tema düğmesi artık kaybolmuyor (aralıklar daraldı, saat sığacak kadar küçülür).
+
 ## 2026-11-19 · v2-187 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-187 · TomTom hız sınırı
 
 - İsteğe bağlı TomTom hız sınırı: Menü → "TomTom hız sınırı" ile kullanıcının ücretsiz anahtarı; OSM'de sınırı yazılı olmayan yollarda TomTom'un sınırı (sıra: OSM yazılı, TomTom, tahmin); günde en çok 2.000 istek.
