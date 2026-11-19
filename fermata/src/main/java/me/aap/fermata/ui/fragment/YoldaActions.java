@@ -33,6 +33,8 @@ public final class YoldaActions {
 			{"[yer] git", "yol tarifi (Kızılay'a git, Anıtkabir'e git)"},
 			{"en yakın [benzinlik / eczane / nöbetçi eczane / otopark / restoran / kafe / şarj istasyonu / hastane]", "yakındakiler"},
 			{"park yerim nerede / buraya park ettim", "park yeri"},
+			{"gideceğim yerde otopark var mı / [yer]de otopark", "varılacak yerin çevresindeki otoparklar"},
+			{"şarj istasyonları kartına geç", "yakındaki elektrikli araç şarj istasyonları"},
 			{"neredeyim", "bulunduğun yer"},
 			// arama ve mesaj
 			{"[kişi] ara", "telefonla arar (annemi ara)"},

@@ -865,7 +865,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -1254,6 +1254,23 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return (b.length() == 0) ? "Dolar, euro ve altın alınıyor…" : b.toString();
 			}
 		}
+	}
+
+	/** Şarj kartının alt satırı; konum biliniyorsa 30 dakikada bir arka planda en yakınları bulur. */
+	private String chargerLine() {
+		List<YoldaNearby.Spot> sl = NearbyFragment.lastChargers;
+		double la = YoldaRadar.lat, lo = YoldaRadar.lon;
+		if (!Double.isNaN(la) && (System.currentTimeMillis() - NearbyFragment.lastChargersAt > 30 * 60_000L)) {
+			NearbyFragment.lastChargersAt = System.currentTimeMillis();
+			me.aap.utils.function.CheckedSupplier<List<YoldaNearby.Spot>, Throwable> job = () -> YoldaNearby.find(la, lo, true, 10_000, 30);
+			me.aap.utils.app.App.get().execute(job).onSuccess(l -> me.aap.utils.app.App.get().getHandler().post(() -> {
+				NearbyFragment.lastChargers = l;
+				if (isAdded()) refreshCard(YoldaDeck.CHARGER);
+			}));
+		}
+		if (sl.isEmpty()) return Double.isNaN(la) ? "Konum bekleniyor · yakındaki istasyonlar" : "Yakındaki istasyonlar aranıyor…";
+		YoldaNearby.Spot s = sl.get(0);
+		return "En yakın: " + s.name() + " · " + YoldaPlaceSuggest.distance(s.meters()) + (s.info().isEmpty() ? "" : (" · " + s.info()));
 	}
 
 	private static long fuelAskedAt;
@@ -2645,6 +2662,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.CHARGER -> new Look(0xFF2DD4BF, 0xFF0D9488, R.drawable.yi_ev, true, "ŞARJ İSTASYONLARI", chargerLine());
 			case YoldaDeck.STATUS -> new Look(0xFF93C5FD, 0xFF1E3A8A, R.drawable.yi_phone, true, "TELEFON DURUMU",
 					StatusFragment.line(requireContext()));
 			case YoldaDeck.FX -> new Look(0xFF4ADE80, 0xFF166534, R.drawable.yi_fuel, true, "DÖVİZ · ALTIN", infoLine(YoldaDeck.FX));
@@ -3014,6 +3032,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
+			}
+			case YoldaDeck.CHARGER -> { // en yakın üç istasyon: dokun → yol tarifi
+				List<YoldaNearby.Spot> sl = NearbyFragment.lastChargers;
+				if (sl.isEmpty()) return null;
+				LinearLayout row = hrow(ctx);
+				for (int i = 0; i < Math.min(3, sl.size()); i++) {
+					YoldaNearby.Spot s = sl.get(i);
+					row.addView(chipBtn(ctx, "⚡ " + s.name() + " · " + YoldaPlaceSuggest.distance(s.meters()), v -> NavFragment.navigateTo(ctx,
+							String.format(java.util.Locale.ROOT, "%.6f,%.6f", s.lat(), s.lon()), false)), chipLp());
+				}
+				return scroll(ctx, row);
 			}
 			case YoldaDeck.STATUS -> { // pil, bağlantı, veri; dokun → sayfa
 				LinearLayout row = hrow(ctx);
@@ -3405,6 +3434,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FUEL -> a.showFragment(R.id.yolda_fuel_fragment);
 			case YoldaDeck.EQ -> a.showFragment(R.id.yolda_eq_fragment); // kendi sayfası: hazır ayarlar ve bant ayarları
 			case YoldaDeck.STATUS -> a.showFragment(R.id.yolda_status_fragment);
+			case YoldaDeck.CHARGER -> {
+				NearbyFragment.mode = NearbyFragment.CHARGER;
+				a.showFragment(R.id.yolda_nearby_fragment);
+			}
 			case YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS -> {
 				InfoFragment.mode = c.type(); // fx / prayer / news
 				a.showFragment(R.id.yolda_info_fragment);

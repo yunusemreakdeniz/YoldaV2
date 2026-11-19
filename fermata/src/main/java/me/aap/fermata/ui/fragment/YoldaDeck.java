@@ -30,6 +30,8 @@ public final class YoldaDeck {
 	public static final String FX = "fx", PRAYER = "prayer", NEWS = "news";
 	/** Telefon durumu: pil, bağlantı, mobil veri ve sınırı, hızlı ayarlar. */
 	public static final String STATUS = "status";
+	/** Elektrikli araç şarj istasyonları. */
+	public static final String CHARGER = "charger";
 	public static final String RADAR = "radar";
 	/** Park yerleri (aracım). */
 	public static final String PARK = "park";
@@ -48,7 +50,7 @@ public final class YoldaDeck {
 	public static final String YT_CHANNEL = "ytch";
 	public static final String URL = "url";
 
-	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, STATUS, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
+	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, STATUS, CHARGER, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
 			ADD};
 	private static final char FIELD = '\u001F';
 	private static final char RECORD = '\u001E';
@@ -125,7 +127,8 @@ public final class YoldaDeck {
 			case "döviz", "kur", "kurlar", "altın", "dolar", "euro", "döviz ve altın" -> FX;
 			case "namaz", "namaz vakitleri", "ezan", "ezan vakitleri", "vakitler" -> PRAYER;
 			case "haber", "haberler", "son dakika", "gündem" -> NEWS;
-			case "telefon durumu", "durum", "pil", "şarj", "veri", "mobil veri", "hızlı ayarlar" -> STATUS;
+			case "telefon durumu", "durum", "pil", "veri", "mobil veri", "hızlı ayarlar" -> STATUS;
+			case "şarj istasyonu", "şarj istasyonları", "şarj", "elektrikli şarj", "ev şarj" -> CHARGER;
 			case "ekle", "ekleme" -> ADD;
 			case "kaldığım yer", "kaldığın yer", "kaldığın yerden", "kaldığım yerden", "devam" -> RESUME;
 			default -> null;
@@ -181,6 +184,7 @@ public final class YoldaDeck {
 			case PRAYER -> "Namaz vakitleri";
 			case NEWS -> "Haberler";
 			case STATUS -> "Telefon durumu";
+			case CHARGER -> "Şarj istasyonları";
 			case ADD -> "Ekle";
 			default -> type;
 		};

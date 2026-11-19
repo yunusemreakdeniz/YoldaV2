@@ -940,6 +940,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.InfoFragment();
 		} else if (id == R.id.yolda_status_fragment) {
 			return new me.aap.fermata.ui.fragment.StatusFragment();
+		} else if (id == R.id.yolda_nearby_fragment) {
+			return new me.aap.fermata.ui.fragment.NearbyFragment();
 		} else if (id == R.id.yolda_menu_fragment) {
 			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
 		} else if (id == R.id.yolda_setup_fragment) {
@@ -1199,7 +1201,8 @@ public class MainActivityDelegate extends ActivityDelegate
 				|| (id == R.id.yolda_weather_fragment) || (id == R.id.yolda_trip_fragment) || (id == R.id.yolda_contacts_fragment)
 				|| (id == R.id.yolda_park_fragment) || (id == R.id.yolda_fuel_fragment)
 				|| (id == R.id.yolda_history_fragment) || (id == R.id.yolda_eq_fragment)
-				|| (id == R.id.yolda_info_fragment) || (id == R.id.yolda_status_fragment);
+				|| (id == R.id.yolda_info_fragment) || (id == R.id.yolda_status_fragment)
+				|| (id == R.id.yolda_nearby_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
 		int left = (me.aap.fermata.ui.view.YoldaStyle.sideRail(getContext()) && yolda && (id != R.id.home_fragment)
 				&& !videoMode)

@@ -177,6 +177,17 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case PARK_DEST -> {
+				NearbyFragment.mode = NearbyFragment.PARK_DEST;
+				NearbyFragment.place = it.arg();
+				String d = (it.arg() != null) ? it.arg() : NearbyFragment.destination(ctx);
+				if (d == null) {
+					reply(a, "Önce bir yere yol tarifi al, sonra o yerin otoparklarını bulayım");
+					break;
+				}
+				a.showFragment(R.id.yolda_nearby_fragment);
+				reply(a, d + " çevresindeki otoparklara bakıyorum");
+			}
 			case STATUS -> reply(a, StatusFragment.line(ctx).replace(" · ", ", ").replace("%", "yüzde "));
 			case FX -> {
 				toast(a, "Kurlar alınıyor…");

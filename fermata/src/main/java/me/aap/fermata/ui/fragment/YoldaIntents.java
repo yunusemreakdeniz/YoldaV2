@@ -45,7 +45,9 @@ public final class YoldaIntents {
 		/** Bilgi: döviz / altın (arg: dolar, euro, sterlin, gram, çeyrek ya da null), namaz vakti, haberleri oku. */
 		FX, PRAYER, NEWS,
 		/** Telefon durumu: pil, bağlantı, bu ayki mobil veri. */
-		STATUS
+		STATUS,
+		/** Varılacak yerdeki otoparklar (arg: yer; null = son yol tarifi). */
+		PARK_DEST
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -229,6 +231,12 @@ public final class YoldaIntents {
 		// yardım, tekrar
 		if (c.matches("(yardım|ne yapabilirsin|neler yapabilirsin|komutlar|ne diyebilirim|nasıl kullanılır)")) return Intent.of(Kind.HELP);
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
+
+		// varılacak yerin otoparkları: "gideceğim yerde otopark var mı", "kızılayda otopark", "varınca nereye park ederim"
+		if (c.matches("(gideceğim|varacağım|gittiğim) yer(de|in yakınında)? (otopark|park yeri)( var mı| nerede)?|varınca (nereye park ederim|otopark)"))
+			return Intent.of(Kind.PARK_DEST);
+		Matcher pm = Pattern.compile("^(.+?)(?:da|de|ta|te)(?:ki)? (?:otopark|park yeri)(?: var mı| nerede| bul)?$").matcher(c);
+		if (pm.matches() && !pm.group(1).matches("(burası|bura|yakın|yakını|en yakın)")) return Intent.of(Kind.PARK_DEST, pm.group(1));
 
 		// telefon durumu: "ne kadar veri kullandım", "internetim ne kadar kaldı", "telefon durumu"
 		if (c.matches(".*(veri|internet|kota)(m|im|imi|imiz|yi|i|ı)? (ne kadar|kaç)( kaldı| kullandım| gitti| harcadım)?.*")
