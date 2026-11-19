@@ -534,7 +534,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		col.addView(kh);
 
 		int w = getResources().getDisplayMetrics().widthPixels;
-		int per = (w / getResources().getDisplayMetrics().density > 600) ? 4 : 2;
+		int per = (w / getResources().getDisplayMetrics().density > 600) ? 4 : 3; // dikey telefonda üçlü ızgara
 		LinearLayout row = null;
 		int n = 0;
 		List<YoldaDeck.Card> cs = new ArrayList<>();
@@ -543,7 +543,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		for (YoldaDeck.Card c : cs) {
 			if (n % per == 0) {
 				row = hrow(ctx);
-				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(96));
+				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(112));
 				rl.topMargin = dp(8);
 				col.addView(row, rl);
 			}
@@ -650,8 +650,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			return true;
 		});
 		pressEffect(f);
-		LinearLayout head = hrow(ctx);
-		head.setGravity(Gravity.CENTER_VERTICAL);
+		// Üçlü ızgarada dar kutucuk: renkli simge üstte, altında ad (sığmazsa küçülür), en altta tek satır bilgi
+		f.setPadding(dp(10), dp(10), dp(10), dp(10));
 		FrameLayout chip = new FrameLayout(ctx);
 		GradientDrawable cb = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{lk.c1, lk.c2});
 		cb.setCornerRadius(dp(10));
@@ -659,19 +659,24 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
 		ic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		chip.addView(ic, new FrameLayout.LayoutParams(dp(28), dp(28), Gravity.CENTER)); // kutunun %70'i
-		head.addView(chip, new LinearLayout.LayoutParams(dp(40), dp(40)));
-		TextView ti = text(ctx, c.title(), 15, true, 0xFFFFFFFF);
-		ti.setSingleLine(true);
-		ti.setEllipsize(TextUtils.TruncateAt.END);
-		ti.setPadding(dp(10), 0, 0, 0);
-		head.addView(ti, new LinearLayout.LayoutParams(0, -2, 1f));
-		f.addView(head);
+		chip.addView(ic, new FrameLayout.LayoutParams(dp(26), dp(26), Gravity.CENTER)); // kutunun ~%70'i
+		f.addView(chip, new LinearLayout.LayoutParams(dp(40), dp(40)));
 		f.addView(new View(ctx), new LinearLayout.LayoutParams(-1, 0, 1f));
-		TextView sub = text(ctx, lk.sub, 12, false, 0xFFC5CBD8);
+		TextView ti = text(ctx, c.title(), 14, true, 0xFFFFFFFF);
+		ti.setIncludeFontPadding(false);
+		ti.setMaxLines(1);
+		ti.setEllipsize(TextUtils.TruncateAt.END);
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(ti, 11,
+				Math.max(12, Math.round(ti.getTextSize() / getResources().getDisplayMetrics().scaledDensity)), 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP);
+		f.addView(ti, new LinearLayout.LayoutParams(-1, dp(18)));
+		TextView sub = text(ctx, lk.sub, 11, false, 0xFFC5CBD8);
+		sub.setIncludeFontPadding(false);
 		sub.setSingleLine(true);
 		sub.setEllipsize(TextUtils.TruncateAt.END);
-		f.addView(sub);
+		LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(-1, -2);
+		sl.topMargin = dp(4);
+		f.addView(sub, sl);
 		return f;
 	}
 
