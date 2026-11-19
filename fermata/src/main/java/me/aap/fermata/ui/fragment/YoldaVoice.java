@@ -669,7 +669,7 @@ public final class YoldaVoice {
 
 	/** Komut anlaşılamadı: kullanıcı beklemede kalmasın, kısa yazıyla (ve sesle) söylenir. */
 	public static void notUnderstood(MainActivityDelegate a, String raw) {
-		if (YoldaGemini.isEnabled(a.getContext())) { // komut değil: soru / sohbet → Gemini
+		if (YoldaGemini.isEnabled(a.getContext()) && !fromGemini) { // komut değil: soru / sohbet → Gemini
 			YoldaLog.add("Sesli komut Gemini'ye: “" + raw + "”");
 			askGemini(a, raw);
 			return;
@@ -683,8 +683,32 @@ public final class YoldaVoice {
 	/** Soruyu Gemini'ye sor, yanıtı söyle (hata olursa nedenini). */
 	static void askGemini(MainActivityDelegate a, String q) {
 		toast(a, "Düşünüyorum…");
-		YoldaGemini.ask(a.getContext(), q, ans -> reply(a, ans), err -> reply(a, err));
+		YoldaGemini.ask(a.getContext(), q, ans -> {
+			List<String> cmds = YoldaActions.commands(ans);
+			if (cmds == null) {
+				reply(a, ans);
+				return;
+			}
+			// Gemini isteği katalogdaki komutlara çevirdi: yerel çözücü yürütür (geri Gemini'ye dönmez)
+			YoldaLog.add("Gemini komutu: " + String.join(" ; ", cmds));
+			for (int i = 0; i < cmds.size(); i++) {
+				String c = cmds.get(i);
+				Runnable go = () -> {
+					fromGemini = true;
+					try {
+						if (!handle(a, c)) reply(a, "Bunu yapamadım: " + c);
+					} finally {
+						fromGemini = false;
+					}
+				};
+				if (i == 0) go.run();
+				else App.get().getHandler().postDelayed(go, 900L * i);
+			}
+		}, err -> reply(a, err));
 	}
+
+	/** Gemini'nin çevirdiği komut yürütülürken: anlaşılmazsa yeniden Gemini'ye sorulmaz (döngü olmasın). */
+	private static boolean fromGemini;
 
 	/** Art arda yeniden dinleme sayısı; bir komut çalışınca sıfırlanır. */
 	private static int retries;

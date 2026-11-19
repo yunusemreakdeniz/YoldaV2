@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-167 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-167
+
+- Gemini bağlıysa uygulamayı o yönetir: doğal istekleri ("biraz rahatlatıcı bir şey aç", "beni en yakın eczaneye götür", "çok gürültülü") anlayıp uygulamanın komutuna çevirir, komut hemen yürür.
+- Tek eylem kataloğu: oynatma, kanallar, navigasyon, arama / mesaj, kartlar, sürüş uyarıları, hatırlatma, tema; Gemini de yerel komut çözücü de aynı listeyi kullanır.
+- Bir cümlede en çok 3 iş ("radyo kartına geç ve Kral FM aç"); Gemini'nin çevirdiği komut anlaşılmazsa döngüye girmez, "Bunu yapamadım" der.
+
 ## 2026-11-19 · v2-166 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-166
 
 - TV ve Radyo kartında "Kanalları düzenle": tüm liste tek sırayla; sürükle ya da ▲ ▼ ile taşı, ada dokununca kanalı gizle / göster.
