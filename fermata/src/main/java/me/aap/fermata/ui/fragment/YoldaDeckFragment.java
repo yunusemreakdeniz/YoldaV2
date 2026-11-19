@@ -2877,19 +2877,28 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * boyut oynamaz. Dar başlıkta düğmeler kesilmesin, saat iki satıra kırılmasın.
 	 */
 	private static void fitClock(TextView clock, float maxSp, float minSp) {
+		// Satır yüksekliği en büyük boya göre sabit: yazı küçülse de başlık (ve deste) boyu değişmez. Önceden
+		// Düzenle kipinde tema / ayarlar gizlenince saat büyüyor, başlık uzuyor, deste yeniden boyutlanıp başka
+		// karta kayıyordu (düzenlenmek istenen kartın ✎'i kayboluyordu).
+		float d0 = clock.getResources().getDisplayMetrics().scaledDensity;
+		android.graphics.Paint p0 = new android.graphics.Paint(clock.getPaint());
+		p0.setTextSize(maxSp * d0);
+		android.graphics.Paint.FontMetrics fm = p0.getFontMetrics();
+		clock.setMinHeight((int) Math.ceil(fm.bottom - fm.top));
+		clock.setGravity(Gravity.CENTER_VERTICAL);
 		clock.addOnLayoutChangeListener((v, l, t0, r, b, ol, ot, or, ob) -> {
 			int avail = v.getWidth() - v.getPaddingLeft() - v.getPaddingRight();
 			if (avail <= 0) return;
 			float d = v.getResources().getDisplayMetrics().scaledDensity;
 			android.graphics.Paint pt = new android.graphics.Paint(((TextView) v).getPaint());
-			float sp = maxSp;
+			float cur = ((TextView) v).getTextSize() / d;
+			float sp = Math.min(maxSp, cur); // yalnız küçülür, geri büyümez (düzenleme kipinde düğme gizlenince de)
 			while (sp > minSp) {
 				pt.setTextSize(sp * d);
 				if (pt.measureText("88:88") <= avail) break;
 				sp -= 1f;
 			}
-			float cur = ((TextView) v).getTextSize() / d;
-			if (Math.abs(cur - sp) >= 0.5f) {
+			if (cur - sp >= 0.5f) {
 				float fs = sp;
 				v.post(() -> ((TextView) v).setTextSize(fs));
 			}
@@ -2943,12 +2952,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private void setEditing(boolean on) {
+		int keep = centerPosition(); // düzenleme kipine girip çıkarken ortadaki kart değişmesin
 		editing = on;
 		updateRestoreBtn();
 		editBtn.setImageResource(on ? R.drawable.yi_check : R.drawable.yi_edit);
 		editBtn.setContentDescription(on ? "Bitti" : "Düzenle");
 		adapter.notifyDataSetChanged();
-		list.post(this::transform);
+		list.post(() -> {
+			if (!isAdded()) return;
+			if ((keep >= 0) && (centerPosition() != keep)) scrollToCard(keep);
+			transform();
+		});
 		if (on) YoldaStyle.toast(requireContext(), "Düzenle: kartı basılı tutup sürükle ya da ◀ ▶ ile sırala · sağ üstteki ✕ kaldırır");
 	}
 
