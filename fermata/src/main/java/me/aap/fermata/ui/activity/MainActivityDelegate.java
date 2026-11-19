@@ -279,7 +279,25 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	protected void onActivityNewIntent(Intent intent) {
 		super.onActivityNewIntent(intent);
+		yoldaLeavePip();
 		handleIntent(intent);
+	}
+
+	/**
+	 * Uygulama küçük penceredeyken (Video + harita) başlatıcıdan / bildirimden yeniden açılınca tam ekrana dön:
+	 * küçük pencere odak almadığı için gelen dokunuşlar boşa gidiyor, Android "yanıt vermiyor" diyordu (R3).
+	 */
+	private void yoldaLeavePip() {
+		try {
+			android.app.Activity act = (android.app.Activity) getAppActivity();
+			if ((android.os.Build.VERSION.SDK_INT >= 26) && act.isInPictureInPictureMode()) {
+				android.app.ActivityManager am = act.getSystemService(android.app.ActivityManager.class);
+				am.moveTaskToFront(act.getTaskId(), 0);
+				me.aap.fermata.ui.fragment.YoldaLog.add("Küçük pencereden tam ekrana dönüldü");
+			}
+		} catch (Throwable ex) {
+			me.aap.fermata.ui.fragment.YoldaLog.add("Küçük pencereden çıkılamadı: " + ex.getClass().getSimpleName());
+		}
 	}
 
 	private FutureSupplier<Boolean> handleIntent(Intent intent) {
@@ -942,6 +960,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.StatusFragment();
 		} else if (id == R.id.yolda_nearby_fragment) {
 			return new me.aap.fermata.ui.fragment.NearbyFragment();
+		} else if (id == R.id.yolda_notes_fragment) {
+			return new me.aap.fermata.ui.fragment.NotesFragment();
 		} else if (id == R.id.yolda_menu_fragment) {
 			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
 		} else if (id == R.id.yolda_setup_fragment) {
@@ -1202,7 +1222,7 @@ public class MainActivityDelegate extends ActivityDelegate
 				|| (id == R.id.yolda_park_fragment) || (id == R.id.yolda_fuel_fragment)
 				|| (id == R.id.yolda_history_fragment) || (id == R.id.yolda_eq_fragment)
 				|| (id == R.id.yolda_info_fragment) || (id == R.id.yolda_status_fragment)
-				|| (id == R.id.yolda_nearby_fragment);
+				|| (id == R.id.yolda_nearby_fragment) || (id == R.id.yolda_notes_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
 		int left = (me.aap.fermata.ui.view.YoldaStyle.sideRail(getContext()) && yolda && (id != R.id.home_fragment)
 				&& !videoMode)
@@ -1842,6 +1862,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		radarAttached = true;
 		me.aap.fermata.ui.fragment.YoldaChannelAlt.warmUp(ctx); // TV yedek adres listesi (haftada bir yenilenir)
 		me.aap.fermata.ui.fragment.YoldaData.start(ctx); // mobil veri sayacı ve sınır uyarısı
+		me.aap.fermata.ui.fragment.YoldaAnswers.restoreReminders(ctx); // kapanmadan önce kurulan hatırlatmalar
 		// Uzun sesli okumada (haberler) ekranın altında "Okumayı durdur" düğmesi
 		me.aap.fermata.ui.fragment.YoldaSpeak.longListener = on -> showSpeakStop(host, on);
 		me.aap.fermata.ui.view.YoldaSpeedRail r = new me.aap.fermata.ui.view.YoldaSpeedRail(ctx);

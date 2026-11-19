@@ -192,6 +192,35 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case NOTE_ADD -> {
+				YoldaNotes.add(ctx, it.arg());
+				List<YoldaNotes.Note> nl = YoldaNotes.notes(ctx);
+				reply(a, nl.isEmpty() ? "Not anlaşılamadı" : ("Not aldım: " + nl.get(0).text()));
+			}
+			case NOTE_READ -> reply(a, YoldaNotes.spoken(YoldaNotes.notes(ctx), 5));
+			case NOTE_CLEAR -> {
+				YoldaNotes.clear(ctx);
+				reply(a, "Notlar silindi");
+			}
+			case ALERTS -> {
+				if (it.num() == 1) {
+					String last = YoldaSpeak.lastSpoken;
+					reply(a, (last == null) ? "Henüz bir şey söylemedim" : last);
+					break;
+				}
+				List<YoldaAlertLog.Entry> al = YoldaAlertLog.all(ctx);
+				if (al.isEmpty()) {
+					reply(a, "Uyarı geçmişi boş");
+					break;
+				}
+				StringBuilder b = new StringBuilder("Son uyarılar: ");
+				long now = System.currentTimeMillis();
+				for (int i = 0; i < Math.min(3, al.size()); i++) {
+					YoldaAlertLog.Entry e = al.get(i);
+					b.append((i == 0) ? "" : ". ").append(YoldaPlayHistory.ago(e.at(), now)).append(", ").append(e.text());
+				}
+				reply(a, b.toString());
+			}
 			case PARK_DEST -> {
 				NearbyFragment.mode = NearbyFragment.PARK_DEST;
 				NearbyFragment.place = it.arg();
@@ -287,7 +316,7 @@ public final class YoldaVoice {
 						? "haber vereceğim" : "hatırlatacağım"));
 			}
 			case TIMER_CANCEL -> {
-				int n = YoldaAnswers.cancelReminders();
+				int n = YoldaAnswers.cancelReminders(ctx);
 				reply(a, (n > 0) ? "Hatırlatmalar silindi" : "Kurulu bir hatırlatma yok");
 			}
 			case WIKI -> {
@@ -336,7 +365,7 @@ public final class YoldaVoice {
 				reply(a, "Tamam, " + it.num() + " dakika sonra kapatacağım");
 			}
 			case SLEEP_CANCEL -> {
-				boolean was = (sleepAt != 0) | (YoldaAnswers.cancelReminders() > 0);
+				boolean was = (sleepAt != 0) | (YoldaAnswers.cancelReminders(ctx) > 0);
 				cancelSleep();
 				reply(a, was ? "Uyku zamanlayıcısı iptal edildi" : "Kurulu bir zamanlayıcı yok");
 			}
@@ -892,6 +921,12 @@ public final class YoldaVoice {
 			String t = YoldaNowPlaying.titleOf(cb);
 			if (t != null) b.append(cb.isPlaying() ? "Şu an çalan: " : "Duraklatılmış: ").append(t).append(". ");
 			if (YoldaRadar.speed > 5) b.append("Hız ").append(YoldaRadar.speed).append(" km/s. ");
+			List<YoldaAlertLog.Entry> al = YoldaAlertLog.all(a.getContext());
+			if (!al.isEmpty()) { // Gemini "az önce ne uyarısı verdin" sorusunu da yanıtlayabilsin
+				b.append("Son uyarılar: ");
+				for (int i = 0; i < Math.min(3, al.size()); i++)
+					b.append(YoldaPlayHistory.ago(al.get(i).at(), System.currentTimeMillis())).append(" ").append(al.get(i).text()).append("; ");
+			}
 		} catch (Throwable ignore) {
 		}
 		return b.toString();

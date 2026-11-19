@@ -145,14 +145,29 @@ final class YoldaAnswers {
 	private static final List<Runnable> reminders = new ArrayList<>();
 
 	static void remind(Context ctx, int min, String what) {
-		Context app = ctx.getApplicationContext();
+		long due = System.currentTimeMillis() + min * 60_000L;
 		String msg = ((what == null) || what.isEmpty()) ? (min + " dakika doldu") : ("Hatırlatma: " + what);
+		YoldaNotes.addReminder(ctx, due, msg); // Notlar kartında listelenir, uygulama kapanıp açılsa da kalır
+		schedule(ctx, due, msg);
+	}
+
+	/** Açılışta: vakti gelmemiş kayıtlı hatırlatmaları yeniden kur (bir kez). */
+	static void restoreReminders(Context ctx) {
+		synchronized (reminders) {
+			if (!reminders.isEmpty()) return;
+		}
+		for (YoldaNotes.Reminder r : YoldaNotes.reminders(ctx)) schedule(ctx, r.due(), r.text());
+	}
+
+	private static void schedule(Context ctx, long due, String msg) {
+		Context app = ctx.getApplicationContext();
 		Runnable r = new Runnable() {
 			@Override
 			public void run() {
 				synchronized (reminders) {
 					if (!reminders.remove(this)) return;
 				}
+				YoldaNotes.removeReminder(app, due, msg);
 				YoldaLog.add("Hatırlatıcı: " + msg);
 				YoldaSpeak.wakeBeep();
 				me.aap.fermata.ui.view.YoldaStyle.toast(app, "⏰ " + msg);
@@ -162,10 +177,11 @@ final class YoldaAnswers {
 		synchronized (reminders) {
 			reminders.add(r);
 		}
-		App.get().getHandler().postDelayed(r, min * 60_000L);
+		App.get().getHandler().postDelayed(r, Math.max(0, due - System.currentTimeMillis()));
 	}
 
-	static int cancelReminders() {
+	static int cancelReminders(Context ctx) {
+		YoldaNotes.clearReminders(ctx);
 		synchronized (reminders) {
 			int n = reminders.size();
 			for (Runnable r : reminders) App.get().getHandler().removeCallbacks(r);

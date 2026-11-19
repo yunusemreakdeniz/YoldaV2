@@ -47,7 +47,11 @@ public final class YoldaIntents {
 		/** Telefon durumu: pil, bağlantı, bu ayki mobil veri. */
 		STATUS,
 		/** Varılacak yerdeki otoparklar (arg: yer; null = son yol tarifi). */
-		PARK_DEST
+		PARK_DEST,
+		/** Notlar: ekle (arg: metin), oku, sil. */
+		NOTE_ADD, NOTE_READ, NOTE_CLEAR,
+		/** Uyarı geçmişi: son uyarılar; az önce söylenen (num 1). */
+		ALERTS
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -231,6 +235,18 @@ public final class YoldaIntents {
 		// yardım, tekrar
 		if (c.matches("(yardım|ne yapabilirsin|neler yapabilirsin|komutlar|ne diyebilirim|nasıl kullanılır)")) return Intent.of(Kind.HELP);
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
+
+		// notlar: "not al: süt al", "şunu not et lastikleri kontrol et", "notlarımı oku", "notları sil"
+		if (c.matches("(notlarımı|notları|notlar) (oku|söyle|neler)|notlarım( neler)?|not(larım)? var mı")) return Intent.of(Kind.NOTE_READ);
+		if (c.matches("(bütün |tüm )?notları (sil|temizle)")) return Intent.of(Kind.NOTE_CLEAR);
+		if (c.matches("(şunu |bunu )?(not al|not et|not düş)\\b.+|.+ (diye )?(not al|not et|not düş)"))
+			return Intent.of(Kind.NOTE_ADD, raw.trim());
+
+		// uyarı geçmişi: "son uyarılar", "hangi uyarıları verdin", "az önce ne dedin"
+		if (c.matches("(son |hangi )?uyarı(lar|ları)?( neler| ne| verdin| oku| söyle| geçmişi)?|son uyarılar(ı oku)?|hangi uyarıları verdin"))
+			return Intent.of(Kind.ALERTS);
+		if (c.matches("(az önce|demin|biraz önce) ne (dedin|söyledin)|ne dedin|anlamadım tekrar söyle"))
+			return Intent.of(Kind.ALERTS, 1);
 
 		// varılacak yerin otoparkları: "gideceğim yerde otopark var mı", "kızılayda otopark", "varınca nereye park ederim"
 		if (c.matches("(gideceğim|varacağım|gittiğim) yer(de|in yakınında)? (otopark|park yeri)( var mı| nerede)?|varınca (nereye park ederim|otopark)"))

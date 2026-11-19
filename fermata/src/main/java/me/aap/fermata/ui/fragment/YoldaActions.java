@@ -60,6 +60,8 @@ public final class YoldaActions {
 			{"hava nasıl / yarın hava nasıl / [şehir] hava durumu", "hava durumu ve tahmin"},
 			{"şarjım kaç / hızım kaç", "pil, hız"},
 			{"[sayı] dakika sonra [iş] hatırlat / hatırlatmaları sil", "hatırlatıcı"},
+			{"not al: [metin] / notlarımı oku / notları sil", "sesli notlar"},
+			{"son uyarılar / az önce ne dedin", "uyarı geçmişi ve son söylenen"},
 			{"on beş çarpı dört", "hesap"},
 			{"gün batımı ne zaman", "güneş saatleri"},
 			// görünüm

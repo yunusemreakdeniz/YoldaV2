@@ -911,7 +911,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -1306,6 +1306,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return (b.length() == 0) ? "Dolar, euro ve altın alınıyor…" : b.toString();
 			}
 		}
+	}
+
+	/** Notlar kartının alt satırı: sıradaki hatırlatma ve not sayısı. */
+	private String notesLine() {
+		Context ctx = requireContext();
+		List<YoldaNotes.Reminder> rl = YoldaNotes.reminders(ctx);
+		int n = YoldaNotes.notes(ctx).size();
+		String r = rl.isEmpty() ? "" : ("Sıradaki hatırlatma " + YoldaNotes.left(rl.get(0).due(), System.currentTimeMillis()) + " · ");
+		return r + ((n == 0) ? "Sesle: “not al: lastikleri kontrol et”" : (n + " not"));
 	}
 
 	/** Şarj kartının alt satırı; konum biliniyorsa 30 dakikada bir arka planda en yakınları bulur. */
@@ -2714,6 +2723,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.NOTES -> new Look(0xFFFDE68A, 0xFFB45309, R.drawable.yi_edit, true, "NOTLAR · HATIRLATMA", notesLine());
 			case YoldaDeck.CHARGER -> new Look(0xFF2DD4BF, 0xFF0D9488, R.drawable.yi_ev, true, "ŞARJ İSTASYONLARI", chargerLine());
 			case YoldaDeck.STATUS -> new Look(0xFF93C5FD, 0xFF1E3A8A, R.drawable.yi_phone, true, "TELEFON DURUMU",
 					StatusFragment.line(requireContext()));
@@ -3084,6 +3094,21 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
+			}
+			case YoldaDeck.NOTES -> { // sıradaki hatırlatmalar ve son notlar (dokun: okunur), sesli not ekle
+				LinearLayout row = hrow(ctx);
+				long now = System.currentTimeMillis();
+				for (YoldaNotes.Reminder r : YoldaNotes.reminders(ctx)) {
+					if (row.getChildCount() >= 2) break;
+					row.addView(chipBtn(ctx, "⏰ " + YoldaNotes.left(r.due(), now), v -> YoldaSpeak.sayAlways(ctx, r.text())), chipLp());
+				}
+				List<YoldaNotes.Note> nl = YoldaNotes.notes(ctx);
+				for (int i = 0; i < Math.min(3, nl.size()); i++) {
+					YoldaNotes.Note n = nl.get(i);
+					String tt = (n.text().length() > 32) ? (n.text().substring(0, 32) + "…") : n.text();
+					row.addView(chipBtn(ctx, tt, v -> YoldaSpeak.sayAlways(ctx, n.text())), chipLp());
+				}
+				return withActions(ctx, scroll(ctx, row), "Sesli not ekle", () -> a.startVoiceAssistant(), null, null);
 			}
 			case YoldaDeck.CHARGER -> { // en yakın üç istasyon: dokun → yol tarifi
 				List<YoldaNearby.Spot> sl = NearbyFragment.lastChargers;
@@ -3492,6 +3517,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FUEL -> a.showFragment(R.id.yolda_fuel_fragment);
 			case YoldaDeck.EQ -> a.showFragment(R.id.yolda_eq_fragment); // kendi sayfası: hazır ayarlar ve bant ayarları
 			case YoldaDeck.STATUS -> a.showFragment(R.id.yolda_status_fragment);
+			case YoldaDeck.NOTES -> a.showFragment(R.id.yolda_notes_fragment);
 			case YoldaDeck.CHARGER -> {
 				NearbyFragment.mode = NearbyFragment.CHARGER;
 				a.showFragment(R.id.yolda_nearby_fragment);

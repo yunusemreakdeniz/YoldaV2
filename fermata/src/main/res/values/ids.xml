@@ -48,6 +48,7 @@
     <item name="yolda_info_fragment" type="id" />
     <item name="yolda_status_fragment" type="id" />
     <item name="yolda_nearby_fragment" type="id" />
+    <item name="yolda_notes_fragment" type="id" />
     <item name="yolda_vq" type="id" />
     <item name="yolda_vq_360" type="id" />
     <item name="yolda_vq_480" type="id" />
