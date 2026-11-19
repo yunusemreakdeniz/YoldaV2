@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-184 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-184 · Gemini düzeltmesi
+
+- Gemini 503 ("model aşırı yüklü") ve uzun bekleme: önce hızlı Lite modeller (gemini-3.5-flash-lite, flash-lite-latest), sonra Flash; yoğunlukta kısa bekleyip tekrar dener, 12 sn yanıtsız model atlanır. Yeni anahtarlara kapalı 2.5 modelleri çıkarıldı.
+- Zaman aşımı artık "İnternet bağlantısı yok" diye gösterilmiyor; 400 yalnız gerçek anahtar hatasında "anahtar geçersiz".
+
 ## 2026-11-19 · v2-182 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-182 · Paket A (tamamı)
 
 - Yeni kartlar: Podcast (arama, abonelik, son bölümü çal), Medya (telefondaki videolar kaldığı yerden, fotoğraflar), Trafik (eve / işe süre ve mesafe, trafik hariç tahmini; canlı trafik Google Haritalar'da), Spor (Süper Lig son sonuçlar ve fikstür, tuttuğun takım öne). Deste 33 kart.
