@@ -30,7 +30,7 @@ B. [x] (v2-173) Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucu
 7. [x] (v2-174) Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)
 8. [ ] Medya kartı: telefondaki videolar (en yeni üstte, klasörler, kaldığı yerden) ve fotoğraflar (yalnız telefonda)
 9. [x] (v2-181) Mobil veri sınırı ve uyarısı (aç / kapat); aşınca devam edene devam
-10. [ ] TV'de çok kanal değiştirince görüntünün gitmesi (tanı günlüğüyle)
+10. [x] (v2-182) TV'de çok kanal değiştirince görüntünün gitmesi (tanı günlüğüyle)
 11. [x] (v2-181) Gidilen yerdeki otoparklar (OpenStreetMap)
 12. [ ] Android Auto'da profesyonel görünüm: kalan sadeleştirmeler
 13. [ ] Hava durumuna göre animasyonlu tema (gece / gündüz ayarlı)
