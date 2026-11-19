@@ -2,6 +2,10 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-195 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-195 · Düzenle kipi düzeltmesi
+
+- Dar telefonda Düzenle kipine girince deste başka karta kayıyordu (kartın ✎ düğmesi görünmüyordu): saat yalnız küçülür, başlık boyu sabit, ortadaki kart korunur.
+
 ## 2026-11-19 · v2-194 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-194 · Yolculuk kaydı
 
 - Android Auto bağlanınca yolculuk kendiliğinden başlar, kesilince biter. Telefonda kendiliğinden başlamaz: Yolculuklar kartında ve sayfasında Yolculuğu başlat / bitir; sesle de.
