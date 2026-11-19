@@ -3233,7 +3233,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			cardEdit = cardAdd = null;
 			try {
 				content(ctx, c); // yalnız kartın eylemlerini öğrenmek için
-			} catch (Throwable ignore) {
+			} catch (Throwable ex) { // ✎ sessizce kaybolmasın: nedeni tanı günlüğüne
+				Log.e(ex, "Kart içeriği (düzenleme) kurulamadı: ", c.type());
+				YoldaLog.add("Kart düzenleme içeriği kurulamadı (" + c.type() + "): " + ex);
 			}
 			Runnable ed = cardEdit;
 			cardEdit = cardAdd = null;

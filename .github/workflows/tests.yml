@@ -7,6 +7,11 @@ on:
       - "kanallar/**"
       - "**.md"
   workflow_dispatch:
+    inputs:
+      classes:
+        description: 'Yalnız bu cihaz test sınıfları (boşlukla; boş: hepsi), ör. YoldaAtoZTest'
+        required: false
+        default: ''
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -119,7 +124,7 @@ jobs:
           emulator-boot-timeout: 1200
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
-          script: bash .github/scripts/android-tests.sh
+          script: CLASSES="${{ github.event.inputs.classes }}" bash .github/scripts/android-tests.sh
       - name: Sonuçlar
         if: always()
         uses: actions/upload-artifact@v4

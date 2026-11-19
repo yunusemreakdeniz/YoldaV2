@@ -8,7 +8,8 @@ code=0
 adb logcat -c || true
 adb logcat -v time -s YoldaTest:I YoldaUiUx:I YoldaClick:I AndroidRuntime:E Yolda:I chromium:E cr_AwContents:W DEBUG:F libc:F > "$OUT/canli-gunluk.txt" 2>&1 &
 LOGPID=$!
-for c in YoldaWakeTest YoldaFunctionalTest YoldaAtoZTest YoldaPlaybackTest YoldaMusicTest YoldaGestureTest YoldaPharmacyTest YoldaUiUxTest YoldaClickAllTest; do
+ALL="YoldaWakeTest YoldaFunctionalTest YoldaAtoZTest YoldaPlaybackTest YoldaMusicTest YoldaGestureTest YoldaPharmacyTest YoldaUiUxTest YoldaClickAllTest"
+for c in ${CLASSES:-$ALL}; do # CLASSES verilirse yalnız onlar (hata ayıklarken hızlı)
   echo "=== $c başlıyor $(date -u +%H:%M:%S)"
   # -k: TERM ile kapanmazsa 30 sn sonra KILL (Gradle bazen TERM'i yutup takılı kalıyordu)
   timeout -k 30s 15m ./gradlew fermata:connectedAutoDebugAndroidTest $GRADLE_ARGS \
