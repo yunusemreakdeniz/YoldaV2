@@ -558,7 +558,7 @@ public class ChannelsFragment extends MainActivityFragment {
 		name.setPadding(dp(4), dp(10), dp(4), 0);
 		name.setGravity(Gravity.CENTER_HORIZONTAL);
 		f.addView(name, new LinearLayout.LayoutParams(-1, -2));
-		TextView grp = text(ctx, groupOf(pi), 12, false, 0xB3FFFFFF);
+		TextView grp = text(ctx, groupOf(pi), 12, false, me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 		grp.setMaxLines(1);
 		grp.setEllipsize(android.text.TextUtils.TruncateAt.END);
 		grp.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -622,7 +622,7 @@ public class ChannelsFragment extends MainActivityFragment {
 	private static TextView text(Context ctx, String s, float size, boolean bold, int color) {
 		TextView tv = new TextView(ctx);
 		tv.setText(s);
-		tv.setTextSize(size * me.aap.fermata.ui.view.YoldaStyle.textScale(ctx)); // araçta küçük
+		tv.setTextSize(me.aap.fermata.ui.view.YoldaStyle.type(size) * me.aap.fermata.ui.view.YoldaStyle.textScale(ctx)); // araçta küçük
 		tv.setTextColor(color);
 		if (bold) tv.setTypeface(Typeface.DEFAULT_BOLD);
 		return tv;

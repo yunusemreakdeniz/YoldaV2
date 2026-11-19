@@ -572,6 +572,24 @@ public final class YoldaVoice {
 					else toast(a, title + " açılıyor");
 				}, 150);
 			}
+			case CARD_HIDE, CARD_SHOW, CARD_MOVE -> { // kart yönetimi (sesle ya da Gemini'nin KOMUT'uyla)
+				a.showFragment(R.id.home_fragment);
+				App.get().getHandler().postDelayed(() -> {
+					if (!(a.getActiveFragment() instanceof YoldaDeckFragment d)) return;
+					String[] p = it.arg().split("\\|");
+					String t = switch (it.kind()) {
+						case CARD_HIDE -> d.hideCardByName(p[0]);
+						case CARD_SHOW -> d.showCardByName(p[0]);
+						default -> d.moveCardByName(p[0], (p.length > 1) ? p[1] : "first", (p.length > 2) ? p[2] : null);
+					};
+					if (t == null) reply(a, "“" + p[0] + "” kartını bulamadım" + ((p.length > 2) ? (" ya da “" + p[2] + "” kartını") : ""));
+					else reply(a, t + switch (it.kind()) {
+						case CARD_HIDE -> " kartı gizlendi; geri getirmek için “" + t.toLowerCase(new java.util.Locale("tr")) + " kartını geri getir” de";
+						case CARD_SHOW -> " kartı geri geldi";
+						default -> " kartı taşındı";
+					});
+				}, 150);
+			}
 			case EDIT_CARDS -> {
 				a.showFragment(R.id.home_fragment);
 				App.get().getHandler().postDelayed(() -> {
@@ -997,6 +1015,10 @@ public final class YoldaVoice {
 			String t = YoldaNowPlaying.titleOf(cb);
 			if (t != null) b.append(cb.isPlaying() ? "Şu an çalan: " : "Duraklatılmış: ").append(t).append(". ");
 			if (YoldaRadar.speed > 5) b.append("Hız ").append(YoldaRadar.speed).append(" km/s. ");
+			// Destedeki kartlar: Gemini kart yönetimi komutlarını (gizle / geri getir / taşı) doğru adla kursun
+			YoldaDeck dk = YoldaDeck.decode(a.getContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
+					Context.MODE_PRIVATE).getString(YoldaDeckFragment.PREF_DECK, null));
+			b.append(cardsLine(dk.cards(), dk.missingBuiltIns()));
 			List<YoldaAlertLog.Entry> al = YoldaAlertLog.all(a.getContext());
 			if (!al.isEmpty()) { // Gemini "az önce ne uyarısı verdin" sorusunu da yanıtlayabilsin
 				b.append("Son uyarılar: ");
@@ -1004,6 +1026,23 @@ public final class YoldaVoice {
 					b.append(YoldaPlayHistory.ago(al.get(i).at(), System.currentTimeMillis())).append(" ").append(al.get(i).text()).append("; ");
 			}
 		} catch (Throwable ignore) {
+		}
+		return b.toString();
+	}
+
+	/** Gemini için kart listesi: sıradaki kartlar ve geri getirilebilecek (kaldırılmış) sabit kartlar. */
+	static String cardsLine(List<YoldaDeck.Card> cards, List<String> missing) {
+		StringBuilder b = new StringBuilder("Kartlar sırayla: ");
+		int n = 0;
+		for (YoldaDeck.Card c : cards) {
+			if (YoldaDeck.ADD.equals(c.type())) continue;
+			b.append((n++ > 0) ? ", " : "").append(c.title());
+		}
+		b.append(". ");
+		if (!missing.isEmpty()) {
+			b.append("Kaldırılmış (geri getirilebilir): ");
+			for (int i = 0; i < missing.size(); i++) b.append((i > 0) ? ", " : "").append(YoldaDeck.titleOf(missing.get(i)));
+			b.append(". ");
 		}
 		return b.toString();
 	}

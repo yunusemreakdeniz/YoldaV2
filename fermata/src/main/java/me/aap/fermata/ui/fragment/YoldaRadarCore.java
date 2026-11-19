@@ -130,14 +130,27 @@ public final class YoldaRadarCore {
 	 */
 	public static int estimateLimit(String highway, boolean oneway, @androidx.annotation.Nullable String name,
 																	@androidx.annotation.Nullable String ref, boolean sidewalk, @androidx.annotation.Nullable String zone) {
+		return estimateLimit(highway, oneway, name, ref, sidewalk, zone, false);
+	}
+
+	/**
+	 * {@link #estimateLimit} ve yerleşim alanı bilgisi: bulunulan nokta OSM'de bir yerleşim alanının (konut / ticaret
+	 * alanı, şehir / kasaba / köy / mahalle sınırı) içindeyse yol şehir içi sayılır (adında Cadde geçmese de).
+	 * Otoyol yerleşim alanında da 120; açık sınır türü (TR:rural) her zaman önce gelir.
+	 */
+	public static int estimateLimit(String highway, boolean oneway, @androidx.annotation.Nullable String name,
+																	@androidx.annotation.Nullable String ref, boolean sidewalk, @androidx.annotation.Nullable String zone,
+																	boolean settlement) {
 		if (highway == null) return 0;
+		if (settlement && ((zone == null) || zone.isEmpty())) zone = "urban-area";
 		String z = (zone == null) ? "" : zone.toLowerCase(Locale.ROOT);
-		if (z.contains("urban")) return z.contains("living") ? 20 : 50;
+		boolean area = z.equals("urban-area"); // yerleşim alanından çıkarım (etiket değil)
+		if (z.contains("urban") && !area) return z.contains("living") ? 20 : 50;
 		if (z.contains("rural")) return oneway ? 110 : 90;
 		String n = (name == null) ? "" : name.toLowerCase(new Locale("tr"));
 		boolean cityName = n.matches(".*(cadde|bulvar|sokak|sokağ| cad\\.| sk\\.).*");
 		boolean stateRoad = (ref != null) && ref.trim().toUpperCase(Locale.ROOT).matches("^[DO][ -]?\\d+.*");
-		boolean urban = cityName || sidewalk;
+		boolean urban = cityName || sidewalk || area;
 		return switch (highway) {
 			case "motorway" -> 120;
 			case "motorway_link" -> 80;
@@ -148,6 +161,24 @@ public final class YoldaRadarCore {
 			case "primary", "secondary" -> urban ? 50 : ((stateRoad && oneway) ? 110 : 90);
 			default -> 0;
 		};
+	}
+
+	/**
+	 * Overpass "is_in" yanıtındaki alanlardan noktanın yerleşim yerinde olup olmadığı: konut / ticaret / perakende
+	 * alanı ya da şehir, kasaba, köy, mahalle, semt alanı. Sanayi, tarla, orman ve idari sınırlar (köy toprağının
+	 * tamamını da kapsar) sayılmaz.
+	 */
+	public static boolean settlementFromAreas(org.json.JSONArray el) {
+		if (el == null) return false;
+		for (int i = 0; i < el.length(); i++) {
+			org.json.JSONObject o = el.optJSONObject(i);
+			if ((o == null) || !"area".equals(o.optString("type"))) continue;
+			org.json.JSONObject t = o.optJSONObject("tags");
+			if (t == null) continue;
+			if (t.optString("landuse").matches("^(residential|commercial|retail)$")) return true;
+			if (t.optString("place").matches("^(city|town|village|suburb|neighbourhood|quarter|hamlet)$")) return true;
+		}
+		return false;
 	}
 
 	// ---- geometri ----

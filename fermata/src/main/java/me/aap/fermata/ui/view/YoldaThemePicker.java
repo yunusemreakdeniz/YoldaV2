@@ -115,6 +115,25 @@ public final class YoldaThemePicker extends FrameLayout {
 		}), ml);
 		col.addView(mode);
 
+		// Hava durumuna göre zemin (yağmurda damla, karda tane, açık gecede yıldız)
+		LinearLayout wx = new LinearLayout(ctx);
+		wx.setGravity(Gravity.CENTER_VERTICAL);
+		wx.setPadding(0, dp(8), 0, dp(4));
+		wx.setMinimumHeight(dp(56));
+		TextView wl = text(ctx, "Hava durumuna göre zemin", 16, true, 0xFFFFFFFF);
+		wx.addView(wl, new LinearLayout.LayoutParams(0, -2, 1f));
+		View sw = YoldaStyle.toggleSwitch(ctx, YoldaSky.enabled, 0xFF34D399);
+		wx.addView(sw, new LinearLayout.LayoutParams(dp(52), dp(32)));
+		wx.setClickable(true);
+		wx.setOnClickListener(v -> {
+			YoldaSky.setEnabled(ctx, !YoldaSky.enabled);
+			YoldaStyle.invalidateBackdrop();
+			render();
+		});
+		col.addView(wx);
+		col.addView(note(ctx, YoldaSky.enabled ? ("Şu an: " + YoldaSky.label(YoldaSky.current())
+				+ ". Araçta ve animasyonlar kapalıyken sahne sabit durur.") : "Kapalı: yalnız tema ışıltısı."));
+
 		if (!auto) {
 			col.addView(note(ctx, "Seçtiğin tema her zaman kullanılır."));
 			grid(ctx, YoldaStyle.index(ctx), i -> YoldaStyle.setTheme(ctx, i));

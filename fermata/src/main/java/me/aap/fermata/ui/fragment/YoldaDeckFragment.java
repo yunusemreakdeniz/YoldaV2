@@ -249,7 +249,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		} catch (Throwable ignore) {
 		}
 		s.setTextSize(38);
-		s.setTextColor(0x8CFFFFFF);
+		s.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 		s.setShadowLayer(dp(3), 0, dp(1), 0x40000000);
 		s.setRotation(-6f);
 		s.setIncludeFontPadding(false);
@@ -568,6 +568,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		updatePhoneLive();
 		YoldaWeather.get(ctx).main().onSuccess(wn -> {
 			weather = wn;
+			YoldaStyle.invalidateBackdrop();
 			if (phWeather != null) phWeather.setText(wn.temp() + "°");
 			if (phWeatherIcon != null) phWeatherIcon.setText(YoldaWeather.emoji(wn.code()));
 			if (phWeatherPlace != null) phWeatherPlace.setText(wn.place());
@@ -866,6 +867,94 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (i < 0) return null;
 		list.smoothScrollToPosition(i);
 		return deck.get(i).title();
+	}
+
+	/**
+	 * Sesle / Gemini ile kart gizle: telefon görünümünde yalnız telefondan gizler (araç destesi değişmez), araçta
+	 * desteden kaldırır (sabit kart sonra geri getirilebilir). @return kartın adı, bulunamazsa ya da kaldırılamazsa null.
+	 */
+	@Nullable
+	public String hideCardByName(String spoken) {
+		Context ctx = getContext();
+		if ((deck == null) || (ctx == null)) return null;
+		int i = deck.find(spoken);
+		if (i < 0) return null;
+		YoldaDeck.Card c = deck.get(i);
+		if (YoldaDeck.ADD.equals(c.type())) return null;
+		if (phoneMode()) {
+			java.util.Set<String> h = new java.util.HashSet<>(prefs(ctx).getStringSet(PREF_PHONE_HIDDEN, java.util.Collections.emptySet()));
+			h.add(c.key());
+			List<String> order = new ArrayList<>();
+			for (YoldaDeck.Card x : phoneCards(ctx)) if (!x.key().equals(c.key())) order.add(x.key());
+			savePhoneOrder(ctx, order, h);
+			rebuildPhone();
+			return c.title();
+		}
+		if (!deck.remove(i)) return null;
+		if (!c.isBuiltIn()) stashRemoved(c);
+		afterChange(Math.max(0, i - 1));
+		updateRestoreBtn();
+		return c.title();
+	}
+
+	/** Gizlenen / kaldırılan kartı geri getir. @return kartın adı, bulunamazsa null. */
+	@Nullable
+	public String showCardByName(String spoken) {
+		Context ctx = getContext();
+		if ((deck == null) || (ctx == null)) return null;
+		if (phoneMode()) {
+			for (YoldaDeck.Card hc : phoneHiddenCards(ctx)) {
+				if (deck.find(spoken) == deck.cards().indexOf(hc)) { // söylenen ad bu gizli karta uyuyor
+					unhidePhoneCard(ctx, hc);
+					return hc.title();
+				}
+			}
+		}
+		String type = YoldaDeck.builtInOfSpoken(spoken);
+		if (type == null) return null;
+		int at = deck.indexOf(type);
+		if (at >= 0) { // zaten destede: telefonda gizliyse yukarıda açıldı; değilse oraya git
+			goToCard(spoken);
+			return deck.get(at).title();
+		}
+		at = deck.restore(type);
+		afterChange(at);
+		updateRestoreBtn();
+		return deck.get(at).title();
+	}
+
+	/** Kartı taşı: where = first / last / before / after (other: yanına konacak kartın adı). @return yeni sıra açıklaması ya da null. */
+	@Nullable
+	public String moveCardByName(String spoken, String where, @Nullable String other) {
+		Context ctx = getContext();
+		if ((deck == null) || (ctx == null)) return null;
+		int i = deck.find(spoken);
+		if ((i < 0) || YoldaDeck.ADD.equals(deck.get(i).type())) return null;
+		int o = (other != null) ? deck.find(other) : -1;
+		if ((other != null) && (o < 0)) return null;
+		YoldaDeck.Card c = deck.get(i);
+		if (phoneMode()) {
+			List<String> order = new ArrayList<>();
+			for (YoldaDeck.Card x : phoneCards(ctx)) order.add(x.key());
+			int from = order.indexOf(c.key());
+			if (from < 0) return null;
+			int oi = (o >= 0) ? order.indexOf(deck.get(o).key()) : -1;
+			int to = YoldaDeck.targetIndex(from, where, oi, order.size());
+			order.add(to, order.remove(from));
+			savePhoneOrder(ctx, order, new java.util.HashSet<>(prefs(ctx).getStringSet(PREF_PHONE_HIDDEN, java.util.Collections.emptySet())));
+			rebuildPhone();
+			return c.title();
+		}
+		int movable = deck.size() - ((deck.indexOf(YoldaDeck.ADD) >= 0) ? 1 : 0);
+		int to = YoldaDeck.targetIndex(i, where, o, movable);
+		int p = i;
+		while (p != to) {
+			int np = deck.move(p, (to > p) ? 1 : -1);
+			if (np == p) break;
+			p = np;
+		}
+		afterChange(p);
+		return c.title();
 	}
 
 	/** Ana karta kayarak dön. @return ana kart varsa true. */
@@ -2609,9 +2698,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		s.setElevation(dp(24));
 		s.setOnTouchListener((v, e) -> onJumpTouch(e)); // şerit üzerinde de kaydırılır / dokunulur
 		int n = Math.max(1, deck.size());
-		int gap = dp(4);
-		int avail = root.getWidth() - dp(40) - n * gap;
-		int w = Math.max(dp(20), Math.min(dp(48), avail / n));
+		// Bütün mini kartlar ekrana sığmalı (yoksa sağdakiler taşar, sağ uca kaydırınca son karta varılmaz):
+		// kart çoksa aralık ve genişlik daralır; simgeye yer kalmazsa yalnız renk
+		int gap = (n > 24) ? dp(2) : dp(4);
+		int avail = root.getWidth() - dp(40) - (n - 1) * gap;
+		int w = Math.max(dp(6), Math.min(dp(48), avail / n));
 		int h = dp(36);
 		boolean noble = noble();
 		for (int i = 0; i < deck.size(); i++) {
@@ -2629,7 +2720,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			ic.setImageResource(lk.icon());
 			if (lk.tint()) ic.setImageTintList(ColorStateList.valueOf(noble ? YoldaStyle.nobleAccent(lk.c1()) : 0xFFFFFFFF));
 			int is = Math.min(dp(18), w - dp(6));
-			m.addView(ic, new FrameLayout.LayoutParams(is, is, Gravity.CENTER));
+			if (is >= dp(10)) m.addView(ic, new FrameLayout.LayoutParams(is, is, Gravity.CENTER));
 			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(w, h);
 			if (i > 0) lp.leftMargin = gap;
 			s.addView(m, lp);
@@ -3263,6 +3354,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		bottom.setGravity(Gravity.BOTTOM);
 		cardEdit = cardAdd = null;
 		View content = content(ctx, c);
+		if (lowFx && (content != null)) carSimplify(content); // araçta kısa şerit, kısa yazı
 		if (content != null) bottom.addView(content, new LinearLayout.LayoutParams(0, -2, 1f));
 		else bottom.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
 		Runnable ad = cardAdd;
@@ -3321,7 +3413,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.MUSIC -> {
 				List<YtMusic.Track> rec = MusicFragment.recent(ctx);
-				if (rec.isEmpty()) return null;
+				if (rec.isEmpty()) { // ilk açılışta da kartın yüzünde tek dokunuşla çalınacak üç seçenek
+					LinearLayout row = hrow(ctx);
+					for (String[] q : new String[][]{{"▶ Türkçe pop", "türkçe pop"}, {"▶ Yolculuk şarkıları", "yolculuk şarkıları"},
+							{"▶ Akustik", "akustik türkçe"}})
+						row.addView(chipBtn(ctx, q[0], v -> MusicFragment.playQuery(a, q[1])), chipLp());
+					return scroll(ctx, row);
+				}
 				LinearLayout row = hrow(ctx);
 				for (int i = 0; i < Math.min(8, rec.size()); i++) {
 					YtMusic.Track tr = rec.get(i);
@@ -4692,6 +4790,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 		Runnable wx = () -> YoldaWeather.get(requireContext()).main().onSuccess(w -> {
 			weather = w;
+			YoldaStyle.invalidateBackdrop(); // hava sahnesi (yağmur / kar / güneş)
 			refreshCard(YoldaDeck.WEATHER);
 			updateWeatherChip();
 		});
@@ -4922,6 +5021,35 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return r;
 	}
 
+	/**
+	 * Android Auto sadeleştirme: kart yüzündeki kaydırılan şeritlerde en çok 6 öğe kalır (kalanı kartın "Aç"
+	 * sayfasında), çip yazıları tek satır ve kısa. Sürüşte göz kısa bakışta okusun, uzun liste kaydırılmasın.
+	 */
+	private void carSimplify(View v) {
+		if (v instanceof HorizontalScrollView hs) {
+			if ((hs.getChildCount() > 0) && (hs.getChildAt(0) instanceof LinearLayout row)) {
+				int keep = YoldaDeck.carItems(row.getChildCount());
+				while (row.getChildCount() > keep) row.removeViewAt(row.getChildCount() - 1);
+				for (int i = 0; i < row.getChildCount(); i++) {
+					if (row.getChildAt(i) instanceof TextView tv) {
+						CharSequence txt = tv.getText();
+						if (txt != null) {
+							String sh = YoldaDeck.carLabel(txt.toString());
+							if (!sh.contentEquals(txt)) {
+								if (tv.getContentDescription() == null) tv.setContentDescription(txt); // tam yazı erişilebilirlikte
+								tv.setText(sh);
+							}
+						}
+						tv.setMaxLines(1);
+						tv.setEllipsize(android.text.TextUtils.TruncateAt.END);
+					}
+				}
+			}
+			return;
+		}
+		if (v instanceof android.view.ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) carSimplify(g.getChildAt(i));
+	}
+
 	private View scroll(Context ctx, View row) {
 		HorizontalScrollView hs = new ChipScroll(ctx);
 		hs.setHorizontalScrollBarEnabled(false);
@@ -5007,20 +5135,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	@SuppressLint("ClickableViewAccessibility")
+	/** Basınca hafif küçülme (durum animatörü: dokunma dinleyicisini işgal etmez, animasyon kapalıysa yok). */
 	private static void pressEffect(View v) {
-		v.setOnTouchListener((x, e) -> {
-			int act = e.getActionMasked();
-			if (act == MotionEvent.ACTION_DOWN) x.animate().scaleX(0.94f).scaleY(0.94f).setDuration(80).start();
-			else if ((act == MotionEvent.ACTION_UP) || (act == MotionEvent.ACTION_CANCEL))
-				x.animate().scaleX(1f).scaleY(1f).setDuration(160).start();
-			return false;
-		});
+		me.aap.fermata.ui.view.YoldaMotion.press(v);
 	}
 
 	private static TextView text(Context ctx, String s, float size, boolean bold, int color) {
 		TextView v = new TextView(ctx);
 		v.setText(s);
-		v.setTextSize(size * YoldaStyle.textScale(ctx));
+		v.setTextSize(YoldaStyle.type(size) * YoldaStyle.textScale(ctx));
 		v.setTextColor(color);
 		if (bold) v.setTypeface(Typeface.DEFAULT_BOLD);
 		return v;

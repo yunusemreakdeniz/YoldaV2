@@ -643,7 +643,7 @@ public final class YoldaStyle {
 	}
 
 	private static Drawable glass(Context ctx, float radiusDp, int c1, int c2, int c3, int edge) {
-		float r = dp(ctx, radiusDp);
+		float r = dp(ctx, radius(radiusDp));
 		GradientDrawable fill = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{c1, c2, c3});
 		fill.setCornerRadius(r);
 		// Üst yarıda yumuşak ışık (camın üst kenarından düşen yansıma)
@@ -699,6 +699,7 @@ public final class YoldaStyle {
 	public static synchronized void applyBackdrop(View root) {
 		backdropHosts.removeIf(r -> (r.get() == null) || (r.get() == root));
 		backdropHosts.add(new WeakReference<>(root));
+		YoldaSky.load(root.getContext());
 		// V2: kart renginde ışıltılı zemin tüm ekranda (kenar payları dahil)
 		root.setBackground(DECK ? new YoldaGlow(current(root.getContext())) : new BackdropDrawable(current(root.getContext())));
 	}
@@ -717,6 +718,15 @@ public final class YoldaStyle {
 			} else {
 				v.setBackground(new BackdropDrawable(current(ctx)));
 			}
+		}
+	}
+
+	/** Hava değişince (ya da ayar) zemini yeniden çiz; sabit zeminde de yeni sahne görünsün. */
+	public static synchronized void invalidateBackdrop() {
+		backdropHosts.removeIf(r -> r.get() == null);
+		for (WeakReference<View> r : backdropHosts) {
+			View v = r.get();
+			if ((v != null) && (v.getBackground() != null)) v.getBackground().invalidateSelf();
 		}
 	}
 
@@ -850,6 +860,34 @@ public final class YoldaStyle {
 	public static volatile boolean webNoToolbar;
 
 	/** Yazı ölçeği: alçak geniş ekranda (araç, yatay telefon) yazılar daha küçük; yer kaplamasın. */
+	/**
+	 * Tasarım dili: yazı rengi tokenları (koyu cam zemin üstünde). Ana yazı tam beyaz; ikincil (alt satır,
+	 * açıklama) %80; üçüncül (ipucu, saat) en az %65: araçta kısa bakışta okunur, soluk kalmaz.
+	 */
+	public static final int TEXT_1 = 0xFFFFFFFF, TEXT_2 = 0xCCFFFFFF, TEXT_3 = 0xA6FFFFFF;
+
+	/** Tasarım dili: yazı ölçeği (sp). Bütün ekranların yazıları bu basamaklardan birine oturur. */
+	public static final float[] TYPE_SCALE = {12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 34, 44, 56, 72};
+
+	/**
+	 * Verilen boyutu yazı ölçeğinin en yakın basamağına oturtur (eşitlikte küçüğe: dar düzenler taşmasın;
+	 * 12'den küçük 12 olur, araçta okunsun). Ara değerler (19, 23, 26...) toplanır; görünüm tutarlı kalır.
+	 */
+	public static float type(float sp) {
+		float best = TYPE_SCALE[0];
+		for (float t : TYPE_SCALE) if (Math.abs(t - sp) < Math.abs(best - sp)) best = t;
+		return (sp > TYPE_SCALE[TYPE_SCALE.length - 1]) ? sp : best;
+	}
+
+	/** Tasarım dili: köşe yarıçapı basamakları (dp); 30 ve üstü (hap / daire) olduğu gibi kalır. */
+	public static float radius(float dp) {
+		if (dp >= 30) return dp;
+		float[] r = {8, 12, 16, 20, 24, 28};
+		float best = r[0];
+		for (float x : r) if (Math.abs(x - dp) < Math.abs(best - dp)) best = x;
+		return best;
+	}
+
 	public static float textScale(android.content.Context c) {
 		try { // Android Auto: yazılar biraz büyük ve net (önceden araçta küçültülüyordu, zor okunuyordu)
 			if (me.aap.fermata.ui.activity.MainActivityDelegate.get(c).isCarActivity()) return 1.1f;

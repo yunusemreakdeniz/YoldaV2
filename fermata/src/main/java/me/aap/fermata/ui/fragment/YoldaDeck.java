@@ -372,4 +372,58 @@ public final class YoldaDeck {
 	private static String clean(String s) {
 		return s.replace(FIELD, ' ').replace(RECORD, ' ').trim();
 	}
+
+	// ---- Android Auto sadeleştirme (sürüş dikkat yönergeleri: kısa liste, kısa yazı) ----
+
+	/** Araçta bir kart yüzündeki şeritte en çok kaç öğe (Android Auto sürüşte liste sınırı 6). */
+	public static final int CAR_MAX_ITEMS = 6;
+	/** Araçta çip yazısının en çok uzunluğu (göz kısa bakışta okusun). */
+	public static final int CAR_MAX_CHARS = 22;
+
+	/** Araçta şeritte kalacak öğe sayısı. */
+	public static int carItems(int n) {
+		return Math.max(0, Math.min(n, CAR_MAX_ITEMS));
+	}
+
+	/** Araç için kısaltılmış çip yazısı: tek satır, sözcük ortasında kesmeden, sonunda "…". */
+	public static String carLabel(@androidx.annotation.Nullable String s) {
+		if (s == null) return "";
+		String t = s.replace('\n', ' ').replaceAll("\\s+", " ").trim();
+		if (t.length() <= CAR_MAX_CHARS) return t;
+		String cut = t.substring(0, CAR_MAX_CHARS - 1);
+		int sp = cut.lastIndexOf(' ');
+		if (sp >= CAR_MAX_CHARS / 2) cut = cut.substring(0, sp);
+		cut = cut.replaceAll("[\\s·,.:;-]+$", "");
+		return cut + "…";
+	}
+
+	// ---- sesle / Gemini ile kart yönetimi ----
+
+	/**
+	 * Taşınan kartın yeni sırası: where = first / last / before / after (other: yanına konacak kartın sırası).
+	 * size: taşınabilir kart sayısı ("Ekle" hariç). Kart kendi yanına taşınırsa yeri değişmez.
+	 */
+	public static int targetIndex(int from, String where, int other, int size) {
+		if ((size <= 0) || (from < 0) || (from >= size)) return from;
+		int t = switch (where) {
+			case "first" -> 0;
+			case "last" -> size - 1;
+			case "before" -> (other < 0) ? from : ((other < from) ? other : other - 1);
+			case "after" -> (other < 0) ? from : ((other < from) ? other + 1 : other);
+			default -> from;
+		};
+		return Math.max(0, Math.min(size - 1, t));
+	}
+
+	/** Söylenen ada uyan sabit kart türü (kaldırılmış olsa da; geri getirmek için), yoksa null. */
+	@Nullable
+	public static String builtInOfSpoken(@Nullable String spoken) {
+		if (spoken == null) return null;
+		String s = spoken.trim().toLowerCase(new java.util.Locale("tr")).replaceAll("['’]", "");
+		String t = typeOfSpoken(s);
+		if (t == null) t = typeOfSpoken(s.replaceAll("(y?[ae]|n[ae]|y?[ıiuü]|n[ıiuü])$", ""));
+		if (t == null) return null;
+		for (String d : DEFAULT) if (d.equals(t)) return t;
+		return null;
+	}
 }

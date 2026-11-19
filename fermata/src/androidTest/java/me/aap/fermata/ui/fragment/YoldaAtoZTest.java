@@ -402,7 +402,14 @@ public class YoldaAtoZTest {
 			onMain(a -> a.showFragment(R.id.home_fragment));
 			waitIdle(1500);
 			View btn = onMain(a -> byDesc(a.getActiveFragment().getView(), "Tema:"));
-			assertNotNull("Tema düğmesi olmalı", btn);
+			if (btn == null) { // dar başlıkta tema düğmesinin yerinde telefon görünümü düğmesi (tema Ayarlar'da)
+				View pv = onMain(a -> byDesc(a.getActiveFragment().getView(), "Telefon görünümü"));
+				View ed = onMain(a -> byDesc(a.getActiveFragment().getView(), "Düzenle"));
+				assertNotNull("Tema düğmesi ya da yerinde telefon görünümü düğmesi olmalı", pv);
+				assertNotNull(ed);
+				assertTrue("Telefon görünümü düğmesi düzenle ile aynı satırda", onMain(a -> pv.getParent() == ed.getParent()));
+				return;
+			}
 			View edit = onMain(a -> byDesc(a.getActiveFragment().getView(), "Düzenle"));
 			assertNotNull(edit);
 			// sıra: tema · ayarlar · düzenle (hepsi aynı satırda, yan yana)

@@ -251,7 +251,7 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		g.setPadding(dp(12), dp(12), dp(12), dp(12));
 		g.setBackground(YoldaStyle.glass(ctx, t, 28));
 		TextView tt = text(ctx, title, 12, true);
-		tt.setTextColor(0xBFFFFFFF);
+		tt.setTextColor(me.aap.fermata.ui.view.YoldaStyle.TEXT_2);
 		tt.setLetterSpacing(0.1f);
 		tt.setPadding(dp(10), dp(6), dp(10), dp(8));
 		g.addView(tt);
@@ -313,7 +313,7 @@ public class YoldaMenuFragment extends MainActivityFragment {
 	private TextView text(Context ctx, String s, float size, boolean bold) {
 		TextView tv = new TextView(ctx);
 		tv.setText(s);
-		tv.setTextSize(size * me.aap.fermata.ui.view.YoldaStyle.textScale(ctx)); // araçta küçük
+		tv.setTextSize(me.aap.fermata.ui.view.YoldaStyle.type(size) * me.aap.fermata.ui.view.YoldaStyle.textScale(ctx)); // araçta küçük
 		tv.setTextColor(0xFFFFFFFF);
 		tv.setTypeface(bold ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
 		tv.setShadowLayer(dp(6), 0, dp(1), 0x40000000);

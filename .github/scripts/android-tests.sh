@@ -6,9 +6,9 @@ OUT=test-sonuclari
 mkdir -p "$OUT"
 code=0
 adb logcat -c || true
-adb logcat -v time -s YoldaTest:I YoldaUiUx:I AndroidRuntime:E Yolda:I chromium:E cr_AwContents:W DEBUG:F libc:F > "$OUT/canli-gunluk.txt" 2>&1 &
+adb logcat -v time -s YoldaTest:I YoldaUiUx:I YoldaClick:I AndroidRuntime:E Yolda:I chromium:E cr_AwContents:W DEBUG:F libc:F > "$OUT/canli-gunluk.txt" 2>&1 &
 LOGPID=$!
-for c in YoldaWakeTest YoldaFunctionalTest YoldaAtoZTest YoldaPlaybackTest YoldaMusicTest YoldaGestureTest YoldaPharmacyTest YoldaUiUxTest; do
+for c in YoldaWakeTest YoldaFunctionalTest YoldaAtoZTest YoldaPlaybackTest YoldaMusicTest YoldaGestureTest YoldaPharmacyTest YoldaUiUxTest YoldaClickAllTest; do
   echo "=== $c başlıyor $(date -u +%H:%M:%S)"
   # -k: TERM ile kapanmazsa 30 sn sonra KILL (Gradle bazen TERM'i yutup takılı kalıyordu)
   timeout -k 30s 15m ./gradlew fermata:connectedAutoDebugAndroidTest $GRADLE_ARGS \
@@ -91,6 +91,6 @@ kill $LOGPID 2>/dev/null || true
 mkdir -p "$OUT/ekranlar"
 adb pull /data/local/tmp/yolda-ui/. "$OUT/ekranlar/" || true
 echo "--- Yolda günlük satırları"
-grep -E "YoldaTest|YoldaUiUx|AndroidRuntime" "$OUT/canli-gunluk.txt" | tail -150
+grep -E "YoldaTest|YoldaUiUx|YoldaClick|AndroidRuntime" "$OUT/canli-gunluk.txt" | tail -150
 ls "$OUT/ekranlar" | head -80
 exit $code

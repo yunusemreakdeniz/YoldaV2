@@ -447,7 +447,7 @@ public class YoutubeHomeFragment extends MainActivityFragment {
 	private static TextView text(Context ctx, String s, float size, boolean bold, int color) {
 		TextView tv = new TextView(ctx);
 		tv.setText(s);
-		tv.setTextSize(size * YoldaStyle.textScale(ctx));
+		tv.setTextSize(YoldaStyle.type(size) * YoldaStyle.textScale(ctx));
 		tv.setTextColor(color);
 		if (bold) tv.setTypeface(Typeface.DEFAULT_BOLD);
 		return tv;

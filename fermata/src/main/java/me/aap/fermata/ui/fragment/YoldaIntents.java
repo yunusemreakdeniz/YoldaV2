@@ -28,6 +28,8 @@ public final class YoldaIntents {
 		CARD,
 		/** Kartlar: sonraki / önceki kart, kartı aç ("radyo kartını aç"), kartları düzenle. */
 		NEXT_CARD, PREV_CARD, CARD_OPEN, EDIT_CARDS,
+		/** Kart yönetimi: gizle / geri getir (arg: kart adı); taşı (arg: "ad|first", "ad|last", "ad|before|öbür", "ad|after|öbür"). */
+		CARD_HIDE, CARD_SHOW, CARD_MOVE,
 		/** Sarma: num saniye (eksi: geri); SEEK_START başa. */
 		SEEK, SEEK_START,
 		/** Sürüş yardımcısını aç / kapat: arg anahtar (zones, fatigue, avg, stops, overspeed, voice, park, trips), num 1 / 0. */
@@ -177,6 +179,14 @@ public final class YoldaIntents {
 			"^favori(?:lerimden|lerden|mden|den) (.+?)(?:['’]?(?:yi|yı|yu|yü|i|ı|u|ü))? (?:aç|çal|başlat)$|^(.+?) favorimi (?:aç|çal)$");
 	private static final Pattern CALL = Pattern.compile(
 			"^(.+?) (?:ara|arar|arar mısın|arasana|telefonla ara|çaldır|bir ara)$|^(.+?) (?:telefon et|ile görüş|ile konuş|ile görüşmek istiyorum)$");
+	private static final Pattern CARD_HIDE_P = Pattern.compile(
+			"^(.+?) kart(?:ı|ını)? (?:desteden |ana sayfadan |ekrandan )?(?:gizle|kaldır|sil|çıkar)$");
+	private static final Pattern CARD_SHOW_P = Pattern.compile(
+			"^(.+?) kart(?:ı|ını)? (?:geri getir|geri ekle|geri al|tekrar ekle|tekrar göster|ekle)$");
+	private static final Pattern CARD_MOVE_END = Pattern.compile(
+			"^(.+?) kart(?:ı|ını) (?:en )?(başa|öne|sona|arkaya) (?:al|taşı|koy|getir|götür)$");
+	private static final Pattern CARD_MOVE_REL = Pattern.compile(
+			"^(.+?) kart(?:ı|ını) (.+?) kart(?:ı|ının) (önüne|soluna|ardına|arkasına|sağına|yanına) (?:al|taşı|koy|getir)$");
 	private static final Pattern CARD = Pattern.compile(
 			"^(.+?) kart(?:ı|ına|ını|a|ına doğru)?(?: (geç|git|gel|dön|göster|getir|aç|kaydır|bul|başlat))?$");
 	private static final Pattern SEEK_P = Pattern.compile(
@@ -322,6 +332,16 @@ public final class YoldaIntents {
 
 		// kart: "radyo kartına geç", "hava durumu kartı", "kişiler kartını göster"
 		if (c.matches("kart(ları)?(mı)? düzenle|kartları sırala|kartları düzenleyelim")) return Intent.of(Kind.EDIT_CARDS);
+		// kart yönetimi: "hava durumu kartını gizle", "podcast kartını geri getir", "radyo kartını başa al",
+		// "spor kartını trafik kartının ardına taşı"
+		if ((m = CARD_MOVE_REL.matcher(c)).matches()) {
+			String w = m.group(3).matches("önüne|soluna") ? "before" : "after";
+			return Intent.of(Kind.CARD_MOVE, m.group(1).trim() + "|" + w + "|" + m.group(2).trim());
+		}
+		if ((m = CARD_MOVE_END.matcher(c)).matches())
+			return Intent.of(Kind.CARD_MOVE, m.group(1).trim() + "|" + (m.group(2).matches("başa|öne") ? "first" : "last"));
+		if ((m = CARD_HIDE_P.matcher(c)).matches()) return Intent.of(Kind.CARD_HIDE, m.group(1).trim());
+		if ((m = CARD_SHOW_P.matcher(c)).matches()) return Intent.of(Kind.CARD_SHOW, m.group(1).trim());
 		if ((m = CARD.matcher(c)).matches()) {
 			String n = m.group(1).replaceAll("^(ana sayfada|destede|kartlarda) ", "").trim();
 			if (n.matches("ana|ana sayfa|ev")) return Intent.of(Kind.HOME);

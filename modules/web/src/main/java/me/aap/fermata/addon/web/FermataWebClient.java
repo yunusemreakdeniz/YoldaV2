@@ -61,7 +61,21 @@ public class FermataWebClient extends WebViewClientCompat {
 			"reklamaction.com", "adnet.com.tr", "ads.yahoo.com", "analytics.yahoo.com",
 			"app-measurement.com", "firebase-settings.crashlytics.com", "hotjar.com", "mixpanel.com",
 			"segment.io", "branch.io", "adjust.com", "appsflyer.com", "facebook.net/tr",
-			"connect.facebook.net", "ads.tiktok.com", "analytics.tiktok.com", "ads.linkedin.com"};
+			"connect.facebook.net", "ads.tiktok.com", "analytics.tiktok.com", "ads.linkedin.com",
+			// video reklam sunucuları, ölçüm ve ülke uzantılı Google reklam adresleri
+			"2mdn.net", "adsafeprotected.com", "serving-sys.com", "flashtalking.com", "innovid.com",
+			"yieldlab.net", "smartclip.net", "adition.com", "adkernel.com", "betweendigital.com", "sonobi.com",
+			"triplelift.com", "3lift.com", "sovrn.com", "emxdgt.com", "yieldmanager.com", "zedo.com",
+			"criteo.net", "clarity.ms", "adservice.google.com.tr", "adservice.google.de", "adservice.google.co.uk",
+			"adsterra.com", "exoclick.com", "juicyads.com", "trafficjunky.net", "hilltopads.net",
+			"popcash.net", "adcash.com", "onclickads.net", "clickadu.com", "richpush.co", "pushwoosh.com"};
+
+	/**
+	 * Her sitede reklam betiği dosyaları (sunucusu listede olmasa da): başlık teklif (prebid), AdSense ve
+	 * Google yayıncı etiketi uygulaması. Yalnız tam dosya adına bakar; "ads" geçen sıradan sayfalar kesilmez.
+	 */
+	private static final java.util.regex.Pattern AD_FILES = java.util.regex.Pattern.compile(
+			"(?i).*/(prebid[\\w.-]*\\.js|adsbygoogle\\.js|show_ads(_impl)?\\.js|pubads_impl[\\w.-]*\\.js|ad[sx]?[-_]?loader\\.js)$");
 
 	/** Menüden açılıp kapatılır (varsayılan açık). */
 	public static volatile boolean enabled = true;
@@ -86,6 +100,7 @@ public class FermataWebClient extends WebViewClientCompat {
 				if ((host + path).contains(h)) return true;
 			} else if (host.equals(h) || host.endsWith("." + h)) return true;
 		}
+		if (AD_FILES.matcher(path).matches()) return true;
 		if (host.endsWith("youtube.com")) {
 			String pq = path + ((query != null) ? "?" + query : "");
 			for (String p : YT_AD_PATHS) if (pq.startsWith(p)) return true;
@@ -194,11 +209,27 @@ public class FermataWebClient extends WebViewClientCompat {
 			  }, 700);
 			})()""";
 
+	/**
+	 * Diğer sitelerde görsel temizlik: engellenen reklamın bıraktığı boş kutular ve yapışkan reklam şeritleri
+	 * gizlenir (yalnız bilinen reklam kapsayıcıları; sayfa düzeni bozulmaz). Sonradan eklenenler için tekrar eder.
+	 */
+	static final String COSMETIC_CSS = "ins.adsbygoogle,.adsbygoogle,[id^='google_ads_iframe'],[id^='div-gpt-ad'],"
+			+ "[data-google-query-id],iframe[src*='doubleclick.net'],iframe[src*='googlesyndication'],"
+			+ "[id^='taboola-'],.trc_related_container,.OUTBRAIN,[data-widget-id^='outbrain'],"
+			+ ".adsense,.ad-slot,.ad-banner,.ad-container,.advertisement,[aria-label='Advertisement'],"
+			+ "[class*='sticky-ad'],[id*='sticky-ad'],.reklam,.reklam-alani,[id^='reklam'],[class^='reklam']"
+			+ "{display:none!important;height:0!important;min-height:0!important}";
+
+	static final String COSMETIC_JS = "(function(){if(window.__yoldaCss)return;window.__yoldaCss=1;"
+			+ "var s=document.createElement('style');s.textContent=\"" + COSMETIC_CSS + "\";"
+			+ "(document.head||document.documentElement).appendChild(s);})()";
+
 	@Override
 	public void onPageFinished(WebView view, String url) {
 		try {
 			String h = Uri.parse(url).getHost();
 			if (enabled && (h != null) && h.endsWith("youtube.com")) view.evaluateJavascript(AD_JS, null);
+			else if (enabled && (h != null)) view.evaluateJavascript(COSMETIC_JS, null);
 		} catch (Exception ignore) {
 		}
 		FermataWebView v = (FermataWebView) view;

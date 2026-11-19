@@ -128,6 +128,8 @@ public class FermataWebView extends WebView
 		FermataWebClient.enabled = getContext().getApplicationContext()
 				.getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS, Context.MODE_PRIVATE)
 				.getBoolean("adblock", true);
+		// Engelleyici açıkken sayfa dokunulmadan pencere açamaz (kendiliğinden açılan reklam sekmeleri / yönlendirme)
+		s.setJavaScriptCanOpenWindowsAutomatically(!FermataWebClient.enabled);
 		// YouTube sayfaları açılmadan önce reklam ayıklayıcı betik
 		if (FermataWebClient.enabled && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
 			try {
