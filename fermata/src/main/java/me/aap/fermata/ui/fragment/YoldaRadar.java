@@ -877,6 +877,9 @@ public final class YoldaRadar {
 
 	// ---- hız sınırı: yakındaki yollar ----
 
+	/** Son yol sorgusunda bulunulan yer yerleşim alanı mıydı (tanı ve sesli "neredeyim" için). */
+	public static volatile boolean inSettlement;
+
 	private static boolean needFetch(double la, double lo) {
 		return Double.isNaN(fetchLat) || (YoldaRadarCore.dist(la, lo, fetchLat, fetchLon) > 220);
 	}
@@ -890,9 +893,14 @@ public final class YoldaRadar {
 		NET.submit(() -> {
 			String q = String.format(Locale.ROOT, "[out:json][timeout:15];way(around:350,%.5f,%.5f)[\"highway\"~\"^(motorway|trunk|"
 					+ "primary|secondary|tertiary|unclassified|residential|living_street|motorway_link|trunk_link|primary_link|"
-					+ "secondary_link|tertiary_link)$\"];out tags geom;", la, lo);
+					+ "secondary_link|tertiary_link)$\"];out tags geom;"
+					// bulunulan noktayı kapsayan yerleşim alanı (şehir içi / dışı ayrımı için)
+					+ "is_in(%1$.5f,%2$.5f)->.a;(area.a[\"landuse\"~\"^(residential|commercial|retail)$\"];"
+					+ "area.a[\"place\"~\"^(city|town|village|suburb|neighbourhood|quarter|hamlet)$\"];);out tags;", la, lo);
 			try {
 				JSONArray el = new JSONObject(overpass(q, 20_000)).getJSONArray("elements");
+				boolean settlement = YoldaRadarCore.settlementFromAreas(el);
+				inSettlement = settlement;
 				List<Road> got = new ArrayList<>();
 				for (int i = 0; i < el.length(); i++) {
 					JSONObject o = el.getJSONObject(i);
@@ -914,7 +922,7 @@ public final class YoldaRadar {
 							String sw = t.optString("sidewalk", t.optString("sidewalk:both", ""));
 							boolean side = !sw.isEmpty() && !sw.equals("no") && !sw.equals("none") && !sw.equals("separate");
 							lim = YoldaRadarCore.estimateLimit(hw, oneway, t.optString("name", null), t.optString("ref", null), side,
-									t.optString("zone:maxspeed", t.optString("maxspeed:type", t.optString("source:maxspeed", null))));
+									t.optString("zone:maxspeed", t.optString("maxspeed:type", t.optString("source:maxspeed", null))), settlement);
 							est = lim > 0;
 						}
 					}

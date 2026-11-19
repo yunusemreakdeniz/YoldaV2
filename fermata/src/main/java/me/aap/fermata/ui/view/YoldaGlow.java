@@ -21,6 +21,7 @@ import androidx.annotation.Nullable;
  */
 public final class YoldaGlow extends Drawable {
 	private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+	private final Paint sky = new Paint(Paint.ANTI_ALIAS_FLAG);
 	private final int base;
 	private int c1, c2, t1, t2;
 	private final long start = SystemClock.uptimeMillis();
@@ -88,6 +89,7 @@ public final class YoldaGlow extends Drawable {
 				bd.top + h * (0.72f + 0.09f * (float) Math.sin(s * 0.23)), r, 0x88);
 		blob(c, towards(c1, 0xFFFFFFFF, 0.25f), bd.left + w * (0.55f + 0.12f * (float) Math.sin(s * 0.13)),
 				bd.top + h * 0.10f, r * 0.55f, 0x33);
+		YoldaSky.draw(c, sky, bd, YoldaSky.current(), s); // hava durumuna göre sahne (yağmur, kar, güneş, yıldız)
 		boolean settling = motion && ((c1 != t1) || (c2 != t2));
 		if (settling) invalidateSelf(); // renk geçişi kısa: akıcı
 		else if (anim) { // yavaş süzülme: saniyede ~12 kare yeter, pil harcamaz

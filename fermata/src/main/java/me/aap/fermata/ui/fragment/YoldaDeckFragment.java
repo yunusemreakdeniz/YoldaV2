@@ -568,6 +568,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		updatePhoneLive();
 		YoldaWeather.get(ctx).main().onSuccess(wn -> {
 			weather = wn;
+			YoldaStyle.invalidateBackdrop();
 			if (phWeather != null) phWeather.setText(wn.temp() + "°");
 			if (phWeatherIcon != null) phWeatherIcon.setText(YoldaWeather.emoji(wn.code()));
 			if (phWeatherPlace != null) phWeatherPlace.setText(wn.place());
@@ -4692,6 +4693,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 		Runnable wx = () -> YoldaWeather.get(requireContext()).main().onSuccess(w -> {
 			weather = w;
+			YoldaStyle.invalidateBackdrop(); // hava sahnesi (yağmur / kar / güneş)
 			refreshCard(YoldaDeck.WEATHER);
 			updateWeatherChip();
 		});
@@ -5007,14 +5009,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	@SuppressLint("ClickableViewAccessibility")
+	/** Basınca hafif küçülme (durum animatörü: dokunma dinleyicisini işgal etmez, animasyon kapalıysa yok). */
 	private static void pressEffect(View v) {
-		v.setOnTouchListener((x, e) -> {
-			int act = e.getActionMasked();
-			if (act == MotionEvent.ACTION_DOWN) x.animate().scaleX(0.94f).scaleY(0.94f).setDuration(80).start();
-			else if ((act == MotionEvent.ACTION_UP) || (act == MotionEvent.ACTION_CANCEL))
-				x.animate().scaleX(1f).scaleY(1f).setDuration(160).start();
-			return false;
-		});
+		me.aap.fermata.ui.view.YoldaMotion.press(v);
 	}
 
 	private static TextView text(Context ctx, String s, float size, boolean bold, int color) {
