@@ -19,6 +19,7 @@ public final class YoldaActions {
 			{"[şarkı / sanatçı / tür] çal", "YouTube Music'ten çalar (Tarkan çal, rahatlatıcı müzik çal, 90'lar pop çal)"},
 			{"youtube'da [konu] ara", "YouTube'da arar"},
 			{"[konu] radyosu aç", "internet radyolarında arayıp açar (caz radyosu aç)"},
+			{"[ad] podcastini aç", "podcast'in son bölümünü çalar (abone değilse dizinde arar)"},
 			{"duraklat / devam et / sonraki / önceki / durdur", "oynatma denetimi"},
 			{"sus / dur / yeter", "sesli okumayı (haberler, uzun yanıt) keser"},
 			{"on saniye ileri sar / otuz saniye geri sar / başa sar", "sarma"},
@@ -37,6 +38,8 @@ public final class YoldaActions {
 			{"gideceğim yerde otopark var mı / [yer]de otopark", "varılacak yerin çevresindeki otoparklar"},
 			{"şarj istasyonları kartına geç", "yakındaki elektrikli araç şarj istasyonları"},
 			{"neredeyim", "bulunduğun yer"},
+			{"eve kaç dakika / işe ne kadar sürer", "yol süresi (trafik hariç tahmini)"},
+			{"maç sonuçları / [takım] maçı ne zaman", "Süper Lig sonuçları ve fikstür"},
 			// arama ve mesaj
 			{"[kişi] ara", "telefonla arar (annemi ara)"},
 			{"yanıtla [metin] / mesajı tekrar oku", "son mesaja sesle yanıt, son mesajı okuma"},

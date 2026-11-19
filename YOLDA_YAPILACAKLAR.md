@@ -28,9 +28,9 @@ H. [x] (v2-170) Ekolayzer kartı (hazır ayarlar: Pop, Rock, Konuşma, Bas, Ara�
 B. [x] (v2-173) Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, kısayol çipleri) 48dp altında kalmasın
 0. [ ] Kalıcı imza anahtarı: güncellemeler eskinin üzerine kurulsun, ayarlar / kart düzeni / görünüm silinmesin (kullanıcı onayı bekliyor: anahtar oluşturma ve GitHub gizli ayarları)
 7. [x] (v2-174) Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)
-8. [ ] Medya kartı: telefondaki videolar (en yeni üstte, klasörler, kaldığı yerden) ve fotoğraflar (yalnız telefonda)
+8. [x] (v2-182) Medya kartı: telefondaki videolar (en yeni üstte, klasörler, kaldığı yerden) ve fotoğraflar (yalnız telefonda)
 9. [x] (v2-181) Mobil veri sınırı ve uyarısı (aç / kapat); aşınca devam edene devam
-10. [ ] TV'de çok kanal değiştirince görüntünün gitmesi (tanı günlüğüyle)
+10. [x] (v2-182) TV'de çok kanal değiştirince görüntünün gitmesi (tanı günlüğüyle)
 11. [x] (v2-181) Gidilen yerdeki otoparklar (OpenStreetMap)
 12. [ ] Android Auto'da profesyonel görünüm: kalan sadeleştirmeler
 13. [ ] Hava durumuna göre animasyonlu tema (gece / gündüz ayarlı)
@@ -50,14 +50,14 @@ Q1. [x] (v2-181) Takvim (bugünkü etkinlikler, sıradaki toplantıya yol tarifi
 Q2. [x] (v2-181) Hatırlatıcılar ve sesli notlar
 Q3. [x] (v2-179) Döviz / altın
 Q4. [x] (v2-179) Haberler (başlıklar, sesli okuma)
-Q5. [ ] Podcast ve sesli kitap
-Q6. [ ] Trafik durumu (eve / işe varış süresi)
+Q5. [x] (v2-182, podcast; sesli kitap kaynağı yok) Podcast ve sesli kitap
+Q6. [x] (v2-182, OSRM; canlı trafik Google Haritalar'da) Trafik durumu (eve / işe varış süresi)
 Q7. [x] (v2-181) Elektrikli araç şarj istasyonları
 Q8. [x] (v2-181) Araç bakım ve yakıt defteri (muayene, sigorta, yağ değişimi hatırlatma)
 Q9. [x] (v2-179) Namaz vakitleri
 Q10. [x] (v2-181) Telefon durumu (pil, veri, sinyal) ve hızlı ayarlar
 Q11. [x] (v2-181) Hızlı mesaj (WhatsApp / SMS hazır cevaplar, "varınca haber ver")
-Q12. [ ] Spor skorları
+Q12. [x] (v2-182, Süper Lig, TheSportsDB deneme anahtarı; canlı değil) Spor skorları
 R3. [x] (v2-181) Dayanıklılık testinde donma (ANR "no focused window"): neden bulundu (v2-175): rastgele dokunuş "Video + harita"yı açıyor, uygulama küçük pencereye (PiP) geçiyor, harita mağazaya yönleniyor; uygulama küçük penceredeyken gelen tuşlar odaksız pencereye düşüyor. v2-175: harita uygulaması yoksa küçük pencereye geçilmez. Kalan: başlatıcıdan dönünce küçük pencereden tam ekrana çıkış (onNewIntent'te PiP'ten çık), sonra monkey yeniden denenecek
 R2. [x] (v2-181) Uyarı geçmişi için sesli komut ("son uyarılar", "az önce ne dedin") ve Gemini'nin geçmişi okuyabilmesi
 

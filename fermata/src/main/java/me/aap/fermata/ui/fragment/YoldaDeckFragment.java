@@ -916,7 +916,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG, YoldaDeck.CALENDAR, YoldaDeck.CARCARE}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG, YoldaDeck.CALENDAR, YoldaDeck.CARCARE, YoldaDeck.PODCAST, YoldaDeck.MEDIA, YoldaDeck.TRAFFIC, YoldaDeck.SPORTS}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -1313,6 +1313,219 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return (b.length() == 0) ? "Dolar, euro ve altın alınıyor…" : b.toString();
 			}
 		}
+	}
+
+	// ---- Trafik ve spor ----
+
+	private static final java.util.Map<String, YoldaTraffic.Eta> trafficEta = new java.util.HashMap<>();
+	private static long trafficAskedAt, sportsAskedAt;
+
+	@Nullable
+	private String trafficDest(Context ctx, String key) {
+		String s = prefs(ctx).getString(key, null);
+		return ((s == null) || s.trim().isEmpty()) ? null : s.trim();
+	}
+
+	private String trafficLine() {
+		Context ctx = requireContext();
+		String h = trafficDest(ctx, "nav_home"), w = trafficDest(ctx, "nav_work");
+		if ((h == null) && (w == null)) return "Navigasyon'da Ev ve İş adresini kaydet; süre burada görünür";
+		long now = System.currentTimeMillis();
+		if (!Double.isNaN(YoldaRadar.lat) && (now - trafficAskedAt > 10 * 60_000L)) {
+			trafficAskedAt = now;
+			me.aap.utils.app.App.get().execute(() -> {
+				for (String d : new String[]{h, w}) {
+					if (d == null) continue;
+					try {
+						YoldaTraffic.Eta e = YoldaTraffic.eta(d);
+						if (e != null) synchronized (trafficEta) {
+							trafficEta.put(d, e);
+						}
+					} catch (Throwable ignore) {
+					}
+				}
+			}).onSuccess(v -> me.aap.utils.app.App.get().getHandler().post(() -> {
+				if (isAdded()) refreshCard(YoldaDeck.TRAFFIC);
+			}));
+		}
+		YoldaTraffic.Eta e = (h != null) ? trafficEta.get(h) : null;
+		return (e != null) ? ("Eve " + YoldaTraffic.text(e) + " · trafik hariç tahmini") : "Eve / işe süre hesaplanıyor (trafik hariç)";
+	}
+
+	private String sportsLine() {
+		Context ctx = requireContext();
+		long now = System.currentTimeMillis();
+		if (now - sportsAskedAt > 30 * 60_000L) {
+			sportsAskedAt = now;
+			Context app = ctx.getApplicationContext();
+			me.aap.utils.app.App.get().execute(() -> {
+				YoldaSports.matches(app, true);
+			}).onSuccess(v -> me.aap.utils.app.App.get().getHandler().post(() -> {
+				if (isAdded()) refreshCard(YoldaDeck.SPORTS);
+			}));
+		}
+		List<YoldaSports.Match>[] ms = YoldaSports.matches(ctx, false);
+		if (!ms[0].isEmpty()) return "Son: " + ms[0].get(0).line();
+		return ms[1].isEmpty() ? "Süper Lig sonuçları alınıyor…" : ("Sıradaki: " + ms[1].get(0).line());
+	}
+
+	private void showSports(Context ctx) {
+		List<YoldaSports.Match>[] ms = YoldaSports.matches(ctx, false);
+		List<Row> rows = new ArrayList<>();
+		for (YoldaSports.Match m : ms[1]) rows.add(new Row(m.home() + " - " + m.away(), "Sıradaki · " + m.date() + (m.time().isEmpty() ? "" : (" " + m.time())),
+				null, R.drawable.yi_star_border, () -> YoldaSpeak.sayAlways(ctx, m.line())));
+		for (YoldaSports.Match m : ms[0]) rows.add(new Row(m.line(), "Sonuç · " + m.date(), null, R.drawable.yi_star,
+				() -> YoldaSpeak.sayAlways(ctx, m.line())));
+		if (rows.isEmpty()) YoldaStyle.toast(ctx, "Sonuçlar henüz alınamadı");
+		else showPicker("Süper Lig", rows, null);
+	}
+
+	// ---- Medya ----
+
+	private String mediaLine() {
+		Context ctx = requireContext();
+		if (!YoldaMedia.hasPermission(ctx)) return "Telefondaki videolar ve fotoğraflar · izin gerekli";
+		List<YoldaMedia.Item> v = YoldaMedia.videos(ctx, 1);
+		return v.isEmpty() ? "Telefonda video yok" : ("Son video: " + v.get(0).name() + (v.get(0).folder().isEmpty() ? "" : (" · " + v.get(0).folder())));
+	}
+
+	private void askMediaPermission(MainActivityDelegate a) {
+		a.getAppActivity().checkPermissions(YoldaMedia.permissions()).onCompletion((r, err) -> {
+			if (isAdded()) refreshCard(YoldaDeck.MEDIA);
+		});
+	}
+
+	/** Kutucuk: küçük resim arka planda yüklenir; videoda ▶ ve süre, fotoğrafta yalnız resim. */
+	private View mediaTile(Context ctx, YoldaMedia.Item it, int size, boolean video, View.OnClickListener click) {
+		FrameLayout f = new FrameLayout(ctx);
+		GradientDrawable bg = new GradientDrawable();
+		bg.setCornerRadius(dp(14));
+		bg.setColor(0x33FFFFFF);
+		f.setBackground(bg);
+		f.setClipToOutline(true);
+		ImageView iv = new ImageView(ctx);
+		iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+		f.addView(iv, new FrameLayout.LayoutParams(-1, -1));
+		if (video) {
+			TextView d = text(ctx, "▶ " + YoldaMedia.dur(it.durMs()), 12, true, 0xFFFFFFFF);
+			d.setPadding(dp(6), dp(2), dp(6), dp(2));
+			GradientDrawable db = new GradientDrawable();
+			db.setCornerRadius(dp(8));
+			db.setColor(0x99000000);
+			d.setBackground(db);
+			FrameLayout.LayoutParams dl = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START);
+			dl.leftMargin = dl.bottomMargin = dp(6);
+			f.addView(d, dl);
+		}
+		f.setClickable(true);
+		f.setContentDescription((video ? "Video: " : "Fotoğraf: ") + it.name());
+		f.setOnClickListener(click);
+		Context app = ctx.getApplicationContext();
+		me.aap.utils.function.CheckedSupplier<android.graphics.Bitmap, Throwable> job = () -> YoldaMedia.thumbnail(app, it.uri());
+		me.aap.utils.app.App.get().execute(job).onSuccess(b -> me.aap.utils.app.App.get().getHandler().post(() -> {
+			if (b != null) iv.setImageBitmap(b);
+		}));
+		return f;
+	}
+
+	/** Telefondaki videoyu Yolda'nın oynatıcısında aç. */
+	private void playLocalVideo(MainActivityDelegate a, YoldaMedia.Item it) {
+		playItem(a, me.aap.fermata.media.radio.YoldaStreamItem.createVideo(a.getLib(), it.uri().toString(), it.name()));
+	}
+
+	private void openPhoto(Context ctx, YoldaMedia.Item it) {
+		try {
+			startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW).setDataAndType(it.uri(), "image/*")
+					.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION | android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+		} catch (Throwable ex) {
+			YoldaStyle.toast(ctx, "Fotoğraf açılamadı");
+		}
+	}
+
+	/** Bütün videolar (en yeni üstte, klasör ve süreyle) → dokun: oynat. */
+	private void showMediaList(MainActivityDelegate a, Context ctx) {
+		List<Row> rows = new ArrayList<>();
+		for (YoldaMedia.Item it : YoldaMedia.videos(ctx, 60))
+			rows.add(new Row(it.name(), YoldaMedia.dur(it.durMs()) + (it.folder().isEmpty() ? "" : (" · " + it.folder())), null,
+					R.drawable.yi_movie, () -> playLocalVideo(a, it)));
+		if (rows.isEmpty()) YoldaStyle.toast(ctx, "Telefonda video yok");
+		else showPicker("Videolar", rows, null);
+	}
+
+	// ---- Podcast ----
+
+	private String podcastLine() {
+		List<YoldaPodcast.Show> s = YoldaPodcast.subscriptions(requireContext());
+		return s.isEmpty() ? "Podcast ara, abone ol; son bölüm tek dokunuşla · sesle “X podcastini aç”"
+				: (s.size() + " abonelik · " + s.get(0).name());
+	}
+
+	/** Podcast'in son bölümünü çal (bölümler RSS'ten, arka planda). */
+	void playLatestEpisode(MainActivityDelegate a, YoldaPodcast.Show s) {
+		YoldaStyle.toast(a.getContext(), s.name() + " · son bölüm açılıyor…");
+		me.aap.utils.function.CheckedSupplier<List<YoldaPodcast.Episode>, Throwable> job = () -> YoldaPodcast.episodes(s.feed());
+		me.aap.utils.app.App.get().execute(job).onCompletion((l, err) -> me.aap.utils.app.App.get().getHandler().post(() -> {
+			if ((l == null) || l.isEmpty()) {
+				YoldaStyle.toast(a.getContext(), s.name() + " bölümleri alınamadı");
+				return;
+			}
+			playEpisode(a, s, l.get(0));
+		}));
+	}
+
+	private void playEpisode(MainActivityDelegate a, YoldaPodcast.Show s, YoldaPodcast.Episode e) {
+		playItem(a, me.aap.fermata.media.radio.YoldaStreamItem.create(a.getLib(), e.audio(), e.title(), s.art(), s.name()));
+	}
+
+	/** Abonelikler → podcast seç → bölümler (en yeni üstte) → çal. */
+	private void showPodcasts(MainActivityDelegate a, Context ctx) {
+		List<Row> rows = new ArrayList<>();
+		for (YoldaPodcast.Show s : YoldaPodcast.subscriptions(ctx)) rows.add(new Row(s.name(), s.author(), s.art(), R.drawable.yi_mic, () -> {
+			YoldaStyle.toast(ctx, "Bölümler alınıyor…");
+			me.aap.utils.function.CheckedSupplier<List<YoldaPodcast.Episode>, Throwable> job = () -> YoldaPodcast.episodes(s.feed());
+			me.aap.utils.app.App.get().execute(job).onCompletion((l, err) -> me.aap.utils.app.App.get().getHandler().post(() -> {
+				if ((l == null) || l.isEmpty() || !isAdded()) {
+					YoldaStyle.toast(ctx, "Bölümler alınamadı");
+					return;
+				}
+				List<Row> er = new ArrayList<>();
+				for (YoldaPodcast.Episode e : l) {
+					String sub = e.date() + (YoldaPodcast.durText(e.durSec()).isEmpty() ? "" : (" · " + YoldaPodcast.durText(e.durSec())));
+					er.add(new Row(e.title(), sub, s.art(), R.drawable.yi_play, () -> playEpisode(a, s, e)));
+				}
+				showPicker(s.name(), er, null);
+			}));
+		}));
+		rows.add(new Row("Podcast ara", "Ad ya da konu (ör. Fularsız Entellik, tarih)", null, R.drawable.yi_search, () -> searchPodcast(a, ctx)));
+		showPicker("Podcast", rows, null);
+	}
+
+	private void searchPodcast(MainActivityDelegate a, Context ctx) {
+		askText("Podcast ara", "Ad ya da konu", q -> {
+			YoldaStyle.toast(ctx, "Aranıyor…");
+			me.aap.utils.function.CheckedSupplier<List<YoldaPodcast.Show>, Throwable> job = () -> YoldaPodcast.search(q);
+			me.aap.utils.app.App.get().execute(job).onCompletion((l, err) -> me.aap.utils.app.App.get().getHandler().post(() -> {
+				if ((l == null) || l.isEmpty() || !isAdded()) {
+					YoldaStyle.toast(ctx, (err != null) ? "Podcast dizinine ulaşılamadı" : "Sonuç yok");
+					return;
+				}
+				List<Row> rows = new ArrayList<>();
+				for (YoldaPodcast.Show s : l) rows.add(new Row(s.name(), s.author() + " · abone ol", s.art(), R.drawable.yi_add, () -> {
+					YoldaPodcast.subscribe(ctx, s);
+					YoldaStyle.toast(ctx, "Abone olundu: " + s.name());
+					refreshCard(YoldaDeck.PODCAST);
+				}));
+				showPicker("Podcast ekle", rows, null);
+			}));
+		});
+	}
+
+	private void editPodcasts(Context ctx) {
+		List<YoldaPodcast.Show> work = new ArrayList<>(YoldaPodcast.subscriptions(ctx));
+		orderEditor(ctx, "Podcast abonelikleri", "kartta bu sırayla · 🗑 abonelikten çık", work, YoldaPodcast.Show::name, l -> {
+			YoldaPodcast.saveSubscriptions(ctx, new ArrayList<>(l));
+			refreshCard(YoldaDeck.PODCAST);
+		}, x -> true);
 	}
 
 	/** Takvim izni (bir kez); verilince kart yenilenir. */
@@ -2806,6 +3019,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.TRAFFIC -> new Look(0xFFFCD34D, 0xFFB45309, R.drawable.yi_nav, true, "TRAFİK", trafficLine());
+			case YoldaDeck.SPORTS -> new Look(0xFF6EE7B7, 0xFF065F46, R.drawable.yi_star, true, "SPOR · SÜPER LİG", sportsLine());
+			case YoldaDeck.MEDIA -> new Look(0xFFF9A8D4, 0xFF9D174D, R.drawable.yi_movie, true, "MEDYA", mediaLine());
+			case YoldaDeck.PODCAST -> new Look(0xFFC4B5FD, 0xFF5B21B6, R.drawable.yi_mic, true, "PODCAST", podcastLine());
 			case YoldaDeck.CALENDAR -> new Look(0xFF93C5FD, 0xFF1D4ED8, R.drawable.yi_list, true, "TAKVİM", calendarLine());
 			case YoldaDeck.CARCARE -> new Look(0xFFFCA5A5, 0xFF991B1B, R.drawable.yi_settings, true, "ARAÇ BAKIMI", carCareLine());
 			case YoldaDeck.QUICKMSG -> new Look(0xFF86EFAC, 0xFF166534, R.drawable.yi_phone, true, "HIZLI MESAJ", quickMsgLine());
@@ -3180,6 +3397,58 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
+			}
+			case YoldaDeck.TRAFFIC -> { // eve / işe süre (dokun: yol tarifi), canlı trafik haritada
+				LinearLayout row = hrow(ctx);
+				for (String[] k : new String[][]{{"nav_home", "🏠 Ev"}, {"nav_work", "💼 İş"}}) {
+					String d = trafficDest(ctx, k[0]);
+					if (d == null) continue;
+					YoldaTraffic.Eta e = trafficEta.get(d);
+					row.addView(chipBtn(ctx, k[1] + ((e != null) ? (" · " + YoldaTraffic.text(e)) : ""),
+							v -> NavFragment.navigateTo(ctx, d, false)), chipLp());
+				}
+				String h = trafficDest(ctx, "nav_home");
+				row.addView(chipBtn(ctx, "🚦 Canlı trafik", v -> HomeFragment.openWeb(a, YoldaTraffic.mapsUrl((h != null) ? h : ""))), chipLp());
+				return scroll(ctx, row);
+			}
+			case YoldaDeck.SPORTS -> { // son sonuçlar ve sıradaki maçlar; takımını seç
+				LinearLayout row = hrow(ctx);
+				List<YoldaSports.Match>[] ms = YoldaSports.matches(ctx, false);
+				for (int i = 0; i < Math.min(3, ms[0].size()); i++) {
+					YoldaSports.Match m = ms[0].get(i);
+					row.addView(chipBtn(ctx, "⚽ " + m.line(), v -> YoldaSpeak.sayAlways(ctx, m.line())), chipLp());
+				}
+				for (int i = 0; i < Math.min(2, ms[1].size()); i++) {
+					YoldaSports.Match m = ms[1].get(i);
+					row.addView(chipBtn(ctx, "📅 " + m.line(), v -> YoldaSpeak.sayAlways(ctx, m.line())), chipLp());
+				}
+				String tm = YoldaSports.team(ctx);
+				row.addView(chipBtn(ctx, (tm == null) ? "Takımını seç" : ("Takım: " + tm), v -> askText("Tuttuğun takım", "Ör. Galatasaray (boş: hepsi)", s -> {
+					YoldaSports.setTeam(ctx, s);
+					refreshCard(YoldaDeck.SPORTS);
+				})), chipLp());
+				return scroll(ctx, row);
+			}
+			case YoldaDeck.MEDIA -> { // son videolar (▶ oynatıcıda), telefonda son fotoğraflar (galeride)
+				LinearLayout row = hrow(ctx);
+				if (!YoldaMedia.hasPermission(ctx)) {
+					row.addView(chipBtn(ctx, "🎬 Videolara erişim izni ver", v -> askMediaPermission(a)), chipLp());
+					return row;
+				}
+				for (YoldaMedia.Item it : YoldaMedia.videos(ctx, 6)) row.addView(mediaTile(ctx, it, tile, true, v -> playLocalVideo(a, it)), tileLp(tile));
+				if (!a.isCarActivity()) for (YoldaMedia.Item it : YoldaMedia.photos(ctx, 6))
+					row.addView(mediaTile(ctx, it, tile, false, v -> openPhoto(ctx, it)), tileLp(tile));
+				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
+			}
+			case YoldaDeck.PODCAST -> { // aboneliklerin son bölümü tek dokunuşla; ＋ podcast ara, ✎ abonelikleri düzenle
+				LinearLayout row = hrow(ctx);
+				List<YoldaPodcast.Show> subs = YoldaPodcast.subscriptions(ctx);
+				for (YoldaPodcast.Show s : subs) {
+					if (row.getChildCount() >= 6) break;
+					row.addView(imageTile(ctx, s.art(), null, tile, false, s.name(), v -> playLatestEpisode(a, s)), tileLp(tile));
+				}
+				return withActions(ctx, (row.getChildCount() == 0) ? null : scroll(ctx, row), "Podcast ara", () -> searchPodcast(a, ctx),
+						subs.isEmpty() ? null : "Abonelikleri düzenle", subs.isEmpty() ? null : () -> editPodcasts(ctx));
 			}
 			case YoldaDeck.CALENDAR -> { // sıradaki etkinlikler: dokun → konumu varsa yol tarifi, yoksa okunur
 				LinearLayout row = hrow(ctx);
@@ -3676,6 +3945,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				}
 			}
 			case YoldaDeck.CARCARE -> showCarCareMenu(ctx);
+			case YoldaDeck.PODCAST -> showPodcasts(a, ctx);
+			case YoldaDeck.TRAFFIC -> {
+				String h = trafficDest(ctx, "nav_home");
+				HomeFragment.openWeb(a, YoldaTraffic.mapsUrl((h != null) ? h : "")); // canlı trafik Google Haritalar'da
+			}
+			case YoldaDeck.SPORTS -> showSports(ctx);
+			case YoldaDeck.MEDIA -> {
+				if (!YoldaMedia.hasPermission(ctx)) askMediaPermission(a);
+				else showMediaList(a, ctx);
+			}
 			case YoldaDeck.CHARGER -> {
 				NearbyFragment.mode = NearbyFragment.CHARGER;
 				a.showFragment(R.id.yolda_nearby_fragment);

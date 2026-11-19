@@ -1183,6 +1183,35 @@ public class MediaSessionCallback extends MediaSessionCompat.Callback
 		}
 		engine.getPosition().and(engine.getSpeed()).main()
 				.onSuccess(h -> setPlayingState(engine, true, h.value1, h.value2));
+		yoldaVideoWatchdog(engine);
+	}
+
+	/** Art arda görüntü yeniden bağlama sayısı (aynı yayında sonsuz denemesin). */
+	private int yoldaReattach;
+
+	/**
+	 * Yolda (madde 10): çok kanal değiştirince ses gelip görüntü gelmiyordu (video yüzeyi yeni motora / yayına
+	 * bağlanmadan kalıyordu). Açıldıktan 3,5 sn sonra video hâlâ boyutsuzsa (görüntü yok) yüzey yeniden bağlanır;
+	 * aynı yayında en çok iki kez. Tanı günlüğüne yazılır.
+	 */
+	private void yoldaVideoWatchdog(MediaEngine eng) {
+		PlayableItem i = eng.getSource();
+		if ((i == null) || !i.isVideo()) return;
+		String id = i.getId();
+		me.aap.utils.app.App.get().getHandler().postDelayed(() -> {
+			if ((engine != eng) || (eng.getSource() == null) || !id.equals(eng.getSource().getId()) || !isPlaying()) return;
+			VideoView v = getVideoView();
+			if ((v == null) || (eng.getVideoWidth() > 0)) {
+				yoldaReattach = 0;
+				return;
+			}
+			if (yoldaReattach >= 2) return;
+			yoldaReattach++;
+			me.aap.fermata.ui.fragment.YoldaLog.add("Görüntü yok (" + i.getName() + "), video yüzeyi yeniden bağlanıyor · "
+					+ eng.getClass().getSimpleName());
+			eng.setVideoView(null);
+			eng.setVideoView(v);
+		}, 3500);
 	}
 
 	private void setPlayingState(MediaEngine engine, boolean playing, long pos, float speed) {
