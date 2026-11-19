@@ -146,6 +146,11 @@ public final class YoldaNotes {
 		prefs(ctx).edit().remove("rem").apply();
 	}
 
+	/** Açılışta: kapanmadan önce kurulan, vakti gelmemiş hatırlatmaları yeniden kur. */
+	public static void restoreReminders(Context ctx) {
+		YoldaAnswers.restoreReminders(ctx);
+	}
+
 	/** "14:30'da" / "yarın 08:00'de" benzeri kısa zaman: kalan dakika ya da saat. */
 	public static String left(long due, long now) {
 		long m = Math.max(0, (due - now + 59_999) / 60_000);

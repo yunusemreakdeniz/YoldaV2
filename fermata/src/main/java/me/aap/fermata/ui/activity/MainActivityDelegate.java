@@ -1862,7 +1862,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		radarAttached = true;
 		me.aap.fermata.ui.fragment.YoldaChannelAlt.warmUp(ctx); // TV yedek adres listesi (haftada bir yenilenir)
 		me.aap.fermata.ui.fragment.YoldaData.start(ctx); // mobil veri sayacı ve sınır uyarısı
-		me.aap.fermata.ui.fragment.YoldaAnswers.restoreReminders(ctx); // kapanmadan önce kurulan hatırlatmalar
+		me.aap.fermata.ui.fragment.YoldaNotes.restoreReminders(ctx); // kapanmadan önce kurulan hatırlatmalar
 		// Uzun sesli okumada (haberler) ekranın altında "Okumayı durdur" düğmesi
 		me.aap.fermata.ui.fragment.YoldaSpeak.longListener = on -> showSpeakStop(host, on);
 		me.aap.fermata.ui.view.YoldaSpeedRail r = new me.aap.fermata.ui.view.YoldaSpeedRail(ctx);
