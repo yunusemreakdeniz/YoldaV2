@@ -916,7 +916,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG, YoldaDeck.CALENDAR, YoldaDeck.CARCARE}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -1313,6 +1313,53 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				return (b.length() == 0) ? "Dolar, euro ve altın alınıyor…" : b.toString();
 			}
 		}
+	}
+
+	/** Takvim izni (bir kez); verilince kart yenilenir. */
+	private void askCalendarPermission(MainActivityDelegate a) {
+		a.getAppActivity().checkPermissions(android.Manifest.permission.READ_CALENDAR).onCompletion((r, err) -> {
+			if (isAdded()) refreshCard(YoldaDeck.CALENDAR);
+		});
+	}
+
+	private String calendarLine() {
+		Context ctx = requireContext();
+		if (!YoldaCalendar.hasPermission(ctx)) return "Bugünkü etkinlikler · izin gerekli";
+		List<YoldaCalendar.Event> l = YoldaCalendar.upcoming(ctx);
+		if (l.isEmpty()) return "Bugün ve yarın etkinlik yok";
+		YoldaCalendar.Event e = l.get(0);
+		return "Sıradaki: " + YoldaCalendar.when(e, System.currentTimeMillis()) + " " + e.title()
+				+ (e.location().isEmpty() ? "" : (" · " + e.location()));
+	}
+
+	private String carCareLine() {
+		Object[] n = YoldaCarCare.nearest(requireContext(), System.currentTimeMillis());
+		return (n == null) ? "Muayene, sigorta, kasko, yağ değişimi tarihlerini gir; 7 gün kala hatırlatır"
+				: ("En yakın: " + n[0] + " · " + YoldaCarCare.left((int) n[1]));
+	}
+
+	private void showCarCareMenu(Context ctx) {
+		List<Row> rows = new ArrayList<>();
+		long now = System.currentTimeMillis();
+		for (String[] it : YoldaCarCare.ITEMS) {
+			long due = YoldaCarCare.due(ctx, it[0]);
+			rows.add(new Row(it[1], (due < 0) ? "Tarih gir" : (YoldaCarCare.format(due) + " · " + YoldaCarCare.left(YoldaCarCare.daysLeft(due, now))),
+					null, R.drawable.yi_settings, () -> editCarCare(ctx, it)));
+		}
+		showPicker("Araç bakımı", rows, null);
+	}
+
+	private void editCarCare(Context ctx, String[] it) {
+		askText(it[1] + " tarihi", "GG.AA.YYYY (ör. 15.03.2027) · silmek için 0", s -> {
+			long d = "0".equals(s.trim()) ? -1 : YoldaCarCare.parseDate(s);
+			if ((d < 0) && !"0".equals(s.trim())) {
+				YoldaStyle.toast(ctx, "Tarih anlaşılamadı (ör. 15.03.2027)");
+				return;
+			}
+			YoldaCarCare.setDue(ctx, it[0], d);
+			YoldaStyle.toast(ctx, (d < 0) ? (it[1] + " silindi") : (it[1] + ": " + YoldaCarCare.format(d)));
+			refreshCard(YoldaDeck.CARCARE);
+		});
 	}
 
 	/** Hızlı mesaj kartının alt satırı: kime yanıt gider. */
@@ -2759,6 +2806,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.CALENDAR -> new Look(0xFF93C5FD, 0xFF1D4ED8, R.drawable.yi_list, true, "TAKVİM", calendarLine());
+			case YoldaDeck.CARCARE -> new Look(0xFFFCA5A5, 0xFF991B1B, R.drawable.yi_settings, true, "ARAÇ BAKIMI", carCareLine());
 			case YoldaDeck.QUICKMSG -> new Look(0xFF86EFAC, 0xFF166534, R.drawable.yi_phone, true, "HIZLI MESAJ", quickMsgLine());
 			case YoldaDeck.NOTES -> new Look(0xFFFDE68A, 0xFFB45309, R.drawable.yi_edit, true, "NOTLAR · HATIRLATMA", notesLine());
 			case YoldaDeck.CHARGER -> new Look(0xFF2DD4BF, 0xFF0D9488, R.drawable.yi_ev, true, "ŞARJ İSTASYONLARI", chargerLine());
@@ -3131,6 +3180,41 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
+			}
+			case YoldaDeck.CALENDAR -> { // sıradaki etkinlikler: dokun → konumu varsa yol tarifi, yoksa okunur
+				LinearLayout row = hrow(ctx);
+				if (!YoldaCalendar.hasPermission(ctx)) {
+					row.addView(chipBtn(ctx, "📅 Takvim iznini ver", v -> askCalendarPermission(a)), chipLp());
+					return row;
+				}
+				long now = System.currentTimeMillis();
+				for (YoldaCalendar.Event e : YoldaCalendar.upcoming(ctx)) {
+					if (row.getChildCount() >= 4) break;
+					String tt = YoldaCalendar.when(e, now) + " · " + ((e.title().length() > 28) ? (e.title().substring(0, 28) + "…") : e.title());
+					row.addView(chipBtn(ctx, (e.location().isEmpty() ? "" : "📍 ") + tt, v -> {
+						if (!e.location().isEmpty()) NavFragment.navigateTo(ctx, e.location(), true);
+						else YoldaSpeak.sayAlways(ctx, YoldaCalendar.when(e, System.currentTimeMillis()) + ", " + e.title());
+					}), chipLp());
+				}
+				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
+			}
+			case YoldaDeck.CARCARE -> { // her kalem: kalan gün (7 gün kala vurgulu), dokun → tarihi gir
+				LinearLayout row = hrow(ctx);
+				long now = System.currentTimeMillis();
+				for (String[] it : YoldaCarCare.ITEMS) {
+					long due = YoldaCarCare.due(ctx, it[0]);
+					String lbl = it[1] + " · " + ((due < 0) ? "tarih gir" : YoldaCarCare.left(YoldaCarCare.daysLeft(due, now)));
+					TextView ch = chipBtn(ctx, lbl, v -> editCarCare(ctx, it));
+					if ((due >= 0) && (YoldaCarCare.daysLeft(due, now) <= 7)) {
+						GradientDrawable wb = new GradientDrawable();
+						wb.setCornerRadius(dp(999));
+						wb.setColor(0xFFFFF4D6);
+						ch.setBackground(wb);
+						ch.setTextColor(0xFF111827);
+					}
+					row.addView(ch, chipLp());
+				}
+				return scroll(ctx, row);
 			}
 			case YoldaDeck.QUICKMSG -> { // hazır cevaplar: dokun → son mesaja yanıt ya da paylaş; varınca haber ver
 				LinearLayout row = hrow(ctx);
@@ -3581,6 +3665,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.STATUS -> a.showFragment(R.id.yolda_status_fragment);
 			case YoldaDeck.NOTES -> a.showFragment(R.id.yolda_notes_fragment);
 			case YoldaDeck.QUICKMSG -> showQuickMsgEditor(ctx); // hazır cevapları düzenle (sırala, sil, ekle)
+			case YoldaDeck.CALENDAR -> {
+				if (!YoldaCalendar.hasPermission(ctx)) askCalendarPermission(a);
+				else try { // telefonun takvim uygulaması
+					startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+							android.net.Uri.parse("content://com.android.calendar/time/" + System.currentTimeMillis()))
+							.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK));
+				} catch (Throwable ex) {
+					YoldaStyle.toast(ctx, YoldaCalendar.spoken(YoldaCalendar.upcoming(ctx), System.currentTimeMillis()));
+				}
+			}
+			case YoldaDeck.CARCARE -> showCarCareMenu(ctx);
 			case YoldaDeck.CHARGER -> {
 				NearbyFragment.mode = NearbyFragment.CHARGER;
 				a.showFragment(R.id.yolda_nearby_fragment);

@@ -36,6 +36,8 @@ public final class YoldaDeck {
 	public static final String NOTES = "notes";
 	/** Hızlı mesaj: hazır cevaplar, varınca haber ver. */
 	public static final String QUICKMSG = "quickmsg";
+	/** Takvim (bugün / yarın) ve araç bakım defteri. */
+	public static final String CALENDAR = "calendar", CARCARE = "carcare";
 	public static final String RADAR = "radar";
 	/** Park yerleri (aracım). */
 	public static final String PARK = "park";
@@ -54,7 +56,7 @@ public final class YoldaDeck {
 	public static final String YT_CHANNEL = "ytch";
 	public static final String URL = "url";
 
-	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, STATUS, CHARGER, NOTES, QUICKMSG, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
+	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, STATUS, CHARGER, NOTES, QUICKMSG, CALENDAR, CARCARE, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
 			ADD};
 	private static final char FIELD = '\u001F';
 	private static final char RECORD = '\u001E';
@@ -152,6 +154,8 @@ public final class YoldaDeck {
 			case "şarj istasyonu", "şarj istasyonları", "şarj", "elektrikli şarj", "ev şarj" -> CHARGER;
 			case "not", "notlar", "notlarım", "hatırlatma", "hatırlatmalar", "hatırlatıcı" -> NOTES;
 			case "hızlı mesaj", "mesaj", "mesajlar", "hazır mesaj", "hazır cevap" -> QUICKMSG;
+			case "takvim", "ajanda", "etkinlik", "etkinlikler", "toplantı", "toplantılar" -> CALENDAR;
+			case "bakım", "araç bakımı", "muayene", "sigorta", "kasko" -> CARCARE;
 			case "ekle", "ekleme" -> ADD;
 			case "kaldığım yer", "kaldığın yer", "kaldığın yerden", "kaldığım yerden", "devam" -> RESUME;
 			default -> null;
@@ -210,6 +214,8 @@ public final class YoldaDeck {
 			case CHARGER -> "Şarj istasyonları";
 			case NOTES -> "Notlar";
 			case QUICKMSG -> "Hızlı mesaj";
+			case CALENDAR -> "Takvim";
+			case CARCARE -> "Araç bakımı";
 			case ADD -> "Ekle";
 			default -> type;
 		};

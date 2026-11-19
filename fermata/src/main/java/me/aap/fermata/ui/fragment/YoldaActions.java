@@ -62,6 +62,8 @@ public final class YoldaActions {
 			{"şarjım kaç / hızım kaç", "pil, hız"},
 			{"[sayı] dakika sonra [iş] hatırlat / hatırlatmaları sil", "hatırlatıcı"},
 			{"not al: [metin] / notlarımı oku / notları sil", "sesli notlar"},
+			{"bugün ne var / toplantım ne zaman", "takvimdeki bugünkü ve yarınki etkinlikler"},
+			{"muayene ne zaman / sigortam ne zaman bitiyor", "araç bakım tarihleri"},
 			{"son uyarılar / az önce ne dedin", "uyarı geçmişi ve son söylenen"},
 			{"on beş çarpı dört", "hesap"},
 			{"gün batımı ne zaman", "güneş saatleri"},

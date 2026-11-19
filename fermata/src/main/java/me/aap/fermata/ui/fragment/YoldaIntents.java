@@ -51,7 +51,9 @@ public final class YoldaIntents {
 		/** Notlar: ekle (arg: metin), oku, sil. */
 		NOTE_ADD, NOTE_READ, NOTE_CLEAR,
 		/** Uyarı geçmişi: son uyarılar; az önce söylenen (num 1). */
-		ALERTS
+		ALERTS,
+		/** Takvim: bugünkü / yarınki etkinlikler; araç bakımı: muayene, sigorta, kasko, yağ değişimi. */
+		CALENDAR, CARCARE
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -241,6 +243,14 @@ public final class YoldaIntents {
 		if (c.matches("(bütün |tüm )?notları (sil|temizle)")) return Intent.of(Kind.NOTE_CLEAR);
 		if (c.matches("(şunu |bunu )?(not al|not et|not düş)\\b.+|.+ (diye )?(not al|not et|not düş)"))
 			return Intent.of(Kind.NOTE_ADD, raw.trim());
+
+		// takvim: "bugün ne var", "takvimimde ne var", "toplantım ne zaman", "yarın ne var"
+		if (c.matches("(bugün|yarın|bugün ve yarın) (ne var|neler var|programım ne|programımda ne var)|takvim(im|imde)?( ne var| neler var)?|"
+				+ "(sıradaki |bir sonraki )?(toplantım|randevum|etkinliğim) (ne zaman|saat kaçta|kaçta)|ajandam(da ne var)?"))
+			return Intent.of(Kind.CALENDAR);
+		// araç bakımı: "muayene ne zaman", "sigortam ne zaman bitiyor", "kasko"
+		if (c.matches(".*(muayene|sigorta|kasko|yağ değişimi|araç bakımı).*(ne zaman|kaç gün|bitiyor|kaldı|var mı).*|araç bakımı"))
+			return Intent.of(Kind.CARCARE);
 
 		// uyarı geçmişi: "son uyarılar", "hangi uyarıları verdin", "az önce ne dedin"
 		if (c.matches("(son |hangi )?uyarı(lar|ları)?( neler| ne| verdin| oku| söyle| geçmişi)?|son uyarılar(ı oku)?|hangi uyarıları verdin"))

@@ -192,6 +192,19 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case CALENDAR -> {
+				if (!YoldaCalendar.hasPermission(ctx)) reply(a, "Takvim izni yok; Takvim kartından izin verebilirsin");
+				else reply(a, YoldaCalendar.spoken(YoldaCalendar.upcoming(ctx), System.currentTimeMillis()));
+			}
+			case CARCARE -> {
+				StringBuilder b = new StringBuilder();
+				long now = System.currentTimeMillis();
+				for (String[] x : YoldaCarCare.ITEMS) {
+					long d = YoldaCarCare.due(ctx, x[0]);
+					if (d >= 0) b.append((b.length() > 0) ? ", " : "").append(x[1]).append(' ').append(YoldaCarCare.left(YoldaCarCare.daysLeft(d, now)));
+				}
+				reply(a, (b.length() == 0) ? "Bakım tarihi girilmemiş; Araç bakımı kartından girebilirsin" : b.toString());
+			}
 			case NOTE_ADD -> {
 				YoldaNotes.add(ctx, it.arg());
 				List<YoldaNotes.Note> nl = YoldaNotes.notes(ctx);
