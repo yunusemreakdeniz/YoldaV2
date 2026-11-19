@@ -53,6 +53,22 @@ public class YoldaPaketBTest {
 	}
 
 	@Test
+	public void tasarimOlcegi() {
+		// yazı: ölçekteki değer değişmez, ara değer en yakına (eşitlikte küçüğe), çok küçük 12'ye
+		assertEquals(15f, me.aap.fermata.ui.view.YoldaStyle.type(15), 0f);
+		assertEquals(17f, me.aap.fermata.ui.view.YoldaStyle.type(17), 0f);
+		assertEquals(18f, me.aap.fermata.ui.view.YoldaStyle.type(19), 0f);
+		assertEquals(24f, me.aap.fermata.ui.view.YoldaStyle.type(26), 0f);
+		assertEquals(12f, me.aap.fermata.ui.view.YoldaStyle.type(10), 0f);
+		assertEquals(100f, me.aap.fermata.ui.view.YoldaStyle.type(100), 0f); // büyük saat olduğu gibi
+		// köşe: basamağa oturur, hap / daire olduğu gibi
+		assertEquals(12f, me.aap.fermata.ui.view.YoldaStyle.radius(14), 0f);
+		assertEquals(16f, me.aap.fermata.ui.view.YoldaStyle.radius(17), 0f);
+		assertEquals(999f, me.aap.fermata.ui.view.YoldaStyle.radius(999), 0f);
+		for (float t : me.aap.fermata.ui.view.YoldaStyle.TYPE_SCALE) assertEquals(t, me.aap.fermata.ui.view.YoldaStyle.type(t), 0f);
+	}
+
+	@Test
 	public void yerlesimAlani() throws Exception {
 		JSONArray el = new JSONArray("[{\"type\":\"way\",\"tags\":{\"highway\":\"primary\"}},"
 				+ "{\"type\":\"area\",\"tags\":{\"landuse\":\"residential\"}}]");

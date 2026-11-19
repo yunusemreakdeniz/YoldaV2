@@ -3322,7 +3322,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.MUSIC -> {
 				List<YtMusic.Track> rec = MusicFragment.recent(ctx);
-				if (rec.isEmpty()) return null;
+				if (rec.isEmpty()) { // ilk açılışta da kartın yüzünde tek dokunuşla çalınacak üç seçenek
+					LinearLayout row = hrow(ctx);
+					for (String[] q : new String[][]{{"▶ Türkçe pop", "türkçe pop"}, {"▶ Yolculuk şarkıları", "yolculuk şarkıları"},
+							{"▶ Akustik", "akustik türkçe"}})
+						row.addView(chipBtn(ctx, q[0], v -> MusicFragment.playQuery(a, q[1])), chipLp());
+					return scroll(ctx, row);
+				}
 				LinearLayout row = hrow(ctx);
 				for (int i = 0; i < Math.min(8, rec.size()); i++) {
 					YtMusic.Track tr = rec.get(i);
@@ -5017,7 +5023,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private static TextView text(Context ctx, String s, float size, boolean bold, int color) {
 		TextView v = new TextView(ctx);
 		v.setText(s);
-		v.setTextSize(size * YoldaStyle.textScale(ctx));
+		v.setTextSize(YoldaStyle.type(size) * YoldaStyle.textScale(ctx));
 		v.setTextColor(color);
 		if (bold) v.setTypeface(Typeface.DEFAULT_BOLD);
 		return v;

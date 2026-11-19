@@ -268,7 +268,7 @@ public class InfoFragment extends MainActivityFragment {
 	private static TextView text(Context ctx, String s, float size, boolean bold, int color) {
 		TextView v = new TextView(ctx);
 		v.setText(s);
-		v.setTextSize(size * YoldaStyle.textScale(ctx));
+		v.setTextSize(YoldaStyle.type(size) * YoldaStyle.textScale(ctx));
 		v.setTextColor(color);
 		if (bold) v.setTypeface(Typeface.DEFAULT_BOLD);
 		return v;
