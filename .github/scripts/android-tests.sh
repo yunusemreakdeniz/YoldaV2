@@ -10,19 +10,24 @@ adb logcat -v time -s YoldaTest:I YoldaUiUx:I AndroidRuntime:E Yolda:I chromium:
 LOGPID=$!
 for c in YoldaWakeTest YoldaFunctionalTest YoldaAtoZTest YoldaPlaybackTest YoldaMusicTest YoldaGestureTest YoldaPharmacyTest YoldaUiUxTest; do
   echo "=== $c başlıyor $(date -u +%H:%M:%S)"
-  timeout 18m ./gradlew fermata:connectedAutoDebugAndroidTest $GRADLE_ARGS \
+  # -k: TERM ile kapanmazsa 30 sn sonra KILL (Gradle bazen TERM'i yutup takılı kalıyordu)
+  timeout -k 30s 15m ./gradlew fermata:connectedAutoDebugAndroidTest $GRADLE_ARGS \
     -Pandroid.testInstrumentationRunnerArguments.class=me.aap.fermata.ui.fragment.$c
   rc=$?
   echo "=== $c bitti: çıkış $rc $(date -u +%H:%M:%S)"
   [ $rc -ne 0 ] && code=1
   mkdir -p "$OUT/$c"
   cp -r fermata/build/reports/androidTests/. "$OUT/$c/" 2>/dev/null || true
-  if [ $rc -eq 124 ]; then
+  if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
     echo "!!! $c süre sınırında kesildi: ana iş parçacığı yığını"
     adb shell "kill -3 \$(pidof me.aap.fermata.auto.yoldav2.debug)" || true
     sleep 3
     adb shell "cat /data/anr/traces.txt 2>/dev/null; ls /data/anr" > "$OUT/$c/takilma.txt" 2>&1 || true
     adb logcat -d -b main | grep -A40 '"main"' | head -80 >> "$OUT/$c/takilma.txt" || true
+    # takılan sınıf sonrakileri bekletmesin: cihazdaki test ve uygulama süreçleri ile Gradle durdurulur
+    adb shell am force-stop me.aap.fermata.auto.yoldav2.debug.test || true
+    adb shell am force-stop me.aap.fermata.auto.yoldav2.debug || true
+    ./gradlew --stop >/dev/null 2>&1 || true
   fi
 done
 # ---- Dayanıklılık: binlerce rastgele dokunuş, kaydırma, tuş; çökme ya da donma (ANR) aranır ----
