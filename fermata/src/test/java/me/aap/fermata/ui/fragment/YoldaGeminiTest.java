@@ -36,4 +36,14 @@ public class YoldaGeminiTest {
 				"{\"error\":{\"code\":503,\"message\":\"The model is overloaded. Please try again later.\",\"status\":\"UNAVAILABLE\"}}"));
 		org.junit.Assert.assertEquals("", YoldaGemini.errorMessage("bozuk"));
 	}
+
+	@Test
+	public void modelSirasiVeAnahtarHatasi() {
+		// önce Lite (hızlı), 2.5 modelleri yok (yeni anahtarlara kapalı)
+		org.junit.Assert.assertTrue(YoldaGemini.MODELS[0].contains("lite"));
+		for (String m : YoldaGemini.MODELS) org.junit.Assert.assertTrue(m, !m.contains("2.5"));
+		org.junit.Assert.assertTrue(YoldaGemini.keyError("{\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\","
+				+ "\"status\":\"INVALID_ARGUMENT\",\"details\":[{\"reason\":\"API_KEY_INVALID\"}]}}"));
+		org.junit.Assert.assertTrue(!YoldaGemini.keyError("{\"error\":{\"code\":400,\"message\":\"Invalid value at generation_config\"}}"));
+	}
 }
