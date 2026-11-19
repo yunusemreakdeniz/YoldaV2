@@ -177,6 +177,7 @@ public final class YoldaVoice {
 				if (YoldaGemini.isEnabled(ctx) && ((cr == null) || (cr.then() == null))) askGemini(a, raw);
 				else reply(a, YoldaAnswers.chat(a, it.arg(), next -> run(a, next, raw)));
 			}
+			case STATUS -> reply(a, StatusFragment.line(ctx).replace(" · ", ", ").replace("%", "yüzde "));
 			case FX -> {
 				toast(a, "Kurlar alınıyor…");
 				String want = it.arg();

@@ -938,6 +938,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			return new me.aap.fermata.ui.fragment.EqFragment();
 		} else if (id == R.id.yolda_info_fragment) {
 			return new me.aap.fermata.ui.fragment.InfoFragment();
+		} else if (id == R.id.yolda_status_fragment) {
+			return new me.aap.fermata.ui.fragment.StatusFragment();
 		} else if (id == R.id.yolda_menu_fragment) {
 			return new me.aap.fermata.ui.fragment.YoldaMenuFragment();
 		} else if (id == R.id.yolda_setup_fragment) {
@@ -1197,7 +1199,7 @@ public class MainActivityDelegate extends ActivityDelegate
 				|| (id == R.id.yolda_weather_fragment) || (id == R.id.yolda_trip_fragment) || (id == R.id.yolda_contacts_fragment)
 				|| (id == R.id.yolda_park_fragment) || (id == R.id.yolda_fuel_fragment)
 				|| (id == R.id.yolda_history_fragment) || (id == R.id.yolda_eq_fragment)
-				|| (id == R.id.yolda_info_fragment);
+				|| (id == R.id.yolda_info_fragment) || (id == R.id.yolda_status_fragment);
 		int top = yolda ? 0 : yoldaTopTop;
 		int left = (me.aap.fermata.ui.view.YoldaStyle.sideRail(getContext()) && yolda && (id != R.id.home_fragment)
 				&& !videoMode)
@@ -1799,6 +1801,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		me.aap.fermata.ui.fragment.YoldaRadar.attach(ctx);
 		radarAttached = true;
 		me.aap.fermata.ui.fragment.YoldaChannelAlt.warmUp(ctx); // TV yedek adres listesi (haftada bir yenilenir)
+		me.aap.fermata.ui.fragment.YoldaData.start(ctx); // mobil veri sayacı ve sınır uyarısı
 		me.aap.fermata.ui.view.YoldaSpeedRail r = new me.aap.fermata.ui.view.YoldaSpeedRail(ctx);
 		r.setOnClickListener(v -> showFragment(R.id.yolda_radar_fragment));
 		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT,

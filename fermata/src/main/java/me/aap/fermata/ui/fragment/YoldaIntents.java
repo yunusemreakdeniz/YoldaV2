@@ -43,7 +43,9 @@ public final class YoldaIntents {
 		/** Telefonda görünüm: num 1 telefon (ızgara), 0 araç (deste). */
 		VIEW_MODE,
 		/** Bilgi: döviz / altın (arg: dolar, euro, sterlin, gram, çeyrek ya da null), namaz vakti, haberleri oku. */
-		FX, PRAYER, NEWS
+		FX, PRAYER, NEWS,
+		/** Telefon durumu: pil, bağlantı, bu ayki mobil veri. */
+		STATUS
 	}
 
 	/** Niyet (arg ve sayı birlikte): "10 dakika sonra su içmeyi hatırlat" → TIMER, 10, "su içmeyi". */
@@ -227,6 +229,12 @@ public final class YoldaIntents {
 		// yardım, tekrar
 		if (c.matches("(yardım|ne yapabilirsin|neler yapabilirsin|komutlar|ne diyebilirim|nasıl kullanılır)")) return Intent.of(Kind.HELP);
 		if (c.matches("(tekrar et|tekrarla|bir daha|aynısını yap)")) return Intent.of(Kind.REPEAT);
+
+		// telefon durumu: "ne kadar veri kullandım", "internetim ne kadar kaldı", "telefon durumu"
+		if (c.matches(".*(veri|internet|kota)(m|yi|imi)? (ne kadar|kaç)( kaldı| kullandım| gitti| harcadım)?.*")
+				|| c.matches("(ne kadar|kaç) (veri|internet|mb|gb) (kullandım|harcadım|gitti)")
+				|| c.matches("telefon(un)? durumu( nasıl)?"))
+			return Intent.of(Kind.STATUS);
 
 		// bilgi: "dolar kaç", "altın ne kadar", "akşam ezanı ne zaman", "haberleri oku"
 		if (c.matches(".*(dolar|euro|avro|sterlin|döviz|kur(lar)?|gram altın|çeyrek altın|altın) (kaç|ne kadar|kaçtan|fiyatı|olmuş|kuru).*")

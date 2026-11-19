@@ -865,7 +865,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -2645,6 +2645,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
 					radarSubtitle());
+			case YoldaDeck.STATUS -> new Look(0xFF93C5FD, 0xFF1E3A8A, R.drawable.yi_phone, true, "TELEFON DURUMU",
+					StatusFragment.line(requireContext()));
 			case YoldaDeck.FX -> new Look(0xFF4ADE80, 0xFF166534, R.drawable.yi_fuel, true, "DÖVİZ · ALTIN", infoLine(YoldaDeck.FX));
 			case YoldaDeck.PRAYER -> new Look(0xFF5EEAD4, 0xFF115E59, R.drawable.yi_history, true, "NAMAZ VAKİTLERİ",
 					infoLine(YoldaDeck.PRAYER));
@@ -3012,6 +3014,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
 						getResources().getConfiguration().fontScale)))));
+			}
+			case YoldaDeck.STATUS -> { // pil, bağlantı, veri; dokun → sayfa
+				LinearLayout row = hrow(ctx);
+				int[] bt = StatusFragment.battery(ctx);
+				row.addView(chipBtn(ctx, "🔋 " + ((bt[0] >= 0) ? ("%" + bt[0]) : "?") + ((bt[1] == 1) ? " ⚡" : ""), v -> open(c)), chipLp());
+				row.addView(chipBtn(ctx, "📶 " + StatusFragment.network(ctx), v -> open(c)), chipLp());
+				int lim = YoldaData.limitMb(ctx);
+				long used = YoldaData.usedThisMonth(ctx);
+				row.addView(chipBtn(ctx, "Veri " + YoldaData.size(used) + ((lim > 0) ? (" · %" + YoldaData.percent(used, lim)) : ""),
+						v -> open(c)), chipLp());
+				return scroll(ctx, row);
 			}
 			case YoldaDeck.FX -> { // kurlar ve altın çipleri
 				LinearLayout row = hrow(ctx);
@@ -3391,6 +3404,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.PARK -> a.showFragment(R.id.yolda_park_fragment);
 			case YoldaDeck.FUEL -> a.showFragment(R.id.yolda_fuel_fragment);
 			case YoldaDeck.EQ -> a.showFragment(R.id.yolda_eq_fragment); // kendi sayfası: hazır ayarlar ve bant ayarları
+			case YoldaDeck.STATUS -> a.showFragment(R.id.yolda_status_fragment);
 			case YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS -> {
 				InfoFragment.mode = c.type(); // fx / prayer / news
 				a.showFragment(R.id.yolda_info_fragment);

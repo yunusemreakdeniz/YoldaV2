@@ -28,6 +28,8 @@ public final class YoldaDeck {
 	public static final String EQ = "eq";
 	/** Bilgi kartları: döviz ve altın, namaz vakitleri, haberler. */
 	public static final String FX = "fx", PRAYER = "prayer", NEWS = "news";
+	/** Telefon durumu: pil, bağlantı, mobil veri ve sınırı, hızlı ayarlar. */
+	public static final String STATUS = "status";
 	public static final String RADAR = "radar";
 	/** Park yerleri (aracım). */
 	public static final String PARK = "park";
@@ -46,7 +48,7 @@ public final class YoldaDeck {
 	public static final String YT_CHANNEL = "ytch";
 	public static final String URL = "url";
 
-	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
+	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, STATUS, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
 			ADD};
 	private static final char FIELD = '\u001F';
 	private static final char RECORD = '\u001E';
@@ -123,6 +125,7 @@ public final class YoldaDeck {
 			case "döviz", "kur", "kurlar", "altın", "dolar", "euro", "döviz ve altın" -> FX;
 			case "namaz", "namaz vakitleri", "ezan", "ezan vakitleri", "vakitler" -> PRAYER;
 			case "haber", "haberler", "son dakika", "gündem" -> NEWS;
+			case "telefon durumu", "durum", "pil", "şarj", "veri", "mobil veri", "hızlı ayarlar" -> STATUS;
 			case "ekle", "ekleme" -> ADD;
 			case "kaldığım yer", "kaldığın yer", "kaldığın yerden", "kaldığım yerden", "devam" -> RESUME;
 			default -> null;
@@ -177,6 +180,7 @@ public final class YoldaDeck {
 			case FX -> "Döviz ve altın";
 			case PRAYER -> "Namaz vakitleri";
 			case NEWS -> "Haberler";
+			case STATUS -> "Telefon durumu";
 			case ADD -> "Ekle";
 			default -> type;
 		};
