@@ -2866,6 +2866,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					row.addView(ch, chipLp());
 					added++;
 				}
+				if (!YoldaPlayHistory.all(ctx).isEmpty()) // kendi sayfası: geçmişin tamamı, ilerleme, temizle
+					row.addView(chipBtn(ctx, "Tümünü gör ›", v -> a.showFragment(R.id.yolda_history_fragment)), chipLp());
 				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
 			}
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
@@ -3196,12 +3198,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				// (önceden "açıldı" sanılıp hiçbir şey görünmüyordu). Rota oradan telefondaki haritada başlar.
 				a.showFragment(R.id.yolda_nav_fragment);
 			}
-			case YoldaDeck.RESUME -> {
+			case YoldaDeck.RESUME -> { // karta dokununca kaldığı yerden çalar; geçmişin tamamı karttaki "Tümünü gör"de
 				if (lastItem != null) playItem(a, lastItem);
 				else {
 					List<YtMusic.Track> rec = MusicFragment.recent(ctx);
 					if (!rec.isEmpty()) MusicFragment.playTracks(a, rec, 0);
-					else UiUtils.showInfo(ctx, "Henüz bir şey dinlemedin");
+					else a.showFragment(R.id.yolda_history_fragment);
 				}
 			}
 			case YoldaDeck.FAVS -> showFavorites();
@@ -3212,11 +3214,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.RADAR -> a.showFragment(R.id.yolda_radar_fragment);
 			case YoldaDeck.PARK -> a.showFragment(R.id.yolda_park_fragment);
 			case YoldaDeck.FUEL -> a.showFragment(R.id.yolda_fuel_fragment);
-			case YoldaDeck.EQ -> { // bant bant ayar: Fermata'nın ses efektleri ekranı (bir şey çalarken)
-				var eng = a.getMediaSessionCallback().getEngine();
-				if ((eng != null) && (eng.getAudioEffects() != null)) a.showFragment(R.id.audio_effects_fragment);
-				else YoldaStyle.toast(ctx, "Bant ayarları için önce bir şey çal; hazır ayarlar kartta");
-			}
+			case YoldaDeck.EQ -> a.showFragment(R.id.yolda_eq_fragment); // kendi sayfası: hazır ayarlar ve bant ayarları
 			case YoldaDeck.TRIPS -> {
 				TripFragment.showIndex = 0;
 				a.showFragment(R.id.yolda_trip_fragment);
@@ -4023,15 +4021,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Geçmişteki bir öğeyi aç: adresiyle (radyo dizini / yedek TV) ya da kütüphane kimliğiyle. */
 	private void resumeEntry(MainActivityDelegate a, YoldaPlayHistory.Entry e) {
-		if (e.url() != null) {
-			playItem(a, "TV".equals(e.kind()) ? me.aap.fermata.media.radio.YoldaStreamItem.createVideo(a.getLib(), e.url(), e.name())
-					: me.aap.fermata.media.radio.YoldaStreamItem.create(a.getLib(), e.url(), e.name(), null, null));
-			return;
-		}
-		a.getLib().getItem(e.id()).main().onCompletion((it, err) -> {
-			if (it instanceof MediaLib.PlayableItem pi) playItem(a, pi);
-			else YoldaStyle.toast(a.getContext(), e.name() + " bulunamadı");
-		});
+		HistoryFragment.play(a, e);
 	}
 
 	/** "Kaldığın yerden" kartının alt yazısı: son kanal / radyo ve son şarkı. */

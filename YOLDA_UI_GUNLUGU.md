@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-19 · v2-174 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-174
+
+- Yeni "Kaldığın yerden" sayfası (karttaki "Tümünü gör ›"): son çalınanların tamamı, türü, ne zaman açıldığı ve ilerleme çubuğu; her satırda "Devam et", en üstte büyük "Sürdür", "Geçmişi temizle". Karta dokunmak eskisi gibi kaldığı yerden çalar.
+- Yeni Ekolayzer sayfası (karta dokununca): sekiz hazır ayar iki sütunlu büyük kutucuklarda, kısa açıklamalarıyla ("Yol uğultusuna karşı"); "Bant ayarları" bir şey çalarken.
+- Artık her sabit kartın kendi sayfası var; yeni sayfalar ekran denetim testlerine eklendi.
+
 ## 2026-11-19 · v2-173 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-173
 
 - 48dp'nin altında kalan son dokunma alanları büyüdü: destenin üst çubuğundaki tema, telefon görünümü, ayarlar, kaldırılan kartlar ve düzenle düğmeleri; düzenlerken kartlardaki ✕ ve ✎ (44 → 48dp).

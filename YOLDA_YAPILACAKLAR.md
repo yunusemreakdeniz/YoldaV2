@@ -20,7 +20,7 @@ G. [x] (v2-169) "Kaldığın yerden" kartında daha çok veri: son dinlenen / iz
 H. [x] (v2-170) Ekolayzer kartı (hazır ayarlar: Pop, Rock, Konuşma, Bas, Araç; bant ayarları)
 B. [x] (v2-173) Kartlardaki simge ve düğmelerin kalanı (kanal / favori kutucukları, kısayol çipleri) 48dp altında kalmasın
 0. [ ] Kalıcı imza anahtarı: güncellemeler eskinin üzerine kurulsun, ayarlar / kart düzeni / görünüm silinmesin (kullanıcı onayı bekliyor: anahtar oluşturma ve GitHub gizli ayarları)
-7. [ ] Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)
+7. [x] (v2-174) Her karta dokununca kendi sayfası (henüz sayfası olmayan kartlar için)
 8. [ ] Medya kartı: telefondaki videolar (en yeni üstte, klasörler, kaldığı yerden) ve fotoğraflar (yalnız telefonda)
 9. [ ] Mobil veri sınırı ve uyarısı (aç / kapat); aşınca devam edene devam
 10. [ ] TV'de çok kanal değiştirince görüntünün gitmesi (tanı günlüğüyle)

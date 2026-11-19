@@ -43,6 +43,8 @@
     <item name="yolda_contacts_fragment" type="id" />
     <item name="yolda_park_fragment" type="id" />
     <item name="yolda_fuel_fragment" type="id" />
+    <item name="yolda_history_fragment" type="id" />
+    <item name="yolda_eq_fragment" type="id" />
     <item name="yolda_vq" type="id" />
     <item name="yolda_vq_360" type="id" />
     <item name="yolda_vq_480" type="id" />
