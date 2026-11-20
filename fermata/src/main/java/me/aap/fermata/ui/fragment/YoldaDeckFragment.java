@@ -551,28 +551,25 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		int w = getResources().getDisplayMetrics().widthPixels;
 		int per = (w / getResources().getDisplayMetrics().density > 600) ? 4 : 2;
-		LinearLayout row = null;
-		int n = 0;
 		List<YoldaDeck.Card> cs = new ArrayList<>(phoneCards(ctx)); // telefonun kendi sırası (araçtaki desteden ayrı)
 		cs.add(null); // sonda "＋ Kart ekle"
-		for (YoldaDeck.Card c : cs) {
-			if (n % per == 0) {
-				row = hrow(ctx);
-				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(96));
-				rl.topMargin = dp(8);
-				col.addView(row, rl);
+		// Kademeli kurulum: ekranı dolduran ilk 8 kart hemen, kalanı her karede 4 kart (32 kartı tek seferde kurmak
+		// açılışı geciktiriyordu); görünüm yeniden kurulursa yarım kalan kurulum durur.
+		int gen = ++phoneGen;
+		int first = Math.min(cs.size(), 8);
+		addPhoneTiles(ctx, col, cs, per, 0, first);
+		if (first < cs.size()) col.postOnAnimation(new Runnable() {
+			int at = first;
+
+			@Override
+			public void run() {
+				if ((gen != phoneGen) || !isAdded()) return;
+				int end = Math.min(cs.size(), at + 4);
+				addPhoneTiles(ctx, col, cs, per, at, end);
+				at = end;
+				if (at < cs.size()) col.postOnAnimation(this);
 			}
-			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
-			if (n % per != 0) cl.leftMargin = dp(8);
-			row.addView((c == null) ? addTile(ctx) : phoneTile(ctx, c), cl);
-			n++;
-		}
-		while (n % per != 0) { // son satır: eş genişlik
-			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
-			cl.leftMargin = dp(8);
-			row.addView(new View(ctx), cl);
-			n++;
-		}
+		});
 		updatePhoneLive();
 		YoldaWeather.get(ctx).main().onSuccess(wn -> {
 			weather = wn;
@@ -582,6 +579,33 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (phWeatherPlace != null) phWeatherPlace.setText(wn.place());
 		});
 		return sv;
+	}
+
+	/** Telefon görünümü kurulum sırası (yeniden kurulunca eski kademeli kurulum durur). */
+	private int phoneGen;
+
+	/** [from, to) kartlarını satırlara ekler (from, per'in katı); sonda son satırı eş genişlikte doldurur. */
+	private void addPhoneTiles(Context ctx, LinearLayout col, List<YoldaDeck.Card> cs, int per, int from, int to) {
+		LinearLayout row = null;
+		for (int n = from; n < to; n++) {
+			YoldaDeck.Card c = cs.get(n);
+			if ((n % per == 0) || (row == null)) {
+				row = hrow(ctx);
+				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(96));
+				rl.topMargin = dp(8);
+				col.addView(row, rl);
+			}
+			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
+			if (n % per != 0) cl.leftMargin = dp(8);
+			row.addView((c == null) ? addTile(ctx) : phoneTile(ctx, c), cl);
+		}
+		if ((row != null) && (to == cs.size())) {
+			for (int n = to; n % per != 0; n++) { // son satır: eş genişlik
+				LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
+				cl.leftMargin = dp(8);
+				row.addView(new View(ctx), cl);
+			}
+		}
 	}
 
 	/** Telefon görünümündeki yüzey: koyu cam, ince kenar. */
