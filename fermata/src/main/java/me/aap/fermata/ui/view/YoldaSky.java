@@ -24,6 +24,8 @@ import me.aap.fermata.ui.fragment.YoldaWeather;
  */
 public final class YoldaSky {
 	public static final int NONE = 0, SUN = 1, STARS = 2, CLOUDS = 3, FOG = 4, RAIN = 5, SNOW = 6, STORM = 7;
+	/** Mevsim sahneleri: ilkbahar çiçek yaprakları, sonbahar düşen yapraklar, yaz sıcak güneş, kış kar ve buz. */
+	public static final int SPRING = 8, AUTUMN = 9, SUMMER = 10, WINTER = 11;
 	public static final String PREF = "weather_bg";
 
 	/** Kullanıcı ayarı (Tema seçicide "Hava efekti"): kapalı değilse true. */
@@ -32,13 +34,35 @@ public final class YoldaSky {
 	public static volatile String mode = "auto";
 	public static final String PREF_MODE = "weather_fx";
 	/** Tema seçicideki seçenekler: {kip, ad}. */
-	public static final String[][] MODES = {{"auto", "Otomatik"}, {"off", "Kapalı"}, {"sun", "Güneş"}, {"stars", "Yıldızlı gece"},
-			{"clouds", "Bulut"}, {"fog", "Sis"}, {"rain", "Yağmur"}, {"snow", "Kar"}, {"storm", "Fırtına"}};
+	public static final String[][] MODES = {{"auto", "Havaya göre"}, {"season", "Mevsime göre"}, {"off", "Kapalı"},
+			{"spring", "İlkbahar"}, {"summer", "Yaz"}, {"autumn", "Sonbahar"}, {"winter", "Kış"},
+			{"sun", "Güneş"}, {"stars", "Yıldızlı gece"}, {"clouds", "Bulut"}, {"fog", "Sis"}, {"rain", "Yağmur"},
+			{"snow", "Kar"}, {"storm", "Fırtına"}};
+
+	/** Ay (1-12) → mevsim sahnesi: Mart-Mayıs ilkbahar, Haziran-Ağustos yaz, Eylül-Kasım sonbahar, Aralık-Şubat kış. */
+	public static int seasonOf(int month) {
+		if ((month >= 3) && (month <= 5)) return SPRING;
+		if ((month >= 6) && (month <= 8)) return SUMMER;
+		if ((month >= 9) && (month <= 11)) return AUTUMN;
+		return WINTER;
+	}
+
+	/** Gece yaz güneşi olmaz: yıldızlı gece; diğer mevsimler gece de sürer (çiçek, yaprak, kar). */
+	public static int dayNight(int scene, boolean night) {
+		if (night && ((scene == SUN) || (scene == SUMMER))) return STARS;
+		if (!night && (scene == STARS)) return SUN;
+		return scene;
+	}
 
 	/** Kipe göre sahne: otomatikte havanınki, kapalıda yok, sabitte seçilen. */
 	public static int modeScene(String m, int weatherScene) {
 		return switch ((m == null) ? "auto" : m) {
 			case "off" -> NONE;
+			case "season" -> seasonOf(java.util.Calendar.getInstance().get(java.util.Calendar.MONTH) + 1);
+			case "spring" -> SPRING;
+			case "summer" -> SUMMER;
+			case "autumn" -> AUTUMN;
+			case "winter" -> WINTER;
 			case "sun" -> SUN;
 			case "stars" -> STARS;
 			case "clouds" -> CLOUDS;
@@ -52,7 +76,7 @@ public final class YoldaSky {
 
 	public static String modeLabel(String m) {
 		for (String[] x : MODES) if (x[0].equals(m)) return x[1];
-		return "Otomatik";
+		return "Havaya göre";
 	}
 
 	public static void setMode(Context ctx, String m) {
@@ -90,16 +114,24 @@ public final class YoldaSky {
 			case RAIN -> "yağmurlu";
 			case SNOW -> "karlı";
 			case STORM -> "fırtınalı";
+			case SPRING -> "ilkbahar";
+			case SUMMER -> "yaz";
+			case AUTUMN -> "sonbahar";
+			case WINTER -> "kış";
 			default -> "sade";
 		};
 	}
 
 	/** Hızlı hareket eden sahne mi (saniyede ~30 kare gerekir); yavaş olanlar ~12 karede de akıcı. */
 	public static boolean fast(int s) {
-		return (s == RAIN) || (s == SNOW) || (s == STORM) || (s == STARS);
+		return (s == RAIN) || (s == SNOW) || (s == STORM) || (s == STARS) || (s == SPRING) || (s == AUTUMN) || (s == WINTER);
 	}
 
+	/** Tema ile aynı gece / gündüz kaynağı için (YoldaStyle.isNight: araç kipi ya da kayıtlı konumda gün batımı). */
+	private static volatile Context app;
+
 	public static void load(Context ctx) {
+		app = ctx.getApplicationContext();
 		android.content.SharedPreferences p = ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
 		String m = p.getString(PREF_MODE, null);
 		if (m == null) m = p.getBoolean(PREF, true) ? "auto" : "off"; // eski aç / kapa ayarı
@@ -124,9 +156,10 @@ public final class YoldaSky {
 		if (forced >= 0) return forced;
 		String m = mode;
 		if ("off".equals(m)) return NONE;
-		if (!"auto".equals(m)) return modeScene(m, NONE); // kullanıcının seçtiği efekt, hava ne olursa olsun
+		boolean night = nightCached();
+		if (!"auto".equals(m)) return dayNight(modeScene(m, NONE), night); // seçilen efekt; gece güneş yerine yıldız
 		YoldaWeather.Now n = YoldaWeather.cachedNow();
-		return (n == null) ? NONE : scene(n.code(), night(System.currentTimeMillis()));
+		return (n == null) ? NONE : scene(n.code(), night);
 	}
 
 	/** Parçacık sayısı: alanla ölçekli, üst sınırlı (küçük ekranda kalabalık, büyükte seyrek olmasın). */
@@ -134,8 +167,10 @@ public final class YoldaSky {
 		float k = Math.min(1f, (w * h) / (1080f * 1920f));
 		int max = switch (scene) {
 			case RAIN, STORM -> 70;
-			case SNOW -> 46;
+			case SNOW, WINTER -> 46;
 			case STARS -> 38;
+			case SPRING -> 26;
+			case AUTUMN -> 20;
 			default -> 0;
 		};
 		return Math.max((max > 0) ? 12 : 0, Math.round(max * Math.max(0.35f, k)));
@@ -223,7 +258,10 @@ public final class YoldaSky {
 		long now = System.currentTimeMillis();
 		if (now - nightAt > 60_000L) {
 			nightAt = now;
-			nightNow = night(now);
+			Context c = app;
+			// Tema ile aynı: araç farları ya da kayıtlı konumda gün batımı (önceden konum yoksa 19-06 saatine
+			// bakılıyordu; sabah 6'da tema gece iken sahne güneşli oluyordu)
+			nightNow = (c != null) ? YoldaStyle.isNight(c) : night(now);
 		}
 		return nightNow;
 	}
@@ -370,34 +408,129 @@ public final class YoldaSky {
 		c.drawCircle(x + r * 0.25f, y + r * 0.45f, r * 0.3f, p);
 	}
 
+	private static final Path leafPath = new Path(), petalPath = new Path();
+
+	static {
+		// birim yaprak: sivri uçlu, ortası dolgun; sapı aşağıda (−1..1)
+		leafPath.moveTo(0, -1f);
+		leafPath.cubicTo(0.75f, -0.55f, 0.7f, 0.45f, 0, 1f);
+		leafPath.cubicTo(-0.7f, 0.45f, -0.75f, -0.55f, 0, -1f);
+		leafPath.close();
+		// birim taç yaprağı: uçta hafif çentikli damla
+		petalPath.moveTo(0, 1f);
+		petalPath.cubicTo(0.85f, 0.4f, 0.6f, -0.85f, 0.12f, -0.95f);
+		petalPath.lineTo(0, -0.75f);
+		petalPath.lineTo(-0.12f, -0.95f);
+		petalPath.cubicTo(-0.6f, -0.85f, -0.85f, 0.4f, 0, 1f);
+		petalPath.close();
+	}
+
+	/** Dönen yaprak: flip (−1..1) kendi ekseninde dönüş (genişlik daralıp genişler), ortada damar, ışıklı kenar. */
+	private static void leaf(Canvas c, Paint p, float x, float y, float sz, float rot, float flip, int color, int a) {
+		c.save();
+		c.translate(x, y);
+		c.rotate(rot);
+		c.scale(sz * Math.max(0.12f, Math.abs(flip)), sz);
+		p.setShader(null);
+		p.setStyle(Paint.Style.FILL);
+		int shade = (flip < 0) ? 0xB0 : 0xFF; // arka yüz biraz koyu
+		int r = ((color >> 16) & 0xFF) * shade / 255, g = ((color >> 8) & 0xFF) * shade / 255, b = (color & 0xFF) * shade / 255;
+		p.setColor((a << 24) | (r << 16) | (g << 8) | b);
+		c.drawPath(leafPath, p);
+		p.setStyle(Paint.Style.STROKE);
+		p.setStrokeWidth(0.06f);
+		p.setColor(((a / 2) << 24) | 0x5A2E14);
+		c.drawLine(0, -0.85f, 0, 1.25f, p); // damar ve sap
+		p.setStyle(Paint.Style.FILL);
+		c.restore();
+	}
+
+	/** Dönen çiçek yaprağı: yumuşak renk, ortasında hafif ışık. */
+	private static void petal(Canvas c, Paint p, float x, float y, float sz, float rot, float flip, int color, int a) {
+		c.save();
+		c.translate(x, y);
+		c.rotate(rot);
+		c.scale(sz * Math.max(0.15f, Math.abs(flip)), sz);
+		p.setShader(null);
+		p.setStyle(Paint.Style.FILL);
+		p.setColor((a << 24) | (color & 0x00FFFFFF));
+		c.drawPath(petalPath, p);
+		p.setColor(((a / 3) << 24) | 0xFFFFFF);
+		c.drawCircle(-0.15f, -0.1f, 0.3f, p);
+		c.restore();
+	}
+
 	/** Sahneyi çiz; s = saniye (sabitken 0). Animasyon gerekiyorsa true. */
 	static boolean draw(Canvas c, Paint p, Rect bd, int scene, float s) {
 		float w = bd.width(), h = bd.height();
 		if ((scene == NONE) || (w <= 0) || (h <= 0)) return false;
 		float u = Math.min(w, h) / 400f; // ekrana göre birim
 		switch (scene) {
-			case SUN -> {
-				// Sakin, sıcak güneş (sık kullanılır, göz yormasın): hiçbir şey dönmez ya da uçuşmaz; hale çok yavaş
-				// nefes alır (~12 sn), hüzmeler yalnız ışıkça çok yavaş (15-25 sn) güçlenip zayıflar.
-				float cx = bd.left + w * 0.82f, cy = bd.top + h * 0.06f, big = Math.max(w, h);
-				skyGradient(c, p, bd, 0xFFFFB066, 0x48, 0.6f); // üstten aşağı ılık gök
-				glowOval(c, p, bd.left + w * 0.5f, bd.bottom, w * 1.1f, h * 0.22f, 0xFFFFC98A, 0x22); // ufukta ılık pus
-				float pulse = 1f + 0.02f * (float) Math.sin(s * 0.52);
-				glow(c, p, cx, cy, big * 0.75f * pulse, 0xFFFFC870, 0x3C); // çok geniş, yumuşak ışık
-				// güneşten aşağı-sola inen geniş hüzmeler (uca doğru söner)
-				for (int i = 0; i < 6; i++) {
-					double ang = Math.PI * (0.58 + 0.07 * i + 0.02 * rnd(i, 31)), half = 0.035 + 0.025 * rnd(i, 32);
-					float br = 0.5f + 0.5f * (float) Math.sin(s * (0.25f + 0.08f * rnd(i, 34)) + i * 1.9f);
-					beam(c, p, cx, cy, ang, half, big * (0.75f + 0.25f * rnd(i, 33)), qa(26 + 26 * br), i);
+			case SUN, SUMMER -> {
+				// Sinematik, sakin güneş: kenardan taşan sıcak çok katmanlı ışık, yatay mercek çizgisi, üst kenardan sızan
+				// ışık. Işın / hüzme yok (amatör duruyordu); yalnız çok yavaş nefes (~12 sn). Yaz daha sıcak ve parlak.
+				boolean summer = scene == SUMMER;
+				float big = Math.max(w, h), cx = bd.left + w * 0.9f, cy = bd.top - h * 0.015f;
+				float pulse = 1f + 0.015f * (float) Math.sin(s * 0.52);
+				skyGradient(c, p, bd, summer ? 0xFFFFA24D : 0xFFFFB873, summer ? 0x58 : 0x44, 0.65f); // ılık gök
+				glowOval(c, p, bd.left + w * 0.5f, bd.bottom, w * 1.1f, h * 0.2f, 0xFFFFC98A, summer ? 0x26 : 0x1A); // ufuk pusu
+				glow(c, p, cx, cy, big * 0.95f * pulse, 0xFFFFC46B, summer ? 0x38 : 0x2C); // geniş ışık
+				glow(c, p, cx, cy, big * 0.42f * pulse, 0xFFFFD9A0, summer ? 0x58 : 0x48); // taç
+				glowOval(c, p, bd.left + w * 0.72f, bd.top, w * 0.62f, h * 0.075f, 0xFFFFE2B8, 0x30); // üstten sızan ışık
+				// yatay (anamorfik) mercek çizgisi: ince parlak çekirdek ve geniş soluk hale
+				glowOval(c, p, cx, cy + h * 0.02f, w * 1.15f, h * 0.016f, 0xFFFFE9C9, 0x2A);
+				glowOval(c, p, cx, cy + h * 0.02f, w * 0.85f, Math.max(2f, h * 0.0045f), 0xFFFFFFFF, 0x5C);
+				glow(c, p, cx, cy, big * 0.13f, 0xFFFFF4DE, 0xB0); // parlak disk
+				glow(c, p, cx, cy, big * 0.055f, 0xFFFFFFFF, 0xF0); // beyaz çekirdek
+				return true;
+			}
+			case SPRING -> {
+				// İlkbahar: taze, açık gök; sol üstten ılık ışık; dönerek süzülen pembe-beyaz çiçek yaprakları (derinlikli)
+				boolean night = nightCached();
+				skyGradient(c, p, bd, night ? 0xFF1B2440 : 0xFF9CC9E8, night ? 0x40 : 0x3C, 0.6f);
+				if (!night) glow(c, p, bd.left + w * 0.12f, bd.top, Math.max(w, h) * 0.6f, 0xFFFFEFD2, 0x34);
+				glowOval(c, p, bd.left + w * 0.5f, bd.bottom, w * 1.1f, h * 0.2f, 0xFFF7C6D9, 0x1C); // altta pembe pus
+				int n = particles(scene, w, h);
+				int[] tones = {0xFFFFD1DF, 0xFFFFE4EC, 0xFFFFFFFF, 0xFFF7B6CC};
+				for (int i = 0; i < n; i++) {
+					float d = rnd(i, 131); // derinlik
+					float sp = 0.25f + 0.6f * d;
+					float y = ((rnd(i, 132) + s * 0.045f * sp) % 1.15f) - 0.08f;
+					float x = (rnd(i, 133) + 0.06f * (float) Math.sin(s * (0.35f + 0.3f * rnd(i, 134)) + i) + s * 0.012f * sp) % 1f;
+					float px = bd.left + x * w, py = bd.top + y * h, sz = u * (2.2f + 5.5f * d);
+					int col = tones[(int) (rnd(i, 135) * tones.length) % tones.length];
+					if (d > 0.8f) { // yakın: odak dışı yumuşak ışık lekesi
+						glow(c, p, px, py, sz * 1.8f, col, qa(60 + 40 * d));
+						continue;
+					}
+					float spin = s * (0.6f + 1.2f * rnd(i, 136)) + i;
+					petal(c, p, px, py, sz, (float) Math.toDegrees(spin * 0.7f), (float) Math.cos(spin), col, (int) (110 + 110 * d));
 				}
-				glow(c, p, cx, cy, big * 0.2f, 0xFFFFE2A8, 0x70); // sıcak taç
-				glow(c, p, cx, cy, big * 0.085f, 0xFFFFF6E0, 0xC0); // parlak disk
-				glow(c, p, cx, cy, big * 0.04f, 0xFFFFFFFF, 0xF0); // beyaz çekirdek
-				// çok soluk, sabit mercek parlamaları (güneşten ekranın ortasına)
-				float fx = bd.left + w * 0.45f - cx, fy = bd.top + h * 0.6f - cy;
-				glow(c, p, cx + fx * 0.45f, cy + fy * 0.45f, big * 0.02f, 0xFFB8E1FF, 0x20);
-				glow(c, p, cx + fx * 0.75f, cy + fy * 0.75f, big * 0.045f, 0xFFFFC7A0, 0x18);
-				glowOval(c, p, cx + fx * 1.05f, cy + fy * 1.05f, big * 0.07f, big * 0.07f, 0xFFD9C8FF, 0x12);
+				return true;
+			}
+			case AUTUMN -> {
+				// Sonbahar: kehribar gök, alçak ılık güneş; gerçek yaprak biçiminde, dönerek ve salınarak düşen yapraklar
+				boolean night = nightCached();
+				skyGradient(c, p, bd, night ? 0xFF22160F : 0xFFE0904A, night ? 0x40 : 0x40, 0.6f);
+				if (!night) glow(c, p, bd.left + w * 0.85f, bd.top + h * 0.08f, Math.max(w, h) * 0.55f, 0xFFFFC37A, 0x30);
+				glowOval(c, p, bd.left + w * 0.5f, bd.bottom, w * 1.1f, h * 0.22f, 0xFFB5652E, 0x22); // altta sıcak pus
+				int n = particles(scene, w, h);
+				int[] tones = {0xFFE2632A, 0xFFF2A33A, 0xFFC0392B, 0xFFE8C14A, 0xFF9C5A2E};
+				for (int i = 0; i < n; i++) {
+					float d = rnd(i, 141);
+					float sp = 0.3f + 0.7f * d;
+					float y = ((rnd(i, 142) + s * 0.05f * sp) % 1.15f) - 0.08f;
+					float sway = (float) Math.sin(s * (0.7f + 0.4f * rnd(i, 144)) + i * 1.3f); // sarkaç gibi salınım
+					float x = (rnd(i, 143) + 0.05f * sway + s * 0.01f * sp + 1f) % 1f;
+					float px = bd.left + x * w, py = bd.top + y * h, sz = u * (4f + 8f * d);
+					int col = tones[(int) (rnd(i, 145) * tones.length) % tones.length];
+					if (d > 0.85f) { // çok yakın: flu
+						glow(c, p, px, py, sz * 1.5f, col, qa(70 + 40 * d));
+						continue;
+					}
+					float rot = sway * 50f + s * 40f * (rnd(i, 146) - 0.5f);
+					leaf(c, p, px, py, sz, rot, (float) Math.cos(s * (1f + rnd(i, 147)) + i), col, (int) (130 + 110 * d));
+				}
 				return true;
 			}
 			case STARS -> {
@@ -572,6 +705,15 @@ public final class YoldaSky {
 					}
 				}
 				return true;
+			}
+			case WINTER -> {
+				// Kış: soğuk mavi ton, köşelerde buzlanma, ardından kar sahnesi
+				skyGradient(c, p, bd, 0xFFBFD6F2, 0x34, 0.7f);
+				glowOval(c, p, bd.left, bd.top, w * 0.45f, h * 0.22f, 0xFFFFFFFF, 0x26);
+				glowOval(c, p, bd.right, bd.top, w * 0.45f, h * 0.22f, 0xFFFFFFFF, 0x26);
+				glowOval(c, p, bd.left, bd.bottom, w * 0.5f, h * 0.18f, 0xFFEAF3FF, 0x22);
+				glowOval(c, p, bd.right, bd.bottom, w * 0.5f, h * 0.18f, 0xFFEAF3FF, 0x22);
+				return draw(c, p, bd, SNOW, s);
 			}
 			case SNOW -> {
 				// soğuk, aydınlık gökyüzü ve altta yumuşak kar birikintisi parıltısı

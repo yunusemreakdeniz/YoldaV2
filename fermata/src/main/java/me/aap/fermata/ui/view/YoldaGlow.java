@@ -99,13 +99,10 @@ public final class YoldaGlow extends Drawable {
 		c1 = motion ? towards(c1, t1, 0.12f) : t1;
 		c2 = motion ? towards(c2, t2, 0.12f) : t2;
 		long now = SystemClock.uptimeMillis();
+		// Kaydırırken efekt durmaz (kullanıcı: 'kartlar arası geçerken efektler duruyor'); yalnız kare hızı ~20'ye
+		// iner, böylece kaydırma akıcı kalır
 		boolean hold = holding(now);
-		if (hold && (frozenAt < 0)) frozenAt = now; // kaydırma başladı: zamanı dondur
-		else if (!hold && (frozenAt >= 0)) { // kaydırma bitti: donuk kalan süre animasyondan düşülsün (sıçrama yok)
-			start += now - frozenAt;
-			frozenAt = -1;
-		}
-		float s = anim ? (((hold ? frozenAt : now) - start) / 1000f) : 0f;
+		float s = anim ? ((now - start) / 1000f) : 0f;
 		float r = Math.max(w, h) * 0.62f;
 		blob(c, c1, bd.left + w * (0.25f + 0.08f * (float) Math.sin(s * 0.21)),
 				bd.top + h * (0.30f + 0.10f * (float) Math.cos(s * 0.17)), r, 0x99);
@@ -119,9 +116,9 @@ public final class YoldaGlow extends Drawable {
 		if (settling) { // renk geçişi: en çok ~30 kare (her vsync'te tam ekran yeniden çizim kaydırmayı yoruyordu)
 			unscheduleSelf(tick);
 			scheduleSelf(tick, now + 33);
-		} else if (hold) { // kaydırma bitince yeniden başla
+		} else if (anim && hold) { // kaydırırken: sürer, daha seyrek
 			unscheduleSelf(tick);
-			scheduleSelf(tick, holdUntil + 16);
+			scheduleSelf(tick, now + Math.max(50, YoldaSky.frameMs(scene)));
 		} else if (anim) { // damla / kar / yıldız ~30 kare, güneş / bulut / sis ~20 kare, sahnesiz ~12 kare (pil)
 			unscheduleSelf(tick);
 			scheduleSelf(tick, SystemClock.uptimeMillis() + YoldaSky.frameMs(scene));
