@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-20 · v2-208 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-208 · Kaldığın yerden hızlandı
+
+- Çalma geçmişi ve son çalınan müzikler kayıt değişmedikçe yeniden ayrıştırılmaz (Kaldığın yerden ve Müzik kartları daha hızlı kurulur).
+- Ekran geçişlerinin süresi ölçülür; yavaşsa tanı günlüğüne 'Kurulum · Geçiş ...'.
+
 ## 2026-11-20 · v2-207 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-207 · Gereksiz yenileme yok
 
 - Takvim / medya verisi değişmediyse kart yeniden çizilmez; her kartın kurulum süresi ölçülür (yavaşlar tanı günlüğüne).
