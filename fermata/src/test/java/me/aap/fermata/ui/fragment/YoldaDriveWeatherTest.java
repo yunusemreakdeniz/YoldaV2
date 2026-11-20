@@ -41,4 +41,14 @@ public class YoldaDriveWeatherTest {
 		assertEquals("Dikkat, buzlanma riski şu an", YoldaWeather.spokenAlert("Buzlanma riski · şimdi"));
 		assertEquals("", YoldaWeather.spokenAlert(""));
 	}
+
+	@Test
+	public void sesliKomut() {
+		for (String c : new String[]{"yol durumu nasıl", "yolda sis var mı", "buzlanma var mı", "sürüş uyarısı var mı", "yolda hava nasıl"}) {
+			YoldaIntents.Intent it = YoldaIntents.parse(c);
+			assertEquals(c, YoldaIntents.Kind.WEATHER, it.kind());
+			assertEquals(c, "road", it.arg());
+		}
+		assertEquals(null, YoldaIntents.parse("hava nasıl").arg());
+	}
 }

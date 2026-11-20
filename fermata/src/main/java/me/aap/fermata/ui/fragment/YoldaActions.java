@@ -39,6 +39,7 @@ public final class YoldaActions {
 			{"şarj istasyonları kartına geç", "yakındaki elektrikli araç şarj istasyonları"},
 			{"neredeyim", "bulunduğun yer"},
 			{"eve kaç dakika / işe ne kadar sürer", "yol süresi (TomTom anahtarı varsa canlı trafikle)"},
+			{"yol durumu nasıl / yolda sis var mı", "sürüş riski: buzlanma, sis, fırtına, kuvvetli yağış / rüzgâr"},
 			{"yolculuğu başlat / yolculuğu bitir", "telefonda yolculuk kaydı (Android Auto'da kendiliğinden)"},
 			{"maç sonuçları / [takım] maçı ne zaman", "Süper Lig sonuçları ve fikstür"},
 			// arama ve mesaj
