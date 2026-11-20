@@ -140,8 +140,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			subLines--;
 			bottom = avail - ((subLines == 0) ? 0 : (10 + subLines * line)) - 2;
 		}
-		int tile = Math.max(minTap, Math.min(small ? 72 : 88, bottom));
-		int logo = Math.max(minTap, Math.min(small ? 84 : 104, bottom));
+		int tile = Math.max(minTap, Math.min(small ? 80 : 104, bottom)); // kanal / kapak kutucukları: yer varsa büyük
+		int logo = Math.max(minTap, Math.min(small ? 92 : 120, bottom));
 		int btn = Math.max(minTap, Math.min(lowFx ? 72 : 64, bottom));
 		int chipH = Math.max(minTap, Math.min(lowFx ? 80 : 72, bottom)); // çipler: yer varsa büyük (en az 56 / araçta 64)
 		int big = compact ? 32 : small ? 40 : 52;
@@ -625,7 +625,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaDeck.Card c = cs.get(n);
 			if ((n % per == 0) || (row == null)) {
 				row = hrow(ctx);
-				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(96));
+				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(112)); // tek bakış değeri sığsın
 				rl.topMargin = dp(8);
 				col.addView(row, rl);
 			}
@@ -739,13 +739,31 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
 		chip.addView(ic, new FrameLayout.LayoutParams(dp(28), dp(28), Gravity.CENTER)); // kutunun %70'i
 		head.addView(chip, new LinearLayout.LayoutParams(dp(40), dp(40)));
-		TextView ti = text(ctx, c.title(), 15, true, 0xFFFFFFFF);
+		Glance gl = glance(ctx, c.type());
+		if (gl != null) { // tek bakış: simge küçük, değer büyük, altında renkli kısa not
+			head.getChildAt(0).setLayoutParams(new LinearLayout.LayoutParams(dp(28), dp(28)));
+			ic.setLayoutParams(new FrameLayout.LayoutParams(dp(20), dp(20), Gravity.CENTER));
+		}
+		TextView ti = text(ctx, c.title(), (gl != null) ? 14 : 15, true, 0xFFFFFFFF);
 		ti.setSingleLine(true);
 		ti.setEllipsize(TextUtils.TruncateAt.END);
 		ti.setPadding(dp(10), 0, 0, 0);
 		head.addView(ti, new LinearLayout.LayoutParams(0, -2, 1f));
 		f.addView(head);
 		f.addView(new View(ctx), new LinearLayout.LayoutParams(-1, 0, 1f));
+		if (gl != null) {
+			TextView val = text(ctx, "", 28, true, 0xFFFFFFFF);
+			val.setText(gl.big());
+			val.setSingleLine(true);
+			val.setEllipsize(TextUtils.TruncateAt.END);
+			f.addView(val);
+			String nt = gl.l2().isEmpty() ? gl.l1() : gl.l2();
+			TextView note = text(ctx, nt, 13, true, gl.l2().isEmpty() ? 0xFFC5CBD8 : gl.color());
+			note.setSingleLine(true);
+			note.setEllipsize(TextUtils.TruncateAt.END);
+			f.addView(note);
+			return f;
+		}
 		TextView sub = text(ctx, lk.sub, 12, false, 0xFFC5CBD8);
 		sub.setSingleLine(true);
 		sub.setEllipsize(TextUtils.TruncateAt.END);
@@ -3669,7 +3687,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.SPORTS -> { // son sonuçlar ve sıradaki maçlar; takımını seç
 				LinearLayout row = hrow(ctx);
 				List<YoldaSports.Match>[] ms = YoldaSports.matches(ctx, false);
-				for (int i = 0; i < Math.min(3, ms[0].size()); i++) {
+				View gs = glanceRow(ctx, YoldaDeck.SPORTS, v -> open(c)); // son skor (yoksa sıradaki maç) büyük
+				if (gs != null) row.addView(gs);
+				for (int i = (gs != null) && !ms[0].isEmpty() ? 1 : 0; i < Math.min(3, ms[0].size()); i++) {
 					YoldaSports.Match m = ms[0].get(i);
 					row.addView(chipBtn(ctx, "⚽ " + m.line(), v -> YoldaSpeak.sayAlways(ctx, m.line())), chipLp());
 				}
@@ -3712,7 +3732,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					return row;
 				}
 				long now = System.currentTimeMillis();
-				for (YoldaCalendar.Event e : YoldaCalendar.upcomingCached(ctx)) {
+				List<YoldaCalendar.Event> evs = YoldaCalendar.upcomingCached(ctx);
+				if (!evs.isEmpty()) { // sıradaki etkinliğe kalan süre büyük (dokun: yol tarifi ya da okunur)
+					YoldaCalendar.Event e0 = evs.get(0);
+					View gc = glanceRow(ctx, YoldaDeck.CALENDAR, v -> {
+						if (!e0.location().isEmpty()) NavFragment.navigateTo(ctx, e0.location(), true);
+						else YoldaSpeak.sayAlways(ctx, YoldaCalendar.when(e0, System.currentTimeMillis()) + ", " + e0.title());
+					});
+					if (gc != null) row.addView(gc);
+				}
+				for (YoldaCalendar.Event e : evs) {
+					if ((row.getChildCount() > 0) && (e == evs.get(0))) continue; // büyük yazılanı çipte tekrarlama
 					if (row.getChildCount() >= 4) break;
 					String tt = YoldaCalendar.when(e, now) + " · " + ((e.title().length() > 28) ? (e.title().substring(0, 28) + "…") : e.title());
 					row.addView(chipBtn(ctx, (e.location().isEmpty() ? "" : "📍 ") + tt, v -> {
@@ -3725,6 +3755,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.CARCARE -> { // her kalem: kalan gün (7 gün kala vurgulu), dokun → tarihi gir
 				LinearLayout row = hrow(ctx);
 				long now = System.currentTimeMillis();
+				View gcc = glanceRow(ctx, YoldaDeck.CARCARE, v -> open(c)); // en yakın kalem büyük
+				if (gcc != null) row.addView(gcc);
 				for (String[] it : YoldaCarCare.ITEMS) {
 					long due = YoldaCarCare.due(ctx, it[0]);
 					String lbl = it[1] + " · " + ((due < 0) ? "tarih gir" : YoldaCarCare.left(YoldaCarCare.daysLeft(due, now)));
@@ -3767,8 +3799,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.NOTES -> { // sıradaki hatırlatmalar ve son notlar (dokun: okunur), sesli not ekle
 				LinearLayout row = hrow(ctx);
 				long now = System.currentTimeMillis();
-				for (YoldaNotes.Reminder r : YoldaNotes.reminders(ctx)) {
-					if (row.getChildCount() >= 2) break;
+				List<YoldaNotes.Reminder> rems = YoldaNotes.reminders(ctx);
+				View gn = rems.isEmpty() ? null : glanceRow(ctx, YoldaDeck.NOTES, v -> YoldaSpeak.sayAlways(ctx, rems.get(0).text()));
+				if (gn != null) row.addView(gn); // sıradaki hatırlatmaya kalan süre büyük
+				for (YoldaNotes.Reminder r : rems) {
+					if ((gn != null) && (r == rems.get(0))) continue;
+					if (row.getChildCount() >= 3) break;
 					row.addView(chipBtn(ctx, "⏰ " + YoldaNotes.left(r.due(), now), v -> YoldaSpeak.sayAlways(ctx, r.text())), chipLp());
 				}
 				List<YoldaNotes.Note> nl = YoldaNotes.notes(ctx);
@@ -3783,7 +3819,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				List<YoldaNearby.Spot> sl = NearbyFragment.lastChargers;
 				if (sl.isEmpty()) return null;
 				LinearLayout row = hrow(ctx);
-				for (int i = 0; i < Math.min(3, sl.size()); i++) {
+				YoldaNearby.Spot s0 = sl.get(0);
+				View gch = glanceRow(ctx, YoldaDeck.CHARGER, v -> NavFragment.navigateTo(ctx,
+						String.format(java.util.Locale.ROOT, "%.6f,%.6f", s0.lat(), s0.lon()), false)); // en yakını büyük
+				if (gch != null) row.addView(gch);
+				for (int i = (gch != null) ? 1 : 0; i < Math.min(3, sl.size()); i++) {
 					YoldaNearby.Spot s = sl.get(i);
 					row.addView(chipBtn(ctx, "⚡ " + s.name() + " · " + YoldaPlaceSuggest.distance(s.meters()), v -> NavFragment.navigateTo(ctx,
 							String.format(java.util.Locale.ROOT, "%.6f,%.6f", s.lat(), s.lon()), false)), chipLp());
@@ -3901,6 +3941,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case YoldaDeck.FUEL -> { // üç fiyat çipi (dokun: o yakıtı seç) ve en yakın benzinlik
 				YoldaFuel.Prices fp = YoldaFuel.cached(ctx);
 				LinearLayout row = hrow(ctx);
+				View gfu = glanceRow(ctx, YoldaDeck.FUEL, v -> open(c)); // seçili yakıt fiyatı büyük
+				if (gfu != null) row.addView(gfu);
 				if (fp != null) for (String ty : new String[]{"gasoline", "diesel", "lpg"}) {
 					String ch = YoldaFuel.change(fp.changeOf(ty));
 					row.addView(chipBtn(ctx, YoldaFuel.label(ty) + " " + YoldaFuel.money((double) YoldaFuelLocal.price(ctx, ty, fp)[0])
@@ -5386,6 +5428,153 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			pressEffect(box);
 		}
 		return box;
+	}
+
+	/** Kartın tek bakışta değeri: büyük yazı, iki kısa satır ve ikinci satırın rengi (telefon karosu ve kart yüzü). */
+	private record Glance(CharSequence big, String l1, String l2, int color) {
+	}
+
+	private static String cut(String s, int n) {
+		return (s.length() > n) ? (s.substring(0, n) + "…") : s;
+	}
+
+	/** Kart türüne göre tek bakışta değer; verisi yoksa null (karo eski tek satırı gösterir). */
+	@Nullable
+	private Glance glance(Context ctx, String type) {
+		long now = System.currentTimeMillis();
+		int muted = 0xDDFFFFFF;
+		try {
+			switch (type) {
+				case YoldaDeck.WEATHER -> {
+					if (weather == null) return null;
+					String h = YoldaWeather.changeHint(weather);
+					return new Glance(weather.temp() + "°", weather.place(), h.isEmpty() ? YoldaWeather.text(weather.code()) : h, 0xFF7DD3FC);
+				}
+				case YoldaDeck.TRAFFIC -> {
+					String hd = trafficDest(ctx, "nav_home"), wd = trafficDest(ctx, "nav_work");
+					String d = (hd != null) ? hd : wd;
+					YoldaTraffic.Eta e = (d != null) ? trafficEta.get(d) : null;
+					if (e == null) return null;
+					return new Glance(spanUnits(e.minutes() + " dk"), d.equals(hd) ? "Eve" : "İşe", YoldaTraffic.note(e), YoldaTraffic.noteColor(e));
+				}
+				case YoldaDeck.PRAYER -> {
+					java.util.Calendar cal = java.util.Calendar.getInstance();
+					int m = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
+					YoldaInfo.Prayer nx = YoldaInfo.next(YoldaInfo.prayers(ctx, false), m);
+					if ((nx == null) || (nx.minute() < 0)) return null;
+					return new Glance(spanUnits(YoldaInfo.left(nx, m)), nx.name() + " " + nx.time(), "kaldı", muted);
+				}
+				case YoldaDeck.PARK -> {
+					double[] pk = YoldaRadar.park(ctx);
+					if (pk == null) return null;
+					String l2 = "";
+					if (!Double.isNaN(YoldaRadar.lat)) {
+						double dm = YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1]);
+						l2 = YoldaDriveCore.distText(dm) + " · yürüyerek " + YoldaCardStats.walkMin(dm) + " dk";
+					}
+					return new Glance(spanUnits(YoldaCardStats.elapsed(now - (long) pk[2])), "park edeli", l2, muted);
+				}
+				case YoldaDeck.FX -> {
+					List<YoldaInfo.Rate> rs = YoldaInfo.rates(ctx, false);
+					if (rs.isEmpty()) return null;
+					YoldaInfo.Rate r = rs.get(0);
+					double pct = YoldaCardStats.fxChange(prefs(ctx).getString("fx_d_" + r.code(), null), r.sell());
+					String t = YoldaCardStats.fxText(pct);
+					return new Glance(YoldaInfo.money(r.sell()).replace(" ₺", ""), r.name(), t.isEmpty() ? "" : (t + " dünden"),
+							YoldaCardStats.fxColor(pct));
+				}
+				case YoldaDeck.QUAKE -> {
+					List<YoldaQuake.Quake> qs = YoldaQuake.cached();
+					if (qs.isEmpty()) return null;
+					YoldaQuake.Quake q = qs.get(0);
+					return new Glance(YoldaQuake.mag(q), cut(q.region(), 22), Math.round(q.distKm()) + " km · " + YoldaQuake.ago(q.timeMs(), now),
+							YoldaQuake.color(q));
+				}
+				case YoldaDeck.TRIPS -> {
+					List<YoldaDriveCore.TripRec> recs = new ArrayList<>();
+					for (YoldaRadar.TripItem ti : YoldaRadar.tripItems(ctx)) recs.add(ti.rec());
+					YoldaCardStats.Week wk = YoldaCardStats.week(recs, now);
+					if (wk.count() == 0) return null;
+					return new Glance(spanUnits(String.format(new java.util.Locale("tr"), "%.0f km", wk.meters() / 1000f)),
+							"bu hafta · " + wk.count() + " yolculuk", YoldaCardStats.elapsed(wk.ms()), muted);
+				}
+				case YoldaDeck.FUEL -> {
+					YoldaFuel.Prices p = YoldaFuel.cached(ctx);
+					if (p == null) return null;
+					String ty = YoldaFuel.type(ctx);
+					double pr = (double) YoldaFuelLocal.price(ctx, ty, p)[0];
+					YoldaFuelLocal.Local loc = YoldaFuelLocal.cached(ctx);
+					return new Glance(YoldaFuel.money(pr).replace(" ₺", ""), YoldaFuel.label(ty) + ((loc != null) ? (" · " + loc.province()) : ""),
+							"100 km ≈ " + YoldaFuel.money(YoldaFuel.cost(100_000, YoldaFuel.consumption(ctx), pr)), muted);
+				}
+				case YoldaDeck.CALENDAR -> {
+					if (!YoldaCalendar.hasPermission(ctx)) return null;
+					List<YoldaCalendar.Event> ev = YoldaCalendar.upcomingCached(ctx);
+					if (ev.isEmpty()) return null;
+					YoldaCalendar.Event e = ev.get(0);
+					boolean soon = !e.allDay() && (e.begin() > now) && (e.begin() - now < 24 * 3_600_000L);
+					CharSequence big = soon ? spanUnits(YoldaCardStats.elapsed(e.begin() - now)) : YoldaCalendar.when(e, now);
+					return new Glance(big, cut(e.title(), 26), soon ? ("sonra · " + YoldaCalendar.when(e, now))
+							: (e.location().isEmpty() ? "" : ("📍 " + cut(e.location(), 24))), soon ? 0xFFFDE68A : muted);
+				}
+				case YoldaDeck.CARCARE -> {
+					String[] best = null;
+					int bd = Integer.MAX_VALUE;
+					for (String[] it : YoldaCarCare.ITEMS) {
+						long due = YoldaCarCare.due(ctx, it[0]);
+						if (due < 0) continue;
+						int d = YoldaCarCare.daysLeft(due, now);
+						if (d < bd) {
+							bd = d;
+							best = it;
+						}
+					}
+					if (best == null) return null;
+					CharSequence big = (bd < 0) ? "!" : (bd <= 1) ? YoldaCarCare.left(bd) : spanUnits(bd + " gün");
+					return new Glance(big, best[1], (bd < 0) ? YoldaCarCare.left(bd) : "kaldı",
+							(bd < 0) ? 0xFFF87171 : (bd <= 7) ? 0xFFFB923C : muted);
+				}
+				case YoldaDeck.NOTES -> {
+					List<YoldaNotes.Reminder> rs = YoldaNotes.reminders(ctx);
+					if (rs.isEmpty()) return null;
+					YoldaNotes.Reminder r = rs.get(0);
+					String hm = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).format(new java.util.Date(r.due()));
+					return new Glance(spanUnits(YoldaCardStats.elapsed(r.due() - now + 59_999)), cut(r.text().replace("Hatırlatma: ", ""), 26),
+							"⏰ " + hm, 0xFFFDE68A);
+				}
+				case YoldaDeck.SPORTS -> {
+					List<YoldaSports.Match>[] ms = YoldaSports.matches(ctx, false);
+					if (!ms[0].isEmpty()) {
+						YoldaSports.Match m = ms[0].get(0);
+						return new Glance(m.hs() + "–" + m.as(), cut(m.home() + " - " + m.away(), 26), "Son maç · " + m.date(), muted);
+					}
+					if (!ms[1].isEmpty()) {
+						YoldaSports.Match m = ms[1].get(0);
+						return new Glance(m.time().isEmpty() ? m.date() : m.time(), cut(m.home() + " - " + m.away(), 26),
+								"Sıradaki · " + m.date(), muted);
+					}
+					return null;
+				}
+				case YoldaDeck.CHARGER -> {
+					List<YoldaNearby.Spot> sl = NearbyFragment.lastChargers;
+					if (sl.isEmpty()) return null;
+					YoldaNearby.Spot s = sl.get(0);
+					return new Glance(spanUnits(YoldaPlaceSuggest.distance(s.meters())), cut(s.name(), 24), s.info(), muted);
+				}
+				default -> {
+				}
+			}
+			return null;
+		} catch (Throwable ex) { // tek bakış değeri kartı asla bozmasın
+			return null;
+		}
+	}
+
+	/** Kart yüzü: tek bakış değeri büyük (yoksa null). */
+	@Nullable
+	private View glanceRow(Context ctx, String type, @Nullable View.OnClickListener click) {
+		Glance g = glance(ctx, type);
+		return (g == null) ? null : bigRow(ctx, g.big(), g.l1(), g.l2(), g.color(), click);
 	}
 
 	/** Çip yazısının sonuna renkli ek (döviz değişimi). */
