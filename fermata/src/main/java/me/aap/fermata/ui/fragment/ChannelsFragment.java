@@ -34,6 +34,7 @@ import java.util.Set;
 import me.aap.fermata.R;
 import me.aap.fermata.media.lib.MediaLib;
 import me.aap.fermata.ui.activity.MainActivityDelegate;
+import me.aap.fermata.ui.view.YoldaJank;
 import me.aap.fermata.ui.view.YoldaStyle;
 import me.aap.utils.log.Log;
 
@@ -263,6 +264,18 @@ public class ChannelsFragment extends MainActivityFragment {
 		hlp.topMargin = dp(carUi ? 8 : 12);
 		col.addView(hs, hlp);
 
+		// Son açılanlar: o türde (TV / radyo) son açtığın kanallar tek dokunuşla (95 kanalda aramadan)
+		HorizontalScrollView rs = new HorizontalScrollView(ctx);
+		rs.setHorizontalScrollBarEnabled(false);
+		recentRow = new LinearLayout(ctx);
+		recentRow.setOrientation(LinearLayout.HORIZONTAL);
+		recentRow.setGravity(Gravity.CENTER_VERTICAL);
+		rs.addView(recentRow);
+		recentBox = rs;
+		LinearLayout.LayoutParams rsl = new LinearLayout.LayoutParams(-1, -2);
+		rsl.topMargin = dp(carUi ? 6 : 10);
+		col.addView(rs, rsl);
+
 		ScrollView scroll = new ScrollView(ctx);
 		scroll.setClipToPadding(false);
 		grid = new LinearLayout(ctx);
@@ -413,8 +426,50 @@ public class ChannelsFragment extends MainActivityFragment {
 		}
 	}
 
+	@Nullable
+	private LinearLayout recentRow;
+	@Nullable
+	private View recentBox;
+
+	/** "Son açılanlar" şeridi: aramada ve Favoriler'de gizli; kanal listede yoksa atlanır. */
+	private void fillRecent(Context ctx, MainActivityDelegate a) {
+		LinearLayout row = recentRow;
+		if ((row == null) || (recentBox == null)) return;
+		row.removeAllViews();
+		List<String> ids = YoldaPlayHistory.recentIds(YoldaPlayHistory.all(ctx), radio ? "Radyo" : "TV", 6);
+		if (query.isEmpty() && !FAV.equals(group)) {
+			for (String id : ids) {
+				MediaLib.PlayableItem pi = null;
+				for (MediaLib.PlayableItem x : items) if (x.getId().equals(id)) pi = x;
+				if (pi == null) continue;
+				MediaLib.PlayableItem fp = pi;
+				TextView c = text(ctx, "↺ " + pi.getName(), 15, true, t.ink);
+				c.setSingleLine(true);
+				c.setGravity(Gravity.CENTER);
+				c.setPadding(dp(16), 0, dp(16), 0);
+				c.setBackground(YoldaStyle.glass(ctx, t, 999));
+				c.setClickable(true);
+				c.setContentDescription("Son açılan: " + pi.getName());
+				c.setOnClickListener(v -> a.getBody().playItem(fp));
+				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(48));
+				lp.rightMargin = dp(8);
+				row.addView(c, lp);
+			}
+		}
+		if (row.getChildCount() > 0) { // başta küçük başlık
+			TextView h = text(ctx, "Son açılanlar", 13, true, YoldaStyle.TEXT_2);
+			h.setPadding(dp(2), 0, dp(10), 0);
+			row.addView(h, 0);
+		}
+		recentBox.setVisibility((row.getChildCount() > 0) ? View.VISIBLE : View.GONE);
+	}
+
+	/** Izgara kurulum sırası: yeni arama / sekme gelince yarım kalan kademeli kurulum durur. */
+	private int gridGen;
+
 	private void showGrid() {
 		if (grid == null || !isAdded()) return;
+		long t0 = android.os.SystemClock.uptimeMillis();
 		Context ctx = requireContext();
 		// Kullanıcının sırası (TV / Radyo kartındaki "Sırala")
 		YoldaChannelOrder.sort(items, YoldaChannelOrder.order(ctx), MediaLib.PlayableItem::getId);
@@ -434,14 +489,37 @@ public class ChannelsFragment extends MainActivityFragment {
 				? "Düzenleme: ★ favori yap · ✕ gizle · + geri getir"
 				: (shown.size() + " yayın · hepsi resmi yayın adresleri"));
 		grid.removeAllViews();
+		fillRecent(ctx, a);
 
 		boolean car = a.isCarActivity();
 		int cols = car ? Math.max(3, Math.min(5, YoldaStyle.widthDp(ctx) / 190))
 				: Math.max(2, Math.min(6, ctx.getResources().getConfiguration().screenWidthDp / 170));
 		MediaLib.PlayableItem cur = a.getCurrentPlayable();
 		playingId = (cur != null) ? cur.getId() : null;
+		// Kademeli kurulum: ekranı dolduran ilk satırlar hemen, kalanı her karede birkaç satır (95 kanalı tek
+		// seferde kurmak açılışta ve aramada donmaya yol açıyordu). Yeni arama gelirse eski kurulum durur.
+		int gen = ++gridGen;
+		int first = Math.min(shown.size(), cols * 5);
+		addCards(ctx, a, shown, cols, car, 0, first);
+		YoldaJank.took("Kanallar ızgarası (ilk " + first + ")", t0, shown.size());
+		if (first < shown.size()) grid.postOnAnimation(new Runnable() {
+			int at = first;
+
+			@Override
+			public void run() {
+				if ((gen != gridGen) || (grid == null) || !isAdded()) return;
+				int end = Math.min(shown.size(), at + cols * 3);
+				addCards(ctx, a, shown, cols, car, at, end);
+				at = end;
+				if (at < shown.size()) grid.postOnAnimation(this);
+			}
+		});
+	}
+
+	/** [from, to) arasındaki kanal kartlarını satırlara ekler (from, cols'un katı); sonda son satırı doldurur. */
+	private void addCards(Context ctx, MainActivityDelegate a, List<MediaLib.PlayableItem> shown, int cols, boolean car, int from, int to) {
 		LinearLayout row = null;
-		for (int i = 0; i < shown.size(); i++) {
+		for (int i = from; i < to; i++) {
 			if (i % cols == 0) {
 				row = new LinearLayout(ctx);
 				row.setOrientation(LinearLayout.HORIZONTAL);
@@ -454,7 +532,7 @@ public class ChannelsFragment extends MainActivityFragment {
 			row.addView(card(ctx, a, shown.get(i), i + 1), lp);
 		}
 		// Son satırı boşlukla doldur ki kartlar eşit genişlikte kalsın
-		if (row != null) {
+		if ((row != null) && (to == shown.size())) {
 			for (int i = shown.size() % cols; (i > 0) && (i < cols); i++) {
 				LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1f);
 				lp.leftMargin = dp(12);

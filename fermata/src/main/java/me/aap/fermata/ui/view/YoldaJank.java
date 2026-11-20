@@ -23,6 +23,23 @@ public final class YoldaJank {
 	private YoldaJank() {
 	}
 
+	/** Ekran kurulumu bu kadar ms'yi aşarsa tanı günlüğüne yazılır. */
+	static final long BUILD_WARN_MS = 40;
+
+	/** Kurulum süresi satırı (kısa sürdüyse null): "Kurulum · Kanallar ızgarası: 120 ms (47 öğe)". */
+	static String buildLine(String what, long ms, int items) {
+		if (ms < BUILD_WARN_MS) return null;
+		return "Kurulum · " + what + ": " + ms + " ms" + ((items > 0) ? (" (" + items + " öğe)") : "");
+	}
+
+	/** {@code SystemClock.uptimeMillis()} ile alınan başlangıçtan bu yana süreyi ölç; uzunsa günlüğe yaz. */
+	public static long took(String what, long startMs, int items) {
+		long ms = android.os.SystemClock.uptimeMillis() - startMs;
+		String ln = buildLine(what, ms, items);
+		if (ln != null) me.aap.fermata.ui.fragment.YoldaLog.add(ln);
+		return ms;
+	}
+
 	/** Kare süresinden sınıf: 0 akıcı, 1 yavaş, 2 donma. */
 	static int classify(long ns) {
 		if (ns >= FREEZE_NS) return 2;

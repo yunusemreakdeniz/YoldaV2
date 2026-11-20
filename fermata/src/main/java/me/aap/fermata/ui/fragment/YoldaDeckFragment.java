@@ -373,6 +373,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	};
 
 	private View phoneHome(Context ctx) {
+		long t0 = android.os.SystemClock.uptimeMillis();
+		View v = phoneHomeBuild(ctx);
+		me.aap.fermata.ui.view.YoldaJank.took("Telefon görünümü", t0, 0);
+		return v;
+	}
+
+	private View phoneHomeBuild(Context ctx) {
 		MainActivityDelegate a = getActivityDelegate();
 		ScrollView sv = new ScrollView(ctx);
 		sv.setOnScrollChangeListener((v, x, y, ox, oy) -> me.aap.fermata.ui.view.YoldaGlow.hold(250)); // kaydırırken zemin beklesin
