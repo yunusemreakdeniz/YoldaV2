@@ -92,6 +92,10 @@ public final class YoldaSports {
 				YoldaLog.add("Spor sonuçları alınamadı: " + ex.getClass().getSimpleName());
 			}
 		}
+		String t0 = team(ctx);
+		long at = p.getLong("at", 0);
+		if ((memo != null) && (memoAt == at) && java.util.Objects.equals(memoTeam, t0))
+			return new List[]{new ArrayList<>(memo[0]), new ArrayList<>(memo[1])}; // aynı veri: yeniden ayrıştırma
 		List<Match> past = new ArrayList<>(), next = new ArrayList<>();
 		try {
 			past = parse(p.getString("past", "{}"));
@@ -104,6 +108,13 @@ public final class YoldaSports {
 			past.sort((a, b) -> Boolean.compare(b.has(t), a.has(t)));
 			next.sort((a, b) -> Boolean.compare(b.has(t), a.has(t)));
 		}
-		return new List[]{past, next};
+		memo = new List[]{past, next};
+		memoAt = at;
+		memoTeam = t;
+		return new List[]{new ArrayList<>(past), new ArrayList<>(next)};
 	}
+
+	private static volatile List<Match>[] memo;
+	private static volatile long memoAt;
+	private static volatile String memoTeam;
 }
