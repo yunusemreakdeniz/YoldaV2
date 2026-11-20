@@ -40,6 +40,25 @@ public final class YoldaMedia {
 		return true;
 	}
 
+	private static volatile Context app;
+	/** Kart yüzü için: MediaStore sorguları arka planda (2 dk geçerli). */
+	public static final YoldaBgCache<List<Item>> VIDEOS = new YoldaBgCache<>(120_000L,
+			() -> (app != null) ? videos(app, 60) : new ArrayList<>());
+	public static final YoldaBgCache<List<Item>> PHOTOS = new YoldaBgCache<>(120_000L,
+			() -> (app != null) ? photos(app, 12) : new ArrayList<>());
+
+	public static List<Item> videosCached(Context ctx, int n) {
+		app = ctx.getApplicationContext();
+		List<Item> l = VIDEOS.get(new ArrayList<>());
+		return (l.size() > n) ? l.subList(0, n) : l;
+	}
+
+	public static List<Item> photosCached(Context ctx, int n) {
+		app = ctx.getApplicationContext();
+		List<Item> l = PHOTOS.get(new ArrayList<>());
+		return (l.size() > n) ? l.subList(0, n) : l;
+	}
+
 	/** En yeni videolar (en çok n). */
 	public static List<Item> videos(Context ctx, int n) {
 		return query(ctx, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true, n);

@@ -31,6 +31,17 @@ public final class YoldaCalendar {
 		return ctx.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED;
 	}
 
+	private static volatile Context app;
+	/** Kart yüzü için: takvim sorgusu ana iş parçacığında değil, arka planda (1 dk geçerli). */
+	public static final YoldaBgCache<List<Event>> CACHE = new YoldaBgCache<>(60_000L,
+			() -> (app != null) ? upcoming(app) : new ArrayList<>());
+
+	/** Bellekteki son etkinlikler (yoksa boş); eskiyse arka planda yenilenir, bitince CACHE.onLoaded. */
+	public static List<Event> upcomingCached(Context ctx) {
+		app = ctx.getApplicationContext();
+		return CACHE.get(new ArrayList<>());
+	}
+
 	/** Şimdiden itibaren 36 saat içindeki etkinlikler (bitmemiş olanlar), başlangıca göre. İzin yoksa boş. */
 	public static List<Event> upcoming(Context ctx) {
 		List<Event> out = new ArrayList<>();

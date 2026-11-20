@@ -556,6 +556,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		// Kademeli kurulum: ekranı dolduran ilk 8 kart hemen, kalanı her karede 4 kart (32 kartı tek seferde kurmak
 		// açılışı geciktiriyordu); görünüm yeniden kurulursa yarım kalan kurulum durur.
 		int gen = ++phoneGen;
+		phoneTileViews.clear();
 		int first = Math.min(cs.size(), 8);
 		addPhoneTiles(ctx, col, cs, per, 0, first);
 		if (first < cs.size()) col.postOnAnimation(new Runnable() {
@@ -583,6 +584,28 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Telefon görünümü kurulum sırası (yeniden kurulunca eski kademeli kurulum durur). */
 	private int phoneGen;
+	/** Telefon görünümündeki karolar (kart türü → karo): tek kart yenilenirken bütün görünüm kurulmasın. */
+	private final java.util.Map<String, View> phoneTileViews = new java.util.HashMap<>();
+
+	/**
+	 * Telefon görünümünde tek kartı yenile: karosu yerinde yeniden kurulur (önceden her veri gelişinde bütün
+	 * görünüm, 32 kart, yeniden kuruluyordu: açılışta art arda takılma). Karo henüz kurulmadıysa (kademeli
+	 * kurulum sürüyor) bir şey yapılmaz: kurulunca güncel veriyle gelir.
+	 */
+	private void refreshPhoneTile(String type) {
+		if (!isAdded() || (getContext() == null)) return;
+		View old = phoneTileViews.get(type);
+		if ((old == null) || !(old.getParent() instanceof ViewGroup g)) return;
+		YoldaDeck.Card card = null;
+		for (YoldaDeck.Card c : deck.cards()) if (c.type().equals(type)) card = c;
+		if (card == null) return;
+		int idx = g.indexOfChild(old);
+		ViewGroup.LayoutParams lp = old.getLayoutParams();
+		View nv = phoneTile(requireContext(), card);
+		g.removeViewAt(idx);
+		g.addView(nv, idx, lp);
+		phoneTileViews.put(type, nv);
+	}
 
 	/** [from, to) kartlarını satırlara ekler (from, per'in katı); sonda son satırı eş genişlikte doldurur. */
 	private void addPhoneTiles(Context ctx, LinearLayout col, List<YoldaDeck.Card> cs, int per, int from, int to) {
@@ -597,7 +620,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
 			if (n % per != 0) cl.leftMargin = dp(8);
-			row.addView((c == null) ? addTile(ctx) : phoneTile(ctx, c), cl);
+			View tile = (c == null) ? addTile(ctx) : phoneTile(ctx, c);
+			if (c != null) phoneTileViews.put(c.type(), tile);
+			row.addView(tile, cl);
 		}
 		if ((row != null) && (to == cs.size())) {
 			for (int n = to; n % per != 0; n++) { // son satır: eş genişlik
@@ -1032,6 +1057,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
 													 @Nullable Bundle savedInstanceState) {
+		// Arka plan sorguları bitince ilgili kart yenilensin (takvim, medya)
+		YoldaCalendar.CACHE.onLoaded = () -> {
+			if (isAdded()) refreshCard(YoldaDeck.CALENDAR);
+		};
+		Runnable media = () -> {
+			if (isAdded()) refreshCard(YoldaDeck.MEDIA);
+		};
+		YoldaMedia.VIDEOS.onLoaded = media;
+		YoldaMedia.PHOTOS.onLoaded = media;
 		Context ctx = requireContext();
 		t = YoldaStyle.current(ctx);
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
@@ -1510,12 +1544,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private String mediaLine() {
 		Context ctx = requireContext();
 		if (!YoldaMedia.hasPermission(ctx)) return "Telefondaki videolar ve fotoğraflar · izin gerekli";
-		List<YoldaMedia.Item> v = YoldaMedia.videos(ctx, 1);
+		List<YoldaMedia.Item> v = YoldaMedia.videosCached(ctx, 1); // arka planda sorgulanır (kart kurulumu beklemez)
 		return v.isEmpty() ? "Telefonda video yok" : ("Son video: " + v.get(0).name() + (v.get(0).folder().isEmpty() ? "" : (" · " + v.get(0).folder())));
 	}
 
 	private void askMediaPermission(MainActivityDelegate a) {
 		a.getAppActivity().checkPermissions(YoldaMedia.permissions()).onCompletion((r, err) -> {
+			YoldaMedia.VIDEOS.invalidate();
+			YoldaMedia.PHOTOS.invalidate();
 			if (isAdded()) refreshCard(YoldaDeck.MEDIA);
 		});
 	}
@@ -1656,6 +1692,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Takvim izni (bir kez); verilince kart yenilenir. */
 	private void askCalendarPermission(MainActivityDelegate a) {
 		a.getAppActivity().checkPermissions(android.Manifest.permission.READ_CALENDAR).onCompletion((r, err) -> {
+			YoldaCalendar.CACHE.invalidate(); // izinle birlikte yeniden sorgula
 			if (isAdded()) refreshCard(YoldaDeck.CALENDAR);
 		});
 	}
@@ -1663,7 +1700,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private String calendarLine() {
 		Context ctx = requireContext();
 		if (!YoldaCalendar.hasPermission(ctx)) return "Bugünkü etkinlikler · izin gerekli";
-		List<YoldaCalendar.Event> l = YoldaCalendar.upcoming(ctx);
+		if (!YoldaCalendar.CACHE.loaded()) { // ilk açılış: sorgu arka planda
+			YoldaCalendar.upcomingCached(ctx);
+			return "Takvim yükleniyor…";
+		}
+		List<YoldaCalendar.Event> l = YoldaCalendar.upcomingCached(ctx);
 		if (l.isEmpty()) return "Bugün ve yarın etkinlik yok";
 		YoldaCalendar.Event e = l.get(0);
 		return "Sıradaki: " + YoldaCalendar.when(e, System.currentTimeMillis()) + " " + e.title()
@@ -3625,8 +3666,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					row.addView(chipBtn(ctx, "🎬 Videolara erişim izni ver", v -> askMediaPermission(a)), chipLp());
 					return row;
 				}
-				for (YoldaMedia.Item it : YoldaMedia.videos(ctx, 6)) row.addView(mediaTile(ctx, it, tile, true, v -> playLocalVideo(a, it)), tileLp(tile));
-				if (!a.isCarActivity()) for (YoldaMedia.Item it : YoldaMedia.photos(ctx, 6))
+				for (YoldaMedia.Item it : YoldaMedia.videosCached(ctx, 6)) row.addView(mediaTile(ctx, it, tile, true, v -> playLocalVideo(a, it)), tileLp(tile));
+				if (!a.isCarActivity()) for (YoldaMedia.Item it : YoldaMedia.photosCached(ctx, 6))
 					row.addView(mediaTile(ctx, it, tile, false, v -> openPhoto(ctx, it)), tileLp(tile));
 				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
 			}
@@ -3647,7 +3688,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					return row;
 				}
 				long now = System.currentTimeMillis();
-				for (YoldaCalendar.Event e : YoldaCalendar.upcoming(ctx)) {
+				for (YoldaCalendar.Event e : YoldaCalendar.upcomingCached(ctx)) {
 					if (row.getChildCount() >= 4) break;
 					String tt = YoldaCalendar.when(e, now) + " · " + ((e.title().length() > 28) ? (e.title().substring(0, 28) + "…") : e.title());
 					row.addView(chipBtn(ctx, (e.location().isEmpty() ? "" : "📍 ") + tt, v -> {
@@ -4924,8 +4965,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private void refreshCard(String type) {
-		if (phoneBuilt) { // ekranda deste varken ızgara kurulmasın (önceden deste kayboluyordu)
-			if ((root != null) && isAdded()) root.post(this::rebuildPhone);
+		if (phoneBuilt) { // telefon görünümü: yalnız o kartın karosu yerinde yenilenir
+			if ((root != null) && isAdded()) root.post(() -> refreshPhoneTile(type));
 			return;
 		}
 		if ((adapter == null) || !isAdded()) return;
