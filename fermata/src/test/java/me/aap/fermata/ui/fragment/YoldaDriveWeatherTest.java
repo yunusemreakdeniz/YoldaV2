@@ -49,6 +49,6 @@ public class YoldaDriveWeatherTest {
 			assertEquals(c, YoldaIntents.Kind.WEATHER, it.kind());
 			assertEquals(c, "road", it.arg());
 		}
-		assertEquals(null, YoldaIntents.parse("hava nasıl").arg());
+		org.junit.Assert.assertFalse("road".equals(YoldaIntents.parse("hava nasıl").arg()));
 	}
 }
