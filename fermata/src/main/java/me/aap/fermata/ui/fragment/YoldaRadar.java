@@ -235,6 +235,7 @@ public final class YoldaRadar {
 		if (c == null) return;
 		App.get().getHandler().post(YoldaRadar::adjustRate); // araçta her saniye, inince seyrek
 		if (connected) {
+			YoldaWelcome.onCarConnected(c); // isteğe bağlı sesli karşılama
 			if (isEnabled(c) && feature(c, "bg") && hasUi()) YoldaDriveService.start(c);
 			// Android Auto bağlanınca yolculuk hemen başlar (bağlantı kesilince biter)
 			if (isEnabled(c) && feature(c, "trips") && trip.start(System.currentTimeMillis(), Double.NaN, Double.NaN, false)) // konumsuz: ilk taze konum başlangıç (eski konum mesafeyi şişirmesin)
