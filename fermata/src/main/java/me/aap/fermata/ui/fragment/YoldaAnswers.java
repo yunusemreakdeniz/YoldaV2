@@ -143,6 +143,24 @@ final class YoldaAnswers {
 	// ---- hatırlatıcı ----
 
 	private static final List<Runnable> reminders = new ArrayList<>();
+	private static final java.util.Map<Runnable, String> reminderMsg = new java.util.HashMap<>();
+	/** Park kartının hatırlatma metni (kartta bulunup iptal edilebilsin). */
+	static final String PARK_MSG = "Hatırlatma: Park süren doluyor";
+
+	/** Bu metinli bütün hatırlatmaları iptal et (kayıt ve kurulu zamanlayıcı). */
+	static void cancelReminder(Context ctx, String msg) {
+		for (YoldaNotes.Reminder r : YoldaNotes.reminders(ctx))
+			if (r.text().equals(msg)) YoldaNotes.removeReminder(ctx, r.due(), r.text());
+		synchronized (reminders) {
+			for (java.util.Iterator<Runnable> it = reminders.iterator(); it.hasNext(); ) {
+				Runnable r = it.next();
+				if (!msg.equals(reminderMsg.get(r))) continue;
+				App.get().getHandler().removeCallbacks(r);
+				reminderMsg.remove(r);
+				it.remove();
+			}
+		}
+	}
 
 	static void remind(Context ctx, int min, String what) {
 		long due = System.currentTimeMillis() + min * 60_000L;
@@ -176,6 +194,7 @@ final class YoldaAnswers {
 		};
 		synchronized (reminders) {
 			reminders.add(r);
+			reminderMsg.put(r, msg);
 		}
 		App.get().getHandler().postDelayed(r, Math.max(0, due - System.currentTimeMillis()));
 	}
