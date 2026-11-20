@@ -894,8 +894,21 @@ public class MainActivityDelegate extends ActivityDelegate
 			yoldaHistory.push(prev);
 			while (yoldaHistory.size() > 20) yoldaHistory.removeLast();
 		}
+		long t0 = android.os.SystemClock.uptimeMillis();
 		ActivityFragment f = super.showFragment(id, input);
 		updateBodyTopPadding();
+		if (prev != id) { // ekran geçişi süresi (ilk kare çizilene dek): yavaşsa tanı günlüğüne
+			int fid = id;
+			android.view.Choreographer.getInstance().postFrameCallback(ft -> {
+				String nm;
+				try {
+					nm = getContext().getResources().getResourceEntryName(fid);
+				} catch (Exception ex) {
+					nm = String.valueOf(fid);
+				}
+				me.aap.fermata.ui.view.YoldaJank.took("Geçiş " + nm, t0, 0);
+			});
+		}
 		// Yeni ekran yumuşakça gelsin (video oynarken ve aynı ekrana dönüşte yok)
 		if ((prev != id) && !b.isVideoMode() && (f != null)) {
 			boolean car = isCarActivity();

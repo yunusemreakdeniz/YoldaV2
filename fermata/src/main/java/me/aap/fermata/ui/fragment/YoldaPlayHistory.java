@@ -88,8 +88,16 @@ public final class YoldaPlayHistory {
 		prefs(ctx).edit().putString("l", encode(l)).apply();
 	}
 
+	private static String memoRaw;
+	private static List<Entry> memo;
+
+	/** Geçmiş (en yeni önce). Kayıt değişmedikçe JSON yeniden ayrıştırılmaz (kart kurulumunda birkaç kez çağrılır). */
 	public static synchronized List<Entry> all(Context ctx) {
-		return decode(prefs(ctx).getString("l", null));
+		String raw = prefs(ctx).getString("l", null);
+		if ((memo != null) && java.util.Objects.equals(raw, memoRaw)) return new java.util.ArrayList<>(memo);
+		memo = decode(raw);
+		memoRaw = raw;
+		return new java.util.ArrayList<>(memo);
 	}
 
 	/** Bir türün (TV / Radyo) son açılan, yinelenmeyen kimlikleri (en yeni önce, en çok max). */
