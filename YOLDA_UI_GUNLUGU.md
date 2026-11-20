@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-20 · v2-206 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-206 · Daha akıcı telefon görünümü
+
+- Telefon görünümünde bir kartın verisi gelince yalnız o karo yenilenir (önce 32 kartın hepsi yeniden kuruluyordu).
+- Takvim ve Medya kartları veritabanını arka planda sorgular; spor verisi değişmedikçe yeniden işlenmez.
+
 ## 2026-11-20 · v2-205 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-205 · Mevsimler, sinematik güneş
 
 - Hava efekti gece / gündüzü temayla aynı hesaplar (sabah 6'da güneş görünmesi düzeldi); gece güneş yerine yıldızlı gök.
