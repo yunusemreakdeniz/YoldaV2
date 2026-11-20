@@ -200,6 +200,9 @@ public class YoldaMenuFragment extends MainActivityFragment {
 					me.aap.fermata.ui.activity.MainActivity m = me.aap.fermata.ui.activity.MainActivity.getActiveInstance();
 					if (m != null) m.checkUpdates(true);
 				}));
+		// Direksiyon tuşları (Mola'dan): önceki / sonraki / oynat tuşlarının dokunma, çift dokunma, uzun basma eylemi
+		set.addView(item(ctx, R.drawable.yi_car, "Direksiyon tuşları · önceki, sonraki, oynat", 0xFFFED7AA, 0xFFEA580C,
+				v -> showKeys(ctx)));
 		// Sesli karşılama (Mola'dan): araca bağlanınca selam; dokun aç / kapat, basılı tut: isim ve günde bir kez
 		boolean wOn = YoldaWelcome.isOn(ctx);
 		String wn = YoldaWelcome.name(ctx);
@@ -333,6 +336,55 @@ public class YoldaMenuFragment extends MainActivityFragment {
 				})
 				.setNegativeButton("Temizle", (d, w) -> YoldaLog.clear(ctx))
 				.show();
+	}
+
+	/** Direksiyondaki / kulaklıktaki medya tuşları ve Yolda'da en çok işe yarayan eylemler. */
+	static final me.aap.fermata.action.Key[] WHEEL_KEYS = {me.aap.fermata.action.Key.MEDIA_PREVIOUS,
+			me.aap.fermata.action.Key.MEDIA_NEXT, me.aap.fermata.action.Key.MEDIA_PLAY_PAUSE, me.aap.fermata.action.Key.HEADSETHOOK};
+	static final me.aap.fermata.action.Action[] WHEEL_ACTIONS = {me.aap.fermata.action.Action.PREV,
+			me.aap.fermata.action.Action.NEXT, me.aap.fermata.action.Action.PLAY_PAUSE, me.aap.fermata.action.Action.PREV_FOLDER,
+			me.aap.fermata.action.Action.NEXT_FOLDER, me.aap.fermata.action.Action.RW, me.aap.fermata.action.Action.FF,
+			me.aap.fermata.action.Action.VOLUME_UP, me.aap.fermata.action.Action.VOLUME_DOWN,
+			me.aap.fermata.action.Action.VOLUME_MUTE_UNMUTE, me.aap.fermata.action.Action.ACTIVATE_VOICE_CTRL,
+			me.aap.fermata.action.Action.STOP, me.aap.fermata.action.Action.NONE};
+
+	static String keyName(me.aap.fermata.action.Key k) {
+		return switch (k) {
+			case MEDIA_PREVIOUS -> "Önceki tuşu";
+			case MEDIA_NEXT -> "Sonraki tuşu";
+			case MEDIA_PLAY_PAUSE -> "Oynat / duraklat tuşu";
+			case HEADSETHOOK -> "Kulaklık / tek tuş";
+			default -> k.name();
+		};
+	}
+
+	/** Direksiyon tuşları: her tuş ve basış türü için seçilen eylem; dokununca eylem listesi. */
+	private void showKeys(Context ctx) {
+		var prefs = me.aap.fermata.action.Key.getPrefs();
+		java.util.List<String> rows = new java.util.ArrayList<>();
+		java.util.List<Object[]> refs = new java.util.ArrayList<>();
+		String[] kinds = {"dokun", "çift dokun", "basılı tut"};
+		for (me.aap.fermata.action.Key k : WHEEL_KEYS) {
+			me.aap.fermata.action.Action[] cur = {k.getClickAction(), k.getDblClickAction(), k.getLongClickAction()};
+			for (int i = 0; i < 3; i++) {
+				rows.add(keyName(k) + " · " + kinds[i] + ": " + ((cur[i] != null) ? ctx.getString(cur[i].getName()) : "—"));
+				refs.add(new Object[]{k, i});
+			}
+		}
+		new android.app.AlertDialog.Builder(ctx).setTitle("Direksiyon tuşları (TV'de kanal, radyoda istasyon)")
+				.setItems(rows.toArray(new String[0]), (d, w) -> {
+					me.aap.fermata.action.Key k = (me.aap.fermata.action.Key) refs.get(w)[0];
+					int kind = (int) refs.get(w)[1];
+					String[] names = new String[WHEEL_ACTIONS.length];
+					for (int i = 0; i < names.length; i++) names[i] = ctx.getString(WHEEL_ACTIONS[i].getName());
+					new android.app.AlertDialog.Builder(ctx).setTitle(rows.get(w).substring(0, rows.get(w).indexOf(':')))
+							.setItems(names, (d2, w2) -> {
+								var pref = (kind == 0) ? k.getActionPref() : (kind == 1) ? k.getDblActionPref() : k.getLongActionPref();
+								prefs.applyIntPref(pref, WHEEL_ACTIONS[w2].ordinal());
+								YoldaStyle.toast(ctx, keyName(k) + " · " + kinds[kind] + ": " + names[w2]);
+								showKeys(ctx);
+							}).setNegativeButton("Geri", (d2, w2) -> showKeys(ctx)).show();
+				}).setNegativeButton("Kapat", null).show();
 	}
 
 	/** Sesli karşılamada söylenecek isim; ardından günde bir kez mi her bağlanışta mı. */
