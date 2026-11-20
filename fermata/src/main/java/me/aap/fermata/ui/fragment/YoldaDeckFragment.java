@@ -719,7 +719,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout f = new LinearLayout(ctx);
 		f.setOrientation(LinearLayout.VERTICAL);
 		f.setPadding(dp(12), dp(12), dp(12), dp(12));
-		f.setBackground(phoneSurface(ctx, 18));
+		// Koyu cam üstüne kartın renginde sol üstten hafif ışıltı: karolar birbirinden ayırt edilir
+		GradientDrawable glow = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+				new int[]{YoldaStyle.alpha(lk.c1, 0.34f), YoldaStyle.alpha(lk.c2, 0.10f), 0x00000000});
+		glow.setCornerRadius(dp(18));
+		f.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{phoneSurface(ctx, 18), glow}));
 		f.setClickable(true);
 		f.setContentDescription(c.title());
 		f.setOnClickListener(v -> open(c));
@@ -3383,6 +3387,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		FrameLayout.LayoutParams mlp = new FrameLayout.LayoutParams(ms, ms, Gravity.END | Gravity.TOP);
 		mlp.rightMargin = mlp.topMargin = dp(16);
 		f.addView(mark, mlp);
+		if (fit().row()) mark.setVisibility(View.GONE); // alçak kartta "Aç"ın arkasına düşüyordu
 
 		Fit fz = fit();
 		LinearLayout v = new LinearLayout(ctx);
@@ -3478,6 +3483,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				LinearLayout acts = radarActions(ctx, fz);
 				head.addView(acts, head.getChildCount() - 1, new LinearLayout.LayoutParams(-2, -2));
 				return f;
+			}
+			View gv = glanceRow(ctx, c.type(), x -> open(c)); // alçak kartta da kartın değeri adın yanında
+			if (gv != null) {
+				LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(-2, -2);
+				glp.leftMargin = dp(8);
+				head.addView(gv, glp);
 			}
 			head.addView(openButton(ctx, c, noble, accent, fz), openLp(fz));
 			return f;
