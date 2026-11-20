@@ -158,6 +158,15 @@ public class WeatherFragment extends MainActivityFragment {
 				+ (d.sunrise().isEmpty() ? "" : ("\nGün doğumu " + d.sunrise() + " · Gün batımı " + d.sunset())), 15, false, t.muted);
 		facts.setPadding(0, dp(10), 0, 0);
 		now.addView(facts);
+		double uv = YoldaWeather.uvNow();
+		if (uv >= 1) { // UV indeksi (gündüz): bant rengiyle tek satır
+			long ur = Math.round(uv);
+			TextView uvt = text(ctx, "● UV " + ur + ": " + YoldaWeather.uvText(uv) + ((ur >= 6) ? " · güneş gözlüğü, gölge" : ""),
+					15, true, YoldaWeather.uvColor(uv));
+			uvt.setPadding(0, dp(6), 0, 0);
+			uvt.setContentDescription("UV indeksi " + ur + ", " + YoldaWeather.uvText(uv));
+			now.addView(uvt);
+		}
 		if (d.aqi() >= 0) { // hava kalitesi: bant rengiyle tek satır
 			TextView aq = text(ctx, "● Hava kalitesi: " + YoldaWeather.aqiText(d.aqi()) + " (AQI " + d.aqi() + ")", 15, true,
 					YoldaWeather.aqiColor(d.aqi()));

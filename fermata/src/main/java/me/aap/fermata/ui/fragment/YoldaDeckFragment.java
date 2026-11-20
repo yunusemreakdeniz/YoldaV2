@@ -352,7 +352,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (deck.indexOf(YoldaDeck.QUAKE) >= 0) YoldaQuake.refresh(ctx, () -> {
 				if (!isAdded()) return;
 				refreshCard(YoldaDeck.QUAKE);
-				YoldaQuake.Quake q = YoldaQuake.takeSurface();
+				YoldaQuake.Quake q = YoldaQuake.takeSurface(ctx);
 				if (q == null) return;
 				YoldaStyle.toast(ctx, "Yakında deprem: " + YoldaQuake.line(q, System.currentTimeMillis()));
 				int i = deck.indexOf(YoldaDeck.QUAKE);

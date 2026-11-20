@@ -48,16 +48,52 @@ public final class YoldaWeather {
 
 	/** Son alınan hava kalitesi (Avrupa AQI), bilinmiyorsa -1. Kart ve ayrıntı sayfası ortak kullanır. */
 	private static volatile int aqiLast = -1;
+	/** Son UV indeksi (Open-Meteo, hava kalitesiyle aynı istek), bilinmiyorsa -1. */
+	private static volatile double uvLast = -1;
+
+	public static double uvNow() {
+		return uvLast;
+	}
+
+	/** Hava kalitesi yanıtından UV indeksi (yoksa -1). */
+	static double parseUv(String json) throws Exception {
+		JSONObject c = new JSONObject(json).optJSONObject("current");
+		if ((c == null) || c.isNull("uv_index")) return -1;
+		double v = c.optDouble("uv_index", -1);
+		return (Double.isNaN(v) || (v < 0)) ? -1 : v;
+	}
+
+	/** DSÖ UV bandı: 0-2 Düşük, 3-5 Orta, 6-7 Yüksek, 8-10 Çok yüksek, 11+ Aşırı. */
+	public static String uvText(double uv) {
+		if (uv < 0) return "";
+		long u = Math.round(uv);
+		if (u <= 2) return "Düşük";
+		if (u <= 5) return "Orta";
+		if (u <= 7) return "Yüksek";
+		if (u <= 10) return "Çok yüksek";
+		return "Aşırı";
+	}
+
+	public static int uvColor(double uv) {
+		long u = Math.round(uv);
+		if (u <= 2) return 0xFF34D399;
+		if (u <= 5) return 0xFFFACC15;
+		if (u <= 7) return 0xFFFB923C;
+		if (u <= 10) return 0xFFF87171;
+		return 0xFFC084FC;
+	}
 
 	public static int aqiNow() {
 		return aqiLast;
 	}
 
 	private static int fetchAqi(double[] ll) throws Exception {
-		int v = parseAqi(get(String.format(Locale.ROOT,
-				"https://air-quality-api.open-meteo.com/v1/air-quality?latitude=%.3f&longitude=%.3f&current=european_aqi&timezone=auto",
-				ll[0], ll[1])));
+		String js = get(String.format(Locale.ROOT,
+				"https://air-quality-api.open-meteo.com/v1/air-quality?latitude=%.3f&longitude=%.3f&current=european_aqi,uv_index&timezone=auto",
+				ll[0], ll[1]));
+		int v = parseAqi(js);
 		if (v >= 0) aqiLast = v;
+		uvLast = parseUv(js);
 		return v;
 	}
 

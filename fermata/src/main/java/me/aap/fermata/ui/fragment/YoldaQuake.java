@@ -42,6 +42,40 @@ public final class YoldaQuake {
 	/** Desteyi kendine çektiği depremler (her deprem bir kez öne gelir). */
 	private static final Set<String> surfaced = new HashSet<>();
 	static final long SURFACE_FRESH_MS = 60 * 60_000L;
+	private static final String SEEN_KEY = "quake_seen", SAID_KEY = "quake_said";
+	private static volatile boolean seenLoaded;
+
+	/** Öne çıkan / söylenen depremler kalıcı (uygulama yeniden açılınca aynı deprem tekrar gelmesin); son 40 kimlik. */
+	static String encodeIds(Set<String> s, String add) {
+		List<String> l = new ArrayList<>(s);
+		if (add != null) {
+			l.remove(add);
+			l.add(add);
+		}
+		while (l.size() > 40) l.remove(0);
+		StringBuilder b = new StringBuilder();
+		for (String x : l) b.append((b.length() > 0) ? "," : "").append(x);
+		return b.toString();
+	}
+
+	static Set<String> decodeIds(@Nullable String s) {
+		Set<String> out = new java.util.LinkedHashSet<>();
+		if ((s == null) || s.isEmpty()) return out;
+		for (String x : s.split(",")) if (!x.isEmpty()) out.add(x);
+		return out;
+	}
+
+	private static void loadSeen(Context ctx) {
+		if (seenLoaded) return;
+		SharedPreferences p = prefs(ctx);
+		synchronized (surfaced) {
+			surfaced.addAll(decodeIds(p.getString(SEEN_KEY, null)));
+		}
+		synchronized (spoken) {
+			spoken.addAll(decodeIds(p.getString(SAID_KEY, null)));
+		}
+		seenLoaded = true;
+	}
 
 	private YoldaQuake() {
 	}
@@ -157,10 +191,14 @@ public final class YoldaQuake {
 
 	/** Öne çıkarılacak yeni deprem varsa döner ve "gösterildi" diye işaretler. */
 	@Nullable
-	public static Quake takeSurface() {
+	public static Quake takeSurface(Context ctx) {
+		loadSeen(ctx);
 		synchronized (surfaced) {
 			Quake q = surfaceable(last, System.currentTimeMillis(), surfaced);
-			if (q != null) surfaced.add(q.id());
+			if (q != null) {
+				prefs(ctx).edit().putString(SEEN_KEY, encodeIds(surfaced, q.id())).apply();
+				surfaced.add(q.id());
+			}
 			return q;
 		}
 	}
@@ -203,9 +241,11 @@ public final class YoldaQuake {
 				last = l;
 				lastAt = System.currentTimeMillis();
 				if (voiceOn(app)) {
+					loadSeen(app);
 					for (Quake q : l) {
 						synchronized (spoken) {
 							if (!shouldAlert(q, lastAt, spoken)) continue;
+							prefs(app).edit().putString(SAID_KEY, encodeIds(spoken, q.id())).apply();
 							spoken.add(q.id());
 						}
 						YoldaSpeak.sayAlways(app, "Deprem: " + mag(q) + " büyüklüğünde, " + q.region() + ", "
