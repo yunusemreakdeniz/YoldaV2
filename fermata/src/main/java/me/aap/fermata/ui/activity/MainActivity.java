@@ -184,6 +184,14 @@ public class MainActivity extends SplitCompatActivityBase
 	}
 
 	public void checkUpdates() {
+		checkUpdates(false);
+	}
+
+	/**
+	 * Yolda sürümlerini denetle (GitHub, yunusemreakdeniz/YoldaV2): daha yeni APK varsa sorulur, onaylanınca
+	 * indirilip kurulur. {@code manual}: menüden istendi, güncelse ya da ulaşılamazsa da söylenir.
+	 */
+	public void checkUpdates(boolean manual) {
 		if (!BuildConfig.AUTO) return;
 
 		PreferenceStore ps = FermataApplication.get().getPreferenceStore();
@@ -206,10 +214,12 @@ public class MainActivity extends SplitCompatActivityBase
 			}, 1, MINUTES);
 		}
 
-		String reqUrl = "https://api.github.com/repos/AndreyPavlenko/Fermata/releases/latest";
+		String reqUrl = me.aap.fermata.ui.fragment.YoldaUpdate.RELEASES; // önceden asıl Fermata'nın sürümlerine bakıyordu
+		int current = me.aap.fermata.ui.fragment.YoldaUpdate.buildNumber(BuildConfig.VERSION_NAME);
 		HttpConnection.connect(o -> o.url(reqUrl), (resp, err) -> {
 			if (err != null) {
 				Log.e(err, "Failed to check updates");
+				if (manual) App.get().run(() -> me.aap.fermata.ui.view.YoldaStyle.toast(this, "Güncelleme denetlenemedi: internet yok mu?"));
 				return failed(err);
 			}
 
@@ -220,29 +230,14 @@ public class MainActivity extends SplitCompatActivityBase
 				}
 
 				try {
-					JSONObject json = new JSONObject(TextUtils.toString(p, UTF_8));
-					String tag = json.getString("tag_name");
-					String[] res = new String[2];
-					res[0] = tag;
-					int idx = tag.indexOf('(');
-					if (idx != -1) tag = tag.substring(0, idx);
-
-					if (NaturalOrderComparator.compareNatural(BuildConfig.VERSION_NAME, tag.trim()) < 0) {
-						Log.i("New version is available: ", res[0]);
-						JSONArray assets = json.getJSONArray("assets");
-						String ext = "armeabi".equals(Build.SUPPORTED_ABIS[0]) ? "-arm.apk" : "-arm64.apk";
-
-						for (int i = 0, n = assets.length(); i < n; i++) {
-							JSONObject asset = assets.getJSONObject(i);
-							String name = asset.getString("name");
-							if (name.endsWith(ext)) res[1] = asset.getString("browser_download_url");
-						}
-
-						return (res[1] != null) ? completed(res) : completedNull();
-					} else {
-						Log.i("The latest release version - ", res[0], ". Application is up to date");
+					String[] pick = me.aap.fermata.ui.fragment.YoldaUpdate.pick(TextUtils.toString(p, UTF_8), current);
+					if (pick == null) {
+						if (manual) App.get().run(() -> me.aap.fermata.ui.view.YoldaStyle.toast(this,
+								"Yolda güncel" + ((current > 0) ? (" (v2-" + current + ")") : "")));
 						return completedNull();
 					}
+					Log.i("Yeni Yolda sürümü: ", pick[0]);
+					return completed(new String[]{pick[0] + " · " + pick[2] + " MB", pick[1]});
 				} catch (Exception ex) {
 					Log.e(ex, "Failed to parse response");
 					return failed(ex);

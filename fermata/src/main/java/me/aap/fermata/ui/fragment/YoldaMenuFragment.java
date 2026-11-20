@@ -192,6 +192,14 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			return true;
 		});
 		set.addView(ti);
+		// Uygulama içi güncelleme (Mola'dan): GitHub'daki daha yeni Yolda APK'sını bulur, onaylanınca indirip kurar
+		int build = YoldaUpdate.buildNumber(me.aap.fermata.BuildConfig.VERSION_NAME);
+		set.addView(item(ctx, R.drawable.yi_refresh, "Güncellemeleri denetle" + ((build > 0) ? (" · şu an v2-" + build) : ""),
+				0xFFBBF7D0, 0xFF16A34A, v -> {
+					YoldaStyle.toast(ctx, "Yeni sürüm aranıyor…");
+					me.aap.fermata.ui.activity.MainActivity m = me.aap.fermata.ui.activity.MainActivity.getActiveInstance();
+					if (m != null) m.checkUpdates(true);
+				}));
 		// Sesli karşılama (Mola'dan): araca bağlanınca selam; dokun aç / kapat, basılı tut: isim ve günde bir kez
 		boolean wOn = YoldaWelcome.isOn(ctx);
 		String wn = YoldaWelcome.name(ctx);
