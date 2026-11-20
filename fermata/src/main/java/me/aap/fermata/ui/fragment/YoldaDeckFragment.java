@@ -3220,7 +3220,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					favSubtitle());
 			case YoldaDeck.WEATHER -> new Look(0xFF38BDF8, 0xFF1E40AF, R.drawable.yi_globe, true, "HAVA DURUMU",
 					(weather == null) ? "Hava durumu alınıyor…"
-							: weather.place() + " · " + YoldaWeather.text(weather.code()) + " · rüzgâr " + weather.wind() + " km/s");
+							: weather.place() + " · " + YoldaWeather.text(weather.code()) + " · "
+							+ (YoldaWeather.changeHint(weather).isEmpty() ? ("rüzgâr " + weather.wind() + " km/s")
+							: YoldaWeather.changeHint(weather)));
 			case YoldaDeck.PHARMACY -> new Look(0xFFF87171, 0xFFB91C1C, R.drawable.yi_pharmacy, true, "NÖBETÇİ ECZANE",
 					pharmacySubtitle());
 			case YoldaDeck.RADAR -> new Look(0xFFFB923C, 0xFFC2410C, R.drawable.yi_radar, true, "RADAR · PARK · YOLCULUK",
@@ -3615,16 +3617,37 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.TRAFFIC -> { // eve / işe süre (dokun: yol tarifi), canlı trafik haritada
 				LinearLayout row = hrow(ctx);
+				String hd = trafficDest(ctx, "nav_home"), wd = trafficDest(ctx, "nav_work");
+				String bigDest = (hd != null) ? hd : wd; // büyük yazılan: ev, yoksa iş
+				YoldaTraffic.Eta be = (bigDest != null) ? trafficEta.get(bigDest) : null;
+				if (be != null) {
+					LinearLayout bigBox = hrow(ctx);
+					bigBox.addView(text(ctx, String.valueOf(be.minutes()), fz.big(), true, 0xFFFFFFFF));
+					LinearLayout side = new LinearLayout(ctx);
+					side.setOrientation(LinearLayout.VERTICAL);
+					side.setPadding(dp(8), 0, dp(14), 0);
+					side.addView(text(ctx, "dk · " + ((bigDest.equals(hd)) ? "Eve" : "İşe") + " "
+							+ YoldaTraffic.text(be).substring(YoldaTraffic.text(be).indexOf('·') + 2), 15, true, 0xFFFFFFFF));
+					side.addView(text(ctx, YoldaTraffic.note(be), 15, true, YoldaTraffic.noteColor(be)));
+					bigBox.addView(side);
+					bigBox.setMinimumHeight(dp(48));
+					bigBox.setOnClickListener(v -> NavFragment.navigateTo(ctx, bigDest, false));
+					bigBox.setContentDescription(((bigDest.equals(hd)) ? "Eve " : "İşe ") + YoldaTraffic.text(be) + ", "
+							+ YoldaTraffic.note(be) + ". Yol tarifi için dokun");
+					row.addView(bigBox);
+				}
+				LinearLayout chips = hrow(ctx);
 				for (String[] k : new String[][]{{"nav_home", "🏠 Ev"}, {"nav_work", "💼 İş"}}) {
 					String d = trafficDest(ctx, k[0]);
-					if (d == null) continue;
+					if ((d == null) || ((be != null) && d.equals(bigDest))) continue; // büyük yazılanı çipte tekrarlama
 					YoldaTraffic.Eta e = trafficEta.get(d);
-					row.addView(chipBtn(ctx, k[1] + ((e != null) ? (" · " + YoldaTraffic.text(e)) : ""),
+					chips.addView(chipBtn(ctx, k[1] + ((e != null) ? (" · " + e.minutes() + " dk") : ""),
 							v -> NavFragment.navigateTo(ctx, d, false)), chipLp());
 				}
-				String h = trafficDest(ctx, "nav_home");
-				row.addView(chipBtn(ctx, "🚦 Canlı trafik", v -> HomeFragment.openWeb(a, YoldaTraffic.mapsUrl((h != null) ? h : ""))), chipLp());
-				return scroll(ctx, row);
+				String h = hd;
+				chips.addView(chipBtn(ctx, "🚦 Canlı trafik", v -> HomeFragment.openWeb(a, YoldaTraffic.mapsUrl((h != null) ? h : ""))), chipLp());
+				row.addView(scroll(ctx, chips), new LinearLayout.LayoutParams(0, -2, 1f));
+				return row;
 			}
 			case YoldaDeck.SPORTS -> { // son sonuçlar ve sıradaki maçlar; takımını seç
 				LinearLayout row = hrow(ctx);
@@ -3884,6 +3907,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				em.setPadding(dp(8), 0, dp(14), 0);
 				row.addView(em);
 				LinearLayout hours = hrow(ctx);
+				int aqi = YoldaWeather.aqiNow();
+				if (aqi >= 0) { // hava kalitesi: bant renginde nokta ve yazı
+					TextView aq = chipBtn(ctx, "● Hava " + YoldaWeather.aqiText(aqi).toLowerCase(new java.util.Locale("tr")) + " · " + aqi,
+							v -> open(c));
+					aq.setTextColor(YoldaWeather.aqiColor(aqi));
+					aq.setContentDescription("Hava kalitesi " + YoldaWeather.aqiText(aqi) + ", indeks " + aqi);
+					hours.addView(aq, chipLp());
+				}
 				for (int i = 1; i < Math.min(weather.hours().size(), 7); i++) {
 					YoldaWeather.Hour h = weather.hours().get(i);
 					TextView hc = chipBtn(ctx, h.time() + "  " + YoldaWeather.emoji(h.code()) + " " + h.temp() + "°", v -> open(c));

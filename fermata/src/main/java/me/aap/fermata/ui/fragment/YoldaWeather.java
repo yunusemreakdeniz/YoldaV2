@@ -46,6 +46,60 @@ public final class YoldaWeather {
 	public record Now(int temp, int code, int wind, String place, List<Hour> hours) {
 	}
 
+	/** Son alınan hava kalitesi (Avrupa AQI), bilinmiyorsa -1. Kart ve ayrıntı sayfası ortak kullanır. */
+	private static volatile int aqiLast = -1;
+
+	public static int aqiNow() {
+		return aqiLast;
+	}
+
+	private static int fetchAqi(double[] ll) throws Exception {
+		int v = parseAqi(get(String.format(Locale.ROOT,
+				"https://air-quality-api.open-meteo.com/v1/air-quality?latitude=%.3f&longitude=%.3f&current=european_aqi&timezone=auto",
+				ll[0], ll[1])));
+		if (v >= 0) aqiLast = v;
+		return v;
+	}
+
+	/** Saat ("17:00") + Türkçe bulunma eki: 17:00'de, 16:00'da, 13:00'te (saat sesli okunuşuna göre). */
+	static String atHour(String time) {
+		int h;
+		try {
+			h = Integer.parseInt(time.substring(0, time.indexOf(':')));
+		} catch (Exception ex) {
+			return time;
+		}
+		String suf;
+		if (h == 0) suf = "da"; // sıfır
+		else if ((h == 10) || (h == 6) || (h == 9) || (h == 16) || (h == 19)) suf = "da"; // on, altı, dokuz
+		else if ((h % 10 == 3) || (h % 10 == 4) || (h % 10 == 5)) suf = "te"; // üç, dört, beş
+		else suf = "de";
+		return time + "'" + suf;
+	}
+
+	/** Yağış kodu mu (çisenti, yağmur, kar, sağanak, fırtına). */
+	static boolean wet(int code) {
+		return code >= 51;
+	}
+
+	/**
+	 * Önümüzdeki saatlerde hava değişimi: kuruysa ilk yağışlı saat ("17:00'de yağmur"), yağışlıysa ilk kuru saat
+	 * ("19:00'da diner"); değişim yoksa boş.
+	 */
+	public static String changeHint(Now n) {
+		List<Hour> hs = n.hours();
+		boolean now = wet(n.code());
+		for (int i = 1; i < hs.size(); i++) {
+			Hour h = hs.get(i);
+			if (wet(h.code()) == now) continue;
+			if (now) return atHour(h.time()) + " diner";
+			int c = h.code();
+			String w = ((c >= 71) && (c <= 77)) || ((c >= 85) && (c <= 86)) ? "kar" : (c >= 95) ? "fırtına" : "yağmur";
+			return atHour(h.time()) + " " + w;
+		}
+		return "";
+	}
+
 	/** Saklanan son hava (yoksa null; ağ isteği yapmaz). */
 	@Nullable
 	public static Now cachedNow() {
@@ -66,6 +120,11 @@ public final class YoldaWeather {
 						+ "&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code"
 						+ "&forecast_hours=8&timezone=auto", ll[0], ll[1]);
 				Now n = parse(get(url), place);
+				try { // hava kalitesi kart çipi için (ayrı servis; alınamazsa önceki değer kalır)
+					fetchAqi(ll);
+				} catch (Throwable ex) {
+					Log.d("Hava kalitesi alınamadı: ", ex.getClass().getSimpleName());
+				}
 				cached = n;
 				cachedAt = System.currentTimeMillis();
 				cachedLl = ll;
@@ -243,9 +302,7 @@ public final class YoldaWeather {
 						+ "&forecast_days=7&timezone=auto", ll[0], ll[1]);
 				Detail d = parseDetail(get(url), place);
 				try { // hava kalitesi ayrı servis: alınamazsa tahmin yine gösterilir
-					d = d.withAqi(parseAqi(get(String.format(Locale.ROOT,
-							"https://air-quality-api.open-meteo.com/v1/air-quality?latitude=%.3f&longitude=%.3f&current=european_aqi&timezone=auto",
-							ll[0], ll[1]))));
+					d = d.withAqi(fetchAqi(ll));
 				} catch (Throwable ex) {
 					Log.d("Hava kalitesi alınamadı: ", ex.getClass().getSimpleName());
 				}
