@@ -3237,6 +3237,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					favSubtitle());
 			case YoldaDeck.WEATHER -> new Look(0xFF38BDF8, 0xFF1E40AF, R.drawable.yi_globe, true, "HAVA DURUMU",
 					(weather == null) ? "Hava durumu alınıyor…"
+							: !YoldaWeather.driveAlert(weather).isEmpty() ? ("⚠ " + YoldaWeather.driveAlert(weather) + " · " + weather.place())
 							: weather.place() + " · " + YoldaWeather.text(weather.code()) + " · "
 							+ (YoldaWeather.changeHint(weather).isEmpty() ? ("rüzgâr " + weather.wind() + " km/s")
 							: YoldaWeather.changeHint(weather)));
@@ -5451,6 +5452,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			switch (type) {
 				case YoldaDeck.WEATHER -> {
 					if (weather == null) return null;
+					String al = YoldaWeather.driveAlert(weather); // sürüş riski varsa önce o (turuncu)
+					if (!al.isEmpty()) return new Glance(weather.temp() + "°", weather.place(), "⚠ " + al, 0xFFFB923C);
 					String h = YoldaWeather.changeHint(weather);
 					return new Glance(weather.temp() + "°", weather.place(), h.isEmpty() ? YoldaWeather.text(weather.code()) : h, 0xFF7DD3FC);
 				}
