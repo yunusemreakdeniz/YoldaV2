@@ -143,7 +143,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int tile = Math.max(minTap, Math.min(small ? 72 : 88, bottom));
 		int logo = Math.max(minTap, Math.min(small ? 84 : 104, bottom));
 		int btn = Math.max(minTap, Math.min(lowFx ? 72 : 64, bottom));
-		int chipH = minTap; // çipler: araçta 64, telefonda 56
+		int chipH = Math.max(minTap, Math.min(lowFx ? 80 : 72, bottom)); // çipler: yer varsa büyük (en az 56 / araçta 64)
 		int big = compact ? 32 : small ? 40 : 52;
 		// Çok alçak kart (yatay telefon, çubuk açık): tek satır — simge, ad, "Aç" yan yana; içerik şeridi yok
 		if (h < 150) {
@@ -359,9 +359,29 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				if (!phoneBuilt && !editing && (list != null) && (list.getScrollState() == RecyclerView.SCROLL_STATE_IDLE))
 					list.smoothScrollToPosition(i);
 			});
+			minuteCards(ctx);
 			h.postDelayed(this, 60_000L);
 		}
 	};
+
+	static final String PRAYER_WARN = "prayer_warn";
+	private static String prayerWarned = "";
+
+	/** Dakikada bir: süre gösteren kartlar (park, namaz) güncellenir; açıksa vakte 10 dk kala sesli uyarı. */
+	private void minuteCards(Context ctx) {
+		if (YoldaRadar.park(ctx) != null) refreshCard(YoldaDeck.PARK);
+		if (deck.indexOf(YoldaDeck.PRAYER) < 0) return;
+		refreshCard(YoldaDeck.PRAYER);
+		if (!prefs(ctx).getBoolean(PRAYER_WARN, false)) return;
+		java.util.Calendar cal = java.util.Calendar.getInstance();
+		int now = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
+		YoldaInfo.Prayer nx = YoldaInfo.next(YoldaInfo.prayers(ctx, false), now);
+		if ((nx == null) || (nx.minute() < 0) || !YoldaCardStats.prayerWarnNow(YoldaCardStats.minutesLeft(nx.minute(), now))) return;
+		String key = cal.get(java.util.Calendar.DAY_OF_YEAR) + nx.name();
+		if (key.equals(prayerWarned)) return;
+		prayerWarned = key;
+		YoldaSpeak.sayAlways(ctx, nx.name() + " vaktine 10 dakika kaldı");
+	}
 
 	private View phoneHome(Context ctx) {
 		long t0 = android.os.SystemClock.uptimeMillis();
@@ -3783,8 +3803,24 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.FX -> { // kurlar ve altın çipleri
 				LinearLayout row = hrow(ctx);
-				for (YoldaInfo.Rate r : YoldaInfo.rates(ctx, false))
-					row.addView(chipBtn(ctx, r.name() + " " + YoldaInfo.money(r.sell()), v -> open(c)), chipLp());
+				String day = new java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.ROOT).format(new java.util.Date());
+				SharedPreferences fp = prefs(ctx);
+				SharedPreferences.Editor fe = null;
+				for (YoldaInfo.Rate r : YoldaInfo.rates(ctx, false)) {
+					String key = "fx_d_" + r.code(), old = fp.getString(key, null), cur = YoldaCardStats.fxRoll(old, day, r.sell());
+					if (!cur.equals(old)) fe = ((fe == null) ? fp.edit() : fe).putString(key, cur);
+					double pct = YoldaCardStats.fxChange(cur, r.sell());
+					if (row.getChildCount() == 0) { // ilk kur (dolar) büyük
+						String t = YoldaCardStats.fxText(pct);
+						row.addView(bigRow(ctx, YoldaInfo.money(r.sell()).replace(" ₺", ""), r.name(), t.isEmpty() ? "" : (t + " dünden"),
+								YoldaCardStats.fxColor(pct), v -> open(c)));
+						continue;
+					}
+					TextView ch = chipBtn(ctx, "", v -> open(c));
+					ch.setText(withTail(r.name() + " " + YoldaInfo.money(r.sell()), YoldaCardStats.fxText(pct), YoldaCardStats.fxColor(pct)));
+					row.addView(ch, chipLp());
+				}
+				if (fe != null) fe.apply();
 				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
 			}
 			case YoldaDeck.PRAYER -> { // altı vakit, sıradaki vurgulu
@@ -3793,6 +3829,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				int now = cal.get(java.util.Calendar.HOUR_OF_DAY) * 60 + cal.get(java.util.Calendar.MINUTE);
 				List<YoldaInfo.Prayer> pl = YoldaInfo.prayers(ctx, false);
 				YoldaInfo.Prayer nx = YoldaInfo.next(pl, now);
+				if ((nx != null) && (nx.minute() >= 0)) { // sıradaki vakte kalan süre büyük; sonraki iki vakit ve uyarı çipi
+					row.addView(bigRow(ctx, spanUnits(YoldaInfo.left(nx, now)), nx.name() + " " + nx.time(), "kaldı", 0xDDFFFFFF,
+							v -> open(c)));
+					int k = pl.indexOf(nx);
+					for (int j = 1; j <= 2; j++) {
+						YoldaInfo.Prayer p = pl.get((k + j) % pl.size());
+						row.addView(chipBtn(ctx, p.name() + " " + p.time(), v -> open(c)), chipLp());
+					}
+					boolean warn = prefs(ctx).getBoolean(PRAYER_WARN, false);
+					row.addView(chipBtn(ctx, warn ? "🔔 10 dk kala söyler" : "🔕 10 dk kala söyle", v -> {
+						prefs(ctx).edit().putBoolean(PRAYER_WARN, !warn).apply();
+						YoldaStyle.toast(ctx, warn ? "Vakit uyarısı kapatıldı" : "Vakte 10 dakika kala sesli söylenecek");
+						refreshCard(YoldaDeck.PRAYER);
+					}), chipLp());
+					return scroll(ctx, row);
+				}
 				for (YoldaInfo.Prayer p : pl) {
 					TextView ch = chipBtn(ctx, p.name() + " " + p.time(), v -> open(c));
 					if ((nx != null) && p.name().equals(nx.name())) {
@@ -3862,12 +3914,41 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.PARK -> { // buraya park ettim · aracıma git
 				LinearLayout row = hrow(ctx);
+				double[] pk = YoldaRadar.park(ctx);
+				long now = System.currentTimeMillis();
+				if (pk != null) {
+					String l2 = "";
+					if (!Double.isNaN(YoldaRadar.lat)) {
+						double m = YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1]);
+						l2 = YoldaDriveCore.distText(m) + " · yürüyerek " + YoldaCardStats.walkMin(m) + " dk";
+					}
+					row.addView(bigRow(ctx, spanUnits(YoldaCardStats.elapsed(now - (long) pk[2])), "park edeli", l2, 0xDDFFFFFF,
+							v -> YoldaRadar.walkToPark(ctx)));
+					YoldaNotes.Reminder pr = null;
+					for (YoldaNotes.Reminder r : YoldaNotes.reminders(ctx))
+						if (r.text().equals(YoldaAnswers.PARK_MSG)) pr = r;
+					if (pr != null) { // kurulu: saatini göster, dokun → iptal
+						String hm = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).format(new java.util.Date(pr.due()));
+						TextView rc = chipBtn(ctx, "⏰ " + hm + " · iptal", v -> {
+							YoldaAnswers.cancelReminder(ctx, YoldaAnswers.PARK_MSG);
+							YoldaStyle.toast(ctx, "Park hatırlatması iptal edildi");
+							refreshCard(YoldaDeck.PARK);
+						});
+						rc.setContentDescription("Park hatırlatması " + hm + ". İptal için dokun");
+						row.addView(rc, chipLp());
+					} else {
+						for (int mn : new int[]{60, 120}) row.addView(chipBtn(ctx, "⏰ " + (mn / 60) + " sa sonra hatırlat", v -> {
+							YoldaAnswers.remind(ctx, mn, "Park süren doluyor");
+							YoldaStyle.toast(ctx, (mn / 60) + " saat sonra hatırlatılacak");
+							refreshCard(YoldaDeck.PARK);
+						}), chipLp());
+					}
+					row.addView(chipBtn(ctx, "Aracıma git", v -> YoldaRadar.walkToPark(ctx)), chipLp());
+				}
 				row.addView(chipBtn(ctx, "🅿 Buraya park ettim", v -> {
 					YoldaStyle.toast(ctx, YoldaRadar.savePark(ctx, false) ? "Park yeri kaydedildi" : "Konum henüz bilinmiyor");
 					refreshCard(YoldaDeck.PARK);
 				}), chipLp());
-				if (YoldaRadar.park(ctx) != null)
-					row.addView(chipBtn(ctx, "Aracıma git", v -> YoldaRadar.walkToPark(ctx)), chipLp());
 				return scroll(ctx, row);
 			}
 			case YoldaDeck.TRIPS -> { // son yolculuklar: dokun → o yolculuğun ayrıntısı
@@ -3882,8 +3963,23 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					}), chipLp());
 				}
 				if (tl.isEmpty()) return (row.getChildCount() == 0) ? null : scroll(ctx, row);
+				List<YoldaDriveCore.TripRec> recs = new ArrayList<>();
+				for (YoldaRadar.TripItem ti : tl) recs.add(ti.rec());
+				YoldaCardStats.Week wk = YoldaCardStats.week(recs, System.currentTimeMillis());
+				if (wk.count() > 0) { // bu hafta: toplam büyük, yanında günlük çubuklar (dokun: geçmiş)
+					View.OnClickListener all = v -> a.showFragment(R.id.yolda_trip_fragment);
+					row.addView(bigRow(ctx, spanUnits(String.format(new java.util.Locale("tr"), "%.0f km", wk.meters() / 1000f)),
+							"bu hafta · " + wk.count() + " yolculuk", YoldaCardStats.elapsed(wk.ms()) + " · ort. "
+									+ YoldaCardStats.avgKmh(wk) + " km/s", 0xDDFFFFFF, all), 0);
+					View bars = YoldaCardStats.weekBars(ctx, wk.dayMeters(), wk.today(), 0xFFA5B4FC);
+					bars.setContentDescription("Haftalık sürüş çubukları");
+					bars.setOnClickListener(all);
+					LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(dp(140), dp(Math.min(56, fit().chipH())));
+					blp.rightMargin = dp(16);
+					row.addView(bars, 1, blp);
+				}
 				java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("d MMM", new java.util.Locale("tr"));
-				for (int i = 0; i < Math.min(4, tl.size()); i++) {
+				for (int i = 0; i < Math.min(wk.count() > 0 ? 2 : 4, tl.size()); i++) {
 					YoldaRadar.TripItem ti = tl.get(i);
 					int idx = i;
 					String name = ti.route().isEmpty() ? df.format(new java.util.Date(ti.rec().startWall())) : ti.route();
@@ -5260,10 +5356,52 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return lp;
 	}
 
+	/** "1 sa 25 dk" → sayılar büyük, birimler küçük (kart yüzündeki büyük sayı). */
+	private static CharSequence spanUnits(String s) {
+		android.text.SpannableString sp = new android.text.SpannableString(s);
+		java.util.regex.Matcher m = java.util.regex.Pattern.compile("[^0-9,.:₺ ]+").matcher(s);
+		while (m.find())
+			sp.setSpan(new android.text.style.RelativeSizeSpan(0.42f), m.start(), m.end(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+		return sp;
+	}
+
+	/** Kart yüzünde büyük sayı ve yanında iki kısa satır (hava / trafik kartı düzeni); dokununca click. */
+	private LinearLayout bigRow(Context ctx, CharSequence big, String l1, String l2, int l2Color,
+															@Nullable View.OnClickListener click) {
+		LinearLayout box = hrow(ctx);
+		TextView b = text(ctx, "", fit().big(), true, 0xFFFFFFFF);
+		b.setText(big);
+		box.addView(b);
+		LinearLayout side = new LinearLayout(ctx);
+		side.setOrientation(LinearLayout.VERTICAL);
+		side.setPadding(dp(10), 0, dp(16), 0);
+		int sz = lowFx ? 17 : 15;
+		side.addView(text(ctx, l1, sz, true, 0xFFFFFFFF));
+		if (!l2.isEmpty()) side.addView(text(ctx, l2, sz, true, l2Color));
+		box.addView(side);
+		box.setMinimumHeight(dp(48));
+		box.setContentDescription(big + ", " + l1 + (l2.isEmpty() ? "" : (", " + l2)));
+		if (click != null) {
+			box.setOnClickListener(click);
+			pressEffect(box);
+		}
+		return box;
+	}
+
+	/** Çip yazısının sonuna renkli ek (döviz değişimi). */
+	private static CharSequence withTail(String head, String tail, int color) {
+		if (tail.isEmpty()) return head;
+		android.text.SpannableString sp = new android.text.SpannableString(head + "  " + tail);
+		sp.setSpan(new android.text.style.ForegroundColorSpan(color), head.length() + 2, sp.length(),
+				android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+		return sp;
+	}
+
 	private TextView chipBtn(Context ctx, String s, View.OnClickListener click) {
-		TextView c = text(ctx, s, lowFx ? 17 : 15, true, 0xFFFFFFFF); // araçta (lowFx) büyük
+		int ch = (cardH > 0) ? fit().chipH() : 56; // çip boyu büyüdükçe yazı da büyür
+		TextView c = text(ctx, s, (ch >= 72) ? (lowFx ? 20 : 18) : (ch >= 64) ? (lowFx ? 18 : 16) : (lowFx ? 17 : 15), true, 0xFFFFFFFF);
 		c.setGravity(Gravity.CENTER);
-		c.setPadding(dp(18), 0, dp(18), 0);
+		c.setPadding(dp((ch >= 72) ? 24 : 18), 0, dp((ch >= 72) ? 24 : 18), 0);
 		GradientDrawable g = new GradientDrawable();
 		g.setCornerRadius(dp(999));
 		g.setColor(0x33FFFFFF);

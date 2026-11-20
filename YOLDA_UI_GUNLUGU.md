@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-20 · v2-212 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-212 · Deprem kartı öne gelir
+
+- Ekran açıkken yakında yeni 4,0 ve üzeri deprem olursa deste bir kez Son depremler kartına kayar ve bildirim çıkar.
+- Hiç çağrılmayan eski kod silindi (315 satır).
+
 ## 2026-11-20 · v2-211 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-211 · Son depremler, yeni hava ve trafik kartı
 
 - Yeni Son depremler kartı (EMSC, 300 km, son 24 saat): büyüklük renkli çipler, 5,0 ve üzeri yeni deprem bir kez sesli (kapatılabilir).
