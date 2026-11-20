@@ -4071,6 +4071,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			case YoldaDeck.PHARMACY -> { // yıldızlı ilçe / iller: tek dokunuşla o yerin nöbetçileri
 				LinearLayout row = hrow(ctx);
+				YoldaPharmacy.Near pn = YoldaPharmacy.nearest(ctx); // son bakılan listenin en yakını (dokun: yol tarifi)
+				View gph = (pn == null) ? null : glanceRow(ctx, YoldaDeck.PHARMACY, v -> NavFragment.navigateTo(ctx,
+						String.format(java.util.Locale.ROOT, "%.6f,%.6f", pn.lat(), pn.lon()), false));
+				if (gph != null) row.addView(gph);
 				for (String s : YoldaPharmacy.stars(ctx, "ilce")) {
 					int bar = s.indexOf('|'), sl = s.indexOf('/');
 					if ((bar < 0) || (sl < 0) || (sl > bar) || (row.getChildCount() >= 5)) continue;
@@ -4096,7 +4100,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 						open(c);
 					}), chipLp());
 				}
-				if (row.getChildCount() == 0) row.addView(chipBtn(ctx, "Yakınımdaki nöbetçiler", v -> open(c)), chipLp());
+				if (row.getChildCount() == ((gph != null) ? 1 : 0)) row.addView(chipBtn(ctx, "Yakınımdaki nöbetçiler", v -> open(c)), chipLp());
 				return scroll(ctx, row);
 			}
 			case YoldaDeck.NAV -> {
@@ -5554,6 +5558,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 								"Sıradaki · " + m.date(), muted);
 					}
 					return null;
+				}
+				case YoldaDeck.PHARMACY -> {
+					YoldaPharmacy.Near n = YoldaPharmacy.nearest(ctx);
+					if (n == null) return null;
+					if (Double.isNaN(YoldaRadar.lat)) return new Glance("Nöbetçi", cut(n.name(), 26), "en yakını · dokun: yol tarifi", muted);
+					int m = (int) YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, n.lat(), n.lon());
+					return new Glance(spanUnits(YoldaPlaceSuggest.distance(m)), cut(n.name(), 26), "en yakın nöbetçi", 0xFFFCA5A5);
 				}
 				case YoldaDeck.CHARGER -> {
 					List<YoldaNearby.Spot> sl = NearbyFragment.lastChargers;
