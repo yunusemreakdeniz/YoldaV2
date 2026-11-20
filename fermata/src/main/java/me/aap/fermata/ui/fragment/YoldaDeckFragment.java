@@ -4914,6 +4914,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			});
 			LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(dp(52), dp(52));
 			mlp.leftMargin = dp(8);
+			me.aap.fermata.ui.view.YoldaSearchMic.skip(q); // yanında kendi mikrofon düğmesi var
 			sr.addView(roundButton(ctx, R.drawable.yi_mic, "Sesle söyle", v -> dictate(q, go)), mlp);
 			sr.addView(roundButton(ctx, R.drawable.yi_search, "Ara", v -> go.run()), mlp);
 			box.addView(sr, new LinearLayout.LayoutParams(-1, -2));
