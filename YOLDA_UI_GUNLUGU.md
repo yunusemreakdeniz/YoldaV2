@@ -2,6 +2,13 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-20 · v2-205 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-205 · Mevsimler, sinematik güneş
+
+- Hava efekti gece / gündüzü temayla aynı hesaplar (sabah 6'da güneş görünmesi düzeldi); gece güneş yerine yıldızlı gök.
+- Güneş: ışınlar kaldırıldı; katmanlı sıcak ışık, yatay sinematik mercek çizgisi, üstten sızan ışık.
+- Mevsimler: Mevsime göre (otomatik), İlkbahar (süzülen çiçek yaprakları), Yaz, Sonbahar (dönerek düşen yapraklar), Kış (kar ve buz).
+- Kartlar arasında kaydırırken efekt artık durmuyor.
+
 ## 2026-11-20 · v2-204 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-204 · Hızlı açılış, son açılanlar
 
 - Kanallar sayfası ve telefon görünümü kademeli kurulur: ekranı dolduran ilk satırlar hemen, kalanı her karede birkaç tane (açılışta donma azaldı).
