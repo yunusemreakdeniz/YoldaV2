@@ -449,10 +449,21 @@ public final class YoldaVoice {
 			case TIME -> reply(a, "Saat " + new java.text.SimpleDateFormat("HH:mm", TR).format(new java.util.Date()));
 			case WEATHER -> {
 				toast(a, "Hava durumu alınıyor…");
+				boolean road = "road".equals(it.arg()); // sürüş riski soruldu
 				YoldaWeather.get(ctx).main().onCompletion((n, err) -> {
-					if (n == null) reply(a, "Hava durumu alınamadı");
-					else reply(a, ((n.place() != null) && !n.place().isEmpty() ? (n.place() + ": ") : "") + n.temp()
-							+ " derece, " + YoldaWeather.text(n.code()).toLowerCase(TR));
+					if (n == null) {
+						reply(a, "Hava durumu alınamadı");
+						return;
+					}
+					String al = YoldaWeather.driveAlert(n);
+					if (road) {
+						reply(a, al.isEmpty() ? "Önümüzdeki saatlerde sürüşü zorlaştıracak bir hava görünmüyor"
+								: YoldaWeather.spokenAlert(al));
+						return;
+					}
+					reply(a, ((n.place() != null) && !n.place().isEmpty() ? (n.place() + ": ") : "") + n.temp()
+							+ " derece, " + YoldaWeather.text(n.code()).toLowerCase(TR)
+							+ (al.isEmpty() ? "" : (". " + YoldaWeather.spokenAlert(al))));
 				});
 			}
 			case WHAT_PLAYING -> {

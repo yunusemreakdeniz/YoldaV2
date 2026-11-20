@@ -460,6 +460,10 @@ public final class YoldaIntents {
 			return Intent.of(Kind.FORECAST, "yarın");
 		if (c.matches("(bugün )?(yağmur|kar) (yağacak mı|var mı|yağar mı|yağıyor mu)|şemsiye (alayım mı|lazım mı)|yağış var mı|haftalık hava( durumu)?|hafta(lık)? hava nasıl|bu hafta hava( nasıl)?"))
 			return Intent.of(Kind.FORECAST, c.contains("hafta") ? "hafta" : "yağış");
+		// sürüş riski: "yol durumu nasıl", "yolda sis var mı", "buzlanma var mı", "sürüş uyarısı"
+		if (c.matches("yol(lar)? (durumu|nasıl)( nasıl)?|yolda (sis|buz|buzlanma|fırtına|rüzgar|rüzgâr) var mı|(sis|buzlanma|buz) var mı"
+				+ "|sürüş (uyarısı|riski)( var mı)?|yol hava durumu|yolda hava nasıl"))
+			return Intent.of(Kind.WEATHER, "road");
 		if (c.matches("(bugün |yarın )?hava (nasıl|durumu|ne durumda|kaç derece).*|hava durumu.*|dışarısı kaç derece.*|kaç derece"))
 			return Intent.of(Kind.WEATHER);
 		if (c.matches("(şimdi )?ne çalıyor|bu ne şarkı|bu şarkı ne|bu hangi şarkı|hangi kanal(dayız)?|ne dinliyoruz"))
