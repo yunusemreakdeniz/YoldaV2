@@ -92,6 +92,16 @@ public final class YoldaPlayHistory {
 		return decode(prefs(ctx).getString("l", null));
 	}
 
+	/** Bir türün (TV / Radyo) son açılan, yinelenmeyen kimlikleri (en yeni önce, en çok max). */
+	public static List<String> recentIds(List<Entry> l, String kind, int max) {
+		List<String> out = new java.util.ArrayList<>();
+		for (Entry e : l) {
+			if (out.size() >= max) break;
+			if (kind.equals(e.kind()) && !out.contains(e.id())) out.add(e.id());
+		}
+		return out;
+	}
+
 	public static synchronized void clear(Context ctx) {
 		prefs(ctx).edit().remove("l").apply();
 	}

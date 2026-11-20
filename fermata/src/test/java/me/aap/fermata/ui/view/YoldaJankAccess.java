@@ -12,4 +12,8 @@ public final class YoldaJankAccess {
 	public static String line(String screen, int frames, int slow, int freeze) {
 		return YoldaJank.line(screen, frames, slow, freeze);
 	}
+
+	public static String buildLine(String what, long ms, int items) {
+		return YoldaJank.buildLine(what, ms, items);
+	}
 }

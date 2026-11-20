@@ -40,4 +40,12 @@ public class YoldaPerfTest {
 		assertEquals(255, me.aap.fermata.ui.view.YoldaSkyAccess.qa(999));
 		assertEquals(64, me.aap.fermata.ui.view.YoldaSkyAccess.qa(66));
 	}
+
+	@Test
+	public void kurulumSuresi() {
+		assertNull(me.aap.fermata.ui.view.YoldaJankAccess.buildLine("Kanallar ızgarası", 12, 47)); // kısa: yazılmaz
+		assertEquals("Kurulum · Kanallar ızgarası: 120 ms (47 öğe)",
+				me.aap.fermata.ui.view.YoldaJankAccess.buildLine("Kanallar ızgarası", 120, 47));
+		assertEquals("Kurulum · Telefon görünümü: 64 ms", me.aap.fermata.ui.view.YoldaJankAccess.buildLine("Telefon görünümü", 64, 0));
+	}
 }
