@@ -44,7 +44,7 @@ public class YoldaDriveWeatherTest {
 
 	@Test
 	public void sesliKomut() {
-		for (String c : new String[]{"yol durumu nasıl", "yolda sis var mı", "buzlanma var mı", "sürüş uyarısı var mı", "yolda hava nasıl"}) {
+		for (String c : new String[]{"yol durumu nasıl", "yolda sis var mı", "buzlanma var mı", "sürüş uyarısı var mı", "yol hava durumu"}) {
 			YoldaIntents.Intent it = YoldaIntents.parse(c);
 			assertEquals(c, YoldaIntents.Kind.WEATHER, it.kind());
 			assertEquals(c, "road", it.arg());
