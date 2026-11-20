@@ -189,6 +189,26 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			return true;
 		});
 		set.addView(ti);
+		// Sesli karşılama (Mola'dan): araca bağlanınca selam; dokun aç / kapat, basılı tut: isim ve günde bir kez
+		boolean wOn = YoldaWelcome.isOn(ctx);
+		String wn = YoldaWelcome.name(ctx);
+		View wi = item(ctx, R.drawable.yi_mic, "Sesli karşılama: " + (wOn ? ("Açık" + (wn.isEmpty() ? "" : (" · " + wn))
+						+ (YoldaWelcome.once(ctx) ? " · günde bir" : " · her bağlanışta")) : "Kapalı") + " (basılı tut: ayarla)",
+				0xFFFBCFE8, 0xFFDB2777, v -> { // Kapalı → günde bir → her bağlanışta → Kapalı
+					boolean once = YoldaWelcome.once(ctx);
+					if (!wOn) YoldaWelcome.set(ctx, true, null, true);
+					else if (once) YoldaWelcome.set(ctx, true, null, false);
+					else YoldaWelcome.set(ctx, false, null, true);
+					YoldaStyle.toast(ctx, !wOn ? "Araca bağlanınca günde bir kez karşılanacaksın"
+							: once ? "Her bağlanışta karşılanacaksın" : "Sesli karşılama kapatıldı");
+					if (!wOn && YoldaWelcome.name(ctx).isEmpty()) askWelcomeName(ctx);
+					render();
+				});
+		wi.setOnLongClickListener(v -> {
+			askWelcomeName(ctx);
+			return true;
+		});
+		set.addView(wi);
 		// Temalar: renk örnekleriyle seçim; tek tema ya da gündüz / gece otomatik (araçta farlara, telefonda gün batımına göre)
 		boolean autoTheme = YoldaStyle.isAuto(ctx);
 		String tl = autoTheme ? ("Tema: ☀ " + YoldaStyle.THEMES[YoldaStyle.dayTheme(ctx)].name + " / 🌙 "
@@ -302,6 +322,16 @@ public class YoldaMenuFragment extends MainActivityFragment {
 				})
 				.setNegativeButton("Temizle", (d, w) -> YoldaLog.clear(ctx))
 				.show();
+	}
+
+	/** Sesli karşılamada söylenecek isim; ardından günde bir kez mi her bağlanışta mı. */
+	private void askWelcomeName(Context ctx) {
+		me.aap.utils.ui.UiUtils.queryText(ctx, R.string.yolda_welcome_name, R.drawable.yi_edit).onSuccess(n -> {
+			if (n == null) return;
+			YoldaWelcome.set(ctx, true, n, YoldaWelcome.once(ctx));
+			YoldaStyle.toast(ctx, "Örnek: " + YoldaWelcome.text(9, YoldaWelcome.name(ctx), null));
+			if (isAdded()) render();
+		});
 	}
 
 	private View item(Context ctx, @DrawableRes int ic, String label, int c1, int c2, View.OnClickListener click) {
