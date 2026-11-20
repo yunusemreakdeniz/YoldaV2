@@ -581,7 +581,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		int w = getResources().getDisplayMetrics().widthPixels;
 		float wdp = w / getResources().getDisplayMetrics().density;
-		int per = pano ? ((wdp > 600) ? 3 : 2) : ((wdp > 600) ? 4 : 2); // Pano: yatay geniş kartlar
+		int per = pano ? ((wdp > 600) ? 3 : (wdp >= 360) ? 2 : 1) : ((wdp > 600) ? 4 : 2); // Pano: yatay kartlar, çok dar ekranda tek sütun
 		List<YoldaDeck.Card> cs = new ArrayList<>(phoneCards(ctx)); // telefonun kendi sırası (araçtaki desteden ayrı)
 		cs.add(null); // sonda "＋ Kart ekle"
 		// Kademeli kurulum: ekranı dolduran ilk 8 kart hemen, kalanı her karede 4 kart (32 kartı tek seferde kurmak
@@ -804,7 +804,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		Look lk = look(c);
 		LinearLayout f = hrow(ctx);
 		f.setGravity(Gravity.CENTER_VERTICAL);
-		f.setPadding(dp(12), dp(12), dp(12), dp(12));
+		f.setPadding(dp(10), dp(10), dp(10), dp(10));
 		GradientDrawable glow = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
 				new int[]{YoldaStyle.alpha(lk.c1, 0.30f), YoldaStyle.alpha(lk.c2, 0.08f), 0x00000000});
 		glow.setCornerRadius(dp(20));
@@ -824,13 +824,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
 		ic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		box.addView(ic, new FrameLayout.LayoutParams(dp(32), dp(32), Gravity.CENTER));
-		f.addView(box, new LinearLayout.LayoutParams(dp(56), dp(56)));
+		box.addView(ic, new FrameLayout.LayoutParams(dp(28), dp(28), Gravity.CENTER));
+		f.addView(box, new LinearLayout.LayoutParams(dp(48), dp(48)));
 		LinearLayout tx = new LinearLayout(ctx);
 		tx.setOrientation(LinearLayout.VERTICAL);
-		tx.setPadding(dp(12), 0, 0, 0);
-		TextView ti = text(ctx, c.title(), 16, true, 0xFFFFFFFF);
-		ti.setSingleLine(true);
+		tx.setPadding(dp(10), 0, 0, 0);
+		TextView ti = text(ctx, c.title(), 15, true, 0xFFFFFFFF);
+		ti.setMaxLines(2); // dar karoda ad kesilmesin
 		ti.setEllipsize(TextUtils.TruncateAt.END);
 		tx.addView(ti);
 		Glance gl = glance(ctx, c.type());
@@ -1042,11 +1042,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if ((title == null) && (lastItem != null)) title = lastItem.getName();
 		boolean playing = cb.isPlaying();
 		if (phNow != null) phNow.setVisibility((title == null) ? View.GONE : View.VISIBLE);
-		if (phNowTitle != null) phNowTitle.setText((title != null) ? title : "");
+		if (phNowTitle != null) phNowTitle.setText((title != null) ? title : (phNow == null) ? "Henüz bir şey çalmadı" : "");
 		MediaLib.PlayableItem src = (pi != null) ? pi : lastItem;
 		boolean live = (src != null) && src.isStream();
 		boolean vid = (src != null) && src.isVideo();
-		if (phNowTag != null) {
+		if ((phNowTag != null) && (title == null) && (phNow == null)) { // Pano, boş: ne yapılacağını söyle
+			phNowTag.setText("RADYO, TV YA DA MÜZİK SEÇ");
+			phNowTag.setTextColor(t.accent | 0xFF000000);
+		} else if (phNowTag != null) {
 			phNowTag.setText((playing && live) ? ("● CANLI · " + (vid ? "TV" : "RADYO")) : playing ? "ŞİMDİ ÇALIYOR" : "KALDIĞIN YER");
 			phNowTag.setTextColor((playing && live) ? 0xFFFF8A8A : (t.accent | 0xFF000000));
 		}
