@@ -141,10 +141,13 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		// Görünüm: telefonda ızgara ya da deste (araçta her zaman deste)
 		if (!a.isCarActivity()) {
 			android.content.SharedPreferences hp = ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
-			boolean phoneV = hp.getBoolean("phone_view", true);
-			set.addView(item(ctx, R.drawable.yi_phone, "Görünüm: " + (phoneV ? "Telefon (ızgara)" : "Araç (deste)") + " · değiştir",
-					0xFFBAE6FD, 0xFF0284C7, v -> {
-						hp.edit().putBoolean("phone_view", !phoneV).apply();
+			boolean phoneV = hp.getBoolean("phone_view", true), panoV = hp.getBoolean("pano_view", false);
+			String cur = !phoneV ? "Araç (deste)" : panoV ? "Pano" : "Telefon (ızgara)";
+			set.addView(item(ctx, R.drawable.yi_phone, "Görünüm: " + cur + " · değiştir (Telefon → Pano → Araç)",
+					0xFFBAE6FD, 0xFF0284C7, v -> { // sırayla: ızgara → Pano → deste → ızgara
+						if (phoneV && !panoV) hp.edit().putBoolean("pano_view", true).apply();
+						else if (phoneV) hp.edit().putBoolean("phone_view", false).putBoolean("pano_view", false).apply();
+						else hp.edit().putBoolean("phone_view", true).putBoolean("pano_view", false).apply();
 						a.showFragment(R.id.home_fragment);
 					}));
 		}

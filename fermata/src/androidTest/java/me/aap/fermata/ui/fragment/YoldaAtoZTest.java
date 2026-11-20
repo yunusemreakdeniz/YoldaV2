@@ -623,6 +623,36 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/**
+	 * Pano görünümü (Mola tarzı): üstte geniş Şimdi çalıyor kartı (önceki / oynat / sonraki), altında her kart;
+	 * dokunulabilenler en az 48dp. Ekran görüntüsü: pano_gorunumu.
+	 */
+	@Test
+	public void panoGorunumu() {
+		onMain(a -> {
+			call(deck(a), "setHomeView", "pano");
+			return null;
+		});
+		waitIdle(2500);
+		try {
+			View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			for (String d : new String[]{"Önceki", "Oynat / duraklat", "Sonraki", "Hava durumu", "Kart ekle"}) {
+				View v = onMain(a -> byDescExact(root, d));
+				assertNotNull("Pano'da olmalı: " + d, v);
+				int h = onMain(a -> v.getHeight());
+				float dens = onMain(a -> v.getResources().getDisplayMetrics().density);
+				assertTrue(d + " en az 48dp olmalı: " + (h / dens), h >= Math.round(48 * dens) - 1);
+			}
+			shot("pano_gorunumu");
+		} finally {
+			onMain(a -> {
+				call(deck(a), "setHomeView", "deck");
+				return null;
+			});
+			waitIdle(1500);
+		}
+	}
+
 	/** Telefon kartı: telefondaki uygulamalar eklenir, kartta görünür, düzenlenir. */
 	@Test
 	public void telefonUygulamalariEklenirDuzenlenir() {
