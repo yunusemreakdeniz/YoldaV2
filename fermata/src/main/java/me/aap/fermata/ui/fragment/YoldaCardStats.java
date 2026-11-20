@@ -29,7 +29,7 @@ public final class YoldaCardStats {
 
 	/** Yürüyerek dakika (saatte ~4,8 km), en az 1. */
 	public static int walkMin(double meters) {
-		return (int) Math.max(1, Math.round(meters / 80.0));
+		return (int) Math.max(1, Math.ceil(meters / 80.0)); // yukarı yuvarla: süreyi az gösterme
 	}
 
 	/** Bu haftanın (pazartesiden) sürüşü: gün gün metre, toplam metre, yolculuk sayısı, süre ve bugünün sırası. */
