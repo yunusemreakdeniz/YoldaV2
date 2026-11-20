@@ -2,6 +2,11 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-20 · v2-207 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-207 · Gereksiz yenileme yok
+
+- Takvim / medya verisi değişmediyse kart yeniden çizilmez; her kartın kurulum süresi ölçülür (yavaşlar tanı günlüğüne).
+- Havaya göre efekt: hava bilinmiyorsa mevsimin efekti.
+
 ## 2026-11-20 · v2-206 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-206 · Daha akıcı telefon görünümü
 
 - Telefon görünümünde bir kartın verisi gelince yalnız o karo yenilenir (önce 32 kartın hepsi yeniden kuruluyordu).
