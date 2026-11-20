@@ -93,4 +93,15 @@ public class YoldaQuakeTest {
 		done.add("a");
 		assertEquals("bir kez öne gelir", null, YoldaQuake.surfaceable(List.of(kucuk, yeni, eski), now, done));
 	}
+
+	@Test
+	public void kaliciKimlikler() {
+		Set<String> s = YoldaQuake.decodeIds("a,b");
+		assertEquals("a,b,c", YoldaQuake.encodeIds(s, "c"));
+		assertEquals("b,a", YoldaQuake.encodeIds(s, "a")); // yeniden eklenen sona
+		assertTrue(YoldaQuake.decodeIds(null).isEmpty());
+		Set<String> big = new java.util.LinkedHashSet<>();
+		for (int i = 0; i < 45; i++) big.add("x" + i);
+		assertEquals(40, YoldaQuake.decodeIds(YoldaQuake.encodeIds(big, null)).size());
+	}
 }

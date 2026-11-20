@@ -91,4 +91,15 @@ public class YoldaLiveApisTest {
 		assertEquals(0xFFFB923C, YoldaTraffic.noteColor(new YoldaTraffic.Eta(20, 10, 6, true)));
 		assertEquals(0xFFF87171, YoldaTraffic.noteColor(new YoldaTraffic.Eta(40, 10, 15, true)));
 	}
+
+	@Test
+	public void uvIndeksi() throws Exception {
+		assertEquals(6.4, YoldaWeather.parseUv("{\"current\":{\"european_aqi\":20,\"uv_index\":6.4}}"), 0.001);
+		assertEquals(-1, YoldaWeather.parseUv("{\"current\":{\"uv_index\":null}}"), 0.001);
+		assertEquals("Düşük", YoldaWeather.uvText(1.2));
+		assertEquals("Orta", YoldaWeather.uvText(4));
+		assertEquals("Yüksek", YoldaWeather.uvText(6.4));
+		assertEquals("Çok yüksek", YoldaWeather.uvText(9));
+		assertEquals("Aşırı", YoldaWeather.uvText(11.2));
+	}
 }
