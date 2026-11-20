@@ -216,6 +216,8 @@ public class MainActivity extends SplitCompatActivityBase
 
 		String reqUrl = me.aap.fermata.ui.fragment.YoldaUpdate.RELEASES; // önceden asıl Fermata'nın sürümlerine bakıyordu
 		int current = me.aap.fermata.ui.fragment.YoldaUpdate.buildNumber(BuildConfig.VERSION_NAME);
+		// Sürüm numarası bilinmeyen derlemede (yerel / test) açılışta sorma: her sürümü "yeni" sanıp pencere açıyordu
+		if (!manual && !me.aap.fermata.ui.fragment.YoldaUpdate.autoCheck(current)) return;
 		HttpConnection.connect(o -> o.url(reqUrl), (resp, err) -> {
 			if (err != null) {
 				Log.e(err, "Failed to check updates");
