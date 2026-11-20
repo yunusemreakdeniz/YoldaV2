@@ -374,98 +374,6 @@ public class MusicFragment extends MainActivityFragment {
 		}
 	}
 
-	/**
-	 * Araç ana sayfası (tasarım şartnamesi 3.3): solda "Son dinlediklerin" satırları ve "Tümünü çal",
-	 * sağda "Karışık listeler" 2×2 kutu.
-	 */
-	private void showHomeCar() {
-		Context ctx = requireContext();
-		int seq = ++requestSeq;
-		content.removeAllViews();
-		status.setText("");
-		int side = 18;
-		LinearLayout cols = new LinearLayout(ctx);
-		cols.setOrientation(LinearLayout.HORIZONTAL);
-		cols.setPadding(dp(side), dp(8), dp(side), 0);
-		content.addView(cols, new LinearLayout.LayoutParams(-1, -2));
-
-		LinearLayout left = new LinearLayout(ctx);
-		left.setOrientation(LinearLayout.VERTICAL);
-		cols.addView(left, new LinearLayout.LayoutParams(0, -2, 1.2f));
-		LinearLayout lh = new LinearLayout(ctx);
-		lh.setOrientation(LinearLayout.HORIZONTAL);
-		lh.setGravity(Gravity.CENTER_VERTICAL);
-		TextView lt = text(ctx, "Son dinlediklerin", 20, true, t.ink);
-		lh.addView(lt, new LinearLayout.LayoutParams(0, -2, 1f));
-		TextView playAll = text(ctx, "Tümünü çal", 14, true, YoldaStyle.ON_ACCENT);
-		playAll.setGravity(Gravity.CENTER);
-		playAll.setMinHeight(dp(44));
-		playAll.setPadding(dp(16), 0, dp(16), 0);
-		playAll.setBackground(YoldaStyle.accentFill(ctx, 999));
-		lh.addView(playAll, new LinearLayout.LayoutParams(-2, dp(44)));
-		left.addView(lh);
-		LinearLayout list = new LinearLayout(ctx);
-		list.setOrientation(LinearLayout.VERTICAL);
-		LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(-1, -2);
-		llp.topMargin = dp(8);
-		left.addView(list, llp);
-
-		List<YtMusic.Track> recent = recent(ctx);
-		java.util.function.Consumer<List<YtMusic.Track>> fill = l -> {
-			list.removeAllViews();
-			List<YtMusic.Track> q = new ArrayList<>(l.subList(0, Math.min(8, l.size())));
-			for (int i = 0; i < q.size(); i++) list.addView(row(ctx, q, i, 52), new LinearLayout.LayoutParams(-1, -2));
-			playAll.setOnClickListener(v -> play(q, 0));
-		};
-		if (!recent.isEmpty()) {
-			fill.accept(recent);
-		} else {
-			lt.setText("Senin için");
-			YtMusic.search("türkçe pop hit").main().onCompletion((l, err) -> {
-				if (!isAdded() || (seq != requestSeq)) return;
-				if (l != null) fill.accept(l);
-				else list.addView(errorText(ctx, err));
-			});
-		}
-
-		LinearLayout right = new LinearLayout(ctx);
-		right.setOrientation(LinearLayout.VERTICAL);
-		LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(0, -2, 1f);
-		rlp.leftMargin = dp(16);
-		cols.addView(right, rlp);
-		right.addView(text(ctx, "Karışık listeler", 20, true, t.ink));
-		String[][] mixes = {{"Yolculuk", "yolculuk şarkıları", "#0369A1", "#4FD1C5"},
-				{"Enerji", "enerjik türkçe şarkılar", "#9D174D", "#FFB547"},
-				{"Dinlendirici", "sakin türkçe şarkılar", "#5B21B6", "#7AA2FF"},
-				{"Romantik", "romantik türkçe şarkılar", "#BE185D", "#F472B6"}};
-		for (int r = 0; r < 2; r++) {
-			LinearLayout row = new LinearLayout(ctx);
-			row.setOrientation(LinearLayout.HORIZONTAL);
-			LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(96));
-			rl.topMargin = dp(10);
-			right.addView(row, rl);
-			for (int c = 0; c < 2; c++) {
-				String[] m = mixes[r * 2 + c];
-				TextView tile = text(ctx, m[0], 18, true, 0xFFFFFFFF);
-				tile.setGravity(Gravity.BOTTOM | Gravity.START);
-				tile.setPadding(dp(14), dp(10), dp(10), dp(12));
-				GradientDrawable gb = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-						new int[]{android.graphics.Color.parseColor(m[2]), android.graphics.Color.parseColor(m[3])});
-				gb.setCornerRadius(dp(20));
-				tile.setBackground(gb);
-				tile.setContentDescription(m[0] + " listesini çal");
-				tile.setOnClickListener(v -> {
-					chip = null;
-					showChips();
-					showList(m[0], m[1], true);
-				});
-				LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -1, 1f);
-				if (c > 0) tl.leftMargin = dp(10);
-				row.addView(tile, tl);
-			}
-		}
-	}
-
 	/** Kapaklı kart ızgarası: genişliğe göre 2–6 sütun (araçta 4–5, telefonda 2). */
 	private View trackGrid(Context ctx, List<YtMusic.Track> q) {
 		int side = YoldaStyle.compact(ctx) ? 16 : 22;
@@ -1042,92 +950,6 @@ public class MusicFragment extends MainActivityFragment {
 		YoldaNowPlaying.show(getActivityDelegate());
 	}
 
-	private void togglePlay(MainActivityDelegate a) {
-		me.aap.fermata.media.service.MediaSessionCallback cb = a.getMediaSessionCallback();
-		if (cb.isPlaying()) {
-			cb.onPause();
-		} else if (isStopped(cb) && (nowQueue != null)) {
-			play(nowQueue, nowIndex); // ✕ ya da hata ile durmuş: şarkıyı yeniden aç
-		} else {
-			cb.onPlay();
-		}
-	}
-
-	private static boolean isStopped(me.aap.fermata.media.service.MediaSessionCallback cb) {
-		android.support.v4.media.session.PlaybackStateCompat st = cb.getPlaybackState();
-		if (st == null) return true;
-		int s = st.getState();
-		return (s == android.support.v4.media.session.PlaybackStateCompat.STATE_STOPPED)
-				|| (s == android.support.v4.media.session.PlaybackStateCompat.STATE_NONE)
-				|| (s == android.support.v4.media.session.PlaybackStateCompat.STATE_ERROR);
-	}
-
-	/** Oynatıcıdaki ✕ ile durdurulduysa Şimdi çalıyor ekranı ve küçük çubuk da kapansın. */
-	private boolean checkClosed(me.aap.fermata.media.service.MediaSessionCallback cb) {
-		if (cb.isPlaying()) {
-			everPlayed = true;
-			return false;
-		}
-		if (!everPlayed || !isStopped(cb)) return false;
-		closeNow();
-		return true;
-	}
-
-	private void closeNow() {
-		me.aap.fermata.media.service.MediaSessionCallback.yoldaSkip = null;
-		YoldaNowPlaying.setExternal(null);
-		stopTicker();
-		if ((nowView != null) && (rootView != null)) rootView.removeView(nowView);
-		nowView = null;
-		removeMini();
-		if (search != null) search.setVisibility(View.VISIBLE);
-		if (content != null) content.setPadding(0, dp(6), 0, dp(190));
-		nowQueue = null;
-		nowIndex = -1;
-		everPlayed = false;
-		if (status != null) status.setText("");
-	}
-
-	/** Kapağı, ad + çubuk + butonlar sığacak en büyük kareye ayarla. */
-	private void fitCover(View ov, LinearLayout body, LinearLayout info, View art, boolean wide) {
-		int h = ov.getHeight();
-		int w = ov.getWidth();
-		if ((h <= 0) || (w <= 0)) return;
-		int padV = body.getPaddingTop() + body.getPaddingBottom();
-		int padH = body.getPaddingLeft() + body.getPaddingRight();
-		int c;
-		if (wide) {
-			c = Math.min(h - padV, (w - padH) / 2 - dp(16));
-		} else {
-			info.measure(View.MeasureSpec.makeMeasureSpec(w - padH, View.MeasureSpec.EXACTLY),
-					View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-			c = Math.min(w - padH, h - padV - info.getMeasuredHeight() - dp(22));
-		}
-		c = Math.max(dp(96), c);
-		android.view.ViewGroup.LayoutParams lp = art.getLayoutParams();
-		lp.width = c;
-		lp.height = c;
-		art.setLayoutParams(lp);
-	}
-
-	private ImageView ctlButton(Context ctx, int icon, boolean primary) {
-		ImageView b = new ImageView(ctx);
-		b.setImageResource(icon);
-		b.setColorFilter(primary ? 0xFF0B0E2A : 0xFFFFFFFF);
-		int p = dp(primary ? 24 : 16);
-		b.setPadding(p, p, p, p);
-		if (primary) {
-			GradientDrawable c = new GradientDrawable();
-			c.setShape(GradientDrawable.OVAL);
-			c.setColor(0xFFFFFFFF);
-			b.setBackground(c);
-		} else {
-			b.setBackground(rowBg(ctx));
-		}
-		b.setClickable(true);
-		return b;
-	}
-
 	private static long durationMs(YtMusic.Track tr) {
 		return Math.max(0, tr.durationSec()) * 1000;
 	}
@@ -1202,15 +1024,6 @@ public class MusicFragment extends MainActivityFragment {
 	private void stopTicker() {
 		if ((ticker != null) && (content != null)) content.removeCallbacks(ticker);
 		ticker = null;
-	}
-
-	private void hideNowPlaying() {
-		YoldaNowPlaying.hide(getActivityDelegate());
-	}
-
-	private void removeMini() {
-		if ((miniBar != null) && (rootView != null)) rootView.removeView(miniBar);
-		miniBar = null;
 	}
 
 	@Override

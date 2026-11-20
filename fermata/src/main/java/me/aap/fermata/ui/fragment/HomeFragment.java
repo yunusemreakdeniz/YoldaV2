@@ -24,7 +24,6 @@ import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.TextClock;
 import android.widget.TextView;
 
 import androidx.annotation.DrawableRes;
@@ -1311,12 +1310,6 @@ public class HomeFragment extends MainActivityFragment {
 		if (YoldaStyle.compact(ctx)) return 132;
 		if (YoldaStyle.shortScreen(ctx)) return Math.max(170, Math.min(210, YoldaStyle.heightDp(ctx) / 2 - 20));
 		return 224;
-	}
-
-	private static int iconDp(Context ctx) {
-		if (YoldaStyle.compact(ctx)) return 64;
-		if (YoldaStyle.shortScreen(ctx)) return Math.round(cardH(ctx) * 0.46f);
-		return 104;
 	}
 
 	private static int btnDp(Context ctx) {

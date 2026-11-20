@@ -195,7 +195,6 @@ public final class YoldaSky {
 	// ---- çizim (ana iş parçacığında; yeniden kullanılan nesneler) ----
 
 	private static final Matrix gm = new Matrix();
-	private static final Path ray = new Path();
 	private static final java.util.Map<Long, RadialGradient> glows = new java.util.HashMap<>();
 
 	/** Birim yarıçaplı ışık (renk ve saydamlık başına bir kez kurulur); matrisle yerine ve boyuna taşınır. */

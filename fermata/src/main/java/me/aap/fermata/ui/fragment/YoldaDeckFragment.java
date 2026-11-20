@@ -319,40 +319,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 	}
 
-	private View segmented(Context ctx, boolean phone) {
-		LinearLayout seg = new LinearLayout(ctx);
-		seg.setPadding(dp(3), dp(3), dp(3), dp(3));
-		GradientDrawable sb = new GradientDrawable();
-		sb.setCornerRadius(dp(999));
-		sb.setColor(0x24FFFFFF);
-		sb.setStroke(Math.max(1, dp(1)), 0x33FFFFFF);
-		seg.setBackground(sb);
-		for (int i = 0; i < 2; i++) {
-			boolean on = (i == 0) == phone;
-			boolean toPhone = i == 0;
-			TextView b = text(ctx, (i == 0) ? "Telefon" : "Araç", 13, true, on ? 0xFF0B0E1A : 0xFFE2E6EE);
-			b.setGravity(Gravity.CENTER);
-			b.setIncludeFontPadding(false); // yazı düğmenin tam ortasında
-			b.setMaxLines(1);
-			b.setPadding(dp(14), 0, dp(14), 0);
-			if (on) {
-				GradientDrawable ob = new GradientDrawable();
-				ob.setCornerRadius(dp(999));
-				ob.setColor(0xFFF2F4F7);
-				b.setBackground(ob);
-			}
-			b.setClickable(true);
-			b.setContentDescription((i == 0) ? "Telefon görünümü" : "Araç görünümü");
-			b.setOnClickListener(v -> {
-				if (on) return;
-				YoldaStyle.haptic(v);
-				setPhoneView(toPhone);
-			});
-			seg.addView(b, new LinearLayout.LayoutParams(-2, dp(42))); // 3dp kenarla birlikte 48dp dokunma
-		}
-		return seg;
-	}
-
 	@Nullable
 	private TextView phNowTitle, phNowTag, phLimit, phRadar, phPark, phClock, phDate, phWeather, phWeatherPlace, phWeatherIcon,
 			phLimitSign;
@@ -2279,19 +2245,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}, n -> n.key().startsWith("r:")); // yalnız son gidilenler silinir
 	}
 
-	/** Testler için: kanal sırasını kaydet (sıralama penceresinin yaptığı). */
-	private void saveOrder(Context ctx, boolean radio, List<MediaLib.PlayableItem> edited) {
-		List<String> ids = new ArrayList<>();
-		List<MediaLib.PlayableItem> tv = radio ? tvChannels : edited, rd = radio ? edited : radioChannels;
-		for (MediaLib.PlayableItem pi : tv) ids.add(pi.getId());
-		for (MediaLib.PlayableItem pi : rd) ids.add(pi.getId());
-		YoldaChannelOrder.save(ctx, ids);
-		List<MediaLib.PlayableItem> target = radio ? radioChannels : tvChannels;
-		target.clear();
-		target.addAll(edited);
-		refreshCard(radio ? YoldaDeck.RADIO : YoldaDeck.TV);
-	}
-
 	/**
 	 * Telefonun kişi seçicisi (rehber izni gerekmez; yalnız seçilen kişi okunur). Uygulamanın kendi sonuç
 	 * yolu kullanılır: alan olarak registerForActivityResult araç ekranında (CarActivity bir ComponentActivity
@@ -2425,42 +2378,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return b;
 	}
 
-	/** Kartın Açık / Kapalı düğmesi. */
-	private TextView radarToggle(Context ctx) {
-		boolean on = YoldaRadar.isEnabled(ctx);
-		TextView sw = chipBtn(ctx, on ? "Açık  ⬤" : "◯  Kapalı", v -> toggleRadar(ctx));
-		sw.setContentDescription("Radar uyarıları: " + (on ? "açık, kapatmak için dokun" : "kapalı, açmak için dokun"));
-		GradientDrawable g = new GradientDrawable();
-		g.setCornerRadius(dp(999));
-		g.setColor(on ? 0x59FFFFFF : 0x1AFFFFFF);
-		g.setStroke(Math.max(1, dp(1)), on ? 0xB3FFFFFF : 0x40FFFFFF);
-		sw.setBackground(g);
-		sw.setTextColor(on ? 0xFFFFFFFF : 0xB3FFFFFF);
-		return sw;
-	}
-
 	private boolean radarUpdating;
-
-	/** Kartın "↻ Güncelle" düğmesi: radar listesini hemen OpenStreetMap'ten yeniler. */
-	private TextView radarUpdateBtn(Context ctx, boolean compact) {
-		TextView b = chipBtn(ctx, radarUpdating ? "↻ Güncelleniyor…" : (compact ? "↻" : "↻ Güncelle"), v -> {
-			if (radarUpdating) return;
-			radarUpdating = true;
-			refreshCard(YoldaDeck.RADAR);
-			YoldaStyle.toast(ctx, "Radar listesi güncelleniyor…");
-			YoldaRadar.update(ctx, r -> {
-				radarUpdating = false;
-				YoldaStyle.toast(ctx, r);
-				lastRadarSub = null;
-				refreshCard(YoldaDeck.RADAR);
-			});
-		});
-		long up = YoldaRadar.updatedAt(ctx);
-		b.setContentDescription("Radar listesini güncelle" + ((up > 0) ? (", son güncelleme "
-				+ new java.text.SimpleDateFormat("d MMMM", new java.util.Locale("tr")).format(new java.util.Date(up))) : ""));
-		if (compact && !radarUpdating) b.setPadding(dp(14), 0, dp(14), 0);
-		return b;
-	}
 
 	/** Karttan aç / kapat (izin yoksa önce sorulur). */
 	private void toggleRadar(Context ctx) {
