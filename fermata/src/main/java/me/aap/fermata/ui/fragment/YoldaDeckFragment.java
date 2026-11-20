@@ -372,6 +372,31 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 	};
 
+	/**
+	 * Son depremler: ekran açıkken dakikada bir (liste 5 dk saklanır) yoklanır; yakında yeni 4,0 ve üzeri deprem
+	 * varsa deste bir kez o karta kayar (kart destede ve kullanıcı kaydırmıyorsa) ve kısa bildirim çıkar.
+	 */
+	private final Runnable quakeTick = new Runnable() {
+		@Override
+		public void run() {
+			android.os.Handler h = me.aap.utils.app.App.get().getHandler();
+			h.removeCallbacks(this);
+			if (!isAdded() || !isResumed() || isHidden() || (getContext() == null)) return;
+			Context ctx = requireContext();
+			if (deck.indexOf(YoldaDeck.QUAKE) >= 0) YoldaQuake.refresh(ctx, () -> {
+				if (!isAdded()) return;
+				refreshCard(YoldaDeck.QUAKE);
+				YoldaQuake.Quake q = YoldaQuake.takeSurface();
+				if (q == null) return;
+				YoldaStyle.toast(ctx, "Yakında deprem: " + YoldaQuake.line(q, System.currentTimeMillis()));
+				int i = deck.indexOf(YoldaDeck.QUAKE);
+				if (!phoneBuilt && !editing && (list != null) && (list.getScrollState() == RecyclerView.SCROLL_STATE_IDLE))
+					list.smoothScrollToPosition(i);
+			});
+			h.postDelayed(this, 60_000L);
+		}
+	};
+
 	private View phoneHome(Context ctx) {
 		long t0 = android.os.SystemClock.uptimeMillis();
 		View v = phoneHomeBuild(ctx);
@@ -2475,11 +2500,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	public void onResume() {
 		super.onResume();
 		if (list != null) list.post(this::resize);
+		me.aap.utils.app.App.get().getHandler().postDelayed(quakeTick, 4000);
 	}
 
 	@Override
 	public void onHiddenChanged(boolean hidden) {
 		super.onHiddenChanged(hidden);
+		if (!hidden) me.aap.utils.app.App.get().getHandler().postDelayed(quakeTick, 4000);
 		if (!hidden && (root != null) && (phoneMode() != phoneBuilt)) { // Menü'den görünüm değişti: yeniden kur
 			root.post(() -> setPhoneView(phoneMode()));
 			return;
