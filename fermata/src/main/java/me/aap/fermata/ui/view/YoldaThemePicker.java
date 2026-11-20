@@ -134,9 +134,10 @@ public final class YoldaThemePicker extends FrameLayout {
 				render();
 			}), fl);
 		}
-		col.addView(note(ctx, "auto".equals(fx) ? ("Otomatik: havaya göre, şu an " + YoldaSky.label(YoldaSky.current())
+		col.addView(note(ctx, "auto".equals(fx) ? ("Havaya göre: şu an " + YoldaSky.label(YoldaSky.current())
 				+ ". Araçta ve animasyonlar kapalıyken sahne sabit durur.")
-				: ("off".equals(fx) ? "Kapalı: yalnız tema ışıltısı." : (YoldaSky.modeLabel(fx) + ": hava ne olursa olsun her zaman."))));
+				: ("off".equals(fx) ? "Kapalı: yalnız tema ışıltısı." : ("season".equals(fx) ? ("Mevsime göre: şu an " + YoldaSky.label(YoldaSky.current()) + ".")
+						: (YoldaSky.modeLabel(fx) + ": hava ne olursa olsun her zaman; gece güneş yerine yıldızlı gök.")))));
 
 		if (!auto) {
 			col.addView(note(ctx, "Seçtiğin tema her zaman kullanılır."));

@@ -56,6 +56,25 @@ public class YoldaPaketBTest {
 	}
 
 	@Test
+	public void mevsimler() {
+		assertEquals(YoldaSky.SPRING, YoldaSky.seasonOf(4));
+		assertEquals(YoldaSky.SUMMER, YoldaSky.seasonOf(7));
+		assertEquals(YoldaSky.AUTUMN, YoldaSky.seasonOf(11));
+		assertEquals(YoldaSky.WINTER, YoldaSky.seasonOf(1));
+		assertEquals(YoldaSky.WINTER, YoldaSky.seasonOf(12));
+		assertEquals(YoldaSky.AUTUMN, YoldaSky.modeScene("autumn", YoldaSky.NONE));
+		assertTrue(YoldaSky.modeScene("season", YoldaSky.NONE) >= YoldaSky.SPRING); // hep bir mevsim
+		// gece: güneş / yaz yerine yıldız; gündüz yıldız yerine güneş; mevsimler gece de sürer
+		assertEquals(YoldaSky.STARS, YoldaSky.dayNight(YoldaSky.SUN, true));
+		assertEquals(YoldaSky.STARS, YoldaSky.dayNight(YoldaSky.SUMMER, true));
+		assertEquals(YoldaSky.SUN, YoldaSky.dayNight(YoldaSky.STARS, false));
+		assertEquals(YoldaSky.AUTUMN, YoldaSky.dayNight(YoldaSky.AUTUMN, true));
+		assertTrue(YoldaSky.fast(YoldaSky.SPRING) && YoldaSky.fast(YoldaSky.AUTUMN));
+		assertTrue(YoldaSky.particles(YoldaSky.AUTUMN, 1080, 1920) > 0);
+		assertEquals("Sonbahar", YoldaSky.modeLabel("autumn"));
+	}
+
+	@Test
 	public void havaEfektiKipi() {
 		// otomatik: havaya göre; kapalı: yok; sabit: hava ne olursa olsun seçilen
 		assertEquals(YoldaSky.SNOW, YoldaSky.modeScene("auto", YoldaSky.SNOW));
@@ -64,7 +83,7 @@ public class YoldaPaketBTest {
 		assertEquals(YoldaSky.STORM, YoldaSky.modeScene("storm", YoldaSky.NONE));
 		assertEquals(YoldaSky.SUN, YoldaSky.modeScene(null, YoldaSky.SUN));
 		assertEquals("Yağmur", YoldaSky.modeLabel("rain"));
-		assertEquals("Otomatik", YoldaSky.modeLabel("bilinmeyen"));
+		assertEquals("Havaya göre", YoldaSky.modeLabel("bilinmeyen"));
 		// her seçenek bir sahneye karşılık gelir (otomatik ve kapalı hariç)
 		for (String[] m : YoldaSky.MODES)
 			if (!m[0].equals("auto") && !m[0].equals("off")) assertTrue(m[0], YoldaSky.modeScene(m[0], YoldaSky.NONE) != YoldaSky.NONE);
