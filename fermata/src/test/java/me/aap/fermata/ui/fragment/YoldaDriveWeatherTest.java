@@ -34,4 +34,11 @@ public class YoldaDriveWeatherTest {
 		assertEquals("Buzlanma riski · şimdi", YoldaWeather.driveAlert(hemen));
 		assertEquals("", YoldaWeather.driveAlert(new YoldaWeather.Now(14, 2, 10, "X", List.of(h("20:00", 14, 2, 10, 20000, 0)))));
 	}
+
+	@Test
+	public void sesli() {
+		assertEquals("Dikkat, yoğun sis 22:00'de", YoldaWeather.spokenAlert("Yoğun sis · 22:00'de"));
+		assertEquals("Dikkat, buzlanma riski şu an", YoldaWeather.spokenAlert("Buzlanma riski · şimdi"));
+		assertEquals("", YoldaWeather.spokenAlert(""));
+	}
 }

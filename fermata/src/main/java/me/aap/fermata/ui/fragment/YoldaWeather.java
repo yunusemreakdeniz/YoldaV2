@@ -170,6 +170,29 @@ public final class YoldaWeather {
 		return "";
 	}
 
+	/** Sürüş riskinin sesli hali: "Dikkat, yoğun sis 22:00'de" / "Dikkat, buzlanma riski şu an". */
+	static String spokenAlert(String alert) {
+		if (alert.isEmpty()) return "";
+		String s = alert.replace(" · şimdi", " şu an").replace(" · ", " ");
+		return "Dikkat, " + Character.toLowerCase(s.charAt(0)) + s.substring(1);
+	}
+
+	private static long tripWarnedAt;
+
+	/** Yolculuk başlarken: önümüzdeki saatlerde sürüş riski varsa bir kez sesli söyle (saatte en çok bir kez). */
+	public static void warnForTrip(Context ctx) {
+		long now = System.currentTimeMillis();
+		if (now - tripWarnedAt < 3_600_000L) return;
+		Context app = ctx.getApplicationContext();
+		App.get().getHandler().postDelayed(() -> get(app).onSuccess(n -> {
+			String al = (n != null) ? driveAlert(n) : "";
+			if (al.isEmpty()) return;
+			tripWarnedAt = System.currentTimeMillis();
+			YoldaLog.add("Sürüş riski (yolculuk başı): " + al);
+			YoldaSpeak.sayAlways(app, spokenAlert(al));
+		}), 8000); // araç bağlanınca ses yolu otursun
+	}
+
 	/** Saklanan son hava (yoksa null; ağ isteği yapmaz). */
 	@Nullable
 	public static Now cachedNow() {
