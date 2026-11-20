@@ -81,4 +81,16 @@ public class YoldaQuakeTest {
 	public void sesliKomut() {
 		assertEquals(YoldaDeck.QUAKE, YoldaDeck.typeOfSpoken("son depremler"));
 	}
+
+	@Test
+	public void oneCikarma() {
+		long now = 1_000_000_000L;
+		YoldaQuake.Quake yeni = new YoldaQuake.Quake("a", 4.1, 0, 0, 10, now - 10 * 60_000L, "Batı Türkiye", 90);
+		YoldaQuake.Quake kucuk = new YoldaQuake.Quake("b", 3.2, 0, 0, 10, now - 5 * 60_000L, "Batı Türkiye", 40);
+		YoldaQuake.Quake eski = new YoldaQuake.Quake("c", 4.8, 0, 0, 10, now - 90 * 60_000L, "Batı Türkiye", 40);
+		Set<String> done = new HashSet<>();
+		assertEquals("a", YoldaQuake.surfaceable(List.of(kucuk, yeni, eski), now, done).id());
+		done.add("a");
+		assertEquals("bir kez öne gelir", null, YoldaQuake.surfaceable(List.of(kucuk, yeni, eski), now, done));
+	}
 }

@@ -39,6 +39,9 @@ public final class YoldaQuake {
 	private static volatile long lastAt;
 	private static volatile boolean asking;
 	private static final Set<String> spoken = new HashSet<>();
+	/** Desteyi kendine çektiği depremler (her deprem bir kez öne gelir). */
+	private static final Set<String> surfaced = new HashSet<>();
+	static final long SURFACE_FRESH_MS = 60 * 60_000L;
 
 	private YoldaQuake() {
 	}
@@ -141,6 +144,25 @@ public final class YoldaQuake {
 	/** Sesli söylenmeli mi: 5,0 ve üzeri, 15 dk'dan yeni, daha önce söylenmemiş. */
 	static boolean shouldAlert(Quake q, long nowMs, Set<String> done) {
 		return (q.mag() >= ALERT_MAG) && (nowMs - q.timeMs() < ALERT_FRESH_MS) && !done.contains(q.id());
+	}
+
+	/** Öne çıkarılacak deprem: 4,0 ve üzeri, 1 saatten yeni, daha önce öne çıkmamış (en yenisi); yoksa null. */
+	@Nullable
+	static Quake surfaceable(List<Quake> l, long nowMs, Set<String> done) {
+		for (Quake q : l) { // en yeni önce sıralı
+			if ((q.mag() >= WARN_MAG) && (nowMs - q.timeMs() < SURFACE_FRESH_MS) && !done.contains(q.id())) return q;
+		}
+		return null;
+	}
+
+	/** Öne çıkarılacak yeni deprem varsa döner ve "gösterildi" diye işaretler. */
+	@Nullable
+	public static Quake takeSurface() {
+		synchronized (surfaced) {
+			Quake q = surfaceable(last, System.currentTimeMillis(), surfaced);
+			if (q != null) surfaced.add(q.id());
+			return q;
+		}
 	}
 
 	private static SharedPreferences prefs(Context ctx) {

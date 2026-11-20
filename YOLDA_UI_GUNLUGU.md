@@ -2,6 +2,16 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-20 · v2-211 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-211 · Son depremler, yeni hava ve trafik kartı
+
+- Yeni Son depremler kartı (EMSC, 300 km, son 24 saat): büyüklük renkli çipler, 5,0 ve üzeri yeni deprem bir kez sesli (kapatılabilir).
+- Hava kartı: renkli hava kalitesi çipi; alt yazıda "17:00'de yağmur" / "19:00'da diner".
+- Trafik kartı: eve süre büyük, renkli trafik notu; TomTom anahtarı varsa canlı trafikle.
+
+## 2026-11-20 · v2-209 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-209 · Canlı trafik ve hava kalitesi
+
+- Trafik süresi TomTom anahtarıyla canlı trafikli; hava sayfasında hava kalitesi (Open-Meteo). Kullanılmayan eski kod silindi.
+
 ## 2026-11-20 · v2-208 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-208 · Kaldığın yerden hızlandı
 
 - Çalma geçmişi ve son çalınan müzikler kayıt değişmedikçe yeniden ayrıştırılmaz (Kaldığın yerden ve Müzik kartları daha hızlı kurulur).
