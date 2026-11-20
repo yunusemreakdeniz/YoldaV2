@@ -2,6 +2,16 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-20 · v2-214 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-214 · UV indeksi
+
+- Hava sayfasında UV indeksi (renkli bant, 6 ve üstünde uyarı). Deprem "gösterildi / söylendi" bilgisi kalıcı.
+
+## 2026-11-20 · v2-213 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-213 · Büyük düğmeler
+
+- Kartlarda yer varsa çipler 72 / 80 dp'ye, yazıları 18 / 20 sp'ye büyür.
+- Park (süre büyük, 1 / 2 sa hatırlatma), sürüş geçmişi (haftalık toplam ve çubuklar), namaz (geri sayım, 10 dk kala sesli), döviz (dünden değişim).
+- Emülatör arayüz denetimi: bütün ekranlarda sorun yok.
+
 ## 2026-11-20 · v2-212 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-212 · Deprem kartı öne gelir
 
 - Ekran açıkken yakında yeni 4,0 ve üzeri deprem olursa deste bir kez Son depremler kartına kayar ve bildirim çıkar.
