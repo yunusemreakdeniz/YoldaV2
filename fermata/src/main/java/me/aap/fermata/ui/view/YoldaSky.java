@@ -159,7 +159,9 @@ public final class YoldaSky {
 		boolean night = nightCached();
 		if (!"auto".equals(m)) return dayNight(modeScene(m, NONE), night); // seçilen efekt; gece güneş yerine yıldız
 		YoldaWeather.Now n = YoldaWeather.cachedNow();
-		return (n == null) ? NONE : scene(n.code(), night);
+		// hava henüz bilinmiyorsa (ilk açılış, internet yok) zemin boş kalmasın: mevsimin efekti
+		if (n == null) return dayNight(seasonOf(java.util.Calendar.getInstance().get(java.util.Calendar.MONTH) + 1), night);
+		return scene(n.code(), night);
 	}
 
 	/** Parçacık sayısı: alanla ölçekli, üst sınırlı (küçük ekranda kalabalık, büyükte seyrek olmasın). */

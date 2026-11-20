@@ -3087,7 +3087,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (cardW <= 0) return;
 			// Yatay telefonda kart üstte: oynatıcı çubuğu için ayrılan yer kartın altında kalır (üstte boşluk olmaz)
 			boolean top = (getContext() != null) && (list != null) && (list.getWidth() > list.getHeight() * 1.2f);
-			h.box.addView(card(h.box.getContext(), deck.get(pos), pos),
+			long t0 = android.os.SystemClock.uptimeMillis();
+			View cv = card(h.box.getContext(), deck.get(pos), pos);
+			me.aap.fermata.ui.view.YoldaJank.took("Kart " + deck.get(pos).type(), t0, 0); // yavaş kuran kartı bul
+			h.box.addView(cv,
 					new FrameLayout.LayoutParams(-1, cardH, top ? Gravity.TOP : Gravity.CENTER_VERTICAL));
 		}
 

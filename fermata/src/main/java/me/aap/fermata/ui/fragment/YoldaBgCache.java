@@ -37,13 +37,15 @@ public final class YoldaBgCache<T> {
 			loading = true;
 			me.aap.utils.function.CheckedSupplier<T, Throwable> job = loader::get;
 			me.aap.utils.app.App.get().execute(job).onCompletion((r, err) -> {
+				boolean changed = (r != null) && !java.util.Objects.equals(r, value);
 				if (r != null) {
 					value = r;
 					at = System.currentTimeMillis();
 				}
 				loading = false;
 				Runnable cb = onLoaded;
-				if (cb != null) me.aap.utils.app.App.get().getHandler().post(cb);
+				// yalnız sonuç değiştiyse kart yenilensin (aynı sonuç için gereksiz yeniden çizim olmasın)
+				if (changed && (cb != null)) me.aap.utils.app.App.get().getHandler().post(cb);
 			});
 		}
 		return (v != null) ? v : fallback;
