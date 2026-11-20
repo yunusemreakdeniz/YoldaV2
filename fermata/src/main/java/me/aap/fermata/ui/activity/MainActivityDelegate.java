@@ -1471,6 +1471,7 @@ public class MainActivityDelegate extends ActivityDelegate
 	@Override
 	public EditText createEditText(Context ctx) {
 		EditText t = getAppActivity().createEditText(ctx);
+		me.aap.fermata.ui.view.YoldaSearchMic.attach(this, t); // her yazı kutusunda klavye + sağda mikrofon
 		if (isCarActivity() && getPrefs().getVoiceControlEnabledPref()) {
 			t.setOnLongClickListener(v -> {
 				startSpeechRecognizer().onSuccess(q -> t.setText(q.get(0)));
