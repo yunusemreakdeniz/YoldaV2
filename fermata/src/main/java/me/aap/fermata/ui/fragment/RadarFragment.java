@@ -367,44 +367,6 @@ public class RadarFragment extends MainActivityFragment {
 		return row;
 	}
 
-	private boolean allTrips;
-	private long clearAskedAt;
-
-	private static int totalKm(List<YoldaRadar.TripItem> l) {
-		long m = 0;
-		for (YoldaRadar.TripItem t : l) m += t.rec().meters();
-		return (int) Math.round(m / 1000d);
-	}
-
-	/** Yolculuk satırı: tarih · nereden → nereye, özet; "Sil". */
-	private View tripRow(Context ctx, YoldaRadar.TripItem it) {
-		YoldaDriveCore.TripRec tr = it.rec();
-		java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("d MMM yyyy EEE HH:mm", new Locale("tr"));
-		LinearLayout row = new LinearLayout(ctx);
-		row.setOrientation(LinearLayout.HORIZONTAL);
-		row.setGravity(Gravity.CENTER_VERTICAL);
-		row.setBackground(YoldaStyle.glass(ctx, t, 16));
-		row.setPadding(dp(14), dp(10), dp(10), dp(10));
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-		lp.topMargin = dp(8);
-		row.setLayoutParams(lp);
-		LinearLayout tx = new LinearLayout(ctx);
-		tx.setOrientation(LinearLayout.VERTICAL);
-		String head = df.format(new java.util.Date(tr.startWall())) + (it.route().isEmpty() ? "" : (" · " + it.route()));
-		TextView h = text(ctx, head, 13, false, t.muted);
-		h.setSingleLine(true);
-		h.setEllipsize(TextUtils.TruncateAt.END);
-		tx.addView(h);
-		tx.addView(text(ctx, tr.summary(), 15, true, t.ink));
-		row.addView(tx, new LinearLayout.LayoutParams(0, -2, 1f));
-		row.addView(button(ctx, "Sil", v -> {
-			YoldaRadar.deleteTrip(ctx, tr.startWall());
-			YoldaStyle.toast(ctx, "Yolculuk silindi");
-			render();
-		}), new LinearLayout.LayoutParams(-2, dp(42)));
-		row.setContentDescription("Yolculuk " + head + ": " + tr.summary());
-		return row;
-	}
 
 	private boolean histAll;
 	private long histClearAt;
