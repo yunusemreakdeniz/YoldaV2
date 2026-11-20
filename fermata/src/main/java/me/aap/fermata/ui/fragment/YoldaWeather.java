@@ -186,8 +186,41 @@ public final class YoldaWeather {
 	public record Day(String date, int code, int max, int min, int pop) {
 	}
 
+	/** aqi: Avrupa hava kalitesi indeksi (Open-Meteo / CAMS), bilinmiyorsa -1. */
 	public record Detail(String place, int temp, int feels, int humidity, int wind, int code, String sunrise, String sunset,
-											 List<HourD> hours, List<Day> days) {
+											 List<HourD> hours, List<Day> days, int aqi) {
+		Detail withAqi(int a) {
+			return new Detail(place, temp, feels, humidity, wind, code, sunrise, sunset, hours, days, a);
+		}
+	}
+
+	/** Open-Meteo hava kalitesi yanıtı → Avrupa AQI (yoksa -1). */
+	static int parseAqi(String json) throws Exception {
+		JSONObject c = new JSONObject(json).optJSONObject("current");
+		if ((c == null) || c.isNull("european_aqi")) return -1;
+		double v = c.optDouble("european_aqi", -1);
+		return (Double.isNaN(v) || (v < 0)) ? -1 : (int) Math.round(v);
+	}
+
+	/** Avrupa AQI bandı: 0-20 İyi, -40 Makul, -60 Orta, -80 Kötü, -100 Çok kötü, üstü Aşırı kötü. */
+	public static String aqiText(int aqi) {
+		if (aqi < 0) return "";
+		if (aqi <= 20) return "İyi";
+		if (aqi <= 40) return "Makul";
+		if (aqi <= 60) return "Orta";
+		if (aqi <= 80) return "Kötü";
+		if (aqi <= 100) return "Çok kötü";
+		return "Aşırı kötü";
+	}
+
+	/** Bant rengi (iyi yeşil … aşırı kötü mor). */
+	public static int aqiColor(int aqi) {
+		if (aqi <= 20) return 0xFF34D399;
+		if (aqi <= 40) return 0xFFA3E635;
+		if (aqi <= 60) return 0xFFFACC15;
+		if (aqi <= 80) return 0xFFFB923C;
+		if (aqi <= 100) return 0xFFF87171;
+		return 0xFFC084FC;
 	}
 
 	private static Detail detailCached;
@@ -209,6 +242,13 @@ public final class YoldaWeather {
 						+ "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset"
 						+ "&forecast_days=7&timezone=auto", ll[0], ll[1]);
 				Detail d = parseDetail(get(url), place);
+				try { // hava kalitesi ayrı servis: alınamazsa tahmin yine gösterilir
+					d = d.withAqi(parseAqi(get(String.format(Locale.ROOT,
+							"https://air-quality-api.open-meteo.com/v1/air-quality?latitude=%.3f&longitude=%.3f&current=european_aqi&timezone=auto",
+							ll[0], ll[1]))));
+				} catch (Throwable ex) {
+					Log.d("Hava kalitesi alınamadı: ", ex.getClass().getSimpleName());
+				}
 				detailCached = d;
 				detailAt = System.currentTimeMillis();
 				p.complete(d);
@@ -254,7 +294,7 @@ public final class YoldaWeather {
 		return new Detail(place, (int) Math.round(cur.getDouble("temperature_2m")),
 				(int) Math.round(cur.optDouble("apparent_temperature", cur.getDouble("temperature_2m"))),
 				cur.optInt("relative_humidity_2m", 0), (int) Math.round(cur.optDouble("wind_speed_10m", 0)), cur.getInt("weather_code"),
-				rise, set, hours, days);
+				rise, set, hours, days, -1);
 	}
 
 	private static String hm(String iso) {

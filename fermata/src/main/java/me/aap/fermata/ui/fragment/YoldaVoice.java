@@ -204,7 +204,7 @@ public final class YoldaVoice {
 				me.aap.utils.function.CheckedSupplier<YoldaTraffic.Eta, Throwable> job = () -> YoldaTraffic.eta(d);
 				me.aap.utils.app.App.get().execute(job).onCompletion((e, err) -> App.get().getHandler().post(() ->
 						reply(a, (e == null) ? "Yol süresi hesaplanamadı" : (who + " " + YoldaTraffic.text(e).replace("·", ",")
-								+ ", trafik hariç tahmini"))));
+								+ ", " + YoldaTraffic.note(e)))));
 			}
 			case SPORTS -> {
 				String team = it.arg();

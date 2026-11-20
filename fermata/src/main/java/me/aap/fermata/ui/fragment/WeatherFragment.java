@@ -158,6 +158,13 @@ public class WeatherFragment extends MainActivityFragment {
 				+ (d.sunrise().isEmpty() ? "" : ("\nGün doğumu " + d.sunrise() + " · Gün batımı " + d.sunset())), 15, false, t.muted);
 		facts.setPadding(0, dp(10), 0, 0);
 		now.addView(facts);
+		if (d.aqi() >= 0) { // hava kalitesi: bant rengiyle tek satır
+			TextView aq = text(ctx, "● Hava kalitesi: " + YoldaWeather.aqiText(d.aqi()) + " (AQI " + d.aqi() + ")", 15, true,
+					YoldaWeather.aqiColor(d.aqi()));
+			aq.setPadding(0, dp(8), 0, 0);
+			aq.setContentDescription("Hava kalitesi " + YoldaWeather.aqiText(d.aqi()) + ", indeks " + d.aqi());
+			now.addView(aq);
+		}
 		now.setContentDescription("Şimdi " + d.temp() + " derece, " + YoldaWeather.text(d.code()) + ", hissedilen " + d.feels());
 
 		// Saatlik

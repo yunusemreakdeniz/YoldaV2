@@ -1508,7 +1508,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}));
 		}
 		YoldaTraffic.Eta e = (h != null) ? trafficEta.get(h) : null;
-		return (e != null) ? ("Eve " + YoldaTraffic.text(e) + " · trafik hariç tahmini") : "Eve / işe süre hesaplanıyor (trafik hariç)";
+		return (e != null) ? ("Eve " + YoldaTraffic.text(e) + " · " + YoldaTraffic.note(e))
+				: (YoldaTomTom.isEnabled(ctx) ? "Eve / işe süre hesaplanıyor (canlı trafik)" : "Eve / işe süre hesaplanıyor (trafik hariç)");
 	}
 
 	private String sportsLine() {
@@ -1946,26 +1947,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaChannelOrder.sort(target, YoldaChannelOrder.order(ctx), MediaLib.PlayableItem::getId);
 			refreshCard(radio ? YoldaDeck.RADIO : YoldaDeck.TV);
 		});
-	}
-
-	/** Eski (kart içi) sıralama penceresi: artık YoldaChannelEditor kullanılıyor. */
-	@SuppressWarnings("unused")
-	private void showOrderEditorOld(Context ctx, boolean radio) {
-		List<MediaLib.PlayableItem> work = new ArrayList<>(radio ? radioChannels : tvChannels);
-		if (work.isEmpty()) {
-			YoldaStyle.toast(ctx, "Kanal listesi henüz yüklenmedi");
-			return;
-		}
-		// Tek sıra: kart, Kanallar ekranı ve kanal atlama aynı sırayı izler; ada dokununca kanal gizlenir / gösterilir
-		orderEditor(ctx, radio ? "Radyoları düzenle" : "Kanalları düzenle", "ada dokun: gizle / göster", work,
-				pi -> YoldaChannelOrder.isHidden(ctx, pi.getName()) ? (pi.getName() + "  · gizli") : pi.getName(),
-				l -> saveOrder(ctx, radio, l), null, (pi, put) -> {
-					boolean hid = YoldaChannelOrder.isHidden(ctx, pi.getName());
-					YoldaChannelOrder.setHidden(ctx, pi.getName(), !hid);
-					YoldaStyle.toast(ctx, pi.getName() + (hid ? " gösteriliyor" : " gizlendi"));
-					put.accept(pi); // satırı yeniden çiz
-					refreshCard(radio ? YoldaDeck.RADIO : YoldaDeck.TV);
-				});
 	}
 
 	/**

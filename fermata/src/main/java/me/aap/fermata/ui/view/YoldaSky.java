@@ -289,33 +289,6 @@ public final class YoldaSky {
 	}
 
 	/**
-	 * Güneş hüzmesi: güneşten uzanan geniş, uca doğru sönen ışık şeridi (Path + doğrusal geçiş, önbellekli).
-	 * {@code a}: güneşe yakın uçtaki saydamlık.
-	 */
-	private static void beam(Canvas c, Paint p, float cx, float cy, double ang, double half, float len, int a, int key) {
-		long k = (1L << 62) | ((long) key << 40) | ((long) Math.round(len) << 8) | (a & 0xFF);
-		android.graphics.LinearGradient g = lin.get(k);
-		if (g == null) {
-			if (lin.size() > 32) lin.clear();
-			g = new android.graphics.LinearGradient(0, 0, len, 0, new int[]{(a << 24) | 0xFFF3CF, ((a / 3) << 24) | 0xFFE7B0, 0x00FFE7B0},
-					new float[]{0f, 0.45f, 1f}, Shader.TileMode.CLAMP);
-			lin.put(k, g);
-		}
-		gm.setRotate((float) Math.toDegrees(ang));
-		gm.postTranslate(cx, cy);
-		g.setLocalMatrix(gm);
-		ray.rewind();
-		ray.moveTo(cx, cy);
-		ray.lineTo(cx + (float) Math.cos(ang - half) * len, cy + (float) Math.sin(ang - half) * len);
-		ray.lineTo(cx + (float) Math.cos(ang + half) * len, cy + (float) Math.sin(ang + half) * len);
-		ray.close();
-		p.setStyle(Paint.Style.FILL);
-		p.setShader(g);
-		c.drawPath(ray, p);
-		p.setShader(null);
-	}
-
-	/**
 	 * Hacimli bulut: düz tabanlı, kabarık tepeli 11 öbek. Önce altta gölge (koyu, aşağı kaymış), sonra gövde,
 	 * en son güneş yönünde (sol üst) ışık vurgusu. {@code seed} her bulutun biçimini sabitler.
 	 */
