@@ -1274,10 +1274,27 @@ public class MusicFragment extends MainActivityFragment {
 		return ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
 	}
 
+	private static String recentRaw;
+	private static List<YtMusic.Track> recentMemo;
+
+	/** Son çalınanlar. Kayıt değişmedikçe JSON yeniden ayrıştırılmaz (Müzik ve Kaldığın yerden kartları sık çağırır). */
 	static List<YtMusic.Track> recent(Context ctx) {
+		String raw = prefs(ctx).getString(RECENT_KEY, "[]");
+		synchronized (MusicFragment.class) {
+			if ((recentMemo != null) && raw.equals(recentRaw)) return new ArrayList<>(recentMemo);
+		}
+		List<YtMusic.Track> l = recentParse(raw);
+		synchronized (MusicFragment.class) {
+			recentMemo = new ArrayList<>(l);
+			recentRaw = raw;
+		}
+		return l;
+	}
+
+	private static List<YtMusic.Track> recentParse(String raw) {
 		List<YtMusic.Track> l = new ArrayList<>();
 		try {
-			JSONArray a = new JSONArray(prefs(ctx).getString(RECENT_KEY, "[]"));
+			JSONArray a = new JSONArray(raw);
 			for (int i = 0; i < a.length(); i++) {
 				JSONObject o = a.getJSONObject(i);
 				l.add(new YtMusic.Track(o.getString("u"), o.getString("t"), o.optString("a", null),
