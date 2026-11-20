@@ -1071,7 +1071,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deck = YoldaDeck.decode(prefs(ctx).getString(PREF_DECK, null));
 		// Sonradan gelen sabit kartlar (Navigasyon) önceki kurulumların destesine bir kez eklenir
 		for (String nt : new String[]{YoldaDeck.RESUME, YoldaDeck.FAVS, YoldaDeck.WEATHER, YoldaDeck.PHARMACY,
-				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG, YoldaDeck.CALENDAR, YoldaDeck.CARCARE, YoldaDeck.PODCAST, YoldaDeck.MEDIA, YoldaDeck.TRAFFIC, YoldaDeck.SPORTS}) {
+				YoldaDeck.RADAR, YoldaDeck.CALLS, YoldaDeck.TRIPS, YoldaDeck.PARK, YoldaDeck.FUEL, YoldaDeck.EQ, YoldaDeck.FX, YoldaDeck.PRAYER, YoldaDeck.NEWS, YoldaDeck.STATUS, YoldaDeck.CHARGER, YoldaDeck.NOTES, YoldaDeck.QUICKMSG, YoldaDeck.CALENDAR, YoldaDeck.CARCARE, YoldaDeck.PODCAST, YoldaDeck.MEDIA, YoldaDeck.TRAFFIC, YoldaDeck.SPORTS, YoldaDeck.QUAKE}) {
 			if (prefs(ctx).getBoolean("deck_has_" + nt, false)) continue;
 			deck.restore(nt);
 			prefs(ctx).edit().putBoolean("deck_has_" + nt, true).putString(PREF_DECK, deck.encode()).apply();
@@ -1527,6 +1527,40 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		List<YoldaSports.Match>[] ms = YoldaSports.matches(ctx, false);
 		if (!ms[0].isEmpty()) return "Son: " + ms[0].get(0).line();
 		return ms[1].isEmpty() ? "Süper Lig sonuçları alınıyor…" : ("Sıradaki: " + ms[1].get(0).line());
+	}
+
+	// ---- Son depremler ----
+
+	private String quakeLine() {
+		Context ctx = requireContext();
+		YoldaQuake.refresh(ctx, () -> {
+			if (isAdded()) refreshCard(YoldaDeck.QUAKE);
+		});
+		List<YoldaQuake.Quake> qs = YoldaQuake.cached();
+		if (!YoldaQuake.loaded()) return "Son depremler alınıyor…";
+		if (qs.isEmpty()) return "Son 24 saatte 300 km içinde 2,0 ve üzeri deprem yok";
+		YoldaQuake.Quake big = qs.get(0);
+		for (YoldaQuake.Quake q : qs) if (q.mag() > big.mag()) big = q;
+		return "Son: " + YoldaQuake.line(qs.get(0), System.currentTimeMillis())
+				+ ((big != qs.get(0)) ? (" · en büyük " + YoldaQuake.mag(big)) : "");
+	}
+
+	private void showQuakes(Context ctx) {
+		long now = System.currentTimeMillis();
+		List<Row> rows = new ArrayList<>();
+		boolean on = YoldaQuake.voiceOn(ctx);
+		rows.add(new Row("Sesli uyarı: " + (on ? "Açık" : "Kapalı"), "5,0 ve üzeri yeni deprem sesli söylenir · dokun: "
+				+ (on ? "kapat" : "aç"), null, R.drawable.yi_mic, () -> {
+			YoldaQuake.setVoice(ctx, !on);
+			YoldaStyle.toast(ctx, "Deprem sesli uyarısı " + (on ? "kapatıldı" : "açıldı"));
+		}));
+		for (YoldaQuake.Quake q : YoldaQuake.cached()) {
+			rows.add(new Row(YoldaQuake.mag(q) + " · " + q.region(), Math.round(q.distKm()) + " km uzakta · "
+					+ Math.round(q.depthKm()) + " km derinlik · " + YoldaQuake.ago(q.timeMs(), now), null,
+					(q.mag() >= YoldaQuake.WARN_MAG) ? R.drawable.yi_star : R.drawable.yi_star_border,
+					() -> YoldaSpeak.sayAlways(ctx, YoldaQuake.mag(q) + " büyüklüğünde, " + q.region())));
+		}
+		showPicker("Son depremler · kaynak EMSC", rows, null);
 	}
 
 	private void showSports(Context ctx) {
@@ -3229,6 +3263,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					radarSubtitle());
 			case YoldaDeck.TRAFFIC -> new Look(0xFFFCD34D, 0xFFB45309, R.drawable.yi_nav, true, "TRAFİK", trafficLine());
 			case YoldaDeck.SPORTS -> new Look(0xFF6EE7B7, 0xFF065F46, R.drawable.yi_star, true, "SPOR · SÜPER LİG", sportsLine());
+			case YoldaDeck.QUAKE -> new Look(0xFFFDBA74, 0xFF9A3412, R.drawable.yi_globe, true, "SON DEPREMLER · 300 KM", quakeLine());
 			case YoldaDeck.MEDIA -> new Look(0xFFF9A8D4, 0xFF9D174D, R.drawable.yi_movie, true, "MEDYA", mediaLine());
 			case YoldaDeck.PODCAST -> new Look(0xFFC4B5FD, 0xFF5B21B6, R.drawable.yi_mic, true, "PODCAST", podcastLine());
 			case YoldaDeck.CALENDAR -> new Look(0xFF93C5FD, 0xFF1D4ED8, R.drawable.yi_list, true, "TAKVİM", calendarLine());
@@ -3648,6 +3683,23 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				chips.addView(chipBtn(ctx, "🚦 Canlı trafik", v -> HomeFragment.openWeb(a, YoldaTraffic.mapsUrl((h != null) ? h : ""))), chipLp());
 				row.addView(scroll(ctx, chips), new LinearLayout.LayoutParams(0, -2, 1f));
 				return row;
+			}
+			case YoldaDeck.QUAKE -> { // son depremler: büyüklük renkli çip (dokun: söyle), sonda tam liste
+				LinearLayout row = hrow(ctx);
+				long now = System.currentTimeMillis();
+				List<YoldaQuake.Quake> qs = YoldaQuake.cached();
+				for (int i = 0; i < Math.min(4, qs.size()); i++) {
+					YoldaQuake.Quake q = qs.get(i);
+					TextView ch = chipBtn(ctx, YoldaQuake.mag(q) + " · " + Math.round(q.distKm()) + " km · "
+							+ YoldaQuake.ago(q.timeMs(), now).replace(" önce", ""), v -> YoldaSpeak.sayAlways(ctx,
+							YoldaQuake.mag(q) + " büyüklüğünde, " + q.region() + ", " + Math.round(q.distKm()) + " kilometre uzakta, "
+									+ YoldaQuake.ago(q.timeMs(), System.currentTimeMillis())));
+					ch.setTextColor(YoldaQuake.color(q));
+					ch.setContentDescription("Deprem " + YoldaQuake.line(q, now));
+					row.addView(ch, chipLp());
+				}
+				row.addView(chipBtn(ctx, "Tüm liste", v -> showQuakes(ctx)), chipLp());
+				return scroll(ctx, row);
 			}
 			case YoldaDeck.SPORTS -> { // son sonuçlar ve sıradaki maçlar; takımını seç
 				LinearLayout row = hrow(ctx);
@@ -4209,6 +4261,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				HomeFragment.openWeb(a, YoldaTraffic.mapsUrl((h != null) ? h : "")); // canlı trafik Google Haritalar'da
 			}
 			case YoldaDeck.SPORTS -> showSports(ctx);
+			case YoldaDeck.QUAKE -> showQuakes(ctx);
 			case YoldaDeck.MEDIA -> {
 				if (!YoldaMedia.hasPermission(ctx)) askMediaPermission(a);
 				else showMediaList(a, ctx);
