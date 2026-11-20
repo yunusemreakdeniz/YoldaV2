@@ -58,7 +58,6 @@ public final class YoldaGlow extends Drawable {
 	 * kalsın): bu zamana kadar sahne ve ışıklar donuk çizilir. {@link #hold} her kaydırma olayında uzatılır.
 	 */
 	private static volatile long holdUntil;
-	private long frozenAt = -1;
 
 	/** Kaydırma / dokunma: zemin {@code ms} boyunca beklesin (sonra kaldığı yerden devam eder). */
 	public static void hold(long ms) {

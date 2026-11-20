@@ -117,6 +117,33 @@ public final class YoldaTomTom {
 		return 0;
 	}
 
+	/**
+	 * Başka bir TomTom isteği (trafik kartının canlı süresi) için anahtar: anahtar girilmiş, geçersiz değil, kota ve
+	 * bekleme uygunsa döner ve isteği günlük sayaca yazar; değilse null (çağıran ücretsiz kaynağa düşer).
+	 */
+	@Nullable
+	static String takeKey(Context ctx) {
+		if (keyBad || (System.currentTimeMillis() < backoffUntil)) return null;
+		SharedPreferences p = prefs(ctx);
+		String k = p.getString(KEY, null);
+		if ((k == null) || k.trim().isEmpty()) return null;
+		synchronized (YoldaTomTom.class) {
+			if (countToday(p, false) >= DAILY_MAX) return null;
+			countToday(p, true);
+		}
+		return k.trim();
+	}
+
+	/** Başka bir TomTom isteğinin yanıt kodu: 403 anahtarı, 429 kotayı kapatır (hız sınırıyla ortak). */
+	static void onCode(int code) {
+		if (code == 403) keyBad = true;
+		else if (code == 429) backoffUntil = System.currentTimeMillis() + BACKOFF_429_MS;
+	}
+
+	static String fetch(String url, int[] code) throws Exception {
+		return get(url, code);
+	}
+
 	/** Bugünkü istek sayısı (gün değişince sıfırlanır). */
 	private static int countToday(SharedPreferences p, boolean inc) {
 		String day = new java.text.SimpleDateFormat("yyyyMMdd", Locale.ROOT).format(new java.util.Date());
