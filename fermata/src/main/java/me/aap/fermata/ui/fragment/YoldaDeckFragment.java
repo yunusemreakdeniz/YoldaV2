@@ -3374,15 +3374,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			f.addView(rm, rl);
 		}
 
-		// Arkada büyük, soluk simge
+		// Arkada soluk simge: sağ üstte, kartın içinde tam (önceden sağ altta kesik duruyordu, "Aç"ın altına giriyordu)
 		ImageView mark = new ImageView(ctx);
 		mark.setImageResource(lk.icon);
 		if (lk.tint) mark.setImageTintList(ColorStateList.valueOf(accent));
-		mark.setAlpha(noble ? 0.06f : 0.13f);
-		int ms = Math.round(cardH * 0.62f);
-		FrameLayout.LayoutParams mlp = new FrameLayout.LayoutParams(ms, ms, Gravity.END | Gravity.BOTTOM);
-		mlp.rightMargin = -ms / 6;
-		mlp.bottomMargin = -ms / 8;
+		mark.setAlpha(noble ? 0.05f : 0.10f);
+		int ms = Math.round(Math.min(cardH * 0.46f, Math.max(cardW, 1) * 0.28f));
+		FrameLayout.LayoutParams mlp = new FrameLayout.LayoutParams(ms, ms, Gravity.END | Gravity.TOP);
+		mlp.rightMargin = mlp.topMargin = dp(16);
 		f.addView(mark, mlp);
 
 		Fit fz = fit();
@@ -3431,7 +3430,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			tagRow.addView(dot, dlp);
 		}
 		boolean homeCard = c.key().equals(prefs(ctx).getString("home_card", null));
-		TextView tag = text(ctx, (homeCard ? "⌂ ANA KART · " : "") + lk.tag, lowFx ? 14 : 12, true, noble ? accent : 0xE6FFFFFF);
+		TextView tag = text(ctx, (homeCard ? "⌂ ANA KART · " : "") + tagText(lk.tag, c.title()), lowFx ? 14 : 12, true, noble ? accent : 0xE6FFFFFF);
+		if (tag.getText().length() == 0) tagRow.setVisibility(View.GONE); // etiket adın aynısıysa yalnız ad
 		tag.setLetterSpacing(0.14f);
 		tagRow.addView(tag);
 		names.addView(tagRow);
@@ -3493,6 +3493,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		cardEdit = cardAdd = null;
 		View content = content(ctx, c);
 		if (lowFx && (content != null)) carSimplify(content); // araçta kısa şerit, kısa yazı
+		if (content == null) content = glanceRow(ctx, c.type(), v2 -> open(c)); // şerit yoksa: kartın değeri büyük
 		if (content != null) bottom.addView(content, new LinearLayout.LayoutParams(0, -2, 1f));
 		else bottom.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
 		Runnable ad = cardAdd;
@@ -3515,9 +3516,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return olp;
 	}
 
-	/** Kartın "▶ Aç" düğmesi. */
+	/**
+	 * Kart etiketi adın tekrarıysa sadeleştir: "HAVA DURUMU" + "Hava durumu" → boş; "SON DEPREMLER · 300 KM" +
+	 * "Son depremler" → "300 KM". Farklıysa olduğu gibi.
+	 */
+	static String tagText(String tag, String title) {
+		java.util.Locale tr = new java.util.Locale("tr");
+		String t = tag.trim(), n = title.trim().toLowerCase(tr);
+		int k = t.indexOf(" · ");
+		String head = ((k >= 0) ? t.substring(0, k) : t).toLowerCase(tr);
+		if (!head.equals(n)) return t;
+		return (k >= 0) ? t.substring(k + 3).trim() : "";
+	}
+
+	/** Kartın "Aç" düğmesi. */
 	private TextView openButton(Context ctx, YoldaDeck.Card c, boolean noble, int accent, Fit fz) {
-		TextView openBtn = text(ctx, "▶  Aç", (fz.btn() < 48) ? 15 : 16, true, noble ? 0xFFF2F3F7 : 0xFF111827);
+		TextView openBtn = text(ctx, "Aç  ›", (fz.btn() < 48) ? 15 : 16, true, 0xFFFFFFFF);
 		openBtn.setSingleLine(true);
 		openBtn.setGravity(Gravity.CENTER);
 		openBtn.setPadding(dp(18), 0, dp(20), 0);
@@ -3526,11 +3540,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (noble) {
 			ob.setColor(YoldaStyle.alpha(accent, 0.16f));
 			ob.setStroke(Math.max(1, dp(1)), YoldaStyle.alpha(accent, 0.7f));
-		} else {
-			ob.setColor(0xFFFFF4D6);
+		} else { // kartın camına uyan yarı saydam düğme (önceki krem dolgu bilginin önüne geçiyordu)
+			ob.setColor(0x33FFFFFF);
+			ob.setStroke(Math.max(1, dp(1)), 0x66FFFFFF);
 		}
 		openBtn.setBackground(ob);
-		openBtn.setElevation(dp(4));
 		openBtn.setContentDescription("Aç: " + c.title());
 		openBtn.setOnClickListener(x -> open(c));
 		return openBtn;
