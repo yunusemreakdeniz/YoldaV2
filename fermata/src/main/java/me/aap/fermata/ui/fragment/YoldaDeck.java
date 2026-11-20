@@ -44,6 +44,8 @@ public final class YoldaDeck {
 	public static final String MEDIA = "media";
 	/** Eve / işe yol süresi; Süper Lig sonuçları. */
 	public static final String TRAFFIC = "traffic", SPORTS = "sports";
+	/** Son depremler (EMSC, 300 km). */
+	public static final String QUAKE = "quake";
 	public static final String RADAR = "radar";
 	/** Park yerleri (aracım). */
 	public static final String PARK = "park";
@@ -62,7 +64,7 @@ public final class YoldaDeck {
 	public static final String YT_CHANNEL = "ytch";
 	public static final String URL = "url";
 
-	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, PODCAST, MEDIA, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, STATUS, CHARGER, NOTES, QUICKMSG, CALENDAR, CARCARE, TRAFFIC, SPORTS, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
+	static final String[] DEFAULT = {RESUME, YOUTUBE, MUSIC, PODCAST, MEDIA, TV, RADIO, FAVS, NAV, RADAR, PARK, TRIPS, WEATHER, PHARMACY, FUEL, FX, PRAYER, NEWS, STATUS, CHARGER, NOTES, QUICKMSG, CALENDAR, CARCARE, TRAFFIC, SPORTS, QUAKE, PHONE, CALLS, MIRROR, WEB, EQ, SETTINGS,
 			ADD};
 	private static final char FIELD = '\u001F';
 	private static final char RECORD = '\u001E';
@@ -164,6 +166,7 @@ public final class YoldaDeck {
 			case "medya", "videolarım", "videolar", "fotoğraflar", "fotoğraflarım", "galeri" -> MEDIA;
 			case "trafik", "yol durumu", "eve ne kadar", "işe ne kadar" -> TRAFFIC;
 			case "spor", "maç", "maçlar", "skor", "skorlar", "futbol", "süper lig" -> SPORTS;
+			case "deprem", "depremler", "son depremler", "deprem listesi" -> QUAKE;
 			case "takvim", "ajanda", "etkinlik", "etkinlikler", "toplantı", "toplantılar" -> CALENDAR;
 			case "bakım", "araç bakımı", "muayene", "sigorta", "kasko" -> CARCARE;
 			case "ekle", "ekleme" -> ADD;
@@ -227,6 +230,7 @@ public final class YoldaDeck {
 			case CALENDAR -> "Takvim";
 			case TRAFFIC -> "Trafik";
 			case SPORTS -> "Spor";
+			case QUAKE -> "Son depremler";
 			case PODCAST -> "Podcast";
 			case MEDIA -> "Medya";
 			case CARCARE -> "Araç bakımı";
