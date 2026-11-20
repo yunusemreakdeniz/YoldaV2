@@ -40,7 +40,11 @@ public final class YoldaWeather {
 	private YoldaWeather() {
 	}
 
-	public record Hour(String time, int temp, int code) {
+	/** Saat: sıcaklık, hava kodu; sürüş uyarısı için rüzgâr hamlesi (km/s), görüş (m), yağış (mm); bilinmiyorsa -1. */
+	public record Hour(String time, int temp, int code, int gust, int vis, double precip) {
+		public Hour(String time, int temp, int code) {
+			this(time, temp, code, -1, -1, -1);
+		}
 	}
 
 	public record Now(int temp, int code, int wind, String place, List<Hour> hours) {
@@ -136,6 +140,36 @@ public final class YoldaWeather {
 		return "";
 	}
 
+	/** Sürüş uyarısı türü ve eşikleri (saatlik tahminden; resmî uyarı değildir). */
+	static final int GUST_KMH = 60, FOG_M = 500;
+	static final double HEAVY_MM = 4;
+
+	/** Bir saatin sürüş riski: buzlanma, yoğun sis, fırtına, kuvvetli yağış, kuvvetli rüzgâr; yoksa boş. */
+	static String risk(Hour h) {
+		int c = h.code();
+		boolean wetNow = (h.precip() > 0) || wet(c);
+		if ((h.temp() <= 1) && wetNow) return "Buzlanma riski";
+		if (((h.vis() >= 0) && (h.vis() < FOG_M)) || (c == 45) || (c == 48)) return "Yoğun sis";
+		if (c >= 95) return "Fırtına";
+		if ((h.precip() >= HEAVY_MM) || (c == 65) || (c == 82) || (c == 75) || (c == 86)) return "Kuvvetli yağış";
+		if (h.gust() >= GUST_KMH) return "Kuvvetli rüzgâr";
+		return "";
+	}
+
+	/**
+	 * Önümüzdeki saatlerin ilk sürüş riski: "Buzlanma riski · şimdi" / "Yoğun sis · 22:00'de"; yoksa boş.
+	 * Kartta, telefon karosunda ve hava sayfasında uyarı olarak gösterilir.
+	 */
+	public static String driveAlert(Now n) {
+		List<Hour> hs = n.hours();
+		for (int i = 0; i < hs.size(); i++) {
+			String r = risk(hs.get(i));
+			if (r.isEmpty()) continue;
+			return r + " · " + ((i == 0) ? "şimdi" : atHour(hs.get(i).time()));
+		}
+		return "";
+	}
+
 	/** Saklanan son hava (yoksa null; ağ isteği yapmaz). */
 	@Nullable
 	public static Now cachedNow() {
@@ -153,7 +187,8 @@ public final class YoldaWeather {
 				double[] ll = location(app);
 				String place = placeName(app, ll);
 				String url = String.format(Locale.ROOT, "https://api.open-meteo.com/v1/forecast?latitude=%.3f&longitude=%.3f"
-						+ "&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code"
+						+ "&current=temperature_2m,weather_code,wind_speed_10m"
+						+ "&hourly=temperature_2m,weather_code,wind_gusts_10m,visibility,precipitation"
 						+ "&forecast_hours=8&timezone=auto", ll[0], ll[1]);
 				Now n = parse(get(url), place);
 				try { // hava kalitesi kart çipi için (ayrı servis; alınamazsa önceki değer kalır)
@@ -261,10 +296,14 @@ public final class YoldaWeather {
 		JSONObject h = o.optJSONObject("hourly");
 		if (h != null) {
 			JSONArray t = h.getJSONArray("time"), te = h.getJSONArray("temperature_2m"), wc = h.getJSONArray("weather_code");
+			JSONArray gu = h.optJSONArray("wind_gusts_10m"), vi = h.optJSONArray("visibility"), pr = h.optJSONArray("precipitation");
 			for (int i = 0; i < t.length(); i++) {
 				String time = t.getString(i);
 				int k = time.indexOf('T');
-				hours.add(new Hour((k >= 0) ? time.substring(k + 1) : time, (int) Math.round(te.getDouble(i)), wc.getInt(i)));
+				int g = ((gu == null) || gu.isNull(i)) ? -1 : (int) Math.round(gu.optDouble(i, -1));
+				int v = ((vi == null) || vi.isNull(i)) ? -1 : (int) Math.round(vi.optDouble(i, -1));
+				double p = ((pr == null) || pr.isNull(i)) ? -1 : pr.optDouble(i, -1);
+				hours.add(new Hour((k >= 0) ? time.substring(k + 1) : time, (int) Math.round(te.getDouble(i)), wc.getInt(i), g, v, p));
 			}
 		}
 		return new Now((int) Math.round(cur.getDouble("temperature_2m")), cur.getInt("weather_code"),

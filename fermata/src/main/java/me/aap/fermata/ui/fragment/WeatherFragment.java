@@ -176,6 +176,14 @@ public class WeatherFragment extends MainActivityFragment {
 		}
 		now.setContentDescription("Şimdi " + d.temp() + " derece, " + YoldaWeather.text(d.code()) + ", hissedilen " + d.feels());
 
+		YoldaWeather.Now wn = YoldaWeather.cachedNow(); // sürüş riski (saatlik tahminden): turuncu uyarı satırı
+		String al = (wn != null) ? YoldaWeather.driveAlert(wn) : "";
+		if (!al.isEmpty()) {
+			TextView w = text(ctx, "⚠ Sürüş: " + al, 16, true, 0xFFFB923C);
+			w.setPadding(0, dp(8), 0, 0);
+			now.addView(w);
+		}
+
 		// Saatlik
 		col.addView(section(ctx, "Saatlik"));
 		LinearLayout hours = new LinearLayout(ctx);
