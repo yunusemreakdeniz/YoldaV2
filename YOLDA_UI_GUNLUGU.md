@@ -2,6 +2,12 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-20 · v2-204 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-204 · Hızlı açılış, son açılanlar
+
+- Kanallar sayfası ve telefon görünümü kademeli kurulur: ekranı dolduran ilk satırlar hemen, kalanı her karede birkaç tane (açılışta donma azaldı).
+- Kanallar sayfasında 'Son açılanlar' şeridi (TV / radyo son 6 kanal, tek dokunuşla).
+- 40 ms'yi aşan ekran kurulumları tanı günlüğüne ('Kurulum · ...').
+
 ## 2026-11-20 · v2-202 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-202 · Çökme düzeltmesi
 
 - Telefon görünümünde Kart ekle → Kartları düzenle / Desteyi varsayılana döndür uygulamayı kapatıyordu: artık telefonun kart düzenleyicisi açılır, ızgara yeniden kurulur.
