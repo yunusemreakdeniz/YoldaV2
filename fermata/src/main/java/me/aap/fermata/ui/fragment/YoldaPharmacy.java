@@ -79,6 +79,54 @@ public final class YoldaPharmacy {
 	public record Duty(List<Pharmacy> list, String validity) {
 	}
 
+	// ---- kart için: son bakılan listenin en yakın nöbetçisi (ek ağ isteği yok) ----
+
+	/** Kartta gösterilecek en yakın nöbetçi: ad, konum, telefon ve geçerli olduğu nöbet günü (yyyyMMdd). */
+	public record Near(String name, double lat, double lon, String phone, String day) {
+	}
+
+	static final String NEAR_KEY = "pharmacy_near";
+
+	/** Nöbet gününün anahtarı (08:30'dan önce dünkü nöbet sürer). */
+	public static String dutyKey(Calendar c) {
+		return String.format(java.util.Locale.ROOT, "%04d%02d%02d", c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1,
+				c.get(Calendar.DAY_OF_MONTH));
+	}
+
+	static String encodeNear(Near n) {
+		return n.name().replace('\u001F', ' ') + '\u001F' + n.lat() + '\u001F' + n.lon() + '\u001F'
+				+ n.phone().replace('\u001F', ' ') + '\u001F' + n.day();
+	}
+
+	@Nullable
+	static Near decodeNear(@Nullable String s) {
+		if (s == null) return null;
+		String[] f = s.split("\u001F", -1);
+		if (f.length != 5) return null;
+		try {
+			return new Near(f[0], Double.parseDouble(f[1]), Double.parseDouble(f[2]), f[3], f[4]);
+		} catch (NumberFormatException ex) {
+			return null;
+		}
+	}
+
+	/** Eczane sayfasında bugünün listesi sıralanınca: en yakın (konumu bilinen) nöbetçiyi kart için sakla. */
+	public static void rememberNearest(Context ctx, List<Pharmacy> sorted) {
+		for (Pharmacy p : sorted) {
+			if (!p.hasLocation()) continue;
+			prefs(ctx).edit().putString(NEAR_KEY, encodeNear(new Near(p.name(), p.lat(), p.lon(), p.phone(),
+					dutyKey(dutyToday())))).apply();
+			return;
+		}
+	}
+
+	/** Saklanan en yakın nöbetçi; nöbeti bittiyse (gün değişti) null. */
+	@Nullable
+	public static Near nearest(Context ctx) {
+		Near n = decodeNear(prefs(ctx).getString(NEAR_KEY, null));
+		return ((n != null) && n.day().equals(dutyKey(dutyToday()))) ? n : null;
+	}
+
 	// ---- nöbet günü ----
 
 	/** Nöbet günü (gün başlangıcı, yerel): 08:30'dan önce dün. */

@@ -293,6 +293,7 @@ public class PharmacyFragment extends MainActivityFragment {
 			near = " · uzaklık için konum izni gerekli";
 		}
 		status.setText(l.size() + " nöbetçi eczane" + near);
+		if ((offset == 0) && (myLoc != null)) YoldaPharmacy.rememberNearest(ctx, l); // kart ve telefon karosu için
 		for (Pharmacy p : l) {
 			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
 			lp.bottomMargin = dp(12);
