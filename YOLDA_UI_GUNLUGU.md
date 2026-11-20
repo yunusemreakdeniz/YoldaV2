@@ -2,6 +2,14 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-20 · v2-217 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-217 · Sürüş riski uyarısı
+
+- Saatlik tahminden (rüzgâr hamlesi, görüş, yağış) buzlanma, yoğun sis, fırtına, kuvvetli yağış / rüzgâr uyarısı: hava kartı, telefon karosu, hava sayfası. Resmî uyarı değildir.
+
+## 2026-11-20 · v2-216 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-216 · Tek bakış değerleri
+
+- Akaryakıt, takvim, araç bakımı, notlar, spor, şarj ve eczane kartlarında büyük değer; telefon karolarında büyük değer ve renkli not; büyük kanal / kapak kutucukları.
+
 ## 2026-11-20 · v2-214 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-214 · UV indeksi
 
 - Hava sayfasında UV indeksi (renkli bant, 6 ve üstünde uyarı). Deprem "gösterildi / söylendi" bilgisi kalıcı.

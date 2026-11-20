@@ -238,7 +238,10 @@ public final class YoldaRadar {
 			if (isEnabled(c) && feature(c, "bg") && hasUi()) YoldaDriveService.start(c);
 			// Android Auto bağlanınca yolculuk hemen başlar (bağlantı kesilince biter)
 			if (isEnabled(c) && feature(c, "trips") && trip.start(System.currentTimeMillis(), Double.NaN, Double.NaN, false)) // konumsuz: ilk taze konum başlangıç (eski konum mesafeyi şişirmesin)
+			{
 				YoldaLog.add("Yolculuk başladı (Android Auto)");
+				YoldaWeather.warnForTrip(c); // sis, buzlanma, fırtına riski varsa sesli
+			}
 			return;
 		}
 		if (isEnabled(c) && feature(c, "park")) savePark(c, true);
@@ -1188,6 +1191,7 @@ public final class YoldaRadar {
 		YoldaDriveService.start(a);
 		boolean started = trip.start(System.currentTimeMillis(), lat, lon, true);
 		YoldaLog.add(started ? "Yolculuk başladı (elle)" : "Yolculuk zaten sürüyor");
+		if (started) YoldaWeather.warnForTrip(a);
 		return started ? "Yolculuk başladı; bitince ‘Yolculuğu bitir’" : "Yolculuk zaten sürüyor";
 	}
 
