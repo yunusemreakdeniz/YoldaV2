@@ -62,6 +62,13 @@ public final class YoldaTraffic {
 		return (e.delayMin() >= 1) ? ("trafik +" + e.delayMin() + " dk") : "trafik akıcı";
 	}
 
+	/** Not rengi: akıcı yeşil, 1-9 dk turuncu, 10 dk ve üstü kırmızı; tahminse soluk. */
+	public static int noteColor(Eta e) {
+		if (!e.live()) return 0xCCFFFFFF;
+		if (e.delayMin() < 1) return 0xFF34D399;
+		return (e.delayMin() < 10) ? 0xFFFB923C : 0xFFF87171;
+	}
+
 	/** "25 dk · 18 km" / "1 sa 10 dk · 92 km". */
 	public static String text(Eta e) {
 		String t = (e.minutes() >= 60) ? ((e.minutes() / 60) + " sa " + (e.minutes() % 60) + " dk") : (e.minutes() + " dk");

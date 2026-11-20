@@ -58,4 +58,37 @@ public class YoldaLiveApisTest {
 		assertEquals("Aşırı kötü", YoldaWeather.aqiText(140));
 		assertEquals("", YoldaWeather.aqiText(-1));
 	}
+
+	@Test
+	public void saatEki() {
+		assertEquals("17:00'de", YoldaWeather.atHour("17:00"));
+		assertEquals("16:00'da", YoldaWeather.atHour("16:00"));
+		assertEquals("13:00'te", YoldaWeather.atHour("13:00"));
+		assertEquals("10:00'da", YoldaWeather.atHour("10:00"));
+		assertEquals("20:00'de", YoldaWeather.atHour("20:00"));
+		assertEquals("00:00'da", YoldaWeather.atHour("00:00"));
+		assertEquals("09:00'da", YoldaWeather.atHour("09:00"));
+		assertEquals("15:00'te", YoldaWeather.atHour("15:00"));
+	}
+
+	@Test
+	public void havaDegisimi() {
+		java.util.List<YoldaWeather.Hour> hs = java.util.Arrays.asList(new YoldaWeather.Hour("15:00", 14, 2),
+				new YoldaWeather.Hour("16:00", 13, 3), new YoldaWeather.Hour("17:00", 12, 61), new YoldaWeather.Hour("18:00", 11, 63));
+		assertEquals("17:00'de yağmur", YoldaWeather.changeHint(new YoldaWeather.Now(14, 2, 10, "X", hs)));
+		java.util.List<YoldaWeather.Hour> kar = java.util.Arrays.asList(new YoldaWeather.Hour("15:00", 1, 3),
+				new YoldaWeather.Hour("16:00", 0, 73));
+		assertEquals("16:00'da kar", YoldaWeather.changeHint(new YoldaWeather.Now(1, 3, 10, "X", kar)));
+		java.util.List<YoldaWeather.Hour> diner = java.util.Arrays.asList(new YoldaWeather.Hour("15:00", 9, 61),
+				new YoldaWeather.Hour("19:00", 8, 2));
+		assertEquals("19:00'da diner", YoldaWeather.changeHint(new YoldaWeather.Now(9, 61, 10, "X", diner)));
+		assertEquals("", YoldaWeather.changeHint(new YoldaWeather.Now(14, 2, 10, "X", hs.subList(0, 2))));
+	}
+
+	@Test
+	public void gecikmeRengi() {
+		assertEquals(0xFF34D399, YoldaTraffic.noteColor(new YoldaTraffic.Eta(20, 10, 0, true)));
+		assertEquals(0xFFFB923C, YoldaTraffic.noteColor(new YoldaTraffic.Eta(20, 10, 6, true)));
+		assertEquals(0xFFF87171, YoldaTraffic.noteColor(new YoldaTraffic.Eta(40, 10, 15, true)));
+	}
 }
