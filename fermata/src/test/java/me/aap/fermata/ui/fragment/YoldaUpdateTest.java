@@ -22,6 +22,8 @@ public class YoldaUpdateTest {
 		assertEquals(0, YoldaUpdate.buildNumber(null));
 		assertEquals(225, YoldaUpdate.tagNumber("v2-225"));
 		assertEquals(-1, YoldaUpdate.tagNumber("v1.0"));
+		org.junit.Assert.assertFalse("numarasız derlemede açılışta sorulmaz", YoldaUpdate.autoCheck(0));
+		org.junit.Assert.assertTrue(YoldaUpdate.autoCheck(227));
 	}
 
 	@Test

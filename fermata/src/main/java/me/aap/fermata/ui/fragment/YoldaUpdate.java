@@ -28,6 +28,11 @@ public final class YoldaUpdate {
 		}
 	}
 
+	/** Açılışta kendiliğinden denetlensin mi: yalnız sürüm numarası bilinen (CI'da derlenen) Yolda'da. */
+	public static boolean autoCheck(int current) {
+		return current > 0;
+	}
+
 	/** "v2-224" → 224; değilse -1. */
 	static int tagNumber(String tag) {
 		if ((tag == null) || !tag.startsWith("v2-")) return -1;
