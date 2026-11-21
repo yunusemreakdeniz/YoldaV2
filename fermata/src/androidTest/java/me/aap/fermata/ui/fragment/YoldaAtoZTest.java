@@ -672,6 +672,49 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/**
+	 * Yatay Pano'da video küçük pencerede: herkese açık bir HLS test yayını (Mux) çalarken ana ekrana dönülünce
+	 * video tam ekran değil, sağda küçük pencerede (BOTH) sürer; Pano kartları solda. Ekran görüntüsü: pano_video.
+	 * Yayın bu ağdan açılmazsa atlanır.
+	 */
+	@Test
+	public void panoVideoKucukPencerede() {
+		onMain(a -> {
+			call(deck(a), "setHomeView", "pano");
+			return null;
+		});
+		scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+		waitIdle(3000);
+		try {
+			onMain(a -> {
+				a.getBody().playItem(new me.aap.fermata.media.lib.IntentPlayable(a,
+						android.net.Uri.parse("https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8")));
+				return null;
+			});
+			boolean playing = waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+			org.junit.Assume.assumeTrue("Test yayını bu ağdan açılmadı", playing);
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			assertTrue("Pano'ya dönünce video küçük pencerede (BOTH) sürmeli",
+					waitFor(6000, () -> onMain(a -> a.getBody().isBothMode())));
+			waitIdle(2500);
+			assertNotNull("Pano kartları görünmeli", onMain(a -> byDescExact(
+					((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Benzinlik")));
+			shot("pano_video");
+		} finally {
+			onMain(a -> {
+				a.getMediaSessionCallback().onStop();
+				return null;
+			});
+			scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+			waitIdle(1500);
+			onMain(a -> {
+				call(deck(a), "setHomeView", "deck");
+				return null;
+			});
+			waitIdle(1500);
+		}
+	}
+
 	/** Telefon kartı: telefondaki uygulamalar eklenir, kartta görünür, düzenlenir. */
 	@Test
 	public void telefonUygulamalariEklenirDuzenlenir() {
