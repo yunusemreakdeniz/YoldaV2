@@ -2519,17 +2519,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private View radarSwitch(Context ctx) {
 		boolean on = YoldaRadar.isEnabled(ctx);
 		View sw = YoldaStyle.toggleSwitch(ctx, on, 0xFFFFFFFF);
-		sw.setContentDescription("Radar uyarıları: " + (on ? "açık, kapatmak için dokun" : "kapalı, açmak için dokun"));
-		sw.setClickable(true);
-		sw.setOnClickListener(x -> {
+		// anahtar 60×34 görünür, dokunma alanı 60×48 (en az 48dp)
+		FrameLayout hit = new FrameLayout(ctx);
+		hit.addView(sw, new FrameLayout.LayoutParams(dp(60), dp(34), Gravity.CENTER));
+		hit.setContentDescription("Radar uyarıları: " + (on ? "açık, kapatmak için dokun" : "kapalı, açmak için dokun"));
+		hit.setClickable(true);
+		hit.setOnClickListener(x -> {
 			YoldaStyle.haptic(x);
 			toggleRadar(ctx);
 		});
-		return sw;
+		return hit;
 	}
 
 	private LinearLayout.LayoutParams switchLp() {
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(60), dp(34));
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(60), dp(48));
 		lp.leftMargin = dp(10);
 		return lp;
 	}
