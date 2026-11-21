@@ -321,14 +321,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			rebuildHome();
 			return;
 		}
-		boolean wasPhone = phoneBuilt;
 		prefs(ctx).edit().putBoolean(PREF_PANO, "pano".equals(mode)).apply();
-		if (wasPhone && !"deck".equals(mode) && (root != null)) { // ızgara ↔ Pano: sayfa yerinde, yalnız içerik (hızlı)
-			long t0 = android.os.SystemClock.uptimeMillis();
-			rebuildPhone();
-			me.aap.fermata.ui.view.YoldaJank.took("Görünüm " + mode, t0, 0);
-			return;
-		}
 		setPhoneView(!"deck".equals(mode));
 	}
 
@@ -468,7 +461,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		panoWideBuilt = panoMode() && wideScreen();
 		me.aap.fermata.ui.view.BodyLayout.yoldaInline = panoWideBuilt; // ana ekranda video küçük pencerede
 		View v = panoWideBuilt ? panoWide(ctx) : phoneHomeBuild(ctx);
-		showVoiceOrb(true); // yatay Pano'da da sol şeritte (içerik onun sağından başlar)
+		showVoiceOrb(!panoWideBuilt); // yatay Pano'nun üst satırında mikrofon var: yüzen düğme "Ses"in üstüne biniyordu
 		me.aap.fermata.ui.view.YoldaJank.took("Telefon görünümü", t0, 0);
 		return v;
 	}
@@ -888,9 +881,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout rootRow = hrow(ctx);
 		rootRow.setGravity(Gravity.TOP);
 		int side = dp(16);
-		// sol şerit: sürüş düğmeleri (park, Hey Yolda) en solda sabit, Pano onların sağından başlar (üstüne binmez)
-		int rail = dp(16 + YoldaStyle.VOICE_DP + 12);
-		rootRow.setPadding(rail, YoldaStyle.cutoutTop(ctx) + dp(12), side, dp(12));
+		rootRow.setPadding(side, YoldaStyle.cutoutTop(ctx) + dp(12), side, dp(12));
 
 		// ---- Sol: Şimdi çalıyor ----
 		LinearLayout now = new LinearLayout(ctx);
@@ -998,9 +989,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		hb.leftMargin = dp(8);
 		head.addView(roundButton(ctx, R.drawable.yi_grid, "Görünüm seç", v -> showViewPicker(ctx)), hb);
 		head.addView(roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> a.showFragment(R.id.yolda_menu_fragment)), hb);
-		// tema seçimi (diğer ekranlardaki gibi); Hey Yolda sol şeritteki yüzen düğmede
-		head.addView(roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx),
-				v -> me.aap.fermata.ui.view.YoldaThemePicker.show(a)), hb);
+		ImageView mic = roundButton(ctx, R.drawable.yi_mic, "Hey Yolda", v -> a.startVoiceAssistant());
+		GradientDrawable mg = new GradientDrawable();
+		mg.setShape(GradientDrawable.OVAL);
+		mg.setColor(0x33000000);
+		mg.setStroke(dp(2), 0xFFE0B354);
+		mic.setBackground(mg);
+		mic.setImageTintList(ColorStateList.valueOf(0xFFE0B354));
+		head.addView(mic, hb);
 		right.addView(head, new LinearLayout.LayoutParams(-1, dp(56)));
 
 		// kartlar: 3 sütun, ekrana iki satır sığar, fazlası kayar
@@ -3005,7 +3001,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Override
 	public void onHiddenChanged(boolean hidden) {
 		super.onHiddenChanged(hidden);
-		showVoiceOrb(true);
+		showVoiceOrb(hidden || !panoWideBuilt); // başka sayfada yüzen mikrofon görünür
 		if (!hidden) me.aap.utils.app.App.get().getHandler().postDelayed(quakeTick, 4000);
 		if (!hidden && (root != null) && (phoneMode() != phoneBuilt)) { // Menü'den görünüm değişti: yeniden kur
 			root.post(() -> setPhoneView(phoneMode()));
