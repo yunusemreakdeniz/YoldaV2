@@ -403,7 +403,7 @@ public class YoldaAtoZTest {
 			waitIdle(1500);
 			View btn = onMain(a -> byDesc(a.getActiveFragment().getView(), "Tema:"));
 			if (btn == null) { // dar başlıkta tema düğmesinin yerinde telefon görünümü düğmesi (tema Ayarlar'da)
-				View pv = onMain(a -> byDesc(a.getActiveFragment().getView(), "Telefon görünümü"));
+				View pv = onMain(a -> byDesc(a.getActiveFragment().getView(), "Görünüm seç"));
 				View ed = onMain(a -> byDesc(a.getActiveFragment().getView(), "Düzenle"));
 				assertNotNull("Tema düğmesi ya da yerinde telefon görünümü düğmesi olmalı", pv);
 				assertNotNull(ed);
@@ -603,14 +603,19 @@ public class YoldaAtoZTest {
 			});
 			for (String t : titles) assertNotNull("Izgarada kart olmalı: " + t, onMain(a -> byDescExact(root, t)));
 			shot("telefon_gorunumu");
-			// Araç görünümüne geç, oradaki "Telefon görünümü" düğmesiyle geri dön (dar dikey ekranda da)
-			View car = onMain(a -> byDescExact(root, "Araç görünümü"));
-			assertNotNull("Telefon | Araç anahtarı olmalı", car);
-			onMain(a -> car.performClick());
+			// Görünüm seç düğmesi her görünümde: ızgarada var; desteye geçince orada da var; ızgaraya dönülür
+			assertNotNull("Görünüm seç düğmesi olmalı", onMain(a -> byDescExact(root, "Görünüm seç")));
+			onMain(a -> {
+				call(deck(a), "setHomeView", "deck");
+				return null;
+			});
 			waitIdle(1500);
-			View back = onMain(a -> byDescExact(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Telefon görünümü"));
-			assertNotNull("Araç görünümünde telefona dönüş düğmesi olmalı", back);
-			onMain(a -> back.performClick());
+			assertNotNull("Destede de görünüm seç düğmesi olmalı",
+					onMain(a -> byDescExact(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Görünüm seç")));
+			onMain(a -> {
+				call(deck(a), "setHomeView", "phone");
+				return null;
+			});
 			waitIdle(1500);
 			assertNotNull("Telefon görünümüne dönülmeli",
 					onMain(a -> byDescExact(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Kart ekle")));
