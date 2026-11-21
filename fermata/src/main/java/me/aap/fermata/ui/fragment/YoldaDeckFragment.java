@@ -871,6 +871,28 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Yatay Pano kurulurken video küçük pencerede oynuyor muydu (sol Şimdi çalıyor kartı yerine video). */
 	private boolean panoBuiltWithVideo;
 
+	/** Videoyu Şimdi çalıyor kartının alanına yerleştir (alan null: video eski yerine). */
+	private void placeInlineVideo(@Nullable View area) {
+		try {
+			me.aap.fermata.ui.view.BodyLayout body = getActivityDelegate().getBody();
+			if ((area == null) || (area.getWidth() == 0)) {
+				body.setYoldaInlineRect(null);
+				return;
+			}
+			int[] p = new int[2], q = new int[2];
+			area.getLocationInWindow(p);
+			body.getLocationInWindow(q);
+			int x = p[0] - q[0], y = p[1] - q[1];
+			body.setYoldaInlineRect(new android.graphics.Rect(x, y, x + area.getWidth(), y + area.getHeight()));
+			if (root != null) for (int i = 0; i < root.getChildCount(); i++) { // sayfanın kendi zemini varsa saydam
+				View ch = root.getChildAt(i);
+				if (ch.getClass().getSimpleName().contains("Backdrop")) ch.setVisibility(View.INVISIBLE);
+			}
+		} catch (Throwable ex) {
+			YoldaLog.add("Video karta yerleştirilemedi: " + ex.getClass().getSimpleName());
+		}
+	}
+
 	private boolean inlineVideoShown() {
 		try {
 			return getActivityDelegate().getBody().isBothMode();
@@ -963,8 +985,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			acts.addView(b, blp);
 		}
 		now.addView(acts);
-		if (!panoBuiltWithVideo) rootRow.addView(now, new LinearLayout.LayoutParams(0, -1, 0.36f));
-		else phNowTitle = phNowTag = null; // video sağdaki küçük pencerede: Şimdi çalıyor kartı yerine o
+		rootRow.addView(now, new LinearLayout.LayoutParams(0, -1, 0.36f));
+		if (panoBuiltWithVideo) { // video bu kartın büyük alanında oynar: alanın ve kartın zemini saydam, düğme yok
+			now.setBackground(null);
+			GradientDrawable vf = new GradientDrawable();
+			vf.setCornerRadius(dp(18));
+			vf.setStroke(Math.max(1, dp(1)), 0x33FFFFFF);
+			art.setBackground(vf);
+			phPlay.setVisibility(View.INVISIBLE);
+			sig.setVisibility(View.INVISIBLE);
+			art.post(() -> placeInlineVideo(art));
+		} else art.post(() -> placeInlineVideo(null));
 
 		// ---- Sağ: selam + saat, kartlar, hızlı erişim ----
 		LinearLayout right = new LinearLayout(ctx);
@@ -987,7 +1018,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dl.addView(iy, new LinearLayout.LayoutParams(0, -2, 1f));
 		hello.addView(dl);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
-		if (panoBuiltWithVideo) hello.setVisibility(View.INVISIBLE); // video sağda: dar alanda selam sığmıyor, yer tutsun
+
 		// Hız sınırı levhası ve radar uzaklığı (dokun: Sürüş ekranı); radar uyarısı ayrıca her ekranda kırmızı kartla
 		LinearLayout spd = hrow(ctx);
 		spd.setGravity(Gravity.CENTER_VERTICAL);
@@ -1010,7 +1041,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		phRadar = text(ctx, "", 14, true, 0xFFFFFFFF);
 		spt.addView(phRadar);
 		spd.addView(spt);
-		if (panoBuiltWithVideo) spt.setVisibility(View.GONE); // dar alanda yalnız levha
+
 		spd.setMinimumHeight(dp(48));
 		head.addView(spd);
 		phClock = text(ctx, "", 28, true, 0xFFFFFFFF);
@@ -1114,7 +1145,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, -2);
 		ql.topMargin = dp(8);
 		right.addView(quick, ql);
-		rootRow.addView(right, new LinearLayout.LayoutParams(0, -1, panoBuiltWithVideo ? 1f : 0.64f));
+		rootRow.addView(right, new LinearLayout.LayoutParams(0, -1, 0.64f));
 		updatePhoneLive();
 		return rootRow;
 	}
@@ -3476,6 +3507,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Override
 	public void onDestroyView() {
 		showVoiceOrb(true);
+		placeInlineVideo(null);
 		me.aap.fermata.ui.view.BodyLayout.yoldaInline = false;
 		if (root != null) root.removeCallbacks(hideJump); // sayfa kapanırken bekleyen şerit kapatma çalışmasın
 		YoldaRadar.removeListener(radarListener);

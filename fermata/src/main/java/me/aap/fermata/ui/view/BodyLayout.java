@@ -93,6 +93,56 @@ public class BodyLayout extends SplitLayout
 	/** Küçük pencerede videonun genişliği (ekranın oranı). */
 	static final float INLINE_VIDEO = 0.36f;
 
+	/** Pano'daki Şimdi çalıyor kartının video alanı (gövdeye göre); null: video sağda küçük pencere. */
+	@Nullable
+	private android.graphics.Rect yoldaInlineRect;
+	@Nullable
+	private android.view.ViewGroup.LayoutParams yoldaVvLp;
+	@Nullable
+	private android.graphics.drawable.Drawable yoldaFrameBg;
+	private boolean yoldaFrameBgSaved;
+
+	/**
+	 * Pano: video Şimdi çalıyor kartının büyük alanında oynar (kullanıcı isteği). Video yüzeyi o alanın konumuna
+	 * taşınır, sayfa tam genişlikte kalır; sayfa zemini saydamlaşır (yüzey sayfanın altında çizilir). null: geri.
+	 */
+	public void setYoldaInlineRect(@Nullable android.graphics.Rect r) {
+		if (java.util.Objects.equals(r, yoldaInlineRect)) return;
+		yoldaInlineRect = r;
+		if (isBothMode() && inlineHome(getActivity())) setMode(Mode.BOTH);
+		else if (r == null) restoreInline();
+	}
+
+	private void applyInline(android.graphics.Rect r) {
+		VideoView vv = getVideoView();
+		if (yoldaVvLp == null) yoldaVvLp = vv.getLayoutParams();
+		ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(r.width(), r.height());
+		lp.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+		lp.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+		lp.leftMargin = r.left;
+		lp.topMargin = r.top;
+		vv.setLayoutParams(lp);
+		View fr = findViewById(me.aap.fermata.R.id.frame_layout);
+		if ((fr != null) && !yoldaFrameBgSaved) {
+			yoldaFrameBg = fr.getBackground();
+			yoldaFrameBgSaved = true;
+			fr.setBackground(null);
+		}
+	}
+
+	private void restoreInline() {
+		if (yoldaVvLp != null) {
+			getVideoView().setLayoutParams(yoldaVvLp);
+			yoldaVvLp = null;
+		}
+		if (yoldaFrameBgSaved) {
+			View fr = findViewById(me.aap.fermata.R.id.frame_layout);
+			if (fr != null) fr.setBackground(yoldaFrameBg);
+			yoldaFrameBg = null;
+			yoldaFrameBgSaved = false;
+		}
+	}
+
 	/** Yatay Pano ana ekranda mı (video başlarsa tam ekran yerine küçük pencere). */
 	private boolean inlineHome(MainActivityDelegate a) {
 		return yoldaInline && !isPortrait() && (a.getActiveFragmentId() == me.aap.fermata.R.id.home_fragment);
@@ -113,6 +163,8 @@ public class BodyLayout extends SplitLayout
 
 	public void setMode(Mode mode) {
 		this.mode = mode;
+		boolean inlineCard = (mode == Mode.BOTH) && (yoldaInlineRect != null) && inlineHome(getActivity());
+		if (!inlineCard) restoreInline(); // video kartın alanında değilse eski yerine
 		Guideline gl = getGuideline();
 		ConstraintLayout.LayoutParams lp = (ConstraintLayout.LayoutParams) gl.getLayoutParams();
 		MainActivityDelegate a = getActivity();
@@ -144,9 +196,12 @@ public class BodyLayout extends SplitLayout
 				getSwipeRefresh().setVisibility(VISIBLE);
 				lp.guidePercent = a.getPrefs().getFloatPref(getSplitPercentPref(isPortrait()));
 				if (yoldaInline && !isPortrait() && (a.getActiveFragmentId() == me.aap.fermata.R.id.home_fragment)) {
-					lp.guidePercent = 1f - INLINE_VIDEO; // Pano: video sağda küçük pencere, ayraç gizli
 					getSplitLine().setVisibility(GONE);
 					getSplitHandle().setVisibility(GONE);
+					if (yoldaInlineRect != null) { // Pano kartının video alanında; sayfa tam genişlik
+						lp.guidePercent = 1f;
+						applyInline(yoldaInlineRect);
+					} else lp.guidePercent = 1f - INLINE_VIDEO; // alan ölçülene dek sağda küçük pencere
 				}
 				vv.showVideo(true);
 				a.setVideoMode(true, vv);
