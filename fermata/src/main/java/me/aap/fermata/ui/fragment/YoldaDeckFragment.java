@@ -446,8 +446,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Sol alttaki yüzen Hey Yolda düğmesini göster / gizle. */
 	private void showVoiceOrb(boolean show) {
 		try {
-			View vb = getActivityDelegate().getYoldaVoiceButton();
-			if (vb != null) vb.setVisibility(show ? View.VISIBLE : View.GONE);
+			getActivityDelegate().setVoiceOrbHidden(!show);
 		} catch (Throwable ignore) {
 		}
 	}
@@ -1117,7 +1116,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		tx.addView(sub);
 		FrameLayout.LayoutParams tl = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM | Gravity.START);
 		tl.leftMargin = dp(14);
-		tl.rightMargin = dp(60);
+		tl.rightMargin = dp(12); // silik simge yazının arkasında kalır; dar kartta ada yer kalsın
 		tl.bottomMargin = dp(12);
 		f.addView(tx, tl);
 		return f;

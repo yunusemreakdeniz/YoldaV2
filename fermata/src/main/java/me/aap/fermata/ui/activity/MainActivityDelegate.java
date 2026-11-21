@@ -1583,6 +1583,15 @@ public class MainActivityDelegate extends ActivityDelegate
 		return voiceButton;
 	}
 
+	/** Yatay Pano'nun kendi mikrofonu var: yüzen düğme gizli kalsın (ana ekran güncellemeleri yeniden açıyordu). */
+	private boolean voiceOrbHidden;
+
+	public void setVoiceOrbHidden(boolean hidden) {
+		voiceOrbHidden = hidden;
+		if (voiceButton != null) voiceButton.setVisibility(hidden ? View.GONE : View.VISIBLE);
+		updateDeckButtons();
+	}
+
 	/**
 	 * Sesli asistan düğmesi: temanın renkleriyle ışıklı "küre" — ortadan yayılan renk, üstte cam parıltısı,
 	 * ince parlak kenar ve dışta yumuşak hale; gölgesi de temanın renginde.
@@ -2393,7 +2402,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		if ((navBar != null) && (navBar.getVisibility() != View.GONE)) navBar.setVisibility(View.GONE);
 		boolean full = videoMode || barsHidden;
 		updateSplitButton();
-		int vv = (full || np) ? View.GONE : View.VISIBLE;
+		int vv = (full || np || voiceOrbHidden) ? View.GONE : View.VISIBLE;
 		if ((voiceButton != null) && (voiceButton.getVisibility() != vv)) voiceButton.setVisibility(vv);
 		int bv = (full || np || (getActiveFragmentId() == R.id.home_fragment)) ? View.GONE : View.VISIBLE;
 		int hv = bv;
