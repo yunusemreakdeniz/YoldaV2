@@ -392,8 +392,12 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		me.aap.utils.ui.UiUtils.queryText(ctx, R.string.yolda_welcome_name, R.drawable.yi_edit).onSuccess(n -> {
 			if (n == null) return;
 			YoldaWelcome.set(ctx, true, n, YoldaWelcome.once(ctx));
-			YoldaStyle.toast(ctx, "Örnek: " + YoldaWelcome.text(9, YoldaWelcome.name(ctx), null));
-			if (isAdded()) render();
+			// ardından isteğe bağlı doğum günü (o gün karşılamada kutlanır)
+			me.aap.utils.ui.UiUtils.queryText(ctx, R.string.yolda_welcome_birthday, R.drawable.yi_edit).onSuccess(b -> {
+				YoldaWelcome.setBirthday(ctx, b);
+				YoldaStyle.toast(ctx, "Örnek: " + YoldaWelcome.text(9, YoldaWelcome.name(ctx), null));
+				if (isAdded()) render();
+			});
 		});
 	}
 

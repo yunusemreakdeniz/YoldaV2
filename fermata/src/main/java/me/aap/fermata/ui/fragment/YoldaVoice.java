@@ -672,7 +672,7 @@ public final class YoldaVoice {
 					reply(a, "Nöbetçi eczaneler açılıyor");
 				} else {
 					NavFragment.voiceGo(a, null, it.arg());
-					reply(a, "En yakın " + it.arg() + " aranıyor");
+					reply(a, "En yakın " + it.arg() + " aranıyor" + ("hastane".equals(it.arg()) ? ". Acil bir durumsa 112'yi ara." : ""));
 				}
 			}
 			case YT_SEARCH -> {

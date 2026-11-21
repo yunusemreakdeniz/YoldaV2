@@ -38,4 +38,19 @@ public class YoldaWelcomeTest {
 		assertEquals("İyi akşamlar. Hava 14 derece, parçalı bulutlu. İyi yolculuklar!",
 				YoldaWelcome.text(19, "", new YoldaWeather.Now(14, 2, 10, "X", java.util.List.of())));
 	}
+
+	@Test
+	public void ozelGun() {
+		int sal = java.util.Calendar.TUESDAY;
+		assertEquals("Cumhuriyet Bayramı kutlu olsun!", YoldaWelcome.specialDay(10, 29, sal, ""));
+		assertEquals("Doğum günün kutlu olsun! Bugün yol senin.", YoldaWelcome.specialDay(11, 21, sal, "11-21"));
+		assertEquals("Cuma geldi, hafta sonu kapıda.", YoldaWelcome.specialDay(3, 6, java.util.Calendar.FRIDAY, ""));
+		assertEquals("", YoldaWelcome.specialDay(3, 3, sal, null));
+		assertEquals("11-21", YoldaWelcome.parseBirthday("21.11"));
+		assertEquals("01-05", YoldaWelcome.parseBirthday(" 5/1 "));
+		assertEquals("", YoldaWelcome.parseBirthday("32.13"));
+		assertEquals("", YoldaWelcome.parseBirthday("dün"));
+		assertEquals("İyi akşamlar Emre. Cuma geldi, hafta sonu kapıda. İyi yolculuklar!",
+				YoldaWelcome.text(19, "Emre", null, "Cuma geldi, hafta sonu kapıda."));
+	}
 }
