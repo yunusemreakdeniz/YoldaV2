@@ -649,7 +649,21 @@ public class YoldaAtoZTest {
 				assertTrue(d + " en az 48dp olmalı: " + (h / dens), h >= Math.round(48 * dens) - 1);
 			}
 			shot("pano_gorunumu");
+			// Yatay (araç ekranı gibi): solda Şimdi çalıyor, sağda kartlar, altta Ev · İş · Benzinlik · Otopark
+			scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+			waitIdle(3000);
+			View wroot = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			for (String d : new String[]{"Oynat / duraklat", "Benzinlik", "Otopark", "Görünüm seç", "Hava durumu"}) {
+				View v = onMain(a -> byDescExact(wroot, d));
+				assertNotNull("Yatay Pano'da olmalı: " + d, v);
+				int h = onMain(a -> v.getHeight());
+				float dens = onMain(a -> v.getResources().getDisplayMetrics().density);
+				assertTrue(d + " en az 48dp olmalı: " + (h / dens), h >= Math.round(48 * dens) - 1);
+			}
+			shot("pano_yatay");
 		} finally {
+			scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+			waitIdle(1500);
 			onMain(a -> {
 				call(deck(a), "setHomeView", "deck");
 				return null;

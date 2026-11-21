@@ -440,9 +440,18 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		YoldaSpeak.sayAlways(ctx, nx.name() + " vaktine 10 dakika kaldı");
 	}
 
+	/** Yatay ekranda (araç, yatay telefon / tablet) Pano iki sütunlu kurulur; tek kart yenilemesi buna göre. */
+	private boolean panoWideBuilt;
+
+	private boolean wideScreen() {
+		android.util.DisplayMetrics m = getResources().getDisplayMetrics();
+		return (m.widthPixels > m.heightPixels) && (m.widthPixels / m.density >= 560);
+	}
+
 	private View phoneHome(Context ctx) {
 		long t0 = android.os.SystemClock.uptimeMillis();
-		View v = phoneHomeBuild(ctx);
+		panoWideBuilt = panoMode() && wideScreen();
+		View v = panoWideBuilt ? panoWide(ctx) : phoneHomeBuild(ctx);
 		me.aap.fermata.ui.view.YoldaJank.took("Telefon görünümü", t0, 0);
 		return v;
 	}
@@ -777,6 +786,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Izgaradaki kart: renkli simge kutusu, ad, tek satır bilgi; dokun → kartın sayfası. */
 	private View phoneTile(Context ctx, YoldaDeck.Card c) {
+		if (panoWideBuilt) return panoCard(ctx, c);
 		if (panoMode()) return panoTile(ctx, c);
 		Look lk = look(c);
 		LinearLayout f = new LinearLayout(ctx);
@@ -835,6 +845,266 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		sub.setSingleLine(true);
 		sub.setEllipsize(TextUtils.TruncateAt.END);
 		f.addView(sub);
+		return f;
+	}
+
+	/**
+	 * Yatay Pano (araç ekranı): solda boydan Şimdi çalıyor kartı (büyük oynat, ad, Ses / Favoriler / Aç), sağda
+	 * selam + saat + ayar / görünüm / mikrofon, altında 3 sütun renkli kartlar (kayar), en altta Ev · İş ·
+	 * Benzinlik · Otopark.
+	 */
+	private View panoWide(Context ctx) {
+		MainActivityDelegate a = getActivityDelegate();
+		android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+		LinearLayout rootRow = hrow(ctx);
+		rootRow.setGravity(Gravity.TOP);
+		int side = dp(16);
+		rootRow.setPadding(side, YoldaStyle.cutoutTop(ctx) + dp(12), side, dp(12));
+
+		// ---- Sol: Şimdi çalıyor ----
+		LinearLayout now = new LinearLayout(ctx);
+		now.setOrientation(LinearLayout.VERTICAL);
+		now.setPadding(dp(14), dp(14), dp(14), dp(14));
+		now.setBackground(phoneSurface(ctx, 24));
+		FrameLayout art = new FrameLayout(ctx);
+		GradientDrawable ag = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+				new int[]{YoldaStyle.alpha(t.accent | 0xFF000000, 0.30f), 0x33000000});
+		ag.setCornerRadius(dp(18));
+		art.setBackground(ag);
+		art.setClickable(true);
+		art.setOnClickListener(v -> YoldaNowPlaying.open(a));
+		phNowPlate = new FrameLayout(ctx);
+		phNowIcon = new ImageView(ctx);
+		phNowIcon.setImageResource(R.drawable.yi_live);
+		phNowPlate.addView(phNowIcon, new FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER));
+		FrameLayout.LayoutParams pl = new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.TOP | Gravity.START);
+		pl.leftMargin = pl.topMargin = dp(12);
+		art.addView(phNowPlate, pl);
+		phPlay = roundButton(ctx, R.drawable.yi_play, "Oynat / duraklat", v -> {
+			var cb = a.getMediaSessionCallback();
+			if (cb.isPlaying()) cb.onPause();
+			else YoldaNowPlaying.togglePlay(a);
+			root.postDelayed(this::updatePhoneLive, 300);
+		});
+		GradientDrawable pb = new GradientDrawable();
+		pb.setShape(GradientDrawable.OVAL);
+		pb.setColor(0x33FFFFFF);
+		pb.setStroke(dp(2), 0x66FFFFFF);
+		phPlay.setBackground(pb);
+		art.addView(phPlay, new FrameLayout.LayoutParams(dp(72), dp(72), Gravity.CENTER));
+		now.addView(art, new LinearLayout.LayoutParams(-1, 0, 1f));
+		phNowTitle = text(ctx, "Henüz bir şey çalmadı", 22, true, 0xFFFFFFFF);
+		phNowTitle.setMaxLines(2);
+		phNowTitle.setEllipsize(TextUtils.TruncateAt.END);
+		phNowTitle.setPadding(0, dp(12), 0, 0);
+		now.addView(phNowTitle);
+		phNowTag = text(ctx, "", 13, true, 0xFFC5CBD8);
+		phNowTag.setPadding(0, dp(2), 0, dp(10));
+		now.addView(phNowTag);
+		LinearLayout acts = hrow(ctx);
+		String[][] an = {{"Ses", "eq"}, {"Favoriler", "fav"}, {"Aç", "open"}};
+		int[] ai = {R.drawable.yi_settings, R.drawable.yi_star, R.drawable.yi_next};
+		for (int i = 0; i < an.length; i++) {
+			String k = an[i][1];
+			LinearLayout b = hrow(ctx);
+			b.setGravity(Gravity.CENTER);
+			b.setBackground(phoneSurface(ctx, 14));
+			b.setClickable(true);
+			b.setContentDescription(an[i][0]);
+			b.setOnClickListener(v -> {
+				if ("eq".equals(k)) a.showFragment(R.id.yolda_eq_fragment);
+				else if ("fav".equals(k)) showFavorites();
+				else YoldaNowPlaying.open(a);
+			});
+			pressEffect(b);
+			ImageView ic = new ImageView(ctx);
+			ic.setImageResource(ai[i]);
+			ic.setImageTintList(ColorStateList.valueOf((i == 1) ? 0xFFFACC15 : 0xFFE5E7EB));
+			b.addView(ic, new LinearLayout.LayoutParams(dp(18), dp(18)));
+			TextView bt = text(ctx, an[i][0], 14, true, 0xFFFFFFFF);
+			bt.setPadding(dp(6), 0, 0, 0);
+			b.addView(bt);
+			LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(0, dp(48), 1f);
+			if (i > 0) blp.leftMargin = dp(8);
+			acts.addView(b, blp);
+		}
+		now.addView(acts);
+		rootRow.addView(now, new LinearLayout.LayoutParams(0, -1, 0.36f));
+
+		// ---- Sağ: selam + saat, kartlar, hızlı erişim ----
+		LinearLayout right = new LinearLayout(ctx);
+		right.setOrientation(LinearLayout.VERTICAL);
+		right.setPadding(dp(16), 0, 0, 0);
+		LinearLayout head = hrow(ctx);
+		head.setGravity(Gravity.CENTER_VERTICAL);
+		LinearLayout hello = new LinearLayout(ctx);
+		hello.setOrientation(LinearLayout.VERTICAL);
+		int hr = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+		hello.addView(text(ctx, (hr < 5) ? "İyi geceler" : (hr < 12) ? "Günaydın" : (hr < 18) ? "İyi günler" : "İyi akşamlar",
+				22, true, 0xFFFFFFFF));
+		LinearLayout dl = hrow(ctx);
+		phDate = text(ctx, "", 12, false, 0xFFC5CBD8);
+		dl.addView(phDate);
+		dl.addView(text(ctx, "  ·  İyi yolculuklar", 12, false, 0xFFC5CBD8));
+		hello.addView(dl);
+		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
+		phClock = text(ctx, "", 28, true, 0xFFFFFFFF);
+		phClock.setPadding(0, 0, dp(12), 0);
+		head.addView(phClock);
+		LinearLayout.LayoutParams hb = new LinearLayout.LayoutParams(dp(48), dp(48));
+		hb.leftMargin = dp(8);
+		head.addView(roundButton(ctx, R.drawable.yi_grid, "Görünüm seç", v -> showViewPicker(ctx)), hb);
+		head.addView(roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> a.showFragment(R.id.yolda_menu_fragment)), hb);
+		ImageView mic = roundButton(ctx, R.drawable.yi_mic, "Hey Yolda", v -> a.startVoiceAssistant());
+		GradientDrawable mg = new GradientDrawable();
+		mg.setShape(GradientDrawable.OVAL);
+		mg.setColor(0x33000000);
+		mg.setStroke(dp(2), 0xFFE0B354);
+		mic.setBackground(mg);
+		mic.setImageTintList(ColorStateList.valueOf(0xFFE0B354));
+		head.addView(mic, hb);
+		right.addView(head, new LinearLayout.LayoutParams(-1, dp(56)));
+
+		// kartlar: 3 sütun, ekrana iki satır sığar, fazlası kayar
+		ScrollView sv = new ScrollView(ctx);
+		sv.setVerticalScrollBarEnabled(false);
+		sv.setOnScrollChangeListener((v, x, y, ox, oy) -> me.aap.fermata.ui.view.YoldaGlow.hold(250));
+		LinearLayout grid = new LinearLayout(ctx);
+		grid.setOrientation(LinearLayout.VERTICAL);
+		sv.addView(grid, new ScrollView.LayoutParams(-1, -2));
+		int avail = dm.heightPixels - YoldaStyle.cutoutTop(ctx) - dp(12 + 12 + 56 + 8 + 56 + 8);
+		int rowH = Math.max(dp(112), (avail - dp(8)) / 2);
+		List<YoldaDeck.Card> cs = new ArrayList<>(phoneCards(ctx));
+		phoneTileViews.clear();
+		LinearLayout row = null;
+		for (int n = 0; n < cs.size(); n++) {
+			if (n % 3 == 0) {
+				row = hrow(ctx);
+				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, rowH);
+				rl.topMargin = dp(8);
+				grid.addView(row, rl);
+			}
+			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
+			if (n % 3 != 0) cl.leftMargin = dp(8);
+			View tile = phoneTile(ctx, cs.get(n));
+			phoneTileViews.put(cs.get(n).type(), tile);
+			row.addView(tile, cl);
+		}
+		if (row != null) for (int n = cs.size(); n % 3 != 0; n++) {
+			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
+			cl.leftMargin = dp(8);
+			row.addView(new View(ctx), cl);
+		}
+		right.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
+
+		LinearLayout quick = hrow(ctx);
+		Object[][] q = {{"Ev", R.drawable.yi_home_fill, 0xFFF59E0B}, {"İş", R.drawable.yi_work, 0xFFF59E0B},
+				{"Benzinlik", R.drawable.yi_fuel, 0xFFF59E0B}, {"Otopark", R.drawable.yi_parking, 0xFFF59E0B}};
+		for (int i = 0; i < q.length; i++) {
+			String nm = (String) q[i][0];
+			LinearLayout b = hrow(ctx);
+			b.setGravity(Gravity.CENTER);
+			b.setBackground(phoneSurface(ctx, 16));
+			b.setClickable(true);
+			b.setContentDescription(nm);
+			b.setOnClickListener(v -> {
+				switch (nm) {
+					case "Ev" -> NavFragment.voiceGo(a, "home", null);
+					case "İş" -> NavFragment.voiceGo(a, "work", null);
+					case "Benzinlik" -> NavFragment.navigateTo(ctx, "benzin istasyonu", false);
+					default -> NavFragment.navigateTo(ctx, "otopark", false);
+				}
+			});
+			pressEffect(b);
+			FrameLayout dot = new FrameLayout(ctx);
+			GradientDrawable dg = new GradientDrawable();
+			dg.setShape(GradientDrawable.OVAL);
+			dg.setColor((int) q[i][2]);
+			dot.setBackground(dg);
+			ImageView ic = new ImageView(ctx);
+			ic.setImageResource((int) q[i][1]);
+			ic.setImageTintList(ColorStateList.valueOf(0xFF1A1206));
+			dot.addView(ic, new FrameLayout.LayoutParams(dp(16), dp(16), Gravity.CENTER));
+			b.addView(dot, new LinearLayout.LayoutParams(dp(28), dp(28)));
+			TextView bt = text(ctx, nm, 15, true, 0xFFFFFFFF);
+			bt.setPadding(dp(8), 0, 0, 0);
+			b.addView(bt);
+			LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(0, dp(56), 1f);
+			if (i > 0) blp.leftMargin = dp(8);
+			quick.addView(b, blp);
+		}
+		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, -2);
+		ql.topMargin = dp(8);
+		right.addView(quick, ql);
+		rootRow.addView(right, new LinearLayout.LayoutParams(0, -1, 0.64f));
+		updatePhoneLive();
+		return rootRow;
+	}
+
+	/**
+	 * Yatay Pano kartı: kartın renginde koyu geçişli yüzey, sol üstte renkli simge kutusu, sağ üstte ok, altta ad ve
+	 * kısa açıklama (ya da tek bakış değeri), arkada silik büyük simge (kartın içinde, kesik değil).
+	 */
+	private View panoCard(Context ctx, YoldaDeck.Card c) {
+		Look lk = look(c);
+		FrameLayout f = new FrameLayout(ctx);
+		GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+				new int[]{YoldaStyle.alpha(lk.c1, 0.42f), YoldaStyle.alpha(lk.c2, 0.22f)});
+		bg.setCornerRadius(dp(20));
+		bg.setStroke(Math.max(1, dp(1)), 0x29FFFFFF);
+		f.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{phoneSurface(ctx, 20), bg}));
+		f.setClickable(true);
+		f.setContentDescription(c.title());
+		f.setOnClickListener(v -> open(c));
+		f.setOnLongClickListener(v -> {
+			showPhoneCardsEditor(ctx);
+			return true;
+		});
+		pressEffect(f);
+		ImageView ghost = new ImageView(ctx);
+		ghost.setImageResource(lk.icon);
+		ghost.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		ghost.setAlpha(0.10f);
+		FrameLayout.LayoutParams gl = new FrameLayout.LayoutParams(dp(64), dp(64), Gravity.END | Gravity.BOTTOM);
+		gl.rightMargin = gl.bottomMargin = dp(12);
+		f.addView(ghost, gl);
+		FrameLayout box = new FrameLayout(ctx);
+		GradientDrawable cb = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{lk.c1, lk.c2});
+		cb.setCornerRadius(dp(12));
+		box.setBackground(cb);
+		ImageView ic = new ImageView(ctx);
+		ic.setImageResource(lk.icon);
+		ic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+		box.addView(ic, new FrameLayout.LayoutParams(dp(22), dp(22), Gravity.CENTER));
+		FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.TOP | Gravity.START);
+		bl.leftMargin = bl.topMargin = dp(12);
+		f.addView(box, bl);
+		TextView arrow = text(ctx, "›", 20, true, 0xFFE5E7EB);
+		arrow.setGravity(Gravity.CENTER);
+		GradientDrawable ab = new GradientDrawable();
+		ab.setShape(GradientDrawable.OVAL);
+		ab.setColor(0x26FFFFFF);
+		arrow.setBackground(ab);
+		FrameLayout.LayoutParams al = new FrameLayout.LayoutParams(dp(32), dp(32), Gravity.TOP | Gravity.END);
+		al.rightMargin = al.topMargin = dp(12);
+		f.addView(arrow, al);
+		LinearLayout tx = new LinearLayout(ctx);
+		tx.setOrientation(LinearLayout.VERTICAL);
+		TextView ti = text(ctx, c.title(), 18, true, 0xFFFFFFFF);
+		ti.setSingleLine(true);
+		ti.setEllipsize(TextUtils.TruncateAt.END);
+		tx.addView(ti);
+		Glance g = glance(ctx, c.type());
+		TextView sub = text(ctx, (g != null) ? (g.big() + " · " + (g.l2().isEmpty() ? g.l1() : g.l2())) : lk.sub, 12, false,
+				(g != null) && !g.l2().isEmpty() ? g.color() : 0xFFD1D5DB);
+		sub.setSingleLine(true);
+		sub.setEllipsize(TextUtils.TruncateAt.END);
+		tx.addView(sub);
+		FrameLayout.LayoutParams tl = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM | Gravity.START);
+		tl.leftMargin = dp(14);
+		tl.rightMargin = dp(60);
+		tl.bottomMargin = dp(12);
+		f.addView(tx, tl);
 		return f;
 	}
 
@@ -1084,12 +1354,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if ((title == null) && (lastItem != null)) title = lastItem.getName();
 		boolean playing = cb.isPlaying();
 		if (phNow != null) phNow.setVisibility((title == null) ? View.GONE : View.VISIBLE);
-		if (phNowTitle != null) phNowTitle.setText((title != null) ? title : (phNow == null) ? "Henüz bir şey çalmadı" : "");
+		if (phNowTitle != null) phNowTitle.setText((title != null) ? title : panoWideBuilt ? "Şu an çalan yok"
+				: (phNow == null) ? "Henüz bir şey çalmadı" : "");
 		MediaLib.PlayableItem src = (pi != null) ? pi : lastItem;
 		boolean live = (src != null) && src.isStream();
 		boolean vid = (src != null) && src.isVideo();
 		if ((phNowTag != null) && (title == null) && (phNow == null)) { // Pano, boş: ne yapılacağını söyle
-			phNowTag.setText("RADYO, TV YA DA MÜZİK SEÇ");
+			phNowTag.setText(panoWideBuilt ? "Sağdan bir kaynak seç" : "RADYO, TV YA DA MÜZİK SEÇ");
 			phNowTag.setTextColor(t.accent | 0xFF000000);
 		} else if (phNowTag != null) {
 			phNowTag.setText((playing && live) ? ("● CANLI · " + (vid ? "TV" : "RADYO")) : playing ? "ŞİMDİ ÇALIYOR" : "KALDIĞIN YER");
