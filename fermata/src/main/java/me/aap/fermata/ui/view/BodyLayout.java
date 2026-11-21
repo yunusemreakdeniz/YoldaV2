@@ -113,6 +113,16 @@ public class BodyLayout extends SplitLayout
 		else if (r == null) restoreInline();
 	}
 
+	/** Video şu an Pano kartının içinde mi oynuyor. */
+	public static boolean yoldaInlineCard(MainActivityDelegate a) {
+		try {
+			BodyLayout b = a.getBody();
+			return (b != null) && b.isBothMode() && (b.yoldaInlineRect != null) && b.inlineHome(a);
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
+
 	private void applyInline(android.graphics.Rect r) {
 		VideoView vv = getVideoView();
 		if (yoldaVvLp == null) yoldaVvLp = vv.getLayoutParams();
@@ -122,6 +132,17 @@ public class BodyLayout extends SplitLayout
 		lp.leftMargin = r.left;
 		lp.topMargin = r.top;
 		vv.setLayoutParams(lp);
+		// görüntü yeni alana göre yeniden boyutlansın ve ortalansın (önceki boyutla sol üstte kalıyordu)
+		android.view.View sf = vv.getVideoSurface();
+		if (sf.getLayoutParams() instanceof android.widget.FrameLayout.LayoutParams fl && (fl.gravity != android.view.Gravity.CENTER)) {
+			fl.gravity = android.view.Gravity.CENTER;
+			sf.setLayoutParams(fl);
+		}
+		vv.post(() -> {
+			MediaEngine eng = getActivity().getMediaServiceBinder().getCurrentEngine();
+			if (eng != null) vv.setSurfaceSize(eng);
+			me.aap.fermata.ui.view.YoldaQualityPill.update(getActivity());
+		});
 		View fr = findViewById(me.aap.fermata.R.id.frame_layout);
 		if ((fr != null) && !yoldaFrameBgSaved) {
 			yoldaFrameBg = fr.getBackground();
