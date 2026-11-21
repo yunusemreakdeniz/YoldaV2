@@ -443,6 +443,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Yatay ekranda (araç, yatay telefon / tablet) Pano iki sütunlu kurulur; tek kart yenilemesi buna göre. */
 	private boolean panoWideBuilt;
 
+	/** Sol alttaki yüzen Hey Yolda düğmesini göster / gizle. */
+	private void showVoiceOrb(boolean show) {
+		try {
+			View vb = getActivityDelegate().getYoldaVoiceButton();
+			if (vb != null) vb.setVisibility(show ? View.VISIBLE : View.GONE);
+		} catch (Throwable ignore) {
+		}
+	}
+
 	private boolean wideScreen() {
 		android.content.res.Configuration c = getResources().getConfiguration(); // dönüşte güncel boyut
 		return (c.screenWidthDp > c.screenHeightDp) && (c.screenWidthDp >= 560);
@@ -452,6 +461,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		long t0 = android.os.SystemClock.uptimeMillis();
 		panoWideBuilt = panoMode() && wideScreen();
 		View v = panoWideBuilt ? panoWide(ctx) : phoneHomeBuild(ctx);
+		showVoiceOrb(!panoWideBuilt); // yatay Pano'nun üst satırında mikrofon var: yüzen düğme "Ses"in üstüne biniyordu
 		me.aap.fermata.ui.view.YoldaJank.took("Telefon görünümü", t0, 0);
 		return v;
 	}
@@ -944,8 +954,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				22, true, 0xFFFFFFFF));
 		LinearLayout dl = hrow(ctx);
 		phDate = text(ctx, "", 12, false, 0xFFC5CBD8);
+		phDate.setSingleLine(true);
 		dl.addView(phDate);
-		dl.addView(text(ctx, "  ·  İyi yolculuklar", 12, false, 0xFFC5CBD8));
+		TextView iy = text(ctx, "  ·  İyi yolculuklar", 12, false, 0xFFC5CBD8);
+		iy.setSingleLine(true);
+		iy.setEllipsize(TextUtils.TruncateAt.END); // dar ekranda alt satıra kaymasın
+		dl.addView(iy, new LinearLayout.LayoutParams(0, -2, 1f));
 		hello.addView(dl);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
 		phClock = text(ctx, "", 28, true, 0xFFFFFFFF);
@@ -1091,9 +1105,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout tx = new LinearLayout(ctx);
 		tx.setOrientation(LinearLayout.VERTICAL);
 		TextView ti = text(ctx, c.title(), 18, true, 0xFFFFFFFF);
-		ti.setSingleLine(true);
-		ti.setEllipsize(TextUtils.TruncateAt.END);
-		tx.addView(ti);
+		ti.setMaxLines(1);
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(ti, 13, 18, 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP); // dar kartta ad küçülür, kesilmez
+		tx.addView(ti, new LinearLayout.LayoutParams(-1, dp(24)));
 		Glance g = glance(ctx, c.type());
 		TextView sub = text(ctx, (g != null) ? (g.big() + " · " + (g.l2().isEmpty() ? g.l1() : g.l2())) : lk.sub, 12, false,
 				(g != null) && !g.l2().isEmpty() ? g.color() : 0xFFD1D5DB);
@@ -1347,7 +1362,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		root.removeAllViews();
 		YoldaStyle.applyScreenBackground(root, t);
 		root.addView(phoneHome(ctx), new FrameLayout.LayoutParams(-1, -1));
-		root.addView(signature(ctx), signatureLp());
+		if (!panoWideBuilt) root.addView(signature(ctx), signatureLp()); // yatay Pano'da imza Otopark'ın üstüne biniyordu
 	}
 
 	private void updatePhoneLive() {
@@ -1618,7 +1633,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			root = new FrameLayout(ctx);
 			YoldaStyle.applyScreenBackground(root, t);
 			root.addView(phoneHome(ctx), new FrameLayout.LayoutParams(-1, -1));
-			root.addView(signature(ctx), signatureLp());
+			if (!panoWideBuilt) root.addView(signature(ctx), signatureLp());
 			root.postDelayed(phTick, 1500);
 			YoldaVoice.preload(getActivityDelegate());
 			return root;
@@ -2962,6 +2977,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Override
 	public void onHiddenChanged(boolean hidden) {
 		super.onHiddenChanged(hidden);
+		showVoiceOrb(hidden || !panoWideBuilt); // başka sayfada yüzen mikrofon görünür
 		if (!hidden) me.aap.utils.app.App.get().getHandler().postDelayed(quakeTick, 4000);
 		if (!hidden && (root != null) && (phoneMode() != phoneBuilt)) { // Menü'den görünüm değişti: yeniden kur
 			root.post(() -> setPhoneView(phoneMode()));
@@ -3380,6 +3396,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	@Override
 	public void onDestroyView() {
+		showVoiceOrb(true);
 		if (root != null) root.removeCallbacks(hideJump); // sayfa kapanırken bekleyen şerit kapatma çalışmasın
 		YoldaRadar.removeListener(radarListener);
 		jumpStrip = null;
