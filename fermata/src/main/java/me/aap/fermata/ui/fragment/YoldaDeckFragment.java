@@ -444,8 +444,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private boolean panoWideBuilt;
 
 	private boolean wideScreen() {
-		android.util.DisplayMetrics m = getResources().getDisplayMetrics();
-		return (m.widthPixels > m.heightPixels) && (m.widthPixels / m.density >= 560);
+		android.content.res.Configuration c = getResources().getConfiguration(); // dönüşte güncel boyut
+		return (c.screenWidthDp > c.screenHeightDp) && (c.screenWidthDp >= 560);
 	}
 
 	private View phoneHome(Context ctx) {
@@ -1329,6 +1329,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					savePhoneOrder(ctx, order, hidden);
 					rebuildPhone();
 				}, c -> true);
+	}
+
+	/**
+	 * Ekran dönünce (uygulama yön değişikliğini kendisi karşılar, yeniden kurulmaz): Pano dikey ↔ yatay düzen
+	 * değiştiyse ana ekran yeniden kurulur.
+	 */
+	@Override
+	public void onConfigurationChanged(@NonNull android.content.res.Configuration nc) {
+		super.onConfigurationChanged(nc);
+		if ((root != null) && phoneBuilt && panoMode() && (wideScreen() != panoWideBuilt)) root.post(this::rebuildPhone);
 	}
 
 	private void rebuildPhone() {
