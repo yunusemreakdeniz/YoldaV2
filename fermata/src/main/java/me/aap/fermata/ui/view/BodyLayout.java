@@ -93,6 +93,11 @@ public class BodyLayout extends SplitLayout
 	/** Küçük pencerede videonun genişliği (ekranın oranı). */
 	static final float INLINE_VIDEO = 0.36f;
 
+	/** Yatay Pano ana ekranda mı (video başlarsa tam ekran yerine küçük pencere). */
+	private boolean inlineHome(MainActivityDelegate a) {
+		return yoldaInline && !isPortrait() && (a.getActiveFragmentId() == me.aap.fermata.R.id.home_fragment);
+	}
+
 	/** Ana ekranda çalan video küçük pencerede gösterilebilir mi. */
 	private boolean inlineVideo(MainActivityDelegate a) {
 		if (!yoldaInline || isPortrait() || (a.getActiveFragmentId() != me.aap.fermata.R.id.home_fragment)) return false;
@@ -218,7 +223,7 @@ public class BodyLayout extends SplitLayout
 
 		if (i.isVideo() && !getVideoView().isSurfaceCreated() &&
 				!a.getMediaSessionCallback().hasCustomEngineProvider()) {
-			setMode(BodyLayout.Mode.VIDEO);
+			setMode(inlineHome(a) ? Mode.BOTH : BodyLayout.Mode.VIDEO); // Pano'da başlayan video küçük pencerede
 			getVideoView().onSurfaceCreated(() -> playItem(i));
 			return;
 		}
@@ -230,7 +235,7 @@ public class BodyLayout extends SplitLayout
 		b.playItem(i);
 		MediaEngine eng = b.getCurrentEngine();
 		if (i.equals(cur) && (eng != null) && eng.isVideoModeRequired())
-			setMode(BodyLayout.Mode.VIDEO);
+			setMode(inlineHome(a) ? Mode.BOTH : BodyLayout.Mode.VIDEO);
 	}
 
 	@Override
@@ -246,7 +251,7 @@ public class BodyLayout extends SplitLayout
 			setMode(Mode.FRAME);
 		} else {
 			if (!eng.isVideoModeRequired()) setMode(Mode.FRAME);
-			else if (isFrameMode()) setMode(Mode.VIDEO);
+			else if (isFrameMode()) setMode(inlineHome(a) ? Mode.BOTH : Mode.VIDEO);
 			else getVideoView().showVideo(false);
 		}
 
