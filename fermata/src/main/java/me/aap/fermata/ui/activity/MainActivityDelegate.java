@@ -313,6 +313,9 @@ public class MainActivityDelegate extends ActivityDelegate
 			return completed(true);
 		}
 
+		// Paylaş → Yolda (Mola'dan): YouTube bağlantısı, yayın adresi, sayfa ya da aranacak yazı
+		if (me.aap.fermata.ui.fragment.YoldaShare.handle(this, intent)) return completed(true);
+
 		for (FermataAddon a : AddonManager.get().getAddons()) {
 			if (a.handleIntent(this, intent)) return completed(true);
 		}

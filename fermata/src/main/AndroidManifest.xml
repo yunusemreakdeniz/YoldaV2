@@ -128,6 +128,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
+            <!-- Paylaş → Yolda: bağlantı ya da yazı Yolda'da açılır (araca bağlıysa araçta çalar) -->
+            <intent-filter android:label="Yolda'da aç">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
