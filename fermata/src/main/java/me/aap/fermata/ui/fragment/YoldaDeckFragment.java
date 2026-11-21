@@ -987,6 +987,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dl.addView(iy, new LinearLayout.LayoutParams(0, -2, 1f));
 		hello.addView(dl);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
+		if (panoBuiltWithVideo) hello.setVisibility(View.INVISIBLE); // video sağda: dar alanda selam sığmıyor, yer tutsun
 		// Hız sınırı levhası ve radar uzaklığı (dokun: Sürüş ekranı); radar uyarısı ayrıca her ekranda kırmızı kartla
 		LinearLayout spd = hrow(ctx);
 		spd.setGravity(Gravity.CENTER_VERTICAL);
@@ -1009,6 +1010,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		phRadar = text(ctx, "", 14, true, 0xFFFFFFFF);
 		spt.addView(phRadar);
 		spd.addView(spt);
+		if (panoBuiltWithVideo) spt.setVisibility(View.GONE); // dar alanda yalnız levha
 		spd.setMinimumHeight(dp(48));
 		head.addView(spd);
 		phClock = text(ctx, "", 28, true, 0xFFFFFFFF);
