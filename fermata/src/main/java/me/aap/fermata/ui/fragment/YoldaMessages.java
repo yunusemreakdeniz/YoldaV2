@@ -100,7 +100,10 @@ public class YoldaMessages extends NotificationListenerService {
 			} catch (Throwable ignore) {
 			}
 			YoldaLog.add("Mesaj geldi: " + app + (car ? " (araçta okunuyor)" : ""));
-			if (car) YoldaSpeak.sayAlways(ctx, spoken(app, sender, text.toString()) + ". Yanıtlamak için Hey Yolda, yanıtla de");
+			// Ayardan kapatılabilir (Menü → Mesajları sesli oku; "mesaj okumayı kapat"): kapalıyken okunmaz,
+			// "mesajı oku" deyince son mesaj yine okunur
+			if (car && isEnabled(ctx))
+				YoldaSpeak.sayAlways(ctx, spoken(app, sender, text.toString()) + ". Yanıtlamak için Hey Yolda, yanıtla de");
 		} catch (Throwable ex) {
 			YoldaLog.add("Mesaj okunamadı: " + ex.getClass().getSimpleName());
 		}

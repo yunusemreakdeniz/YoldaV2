@@ -642,6 +642,11 @@ public final class YoldaVoice {
 			}
 			case TEST_ALERT -> YoldaRadar.testAlert(ctx, false);
 			case MSG_REPLY -> reply(a, YoldaMessages.reply(ctx, it.arg()));
+			case MSG_AUTO -> {
+				boolean on = "on".equals(it.arg());
+				YoldaMessages.setEnabled(ctx, on);
+				reply(a, on ? "Gelen mesajları araçta sesli okuyacağım" : "Gelen mesajları artık okumayacağım; son mesaj için mesajı oku de");
+			}
 			case MSG_READ -> {
 				if (!YoldaMessages.readLast(ctx))
 					reply(a, YoldaMessages.hasAccess(ctx) ? "Okunacak mesaj yok" : "Mesajları okumak için telefonda bildirim erişimi gerekiyor");

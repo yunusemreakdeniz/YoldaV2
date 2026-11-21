@@ -553,7 +553,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (MediaSessionCallback.yoldaIdleNav == idleNavFn) MediaSessionCallback.yoldaIdleNav = null;
 		if (radarAttached) {
 			radarAttached = false;
-			me.aap.fermata.ui.fragment.YoldaRadar.detach();
+			me.aap.fermata.ui.fragment.YoldaRadar.detach(getContext());
 		}
 		themeTickOn = false;
 		App.get().getHandler().removeCallbacks(autoThemeTick);
