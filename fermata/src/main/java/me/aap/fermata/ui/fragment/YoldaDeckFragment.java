@@ -300,23 +300,31 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * çalıyor + son açılanlar + yatay kartlar). Araçta Izgara yok.
 	 */
 	private void showViewPicker(Context ctx) {
+		// Pencere açmadan: her dokunuş sıradaki görünüme geçer (telefonda Deste → Izgara → Pano; araçta Deste ↔ Pano)
 		boolean car = getActivityDelegate().isCarActivity();
-		String cur = homeView();
-		if (car) { // Android Auto'da açılır pencere araç ekranında görünmüyor: dokunuş Deste ↔ Pano geçer
-			String next = "pano".equals(cur) ? "deck" : "pano";
-			YoldaStyle.toast(ctx, "Görünüm: " + ("pano".equals(next) ? "Pano" : "Deste"));
-			setHomeView(next);
-			return;
-		}
-		String[] keys = car ? new String[]{"deck", "pano"} : new String[]{"deck", "phone", "pano"};
-		String[] names = car ? new String[]{"Deste · kayan büyük kartlar", "Pano · Şimdi çalıyor + kartlar"}
-				: new String[]{"Deste · kayan büyük kartlar", "Izgara · iki sütun karolar", "Pano · Şimdi çalıyor + son açılanlar + kartlar"};
-		for (int i = 0; i < keys.length; i++) if (keys[i].equals(cur)) names[i] = "✓  " + names[i];
-		new android.app.AlertDialog.Builder(ctx).setTitle("Görünüm seç")
-				.setItems(names, (d, w) -> {
-					if (!keys[w].equals(cur)) setHomeView(keys[w]);
-				}).setNegativeButton("Kapat", null).show();
+		String next = nextHomeView(homeView(), car);
+		YoldaStyle.toast(ctx, "Görünüm: " + homeViewName(next));
+		setHomeView(next);
 	}
+
+	/** Sıradaki görünüm: telefonda deck → phone → pano → deck, araçta deck ↔ pano. */
+	static String nextHomeView(String cur, boolean car) {
+		if (car) return "pano".equals(cur) ? "deck" : "pano";
+		return switch (cur) {
+			case "deck" -> "phone";
+			case "phone" -> "pano";
+			default -> "deck";
+		};
+	}
+
+	static String homeViewName(String v) {
+		return switch (v) {
+			case "phone" -> "Izgara";
+			case "pano" -> "Pano";
+			default -> "Deste";
+		};
+	}
+
 
 	/** Görünüm seç: "phone" ızgara, "pano" Pano, "deck" araç destesi. */
 	public void setHomeView(String mode) {
