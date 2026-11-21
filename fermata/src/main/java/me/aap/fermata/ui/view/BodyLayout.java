@@ -85,6 +85,22 @@ public class BodyLayout extends SplitLayout
 
 	/** Yolda: kullanıcı video + harita bölünmüş ekranını açtı (tarayıcı ekranındayken korunur). */
 	public static boolean yoldaSplit;
+	/**
+	 * Yolda yatay Pano açık: ana ekrana dönülünce çalan video tam ekran yerine sağda küçük pencerede oynar
+	 * (Pano kartları solda kalır). Pano kurulurken açılır, kapanınca kapanır.
+	 */
+	public static boolean yoldaInline;
+	/** Küçük pencerede videonun genişliği (ekranın oranı). */
+	static final float INLINE_VIDEO = 0.36f;
+
+	/** Ana ekranda çalan video küçük pencerede gösterilebilir mi. */
+	private boolean inlineVideo(MainActivityDelegate a) {
+		if (!yoldaInline || isPortrait() || (a.getActiveFragmentId() != me.aap.fermata.R.id.home_fragment)) return false;
+		MediaSessionCallback cb = a.getMediaSessionCallback();
+		MediaEngine eng = cb.getEngine();
+		MediaLib.PlayableItem i = (eng != null) ? eng.getSource() : null;
+		return (i != null) && i.isVideo() && eng.isSplitModeSupported() && (cb.getVideoView() == getVideoView());
+	}
 
 	public boolean isBothMode() {
 		return getMode() == Mode.BOTH;
@@ -122,6 +138,11 @@ public class BodyLayout extends SplitLayout
 				getSplitHandle().setVisibility(VISIBLE);
 				getSwipeRefresh().setVisibility(VISIBLE);
 				lp.guidePercent = a.getPrefs().getFloatPref(getSplitPercentPref(isPortrait()));
+				if (yoldaInline && !isPortrait() && (a.getActiveFragmentId() == me.aap.fermata.R.id.home_fragment)) {
+					lp.guidePercent = 1f - INLINE_VIDEO; // Pano: video sağda küçük pencere, ayraç gizli
+					getSplitLine().setVisibility(GONE);
+					getSplitHandle().setVisibility(GONE);
+				}
 				vv.showVideo(true);
 				a.setVideoMode(true, vv);
 				MediaItemListView.focusActive(getContext(), vv);
@@ -164,6 +185,10 @@ public class BodyLayout extends SplitLayout
 				return;
 			}
 			yoldaSplit = false;
+			if (inlineVideo(a)) { // Pano'ya dönüldü, video oynuyor: küçük pencerede sürsün
+				if (!isBothMode()) setMode(Mode.BOTH);
+				return;
+			}
 			if (a.getActiveMediaLibFragment() == null) {
 				setMode(Mode.FRAME);
 			} else {
