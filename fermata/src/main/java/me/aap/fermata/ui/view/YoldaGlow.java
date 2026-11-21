@@ -69,6 +69,13 @@ public final class YoldaGlow extends Drawable {
 		return now < holdUntil;
 	}
 
+	/** En kısa kare aralığı (ms): araçta 66 (≈15 kare; görüntü araca kodlanıp gönderilir, yükü az olsun). */
+	private int minFrameMs;
+
+	public void setMinFrameMs(int ms) {
+		minFrameMs = ms;
+	}
+
 	public void setDrift(boolean d) {
 		if (drift == d) return;
 		drift = d;
@@ -117,10 +124,10 @@ public final class YoldaGlow extends Drawable {
 			scheduleSelf(tick, now + 33);
 		} else if (anim && hold) { // kaydırırken: sürer, daha seyrek
 			unscheduleSelf(tick);
-			scheduleSelf(tick, now + Math.max(50, YoldaSky.frameMs(scene)));
+			scheduleSelf(tick, now + Math.max(Math.max(50, minFrameMs), YoldaSky.frameMs(scene)));
 		} else if (anim) { // damla / kar / yıldız ~30 kare, güneş / bulut / sis ~20 kare, sahnesiz ~12 kare (pil)
 			unscheduleSelf(tick);
-			scheduleSelf(tick, SystemClock.uptimeMillis() + YoldaSky.frameMs(scene));
+			scheduleSelf(tick, SystemClock.uptimeMillis() + Math.max(minFrameMs, YoldaSky.frameMs(scene)));
 		}
 	}
 

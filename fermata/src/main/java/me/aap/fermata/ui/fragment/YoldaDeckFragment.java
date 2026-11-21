@@ -302,6 +302,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private void showViewPicker(Context ctx) {
 		boolean car = getActivityDelegate().isCarActivity();
 		String cur = homeView();
+		if (car) { // Android Auto'da açılır pencere araç ekranında görünmüyor: dokunuş Deste ↔ Pano geçer
+			String next = "pano".equals(cur) ? "deck" : "pano";
+			YoldaStyle.toast(ctx, "Görünüm: " + ("pano".equals(next) ? "Pano" : "Deste"));
+			setHomeView(next);
+			return;
+		}
 		String[] keys = car ? new String[]{"deck", "pano"} : new String[]{"deck", "phone", "pano"};
 		String[] names = car ? new String[]{"Deste · kayan büyük kartlar", "Pano · Şimdi çalıyor + kartlar"}
 				: new String[]{"Deste · kayan büyük kartlar", "Izgara · iki sütun karolar", "Pano · Şimdi çalıyor + son açılanlar + kartlar"};
@@ -614,8 +620,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		lbox.addView(ltx, ltl);
 		phRadar = statBox(ctx, drive, "Radar", v -> a.showFragment(R.id.yolda_radar_fragment), true);
 		phPark = statBox(ctx, drive, "🅿 Aracım", v -> YoldaRadar.walkToPark(ctx), true);
-		if (!pano) col.addView(drive, dl);
-		else phLimit = phRadar = phPark = phLimitSign = null;
+		col.addView(drive, dl); // Pano'da da: hız sınırı, radar, aracım
 
 		// Hızlı erişim
 		LinearLayout quick = hrow(ctx);
@@ -881,7 +886,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout rootRow = hrow(ctx);
 		rootRow.setGravity(Gravity.TOP);
 		int side = dp(16);
-		rootRow.setPadding(side, YoldaStyle.cutoutTop(ctx) + dp(12), side, dp(12));
+		rootRow.setPadding(side, dp(8), side, dp(10)); // yatayda üstte durum çubuğu payı gereksiz (boşluk kalıyordu)
 
 		// ---- Sol: Şimdi çalıyor ----
 		LinearLayout now = new LinearLayout(ctx);
@@ -982,6 +987,30 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dl.addView(iy, new LinearLayout.LayoutParams(0, -2, 1f));
 		hello.addView(dl);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
+		// Hız sınırı levhası ve radar uzaklığı (dokun: Sürüş ekranı); radar uyarısı ayrıca her ekranda kırmızı kartla
+		LinearLayout spd = hrow(ctx);
+		spd.setGravity(Gravity.CENTER_VERTICAL);
+		spd.setClickable(true);
+		spd.setContentDescription("Hız ve radar");
+		spd.setOnClickListener(v -> a.showFragment(R.id.yolda_radar_fragment));
+		phLimitSign = text(ctx, "—", 14, true, 0xFF111111);
+		phLimitSign.setGravity(Gravity.CENTER);
+		GradientDrawable sg = new GradientDrawable();
+		sg.setShape(GradientDrawable.OVAL);
+		sg.setColor(0xFFFFFFFF);
+		sg.setStroke(dp(4), 0xFFE53935);
+		phLimitSign.setBackground(sg);
+		spd.addView(phLimitSign, new LinearLayout.LayoutParams(dp(44), dp(44)));
+		LinearLayout spt = new LinearLayout(ctx);
+		spt.setOrientation(LinearLayout.VERTICAL);
+		spt.setPadding(dp(8), 0, dp(14), 0);
+		phLimit = text(ctx, "", 12, false, 0xFFC5CBD8);
+		spt.addView(phLimit);
+		phRadar = text(ctx, "", 14, true, 0xFFFFFFFF);
+		spt.addView(phRadar);
+		spd.addView(spt);
+		spd.setMinimumHeight(dp(48));
+		head.addView(spd);
 		phClock = text(ctx, "", 28, true, 0xFFFFFFFF);
 		phClock.setPadding(0, 0, dp(12), 0);
 		head.addView(phClock);
@@ -1030,6 +1059,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			row.addView(new View(ctx), cl);
 		}
 		right.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
+		sv.post(() -> { // satır boyu gerçek alana göre: iki satır tam sığsın (tahminle hesaplanınca ikinci satır kesiliyordu)
+			int h = sv.getHeight();
+			if (h <= 0) return;
+			int rh = Math.max(dp(104), (h - dp(8)) / 2 - dp(8));
+			for (int i = 0; i < grid.getChildCount(); i++) {
+				View r = grid.getChildAt(i);
+				ViewGroup.LayoutParams lp = r.getLayoutParams();
+				if (lp.height != rh) {
+					lp.height = rh;
+					r.setLayoutParams(lp);
+				}
+			}
+		});
 
 		LinearLayout quick = hrow(ctx);
 		Object[][] q = {{"Ev", R.drawable.yi_home_fill, 0xFFF59E0B}, {"İş", R.drawable.yi_work, 0xFFF59E0B},
@@ -1659,6 +1701,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			root.addView(phoneHome(ctx), new FrameLayout.LayoutParams(-1, -1));
 			if (!panoWideBuilt) root.addView(signature(ctx), signatureLp());
 			root.postDelayed(phTick, 1500);
+			YoldaGlow pg = rootGlow(); // ızgara / Pano: efektler canlı, araçta ≈15 kare
+			if (pg != null) {
+				pg.setDrift(true);
+				pg.setMinFrameMs(car ? 66 : 0);
+			}
 			YoldaVoice.preload(getActivityDelegate());
 			return root;
 		}
@@ -1667,7 +1714,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		YoldaStyle.applyScreenBackground(root, t);
 		// Ortadaki kartın renginde ışıltılar: uygulamanın en dış zemininde (tüm ekran, kenarlar dahil)
 		YoldaGlow g = rootGlow();
-		if (g != null) g.setDrift(!car); // araçta ışıklar sabit (sürekli çizim araca giden görüntüyü ağırlaştırıyor)
+		if (g != null) { // araçta da canlı (hava / mevsim efektleri), ama ≈15 kare: araca giden görüntü ağırlaşmasın
+			g.setDrift(true);
+			g.setMinFrameMs(car ? 66 : 0);
+		}
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
 		root.addView(col, new FrameLayout.LayoutParams(-1, -1));
@@ -4031,7 +4081,32 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			head.addView(openButton(ctx, c, noble, accent, fz), openLp(fz));
 			return f;
 		}
-		v.addView(new View(ctx), new LinearLayout.LayoutParams(-1, 0, 1f));
+		// Kartın ortası boş kalmasın: tek bakış değeri (14°, 31 dk, 69,31…) burada büyük; alttaki şeritte tekrar edilmez
+		Glance hero = editing ? null : glance(ctx, c.type());
+		if (hero != null) {
+			LinearLayout hv = new LinearLayout(ctx);
+			hv.setOrientation(LinearLayout.VERTICAL);
+			hv.setGravity(Gravity.CENTER_VERTICAL);
+			TextView hb = text(ctx, "", Math.round(fz.big() * 1.15f), true, 0xFFFFFFFF);
+			hb.setText(hero.big());
+			hb.setMaxLines(1);
+			androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(hb, 24, Math.round(fz.big() * 1.15f), 2,
+					android.util.TypedValue.COMPLEX_UNIT_SP);
+			hv.addView(hb, new LinearLayout.LayoutParams(-1, dp(Math.round(fz.big() * 1.3f))));
+			String hl = hero.l1() + (hero.l2().isEmpty() ? "" : "  ·  ");
+			TextView hs = text(ctx, "", lowFx ? 18 : 16, true, 0xE6FFFFFF);
+			android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder(hl);
+			if (!hero.l2().isEmpty()) {
+				int st = sb.length();
+				sb.append(hero.l2());
+				sb.setSpan(new android.text.style.ForegroundColorSpan(hero.color()), st, sb.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+			}
+			hs.setText(sb);
+			hs.setMaxLines(1);
+			hs.setEllipsize(TextUtils.TruncateAt.END);
+			hv.addView(hs);
+			v.addView(hv, new LinearLayout.LayoutParams(-1, 0, 1f));
+		} else v.addView(new View(ctx), new LinearLayout.LayoutParams(-1, 0, 1f));
 
 		if (editing) {
 			v.addView(editBar(ctx, c, pos), new LinearLayout.LayoutParams(-1, -2));
@@ -4040,7 +4115,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout bottom = hrow(ctx);
 		bottom.setGravity(Gravity.BOTTOM);
 		cardEdit = cardAdd = null;
-		View content = content(ctx, c);
+		heroShown = (hero != null); // şeritteki büyük değer ortada gösterildi: şeritte tekrar etme
+		View content;
+		try {
+			content = content(ctx, c);
+		} finally {
+			heroShown = false;
+		}
 		if (lowFx && (content != null)) carSimplify(content); // araçta kısa şerit, kısa yazı
 		if (content == null) content = glanceRow(ctx, c.type(), v2 -> open(c)); // şerit yoksa: kartın değeri büyük
 		if (content != null) bottom.addView(content, new LinearLayout.LayoutParams(0, -2, 1f));
@@ -5980,6 +6061,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private LinearLayout bigRow(Context ctx, CharSequence big, String l1, String l2, int l2Color,
 															@Nullable View.OnClickListener click) {
 		LinearLayout box = hrow(ctx);
+		if (heroShown) { // değer kartın ortasında: şeritte yer kaplamasın
+			box.setVisibility(View.GONE);
+			return box;
+		}
 		TextView b = text(ctx, "", fit().big(), true, 0xFFFFFFFF);
 		b.setText(big);
 		box.addView(b);
@@ -6148,9 +6233,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 	}
 
+	/** Kart kurulurken tek bakış değeri kartın ortasında büyük gösterildi mi (şeritte tekrar edilmez). */
+	private boolean heroShown;
+
 	/** Kart yüzü: tek bakış değeri büyük (yoksa null). */
 	@Nullable
 	private View glanceRow(Context ctx, String type, @Nullable View.OnClickListener click) {
+		if (heroShown) return null;
 		Glance g = glance(ctx, type);
 		return (g == null) ? null : bigRow(ctx, g.big(), g.l1(), g.l2(), g.color(), click);
 	}

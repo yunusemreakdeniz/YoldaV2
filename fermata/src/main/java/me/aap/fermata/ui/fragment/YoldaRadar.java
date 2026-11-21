@@ -65,6 +65,20 @@ public final class YoldaRadar {
 	private static Context app;
 	@androidx.annotation.Nullable
 	private static java.lang.ref.WeakReference<Context> ui;
+	/**
+	 * Açık bütün Yolda ekranları (araç ve telefon). Önceden yalnız en son açılan tutuluyordu: Android Auto açıkken
+	 * telefonda Yolda açılınca radar uyarı kartı araç yerine telefona gidiyordu.
+	 */
+	private static final java.util.List<java.lang.ref.WeakReference<Context>> uis = new java.util.ArrayList<>();
+
+	private static java.util.List<Context> liveUis() {
+		java.util.List<Context> l = new java.util.ArrayList<>();
+		synchronized (uis) {
+			uis.removeIf(r -> r.get() == null);
+			for (java.lang.ref.WeakReference<Context> r : uis) l.add(r.get());
+		}
+		return l;
+	}
 	private static int users;
 	private static boolean service;
 	/** Son hareket (10 km/s üstü) anı: hizmet uzun süre hareketsizse kapanır. */
@@ -181,6 +195,10 @@ public final class YoldaRadar {
 	public static void attach(Context ctx) {
 		app = ctx.getApplicationContext();
 		ui = new java.lang.ref.WeakReference<>(ctx);
+		synchronized (uis) {
+			uis.removeIf(r -> (r.get() == null) || (r.get() == ctx));
+			uis.add(new java.lang.ref.WeakReference<>(ctx));
+		}
 		users++;
 		load(app);
 		initCar(app);
@@ -191,6 +209,15 @@ public final class YoldaRadar {
 	}
 
 	public static void detach() {
+		detach(null);
+	}
+
+	/** Ekran kapandı: listeden çıkar; en son ekran yoksa kalanlardan biri. */
+	public static void detach(@androidx.annotation.Nullable Context ctx) {
+		if (ctx != null) synchronized (uis) {
+			uis.removeIf(r -> (r.get() == null) || (r.get() == ctx));
+			if ((ui != null) && (ui.get() == ctx)) ui = uis.isEmpty() ? null : uis.get(uis.size() - 1);
+		}
 		if (--users <= 0) {
 			users = 0;
 			ui = null;
@@ -678,22 +705,22 @@ public final class YoldaRadar {
 	 * soldaki göstergede kalır. @return gösterildiyse true
 	 */
 	private static boolean screenAlert(String text, boolean urgent) {
-		java.lang.ref.WeakReference<Context> w = ui;
-		Context c = (w != null) ? w.get() : null;
-		if (c == null) return false;
-		try {
-			me.aap.fermata.ui.activity.MainActivityDelegate a = me.aap.fermata.ui.activity.MainActivityDelegate.get(c);
-			App.get().getHandler().post(() -> {
-				try {
-					me.aap.fermata.ui.view.YoldaAlertOverlay.show(a, "⚠ " + text, urgent);
-				} catch (Throwable ex) {
-					Log.e(ex, "Video uyarısı gösterilemedi");
-				}
-			});
-			return true;
-		} catch (Throwable ex) {
-			return false;
+		boolean shown = false;
+		for (Context c : liveUis()) { // açık her ekranda (araç ve telefon)
+			try {
+				me.aap.fermata.ui.activity.MainActivityDelegate a = me.aap.fermata.ui.activity.MainActivityDelegate.get(c);
+				App.get().getHandler().post(() -> {
+					try {
+						me.aap.fermata.ui.view.YoldaAlertOverlay.show(a, "⚠ " + text, urgent);
+					} catch (Throwable ex) {
+						Log.e(ex, "Radar uyarısı gösterilemedi");
+					}
+				});
+				shown = true;
+			} catch (Throwable ignore) {
+			}
 		}
+		return shown;
 	}
 
 	private static void beep(boolean urgent) {
@@ -1352,10 +1379,7 @@ public final class YoldaRadar {
 	/** Kısa yazı: açık Yolda ekranında (arka planda yalnız ses). */
 	private static final class YoldaStyleToast {
 		static void show(Context ctx, String text) {
-			java.lang.ref.WeakReference<Context> w = ui;
-			Context c = (w != null) ? w.get() : null;
-			if (c == null) return;
-			App.get().getHandler().post(() -> me.aap.fermata.ui.view.YoldaStyle.toast(c, text));
+			for (Context c : liveUis()) App.get().getHandler().post(() -> me.aap.fermata.ui.view.YoldaStyle.toast(c, text));
 		}
 	}
 }

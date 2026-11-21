@@ -203,6 +203,14 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		// Direksiyon tuşları (Mola'dan): önceki / sonraki / oynat tuşlarının dokunma, çift dokunma, uzun basma eylemi
 		set.addView(item(ctx, R.drawable.yi_car, "Direksiyon tuşları · önceki, sonraki, oynat", 0xFFFED7AA, 0xFFEA580C,
 				v -> showKeys(ctx)));
+		// Gelen mesajları araçta sesli okuma: aç / kapat (önceden her mesaj okunuyordu, kapatılamıyordu)
+		boolean mr = YoldaMessages.isEnabled(ctx);
+		set.addView(item(ctx, R.drawable.yi_phone, "Mesajları sesli oku: " + (mr ? "Açık" : "Kapalı") + " · dokun: değiştir",
+				0xFFBBF7D0, 0xFF15803D, v -> {
+					YoldaMessages.setEnabled(ctx, !mr);
+					YoldaStyle.toast(ctx, mr ? "Mesajlar okunmayacak (\"mesajı oku\" deyince son mesaj okunur)" : "Gelen mesajlar araçta okunacak");
+					render();
+				}));
 		// Sesli karşılama (Mola'dan): araca bağlanınca selam; dokun aç / kapat, basılı tut: isim ve günde bir kez
 		boolean wOn = YoldaWelcome.isOn(ctx);
 		String wn = YoldaWelcome.name(ctx);

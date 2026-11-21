@@ -37,6 +37,8 @@ public final class YoldaIntents {
 		WAKE_OFF, SUN, THEME_SET, TEST_ALERT, NAV_APP,
 		/** Mesaj: son mesaja sesle yanıt (arg: metin), son mesajı tekrar oku. */
 		MSG_REPLY, MSG_READ,
+		/** Gelen mesajları sesli okuma: arg "on" / "off". */
+		MSG_AUTO,
 		DATE, CALC, TIMER, TIMER_CANCEL, BATTERY, SPEED, FORECAST, WHERE_AM_I, WIKI,
 		/** Ekolayzer hazır ayarı (arg: ayar adı; null: kartı aç). */
 		EQ,
@@ -398,6 +400,10 @@ public final class YoldaIntents {
 			String txt = ((m.group(1) != null) ? m.group(1) : m.group(2)).trim();
 			if (!txt.isEmpty()) return Intent.of(Kind.MSG_REPLY, txt);
 		}
+		if (c.matches("mesaj(ları|ı)? okuma(yı)? (kapat|durdur|kes)|mesajları okuma|mesaj okuma kapalı|mesajları (sesli )?okumayı bırak"))
+			return Intent.of(Kind.MSG_AUTO, "off");
+		if (c.matches("mesaj(ları|ı)? okuma(yı)? (aç|başlat)|mesajları sesli okumaya başla|mesaj okuma açık"))
+			return Intent.of(Kind.MSG_AUTO, "on");
 		if (c.matches("(son )?mesaj(ı|ları)? (tekrar )?oku|mesajı tekrar oku|ne yazmış|kim yazdı|son mesaj ne")) return Intent.of(Kind.MSG_READ);
 
 		// hatırlatıcı / zamanlayıcı ("10 dakika sonra hatırlat", "5 dakikalık zamanlayıcı kur")

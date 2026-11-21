@@ -51,4 +51,13 @@ public class YoldaDriveWeatherTest {
 		}
 		org.junit.Assert.assertFalse("road".equals(YoldaIntents.parse("hava nasıl").arg()));
 	}
+
+	@Test
+	public void mesajOkumaKomutu() {
+		assertEquals(YoldaIntents.Kind.MSG_AUTO, YoldaIntents.parse("mesaj okumayı kapat").kind());
+		assertEquals("off", YoldaIntents.parse("mesajları okumayı kapat").arg());
+		assertEquals("on", YoldaIntents.parse("mesaj okumayı aç").arg());
+		assertEquals(YoldaIntents.Kind.MSG_READ, YoldaIntents.parse("mesajları oku").kind()); // son mesajı okur
+		assertEquals(YoldaIntents.Kind.MSG_READ, YoldaIntents.parse("mesajı tekrar oku").kind());
+	}
 }
