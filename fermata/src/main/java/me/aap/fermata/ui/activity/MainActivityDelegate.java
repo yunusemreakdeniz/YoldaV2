@@ -2414,14 +2414,15 @@ public class MainActivityDelegate extends ActivityDelegate
 		if ((deckBack != null) && (deckBack.getVisibility() != hv)) deckBack.setVisibility(hv);
 		if ((deckPrev != null) && (deckPrev.getVisibility() != bv)) deckPrev.setVisibility(bv);
 		if (deckPark != null) {
-			int pv = (full || np || !me.aap.fermata.ui.fragment.YoldaRadar.hasPark(getContext())) ? View.GONE : View.VISIBLE;
+			// yatay Pano'da gizli: park altta "Otopark" düğmesinde, kutu kenarda yarım kalıp karta biniyordu
+			int pv = (full || np || voiceOrbHidden || !me.aap.fermata.ui.fragment.YoldaRadar.hasPark(getContext())) ? View.GONE : View.VISIBLE;
 			if (deckPark.getVisibility() != pv) deckPark.setVisibility(pv);
 		}
 		if (speedRail != null) {
 			// Videoda da (tam ekran, YouTube): yalnız önemli anda, sol üstte (video düğmelerine binmesin)
 			if (speedRail.isVideo() != full) placeSpeedRail(full);
 			speedRail.setVideo(full);
-			speedRail.setAllowed(!np || full);
+			speedRail.setAllowed((!np || full) && (!voiceOrbHidden || full)); // yatay Pano'da hız levhası üst satırda
 		}
 		updateOrb();
 		updateDock();
