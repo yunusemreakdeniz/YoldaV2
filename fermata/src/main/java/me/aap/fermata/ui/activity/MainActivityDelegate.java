@@ -779,7 +779,10 @@ public class MainActivityDelegate extends ActivityDelegate
 			keepScreenOn(false);
 			if (cp != null) cp.disableVideoMode();
 		}
-		showYoldaBack(videoMode);
+		// Pano'daki küçük video penceresinde tam ekran düğmeleri (geri, kanallar) Pano'nun üstüne binmesin
+		boolean inline = videoMode && me.aap.fermata.ui.view.BodyLayout.yoldaInline && (getBody() != null)
+				&& getBody().isBothMode() && (getActiveFragmentId() == R.id.home_fragment);
+		showYoldaBack(videoMode && !inline);
 		me.aap.fermata.ui.view.YoldaQualityPill.update(this); // video izlerken sağ üstte kalite düğmesi
 		updateBodyTopPadding(); // tam ekran videoda soldaki pay kalkar
 		if (cp != null) cp.yoldaRefreshVisibility();
