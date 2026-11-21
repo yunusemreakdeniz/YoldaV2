@@ -16,7 +16,8 @@ import me.aap.utils.app.App;
  * İsteğe bağlı (varsayılan kapalı), istenirse günde bir kez. Mikrofon ve yeni izin kullanılmaz.
  */
 public final class YoldaWelcome {
-	static final String ON = "welcome_on", NAME = "welcome_name", ONCE = "welcome_once", LAST = "welcome_last_day";
+	static final String ON = "welcome_on", NAME = "welcome_name", ONCE = "welcome_once", LAST = "welcome_last_day",
+			BIRTHDAY = "welcome_birthday";
 	private static final int MAX_NAME = 24;
 
 	private YoldaWelcome() {
@@ -48,13 +49,61 @@ public final class YoldaWelcome {
 		return on && (!once || (lastDay != today));
 	}
 
+	/**
+	 * Özel gün cümlesi (Mola'dan): doğum günü, resmî bayramlar, 10 Kasım, yılbaşı, cuma; yoksa boş.
+	 * {@code birthday}: "AA-GG" (ör. "11-21") ya da boş. {@code dow}: Calendar.DAY_OF_WEEK.
+	 */
+	static String specialDay(int month, int day, int dow, @Nullable String birthday) {
+		String md = String.format(java.util.Locale.ROOT, "%02d-%02d", month, day);
+		if ((birthday != null) && birthday.equals(md)) return "Doğum günün kutlu olsun! Bugün yol senin.";
+		switch (md) {
+			case "01-01":
+				return "Mutlu yıllar! Yeni yılın ilk yolculuğu hayırlı olsun.";
+			case "04-23":
+				return "23 Nisan Ulusal Egemenlik ve Çocuk Bayramı kutlu olsun!";
+			case "05-01":
+				return "1 Mayıs Emek ve Dayanışma Günü kutlu olsun!";
+			case "05-19":
+				return "19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramı kutlu olsun!";
+			case "07-15":
+				return "15 Temmuz Demokrasi ve Milli Birlik Günü.";
+			case "08-30":
+				return "30 Ağustos Zafer Bayramı kutlu olsun!";
+			case "10-29":
+				return "Cumhuriyet Bayramı kutlu olsun!";
+			case "11-10":
+				return "Bugün 10 Kasım; Atatürk'ü saygı ve özlemle anıyoruz.";
+			default:
+				break;
+		}
+		if (dow == Calendar.FRIDAY) return "Cuma geldi, hafta sonu kapıda.";
+		if ((dow == Calendar.SATURDAY) || (dow == Calendar.SUNDAY)) return "Hafta sonu yolculuğu keyifli geçsin.";
+		return "";
+	}
+
+	/** "21.11" / "21/11" / "21 11" → "11-21"; okunamazsa boş. */
+	static String parseBirthday(@Nullable String s) {
+		if (s == null) return "";
+		java.util.regex.Matcher m = java.util.regex.Pattern.compile("^\\s*(\\d{1,2})[./ -](\\d{1,2})\\s*$").matcher(s);
+		if (!m.matches()) return "";
+		int d = Integer.parseInt(m.group(1)), mo = Integer.parseInt(m.group(2));
+		if ((d < 1) || (d > 31) || (mo < 1) || (mo > 12)) return "";
+		return String.format(java.util.Locale.ROOT, "%02d-%02d", mo, d);
+	}
+
 	/** Söylenecek metin; weather null ise hava cümlesi yok. */
 	static String text(int hour, String name, @Nullable YoldaWeather.Now weather) {
+		return text(hour, name, weather, "");
+	}
+
+	/** Söylenecek metin + özel gün cümlesi (boş olabilir). */
+	static String text(int hour, String name, @Nullable YoldaWeather.Now weather, String extra) {
 		StringBuilder b = new StringBuilder(hello(hour));
 		if (!name.isEmpty()) b.append(' ').append(name);
 		b.append('.');
 		if (weather != null)
 			b.append(" Hava ").append(weather.temp()).append(" derece, ").append(YoldaWeather.text(weather.code()).toLowerCase(new java.util.Locale("tr"))).append('.');
+		if (!extra.isEmpty()) b.append(' ').append(extra);
 		b.append(" İyi yolculuklar!");
 		return b.toString();
 	}
@@ -73,6 +122,11 @@ public final class YoldaWelcome {
 
 	public static boolean once(Context ctx) {
 		return prefs(ctx).getBoolean(ONCE, true);
+	}
+
+	/** Doğum günü ("GG.AA"); geçersizse silinir. */
+	public static void setBirthday(Context ctx, @Nullable String ddmm) {
+		prefs(ctx).edit().putString(BIRTHDAY, parseBirthday(ddmm)).apply();
 	}
 
 	public static void set(Context ctx, boolean on, @Nullable String name, boolean once) {
@@ -94,7 +148,9 @@ public final class YoldaWelcome {
 		if (!shouldGreet(p.getBoolean(ON, false), p.getBoolean(ONCE, true), p.getLong(LAST, -1), t)) return;
 		p.edit().putLong(LAST, t).apply();
 		App.get().getHandler().postDelayed(() -> {
-			String s = text(Calendar.getInstance().get(Calendar.HOUR_OF_DAY), name(app), YoldaWeather.cachedNow());
+			Calendar c = Calendar.getInstance();
+			String s = text(c.get(Calendar.HOUR_OF_DAY), name(app), YoldaWeather.cachedNow(), specialDay(c.get(Calendar.MONTH) + 1,
+					c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.DAY_OF_WEEK), prefs(app).getString(BIRTHDAY, "")));
 			YoldaLog.add("Sesli karşılama: " + s);
 			YoldaSpeak.sayAlways(app, s);
 		}, 4000);
