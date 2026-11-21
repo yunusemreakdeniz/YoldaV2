@@ -43,7 +43,7 @@ public class YoldaQualityPill extends LinearLayout {
 		View host = a.findViewById(R.id.main_activity);
 		if (!(host instanceof ConstraintLayout cl)) return;
 		YoldaQualityPill cur = find(cl);
-		boolean want = a.yoldaVideoOnScreen();
+		boolean want = a.yoldaVideoOnScreen() && !BodyLayout.yoldaInlineCard(a); // kart içi videoda yok (Pano düğmelerine biniyordu)
 		if (want && (cur == null)) {
 			YoldaQualityPill p = new YoldaQualityPill(a);
 			ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(-2, -2);

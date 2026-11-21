@@ -1003,6 +1003,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			phPlay.setVisibility(View.INVISIBLE);
 			sig.setVisibility(View.INVISIBLE);
 			art.post(() -> placeInlineVideo(art));
+			art.addOnLayoutChangeListener((v, l, t2, r, b, ol, ot, orr, ob) -> { // ölçü değişince yeniden yerleştir
+				if (((r - l) != (orr - ol)) || ((b - t2) != (ob - ot)) || (l != ol) || (t2 != ot)) v.post(() -> placeInlineVideo(art));
+			});
 		} else art.post(() -> placeInlineVideo(null));
 
 		// ---- Sağ: selam + saat, kartlar, hızlı erişim ----
