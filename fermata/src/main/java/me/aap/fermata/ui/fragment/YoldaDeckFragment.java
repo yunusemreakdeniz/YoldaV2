@@ -271,9 +271,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Telefon görünümü açık mı (telefonda; araçta her zaman deste). */
 	private boolean phoneMode() {
 		Context ctx = getContext();
-		if ((ctx == null) || getActivityDelegate().isCarActivity()) return false;
+		if (ctx == null) return false;
+		if (getActivityDelegate().isCarActivity()) return prefs(ctx).getBoolean(PREF_CAR_PANO, false); // araçta: Deste ya da Pano
 		return prefs(ctx).getBoolean(PREF_PHONE_VIEW, !underTest());
 	}
+
+	/** Araçta (Android Auto) Pano seçili mi; telefondaki seçimden ayrı saklanır. */
+	static final String PREF_CAR_PANO = "car_pano_view";
 
 	private static final String PREF_PHONE_VIEW = "phone_view";
 	/** Telefon görünümünün Pano biçimi (Mola tarzı: üstte geniş Şimdi çalıyor + son açılanlar, altında yatay kartlar). */
@@ -281,15 +285,53 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	private boolean panoMode() {
 		Context ctx = getContext();
-		return (ctx != null) && phoneMode() && prefs(ctx).getBoolean(PREF_PANO, false);
+		if (ctx == null) return false;
+		if (getActivityDelegate().isCarActivity()) return prefs(ctx).getBoolean(PREF_CAR_PANO, false);
+		return phoneMode() && prefs(ctx).getBoolean(PREF_PANO, false);
+	}
+
+	/** Şu an seçili görünüm: "deck", "phone" ya da "pano". */
+	String homeView() {
+		return panoMode() ? "pano" : phoneMode() ? "phone" : "deck";
+	}
+
+	/**
+	 * Görünüm seçici: Deste (kayan büyük kartlar), Izgara (telefonda iki sütun karo), Pano (Mola tarzı: geniş Şimdi
+	 * çalıyor + son açılanlar + yatay kartlar). Araçta Izgara yok.
+	 */
+	private void showViewPicker(Context ctx) {
+		boolean car = getActivityDelegate().isCarActivity();
+		String cur = homeView();
+		String[] keys = car ? new String[]{"deck", "pano"} : new String[]{"deck", "phone", "pano"};
+		String[] names = car ? new String[]{"Deste · kayan büyük kartlar", "Pano · Şimdi çalıyor + kartlar"}
+				: new String[]{"Deste · kayan büyük kartlar", "Izgara · iki sütun karolar", "Pano · Şimdi çalıyor + son açılanlar + kartlar"};
+		for (int i = 0; i < keys.length; i++) if (keys[i].equals(cur)) names[i] = "✓  " + names[i];
+		new android.app.AlertDialog.Builder(ctx).setTitle("Görünüm seç")
+				.setItems(names, (d, w) -> {
+					if (!keys[w].equals(cur)) setHomeView(keys[w]);
+				}).setNegativeButton("Kapat", null).show();
 	}
 
 	/** Görünüm seç: "phone" ızgara, "pano" Pano, "deck" araç destesi. */
 	public void setHomeView(String mode) {
 		Context ctx = getContext();
 		if (ctx == null) return;
+		if (getActivityDelegate().isCarActivity()) {
+			prefs(ctx).edit().putBoolean(PREF_CAR_PANO, !"deck".equals(mode)).apply();
+			rebuildHome();
+			return;
+		}
 		prefs(ctx).edit().putBoolean(PREF_PANO, "pano".equals(mode)).apply();
 		setPhoneView(!"deck".equals(mode));
+	}
+
+	private void rebuildHome() {
+		try {
+			getParentFragmentManager().beginTransaction().detach(this).commitNow();
+			getParentFragmentManager().beginTransaction().attach(this).commitNow();
+		} catch (Throwable ex) {
+			YoldaLog.add("Görünüm değiştirilemedi: " + ex);
+		}
 	}
 	/** Ekranda şu an telefon görünümü mü kurulu (ayar değil, gerçekte kurulan): yenilemeler buna göre. */
 	private boolean phoneBuilt;
@@ -426,9 +468,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				android.util.TypedValue.COMPLEX_UNIT_SP);
 		top.addView(brand, new LinearLayout.LayoutParams(0, dp(32), 1f));
 		// Araç görünümüne geç: araba simgeli düğme (araç görünümündeki telefon simgeli düğmeyle eş)
-		ImageView carB = roundButton(ctx, R.drawable.yi_car, "Araç görünümü", v -> {
+		ImageView carB = roundButton(ctx, R.drawable.yi_grid, "Görünüm seç", v -> { // Deste / Izgara / Pano
 			YoldaStyle.haptic(v);
-			setPhoneView(false);
+			showViewPicker(ctx);
 		});
 		top.addView(carB, new LinearLayout.LayoutParams(dp(48), dp(48)));
 		ImageView themeB = roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx),
@@ -1425,8 +1467,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(48), dp(48));
 		tlp.rightMargin = hg;
 		top.addView(themeBtn, tlp);
-		if (!car) { // telefonda her zaman: Araç görünümünden tek dokunuşla telefon görünümüne dön (dar ekranda da)
-			ImageView pv = roundButton(ctx, R.drawable.yi_phone, "Telefon görünümü", v -> setPhoneView(true));
+		{ // görünüm seçici (Deste / Izgara / Pano; araçta Deste / Pano): her zaman, dar ekranda da
+			ImageView pv = roundButton(ctx, R.drawable.yi_grid, "Görünüm seç", v -> {
+				YoldaStyle.haptic(v);
+				showViewPicker(ctx);
+			});
 			LinearLayout.LayoutParams pvl = new LinearLayout.LayoutParams(dp(48), dp(48));
 			pvl.rightMargin = hg; // tema düğmesi kalır (önceden dar ekranda kaldırılıyordu); sığması için saat küçülür
 			top.addView(pv, top.indexOfChild(themeBtn), pvl);
