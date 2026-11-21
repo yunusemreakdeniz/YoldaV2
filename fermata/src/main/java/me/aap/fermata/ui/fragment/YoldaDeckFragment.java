@@ -901,6 +901,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		pb.setStroke(dp(2), 0x66FFFFFF);
 		phPlay.setBackground(pb);
 		art.addView(phPlay, new FrameLayout.LayoutParams(dp(72), dp(72), Gravity.CENTER));
+		// "Akdeniz" imzası her görünümde: yatay Pano'da Şimdi çalıyor alanının sağ alt köşesinde (düğmelere binmez)
+		TextView sig = signature(ctx);
+		sig.setTextSize(30);
+		FrameLayout.LayoutParams sgl = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
+		sgl.rightMargin = dp(14);
+		sgl.bottomMargin = dp(6);
+		art.addView(sig, sgl);
 		now.addView(art, new LinearLayout.LayoutParams(-1, 0, 1f));
 		phNowTitle = text(ctx, "Henüz bir şey çalmadı", 22, true, 0xFFFFFFFF);
 		phNowTitle.setMaxLines(2);
