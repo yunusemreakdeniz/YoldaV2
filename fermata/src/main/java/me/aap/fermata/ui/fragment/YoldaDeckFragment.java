@@ -459,6 +459,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private View phoneHome(Context ctx) {
 		long t0 = android.os.SystemClock.uptimeMillis();
 		panoWideBuilt = panoMode() && wideScreen();
+		me.aap.fermata.ui.view.BodyLayout.yoldaInline = panoWideBuilt; // ana ekranda video küçük pencerede
 		View v = panoWideBuilt ? panoWide(ctx) : phoneHomeBuild(ctx);
 		showVoiceOrb(!panoWideBuilt); // yatay Pano'nun üst satırında mikrofon var: yüzen düğme "Ses"in üstüne biniyordu
 		me.aap.fermata.ui.view.YoldaJank.took("Telefon görünümü", t0, 0);
@@ -862,8 +863,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * selam + saat + ayar / görünüm / mikrofon, altında 3 sütun renkli kartlar (kayar), en altta Ev · İş ·
 	 * Benzinlik · Otopark.
 	 */
+	/** Yatay Pano kurulurken video küçük pencerede oynuyor muydu (sol Şimdi çalıyor kartı yerine video). */
+	private boolean panoBuiltWithVideo;
+
+	private boolean inlineVideoShown() {
+		try {
+			return getActivityDelegate().getBody().isBothMode();
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
+
 	private View panoWide(Context ctx) {
 		MainActivityDelegate a = getActivityDelegate();
+		panoBuiltWithVideo = inlineVideoShown();
 		android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
 		LinearLayout rootRow = hrow(ctx);
 		rootRow.setGravity(Gravity.TOP);
@@ -945,7 +958,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			acts.addView(b, blp);
 		}
 		now.addView(acts);
-		rootRow.addView(now, new LinearLayout.LayoutParams(0, -1, 0.36f));
+		if (!panoBuiltWithVideo) rootRow.addView(now, new LinearLayout.LayoutParams(0, -1, 0.36f));
+		else phNowTitle = phNowTag = null; // video sağdaki küçük pencerede: Şimdi çalıyor kartı yerine o
 
 		// ---- Sağ: selam + saat, kartlar, hızlı erişim ----
 		LinearLayout right = new LinearLayout(ctx);
@@ -1056,7 +1070,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, -2);
 		ql.topMargin = dp(8);
 		right.addView(quick, ql);
-		rootRow.addView(right, new LinearLayout.LayoutParams(0, -1, 0.64f));
+		rootRow.addView(right, new LinearLayout.LayoutParams(0, -1, panoBuiltWithVideo ? 1f : 0.64f));
 		updatePhoneLive();
 		return rootRow;
 	}
@@ -1374,6 +1388,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private void updatePhoneLive() {
 		Context ctx = getContext();
 		if ((ctx == null) || (phClock == null)) return;
+		if (panoWideBuilt && (inlineVideoShown() != panoBuiltWithVideo) && (root != null)) { // video küçük pencere açıldı / kapandı
+			root.post(this::rebuildPhone);
+			return;
+		}
 		java.util.Date d = new java.util.Date();
 		phClock.setText(new java.text.SimpleDateFormat("HH:mm", new java.util.Locale("tr")).format(d));
 		if (phDate != null) phDate.setText(new java.text.SimpleDateFormat("d MMMM EEEE", new java.util.Locale("tr")).format(d));
@@ -3403,6 +3421,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Override
 	public void onDestroyView() {
 		showVoiceOrb(true);
+		me.aap.fermata.ui.view.BodyLayout.yoldaInline = false;
 		if (root != null) root.removeCallbacks(hideJump); // sayfa kapanırken bekleyen şerit kapatma çalışmasın
 		YoldaRadar.removeListener(radarListener);
 		jumpStrip = null;
