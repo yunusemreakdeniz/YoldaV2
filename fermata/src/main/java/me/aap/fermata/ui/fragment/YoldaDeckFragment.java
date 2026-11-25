@@ -1856,7 +1856,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			wxChip.setBackground(null);
 			wxChip.setTextSize(12);
 			wxChip.setTextColor(t.muted);
-			wxChip.setPadding(dp(6), 0, 0, 0);
+			wxChip.setPadding(dp(6), 0, dp(6), 0); // "10°Çarşamba" bitişik görünüyordu
 			dateLine.addView(wxChip, 0, new LinearLayout.LayoutParams(-2, -2));
 		} else {
 			LinearLayout.LayoutParams wlp = new LinearLayout.LayoutParams(-2, dp(44));
@@ -3367,21 +3367,34 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return (v != null) ? list.getChildAdapterPosition(v) : -1;
 	}
 
+	static final int DOTS_MAX = 11;
+
+	/** Görünen nokta penceresi [baş, son): {@code cur} mümkünse ortada, en çok {@code max} nokta. */
+	static int[] dotWindow(int size, int cur, int max) {
+		if (size <= max) return new int[]{0, Math.max(0, size)};
+		int c = Math.max(0, Math.min(size - 1, cur));
+		int st = Math.max(0, Math.min(size - max, c - max / 2));
+		return new int[]{st, st + max};
+	}
+
 	private void updateDots() {
 		if ((dots == null) || !isAdded() || (getContext() == null)) return;
 		Context ctx = requireContext();
 		dots.removeAllViews();
 		int cur = centerPosition();
 		int home = homeCardIndex();
-		// Kart çoksa noktalar ekrana sığacak kadar küçülür (26 kartta dar telefonda sağdan taşıyordu)
-		int n = Math.max(1, deck.size());
+		// Kart çoksa (34 kart) bütün noktalar bir şerit gibi ekranı kaplıyordu, sesli komut düğmesine değiyordu:
+		// en çok 11 nokta, çalan kart ortada kayan pencere; pencerenin ucunda devamı olduğu küçük noktayla belli
+		int[] w = dotWindow(deck.size(), cur, DOTS_MAX);
+		int n = Math.max(1, w[1] - w[0]);
 		int avail = Math.max(dp(120), ((dots.getWidth() > 0) ? dots.getWidth() : getResources().getDisplayMetrics().widthPixels) - dp(32));
 		int per = (avail - dp(15)) / n; // ortadaki uzun nokta için pay
 		int mg = Math.max(1, Math.min(dp(3), per / 4));
 		int sz = Math.max(dp(3), Math.min(dp(7), per - 2 * mg));
 		int curW = Math.min(dp(22), sz * 3);
-		for (int i = 0; i < deck.size(); i++) {
-			if (i == home) { // ana kart: nokta yerine ev simgesi (ortadaysa parlak, değilse soluk)
+		for (int i = w[0]; i < w[1]; i++) {
+			boolean edge = ((i == w[0]) && (w[0] > 0)) || ((i == w[1] - 1) && (w[1] < deck.size()));
+			if ((i == home) && !edge) { // ana kart: nokta yerine ev simgesi (ortadaysa parlak, değilse soluk)
 				android.widget.ImageView hv = new android.widget.ImageView(ctx);
 				hv.setImageResource(R.drawable.yi_home_fill);
 				hv.setImageTintList(android.content.res.ColorStateList.valueOf((i == cur) ? 0xFFFFFFFF : 0x99FFFFFF));
@@ -3398,7 +3411,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			g.setCornerRadius(dp(4));
 			g.setColor((i == cur) ? 0xFFFFFFFF : 0x55FFFFFF);
 			d.setBackground(g);
-			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((i == cur) ? curW : sz, sz);
+			int ds = edge ? Math.max(dp(3), sz / 2) : sz; // devamı var
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((i == cur) ? curW : ds, ds);
 			lp.leftMargin = lp.rightMargin = mg;
 			lp.gravity = Gravity.CENTER_VERTICAL;
 			dots.addView(d, lp);
