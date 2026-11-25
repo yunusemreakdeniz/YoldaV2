@@ -872,7 +872,26 @@ public class SettingsFragment extends MainActivityFragment
 
 		try (ZipOutputStream zos = (SDK_INT >= N) ? new ZipOutputStream(os, UTF_8) :
 				new ZipOutputStream(os)) {
-			PrefUtils.exportSharedPrefs(ctx, names, zos);
+			// Yolda: API anahtarları (Gemini, TomTom) yedek dosyasına yazılmaz, yalnız telefonda kalır
+			List<String> plain = new ArrayList<>(names.size());
+			for (String n : names) {
+				if (!YoldaBackup.needsSanitize(n)) {
+					plain.add(n);
+					continue;
+				}
+				File pf = PrefUtils.getSharedPrefsFile(ctx, n);
+				if (!pf.isFile()) continue;
+				java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+				try (InputStream in = new FileInputStream(pf)) {
+					byte[] buf = new byte[8192];
+					for (int r; (r = in.read(buf)) > 0; ) bo.write(buf, 0, r);
+				}
+				String xml = bo.toString("UTF-8");
+				zos.putNextEntry(new java.util.zip.ZipEntry(n + ".xml"));
+				zos.write(YoldaBackup.sanitize(xml).getBytes(UTF_8));
+				zos.closeEntry();
+			}
+			PrefUtils.exportSharedPrefs(ctx, plain, zos);
 			UiUtils.showInfo(ctx, ctx.getString(R.string.export_prefs_ok, fileName));
 		}
 	}
@@ -932,7 +951,9 @@ public class SettingsFragment extends MainActivityFragment
 
 		try (ZipInputStream zis = (SDK_INT >= N) ? new ZipInputStream(is, UTF_8) :
 				new ZipInputStream(is)) {
+			var keys = YoldaBackup.keepSecrets(ctx); // yedekte anahtar yok: telefondakiler silinmesin
 			PrefUtils.importSharedPrefs(ctx, zis);
+			YoldaBackup.restoreSecrets(ctx, keys);
 		}
 
 		UiUtils.showInfo(ctx, ctx.getString(R.string.import_prefs_ok)).thenRun(() -> {
