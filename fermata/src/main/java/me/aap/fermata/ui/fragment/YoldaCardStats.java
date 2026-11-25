@@ -18,6 +18,14 @@ public final class YoldaCardStats {
 	private YoldaCardStats() {
 	}
 
+	/** Uyku zamanlayıcısının sıradaki değeri (dk): kapalı → 15 → 30 → 60 → kapalı (0). */
+	public static int nextSleep(int leftMin) {
+		if (leftMin <= 0) return 15;
+		if (leftMin <= 15) return 30;
+		if (leftMin <= 30) return 60;
+		return 0;
+	}
+
 	/** "1 sa 25 dk" / "25 dk" / "2 gün 3 sa". */
 	public static String elapsed(long ms) {
 		long m = Math.max(0, ms / 60_000L);

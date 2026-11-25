@@ -206,10 +206,11 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		// Uyku zamanlayıcısı (Mola'dan): dokun Kapalı → 15 → 30 → 60 dk → Kapalı; kuruluyken kalan süre
 		long left = (YoldaVoice.sleepAt == 0) ? 0 : Math.max(0, YoldaVoice.sleepAt - android.os.SystemClock.elapsedRealtime());
 		int leftMin = (int) ((left + 59_999) / 60_000);
+		int ns = YoldaCardStats.nextSleep(leftMin);
 		set.addView(item(ctx, R.drawable.yi_history, "Uyku zamanlayıcısı: " + ((leftMin > 0) ? (leftMin + " dk kaldı") : "Kapalı")
-						+ " · dokun: " + ((nextSleep(leftMin) == 0) ? "kapat" : (nextSleep(leftMin) + " dk")),
+						+ " · dokun: " + ((ns == 0) ? "kapat" : (ns + " dk")),
 				0xFFC7D2FE, 0xFF4F46E5, v -> {
-					int n = nextSleep(leftMin);
+					int n = ns;
 					if (n == 0) {
 						YoldaVoice.cancelSleep();
 						YoldaStyle.toast(ctx, "Uyku zamanlayıcısı kapatıldı");
@@ -409,14 +410,6 @@ public class YoldaMenuFragment extends MainActivityFragment {
 								showKeys(ctx);
 							}).setNegativeButton("Geri", (d2, w2) -> showKeys(ctx)).show();
 				}).setNegativeButton("Kapat", null).show();
-	}
-
-	/** Uyku zamanlayıcısının sıradaki değeri (dk): kapalı → 15 → 30 → 60 → kapalı (0). */
-	static int nextSleep(int leftMin) {
-		if (leftMin <= 0) return 15;
-		if (leftMin <= 15) return 30;
-		if (leftMin <= 30) return 60;
-		return 0;
 	}
 
 	/** Sesli karşılamada söylenecek isim; ardından günde bir kez mi her bağlanışta mı. */

@@ -8,9 +8,9 @@ import org.junit.Test;
 public class YoldaSleepMenuTest {
 	@Test
 	public void sira() {
-		assertEquals(15, YoldaMenuFragment.nextSleep(0));
-		assertEquals(30, YoldaMenuFragment.nextSleep(12));
-		assertEquals(60, YoldaMenuFragment.nextSleep(29));
-		assertEquals(0, YoldaMenuFragment.nextSleep(45));
+		assertEquals(15, YoldaCardStats.nextSleep(0));
+		assertEquals(30, YoldaCardStats.nextSleep(12));
+		assertEquals(60, YoldaCardStats.nextSleep(29));
+		assertEquals(0, YoldaCardStats.nextSleep(45));
 	}
 }
