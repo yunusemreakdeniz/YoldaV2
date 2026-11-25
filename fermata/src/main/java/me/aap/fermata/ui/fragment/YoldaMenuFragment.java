@@ -238,6 +238,14 @@ public class YoldaMenuFragment extends MainActivityFragment {
 					YoldaStyle.toast(ctx, mr ? "Mesajlar okunmayacak (\"mesajı oku\" deyince son mesaj okunur)" : "Gelen mesajlar araçta okunacak");
 					render();
 				}));
+		// Araçtan inince durdur (Mola'dan): bağlantı kesilince telefonun hoparlöründen çalmaya devam etmesin
+		boolean co = YoldaCarOff.isOn(ctx);
+		set.addView(item(ctx, R.drawable.yi_car, "Araçtan inince durdur: " + (co ? "Açık" : "Kapalı") + " · dokun: değiştir",
+				0xFFBAE6FD, 0xFF0369A1, v -> {
+					YoldaCarOff.set(ctx, !co);
+					YoldaStyle.toast(ctx, co ? "Bağlantı kesilince çalmaya devam eder" : "Android Auto bağlantısı kesilince oynatma durur");
+					render();
+				}));
 		// Sesli karşılama (Mola'dan): araca bağlanınca selam; dokun aç / kapat, basılı tut: isim ve günde bir kez
 		boolean wOn = YoldaWelcome.isOn(ctx);
 		String wn = YoldaWelcome.name(ctx);
