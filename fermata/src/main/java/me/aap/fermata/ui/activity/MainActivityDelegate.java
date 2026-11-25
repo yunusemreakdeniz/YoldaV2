@@ -2443,10 +2443,12 @@ public class MainActivityDelegate extends ActivityDelegate
 	private void applyShellRow() {
 		View vb = voiceButton, home = deckBack, back = deckPrev, park = deckPark;
 		if ((vb == null) || (home == null) || (back == null) || (park == null)) return;
-		boolean row = !isCarActivity() && (getContext().getResources().getConfiguration().orientation
-				== android.content.res.Configuration.ORIENTATION_PORTRAIT);
+		// Yatay sıra alttaki arama kutularıyla (YouTube, Kanallar, Müzik, Navigasyon) çakıştı: şimdilik her yerde sütun
+		boolean row = false;
 		if (Boolean.valueOf(row).equals(shellRow)) return;
+		boolean first = (shellRow == null);
 		shellRow = row;
+		if (first && !row) return; // kurulumdaki sütun düzeni olduğu gibi kalsın
 		Context ctx = getContext();
 		View[] chain = {back, home, park}; // soldan sağa: mikrofon, geri, ana sayfa, aracım
 		View prev = vb;

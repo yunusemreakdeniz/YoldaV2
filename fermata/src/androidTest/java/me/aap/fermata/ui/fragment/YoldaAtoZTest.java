@@ -1318,7 +1318,7 @@ public class YoldaAtoZTest {
 				assertTrue(desc + " kapsülün içinde olmalı: " + vr + " / " + b, b.contains(vr));
 			}
 			// dikey telefonda tek sıra (listelerin soluna binmesin), yatayda tek sütun
-			boolean portrait = c.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT;
+			boolean portrait = false; // kabuk her yerde tek sütun
 			float thin = portrait ? b.height() : b.width();
 			assertTrue("Kapsül ince olmalı (" + (portrait ? "tek sıra" : "tek sütun") + "): " + thin,
 					thin < 90 * c.getResources().getDisplayMetrics().density);
