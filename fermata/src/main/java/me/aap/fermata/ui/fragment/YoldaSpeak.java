@@ -55,6 +55,10 @@ public final class YoldaSpeak {
 		lastSpoken = text;
 		YoldaLog.add("Hey Yolda yanıtı: " + text);
 		if (!isEnabled(ctx)) return;
+		if (YoldaGeminiVoice.on(ctx)) { // isteğe bağlı Gemini doğal sesi; olmazsa telefonun sesi
+			YoldaGeminiVoice.speak(ctx, text, () -> speakNow(ctx, text));
+			return;
+		}
 		speakNow(ctx, text);
 	}
 
