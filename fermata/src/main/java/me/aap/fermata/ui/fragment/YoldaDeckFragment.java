@@ -1045,6 +1045,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			art.setBackground(vf);
 			phPlay.setVisibility(View.INVISIBLE);
 			sig.setVisibility(View.INVISIBLE);
+			phNowPlate.setVisibility(View.GONE); // videonun üstünde simge durmasın
 			art.post(() -> placeInlineVideo(art));
 			art.addOnLayoutChangeListener((v, l, t2, r, b, ol, ot, orr, ob) -> { // ölçü değişince yeniden yerleştir
 				if (((r - l) != (orr - ol)) || ((b - t2) != (ob - ot)) || (l != ol) || (t2 != ot)) v.post(() -> placeInlineVideo(art));
@@ -1222,6 +1223,26 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * Yatay Pano kartı: kartın renginde koyu geçişli yüzey, sol üstte renkli simge kutusu, sağ üstte ok, altta ad ve
 	 * kısa açıklama (ya da tek bakış değeri), arkada silik büyük simge (kartın içinde, kesik değil).
 	 */
+	/** Pano kartının kısa alt yazısı: kartın uzun talimat cümlesi ("Dokun, ara · basılı tut…") yerine kısa tanım. */
+	static String panoSub(YoldaDeck.Card c, String sub) {
+		switch (c.type()) {
+			case YoldaDeck.CALLS -> {
+				return "Sık aradıkların";
+			}
+			case YoldaDeck.PHONE -> {
+				return "Telefon uygulamaları";
+			}
+			case YoldaDeck.NAV -> {
+				return "Yol tarifi · ev · iş";
+			}
+			default -> {
+			}
+		}
+		int cut = sub.indexOf(" · sesle");
+		if (cut > 0) sub = sub.substring(0, cut);
+		return sub;
+	}
+
 	/** Alçak satırda Pano kartı: simge kutusu ve boşluk küçülür, satır çok alçaksa alt yazı gizlenir. */
 	private void panoCardTight(View card, int rh) {
 		if (!(card instanceof LinearLayout f) || (f.getChildCount() < 4)) return;
@@ -1272,7 +1293,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				android.util.TypedValue.COMPLEX_UNIT_SP); // dar kartta ad küçülür, kesilmez
 		f.addView(ti, new LinearLayout.LayoutParams(-1, dp(24)));
 		Glance g = glance(ctx, c.type());
-		TextView sub = text(ctx, (g != null) ? (g.big() + " · " + (g.l2().isEmpty() ? g.l1() : g.l2())) : lk.sub, 12, false,
+		TextView sub = text(ctx, (g != null) ? (g.big() + " · " + (g.l2().isEmpty() ? g.l1() : g.l2())) : panoSub(c, lk.sub), 12, false,
 				(g != null) && !g.l2().isEmpty() ? g.color() : 0xFFD1D5DB);
 		sub.setSingleLine(true);
 		sub.setEllipsize(TextUtils.TruncateAt.END);
@@ -1577,6 +1598,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			phLimit.setVisibility(lim ? View.VISIBLE : View.GONE);
 			phRadar.setVisibility(rad ? View.VISIBLE : View.GONE);
 			if ((phRadar.getParent() instanceof View sp)) sp.setVisibility((lim || rad) ? View.VISIBLE : View.GONE);
+			if ((phLimitSign != null) && (phLimitSign.getParent() instanceof View box)) // boş "–" levhası biçimsiz duruyordu
+				box.setVisibility((lim || rad) ? View.VISIBLE : View.GONE);
 		}
 		if (phPark != null) {
 			double[] pk = YoldaRadar.park(ctx);
@@ -3982,10 +4005,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					TripFragment.monthLine(requireContext()));
 			case YoldaDeck.NAV -> new Look(0xFF2DD4BF, 0xFF0F766E, R.drawable.yi_nav, true, "NAVİGASYON",
 					"Yol tarifi, ev, iş ve son gidilen yerler");
-			case YoldaDeck.CALLS -> new Look(0xFF4ADE80, 0xFF15803D, R.drawable.yi_phone, true, "ARAMA",
+			case YoldaDeck.CALLS -> new Look(0xFF4ADE80, 0xFF15803D, R.drawable.yi_call, true, "ARAMA", // ahize: "Telefon" kartından ayrı
 					YoldaCalls.favorites(requireContext()).isEmpty() ? "Sık aradıklarını ekle · sesle: “Annemi ara”"
 							: "Dokun, ara · basılı tut: kaldır · sesle: “Annemi ara”");
-			case YoldaDeck.PHONE -> new Look(0xFF34D399, 0xFF047857, R.drawable.yi_phone, true, "TELEFON",
+			case YoldaDeck.PHONE -> new Look(0xFF34D399, 0xFF047857, R.drawable.yi_grid, true, "TELEFON", // uygulamalar
 					"Telefondaki uygulamaları araçta kullan");
 			case YoldaDeck.MIRROR -> new Look(0xFF818CF8, 0xFF3730A3, R.drawable.yi_tv, true, "EKRAN YANSITMA",
 					"Telefonun ekranını araca olduğu gibi yansıt");

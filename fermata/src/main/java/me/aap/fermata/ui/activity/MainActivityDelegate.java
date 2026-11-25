@@ -2025,7 +2025,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		me.aap.fermata.ui.view.YoldaPlayerBar b0 = cp.getYoldaBar();
 		if ((b0 != null) && (b0.onUpdate == null)) b0.onUpdate = this::updateOrb; // kapak / durum değişince
 		boolean np = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
-		boolean show = !yoldaPip && !videoMode && !np && cp.yoldaLandscape() && cp.yoldaHasMedia();
+		boolean show = !yoldaPip && !videoMode && !np && !voiceOrbHidden && cp.yoldaLandscape() && cp.yoldaHasMedia()
+				&& (voiceButton != null) && (voiceButton.getVisibility() == View.VISIBLE); // mikrofona bağlı: o yoksa kenarda yarım kalıyordu
 		int vis = show ? View.VISIBLE : View.GONE;
 		if (o.getVisibility() != vis) o.setVisibility(vis);
 		o.setExpanded(!cp.yoldaDockedNow());
@@ -2573,6 +2574,18 @@ public class MainActivityDelegate extends ActivityDelegate
 						rootV.setPadding(rootV.getPaddingLeft(), rootV.getPaddingTop(), rootV.getPaddingRight(), pad);
 				});
 			}
+		}
+
+		if (a.isCarActivity()) {
+			// Araç / yansıtma: sol ve sağdaki güvenli alan (aracın kenar çubuğu, yatay telefonda kamera çentiği)
+			// kökte boşluk olur; önceden soldaki kabuk (geri, ev, mikrofon) kenardan taşıp yarım görünüyordu
+			View rootV = a.findViewById(R.id.main_activity);
+			if (rootV != null) ViewCompat.setOnApplyWindowInsetsListener(rootV, (v, insets) -> {
+				var bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+				if ((v.getPaddingLeft() != bars.left) || (v.getPaddingRight() != bars.right))
+					v.setPadding(bars.left, v.getPaddingTop(), bars.right, v.getPaddingBottom());
+				return insets;
+			});
 		}
 
 		if (VERSION.SDK_INT >= VERSION_CODES.VANILLA_ICE_CREAM && !a.isCarActivity()) {
