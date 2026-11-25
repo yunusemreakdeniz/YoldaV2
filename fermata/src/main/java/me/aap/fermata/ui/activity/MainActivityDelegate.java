@@ -2359,7 +2359,14 @@ public class MainActivityDelegate extends ActivityDelegate
 	 * Telefonda "videonun yanında harita": video küçük pencereye geçer, harita uygulaması (Google Haritalar /
 	 * Waze) açılır; video haritanın üstünde oynamaya devam eder. Küçük pencere desteklenmezse yalnız harita açılır.
 	 */
+	private long pipMapsAt;
+
 	private void pipWithMaps() {
+		// Art arda basış / zaten küçük pencerede: yok say. Hızlı tekrarda pencere küçülüp büyürken odak
+		// kayboluyor, uygulama "yanıt vermiyor" görünüyordu (dayanıklılık testi, 47. tohum, 25 Kasım)
+		long now = android.os.SystemClock.elapsedRealtime();
+		if (yoldaPip || (now - pipMapsAt < 3000)) return;
+		pipMapsAt = now;
 		Context ctx = getContext();
 		java.util.List<String> recent = me.aap.fermata.ui.fragment.NavFragment.recent(ctx);
 		boolean waze = ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
