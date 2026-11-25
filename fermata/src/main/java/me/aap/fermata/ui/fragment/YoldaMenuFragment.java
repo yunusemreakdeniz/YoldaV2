@@ -174,6 +174,16 @@ public class YoldaMenuFragment extends MainActivityFragment {
 			return true;
 		});
 		set.addView(gi);
+		if (gem) { // Gemini doğal sesi (Mola'dan): Hey Yolda yanıtları Gemini'nin sesiyle
+			boolean gv = YoldaGeminiVoice.setting(ctx);
+			set.addView(item(ctx, R.drawable.yi_mic, "Doğal ses (Gemini): " + (gv ? "Açık" : "Kapalı") + " · dokun: değiştir",
+					0xFFE9D5FF, 0xFF9333EA, v -> {
+						YoldaGeminiVoice.set(ctx, !gv);
+						YoldaStyle.toast(ctx, gv ? "Yanıtlar telefonun sesiyle okunacak" : "Yanıtlar Gemini'nin doğal sesiyle okunacak");
+						if (!gv) YoldaSpeak.say(ctx, "Merhaba, artık böyle konuşacağım.");
+						render();
+					}));
+		}
 		// TomTom: haritada sınırı yazılı olmayan yollarda hız sınırı (isteğe bağlı, kullanıcının ücretsiz anahtarı)
 		boolean tt = YoldaTomTom.isEnabled(ctx);
 		View ti = item(ctx, R.drawable.yi_radar, "TomTom hız sınırı: " + (tt ? (YoldaTomTom.keyBad ? "Anahtar geçersiz — yeniden gir"

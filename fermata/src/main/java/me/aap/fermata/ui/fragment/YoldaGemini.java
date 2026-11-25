@@ -265,10 +265,26 @@ public final class YoldaGemini {
 		return t.isEmpty() ? null : t;
 	}
 
+	/** Kayıtlı anahtar (yoksa null). Yalnız bu telefonda saklanır. */
+	@Nullable
+	static String key(Context ctx) {
+		String k = prefs(ctx).getString(KEY, null);
+		return ((k == null) || k.trim().isEmpty()) ? null : k.trim();
+	}
+
+	/** Başka Gemini istekleri (doğal ses) için: okuma süresi ayarlı. */
+	static String postTo(String url, String key, String body, int[] code, int readMs) throws Exception {
+		return post(url, key, body, code, readMs);
+	}
+
 	private static String post(String url, String key, String body, int[] code) throws Exception {
+		return post(url, key, body, code, 12000);
+	}
+
+	private static String post(String url, String key, String body, int[] code, int readMs) throws Exception {
 		HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
 		c.setConnectTimeout(8000);
-		c.setReadTimeout(12000); // yanıtsız model sürücüyü bekletmesin: sıradakine geçilir
+		c.setReadTimeout(readMs); // yanıtsız model sürücüyü bekletmesin: sıradakine geçilir
 		c.setRequestMethod("POST");
 		c.setDoOutput(true);
 		c.setRequestProperty("Content-Type", "application/json; charset=utf-8");
