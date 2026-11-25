@@ -4197,6 +4197,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (gv != null) {
 				// adla yeri paylaşır: uzun değer (eczane adı) "Aç" düğmesini karttan dışarı itmesin
 				LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(0, -2, 1f);
+				ViewGroup.LayoutParams nlp = (head.getChildCount() > 1) ? head.getChildAt(1).getLayoutParams() : null;
+				if ((nlp instanceof LinearLayout.LayoutParams nl) && (nl.weight > 0)) nl.weight = 1.5f; // ad kesilmesin, değer kısalsın
 				glp.leftMargin = dp(8);
 				head.addView(gv, glp);
 			}
@@ -4397,7 +4399,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				}
 				if (!YoldaPlayHistory.all(ctx).isEmpty()) // kendi sayfası: geçmişin tamamı, ilerleme, temizle
 					row.addView(chipBtn(ctx, "Tümünü gör ›", v -> a.showFragment(R.id.yolda_history_fragment)), chipLp());
-				return (row.getChildCount() == 0) ? null : scroll(ctx, row);
+				if (row.getChildCount() == 0) { // henüz bir şey çalmadı: kart boş kalmasın, başlamak için kısa yollar
+					row.addView(chipBtn(ctx, "📻 Radyo", v -> ChannelsFragment.openSegment(a, true)), chipLp());
+					row.addView(chipBtn(ctx, "▶ YouTube", v -> a.showFragment(R.id.yolda_youtube)), chipLp());
+					row.addView(chipBtn(ctx, "♪ Müzik", v -> a.showFragment(R.id.yolda_music)), chipLp());
+					row.addView(chipBtn(ctx, "📺 TV", v -> ChannelsFragment.openSegment(a, false)), chipLp());
+				}
+				return scroll(ctx, row);
 			}
 			case YoldaDeck.FAVS -> { // kutucuğun altında ad satırı var
 				return favRow(ctx, a, Math.max(dp(48), tile - dp(Math.round(17 * Math.max(1f,
