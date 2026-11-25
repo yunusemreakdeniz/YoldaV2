@@ -876,6 +876,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * selam + saat + ayar / görünüm / mikrofon, altında 3 sütun renkli kartlar (kayar), en altta Ev · İş ·
 	 * Benzinlik · Otopark.
 	 */
+	/** Pano'da Şimdi çalıyor / video alanının boyu: 0 küçük, 1 orta, 2 büyük (kartlar 3 / 2 / 1 sütun). */
+	static final String PREF_PANO_SIZE = "pano_now_size";
+	static final float[] PANO_NOW = {0.36f, 0.5f, 0.64f};
+	static final int[] PANO_COLS = {3, 2, 1};
+
+	private int panoSize() {
+		Context ctx = getContext();
+		int v = (ctx == null) ? 0 : prefs(ctx).getInt(PREF_PANO_SIZE, 0);
+		return ((v < 0) || (v >= PANO_NOW.length)) ? 0 : v;
+	}
+
 	/** Yatay Pano kurulurken video küçük pencerede oynuyor muydu (sol Şimdi çalıyor kartı yerine video). */
 	private boolean panoBuiltWithVideo;
 
@@ -922,7 +933,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout now = new LinearLayout(ctx);
 		now.setOrientation(LinearLayout.VERTICAL);
 		now.setPadding(dp(14), dp(14), dp(14), dp(14));
-		now.setBackground(phoneSurface(ctx, 24));
+		// Deste'deki camlı "kabuk" yok: sade, çerçevesiz hafif koyu zemin
+		GradientDrawable nb = new GradientDrawable();
+		nb.setCornerRadius(dp(24));
+		nb.setColor(0x33000000);
+		now.setBackground(nb);
 		FrameLayout art = new FrameLayout(ctx);
 		GradientDrawable ag = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
 				new int[]{YoldaStyle.alpha(t.accent | 0xFF000000, 0.30f), 0x33000000});
@@ -985,15 +1000,35 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			ic.setImageResource(ai[i]);
 			ic.setImageTintList(ColorStateList.valueOf((i == 1) ? 0xFFFACC15 : 0xFFE5E7EB));
 			b.addView(ic, new LinearLayout.LayoutParams(dp(18), dp(18)));
-			TextView bt = text(ctx, an[i][0], 14, true, 0xFFFFFFFF);
-			bt.setPadding(dp(6), 0, 0, 0);
-			b.addView(bt);
-			LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(0, dp(48), 1f);
+			if (!"open".equals(k)) { // "Aç" yalnız simge
+				TextView bt = text(ctx, an[i][0], 14, true, 0xFFFFFFFF);
+				bt.setPadding(dp(6), 0, 0, 0);
+				b.addView(bt);
+			}
+			LinearLayout.LayoutParams blp = "open".equals(k) ? new LinearLayout.LayoutParams(dp(56), dp(48))
+					: new LinearLayout.LayoutParams(0, dp(48), 1f);
 			if (i > 0) blp.leftMargin = dp(8);
 			acts.addView(b, blp);
 		}
 		now.addView(acts);
-		rootRow.addView(now, new LinearLayout.LayoutParams(0, -1, 0.36f));
+		int size = panoSize();
+		float nw = PANO_NOW[size];
+		rootRow.addView(now, new LinearLayout.LayoutParams(0, -1, nw));
+		// büyüt / küçült: alanın sağ üstünde (Küçük → Orta → Büyük), kartlar 3 → 2 → 1 sütun
+		TextView rs = text(ctx, (size == 2) ? "−" : "+", 24, true, 0xFFFFFFFF);
+		rs.setGravity(Gravity.CENTER);
+		GradientDrawable rsb = new GradientDrawable();
+		rsb.setShape(GradientDrawable.OVAL);
+		rsb.setColor(0x55000000);
+		rs.setBackground(rsb);
+		rs.setContentDescription((size == 2) ? "Video alanını küçült" : "Video alanını büyüt");
+		rs.setOnClickListener(v -> {
+			prefs(ctx).edit().putInt(PREF_PANO_SIZE, (size + 1) % PANO_NOW.length).apply();
+			rebuildPhone();
+		});
+		FrameLayout.LayoutParams rsl = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.TOP | Gravity.END);
+		rsl.topMargin = rsl.rightMargin = dp(8);
+		art.addView(rs, rsl);
 		if (panoBuiltWithVideo) { // video bu kartın büyük alanında oynar: alanın ve kartın zemini saydam, düğme yok
 			now.setBackground(null);
 			GradientDrawable vf = new GradientDrawable();
@@ -1087,21 +1122,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int rowH = Math.max(dp(112), (avail - dp(8)) / 2);
 		List<YoldaDeck.Card> cs = new ArrayList<>(phoneCards(ctx));
 		phoneTileViews.clear();
+		int cols = PANO_COLS[panoSize()];
 		LinearLayout row = null;
 		for (int n = 0; n < cs.size(); n++) {
-			if (n % 3 == 0) {
+			if (n % cols == 0) {
 				row = hrow(ctx);
 				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, rowH);
 				rl.topMargin = dp(8);
 				grid.addView(row, rl);
 			}
 			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
-			if (n % 3 != 0) cl.leftMargin = dp(8);
+			if (n % cols != 0) cl.leftMargin = dp(8);
 			View tile = phoneTile(ctx, cs.get(n));
 			phoneTileViews.put(cs.get(n).type(), tile);
 			row.addView(tile, cl);
 		}
-		if (row != null) for (int n = cs.size(); n % 3 != 0; n++) {
+		if (row != null) for (int n = cs.size(); n % cols != 0; n++) {
 			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
 			cl.leftMargin = dp(8);
 			row.addView(new View(ctx), cl);
@@ -1160,7 +1196,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, -2);
 		ql.topMargin = dp(8);
 		right.addView(quick, ql);
-		rootRow.addView(right, new LinearLayout.LayoutParams(0, -1, 0.64f));
+		rootRow.addView(right, new LinearLayout.LayoutParams(0, -1, 1f - nw));
 		updatePhoneLive();
 		return rootRow;
 	}
@@ -1170,13 +1206,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * kısa açıklama (ya da tek bakış değeri), arkada silik büyük simge (kartın içinde, kesik değil).
 	 */
 	private View panoCard(Context ctx, YoldaDeck.Card c) {
+		// Deste'deki camlı "kabuk" (çerçeve, köşe oku, silik simge) yok: kartın renginde sade yüzey, büyük simge
 		Look lk = look(c);
-		FrameLayout f = new FrameLayout(ctx);
+		LinearLayout f = new LinearLayout(ctx);
+		f.setOrientation(LinearLayout.VERTICAL);
+		f.setPadding(dp(14), dp(14), dp(14), dp(12));
 		GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-				new int[]{YoldaStyle.alpha(lk.c1, 0.42f), YoldaStyle.alpha(lk.c2, 0.22f)});
-		bg.setCornerRadius(dp(20));
-		bg.setStroke(Math.max(1, dp(1)), 0x29FFFFFF);
-		f.setBackground(new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{phoneSurface(ctx, 20), bg}));
+				new int[]{YoldaStyle.alpha(lk.c1, 0.34f), YoldaStyle.alpha(lk.c2, 0.18f)});
+		bg.setCornerRadius(dp(22));
+		f.setBackground(bg);
 		f.setClickable(true);
 		f.setContentDescription(c.title());
 		f.setOnClickListener(v -> open(c));
@@ -1185,53 +1223,30 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			return true;
 		});
 		pressEffect(f);
-		ImageView ghost = new ImageView(ctx);
-		ghost.setImageResource(lk.icon);
-		ghost.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		ghost.setAlpha(0.10f);
-		FrameLayout.LayoutParams gl = new FrameLayout.LayoutParams(dp(64), dp(64), Gravity.END | Gravity.BOTTOM);
-		gl.rightMargin = gl.bottomMargin = dp(12);
-		f.addView(ghost, gl);
 		FrameLayout box = new FrameLayout(ctx);
 		GradientDrawable cb = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{lk.c1, lk.c2});
-		cb.setCornerRadius(dp(12));
+		cb.setCornerRadius(dp(16));
 		box.setBackground(cb);
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
 		ic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		box.addView(ic, new FrameLayout.LayoutParams(dp(22), dp(22), Gravity.CENTER));
-		FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(dp(40), dp(40), Gravity.TOP | Gravity.START);
-		bl.leftMargin = bl.topMargin = dp(12);
-		f.addView(box, bl);
-		TextView arrow = text(ctx, "›", 20, true, 0xFFE5E7EB);
-		arrow.setGravity(Gravity.CENTER);
-		GradientDrawable ab = new GradientDrawable();
-		ab.setShape(GradientDrawable.OVAL);
-		ab.setColor(0x26FFFFFF);
-		arrow.setBackground(ab);
-		FrameLayout.LayoutParams al = new FrameLayout.LayoutParams(dp(32), dp(32), Gravity.TOP | Gravity.END);
-		al.rightMargin = al.topMargin = dp(12);
-		f.addView(arrow, al);
-		LinearLayout tx = new LinearLayout(ctx);
-		tx.setOrientation(LinearLayout.VERTICAL);
+		box.addView(ic, new FrameLayout.LayoutParams(dp(30), dp(30), Gravity.CENTER));
+		f.addView(box, new LinearLayout.LayoutParams(dp(52), dp(52)));
+		f.addView(new View(ctx), new LinearLayout.LayoutParams(-1, 0, 1f));
 		TextView ti = text(ctx, c.title(), 18, true, 0xFFFFFFFF);
 		ti.setMaxLines(1);
 		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(ti, 13, 18, 1,
 				android.util.TypedValue.COMPLEX_UNIT_SP); // dar kartta ad küçülür, kesilmez
-		tx.addView(ti, new LinearLayout.LayoutParams(-1, dp(24)));
+		f.addView(ti, new LinearLayout.LayoutParams(-1, dp(24)));
 		Glance g = glance(ctx, c.type());
 		TextView sub = text(ctx, (g != null) ? (g.big() + " · " + (g.l2().isEmpty() ? g.l1() : g.l2())) : lk.sub, 12, false,
 				(g != null) && !g.l2().isEmpty() ? g.color() : 0xFFD1D5DB);
 		sub.setSingleLine(true);
 		sub.setEllipsize(TextUtils.TruncateAt.END);
-		tx.addView(sub);
-		FrameLayout.LayoutParams tl = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM | Gravity.START);
-		tl.leftMargin = dp(14);
-		tl.rightMargin = dp(12); // silik simge yazının arkasında kalır; dar kartta ada yer kalsın
-		tl.bottomMargin = dp(12);
-		f.addView(tx, tl);
+		f.addView(sub);
 		return f;
 	}
+
 
 	/**
 	 * Pano kartı (Mola tarzı, Yolda renkleriyle): solda büyük renkli simge kutusu, sağda ad ve altında tek bakış
@@ -4193,7 +4208,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private LinearLayout.LayoutParams openLp(Fit fz) {
-		LinearLayout.LayoutParams olp = new LinearLayout.LayoutParams(-2, dp(fz.btn()));
+		LinearLayout.LayoutParams olp = new LinearLayout.LayoutParams(dp(fz.btn()), dp(fz.btn())); // yuvarlak simge düğmesi
 		olp.leftMargin = dp(10);
 		return olp;
 	}
@@ -4213,12 +4228,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Kartın "Aç" düğmesi. */
 	private TextView openButton(Context ctx, YoldaDeck.Card c, boolean noble, int accent, Fit fz) {
-		TextView openBtn = text(ctx, "Aç  ›", (fz.btn() < 48) ? 15 : 16, true, 0xFFFFFFFF);
+		TextView openBtn = text(ctx, "›", Math.max(24, Math.round(fz.btn() * 0.5f)), true, 0xFFFFFFFF); // yalnız simge
 		openBtn.setSingleLine(true);
 		openBtn.setGravity(Gravity.CENTER);
-		openBtn.setPadding(dp(18), 0, dp(20), 0);
+		openBtn.setIncludeFontPadding(false);
+		openBtn.setPadding(dp(2), 0, 0, dp(3));
 		GradientDrawable ob = new GradientDrawable();
-		ob.setCornerRadius(dp(999));
+		ob.setShape(GradientDrawable.OVAL);
 		if (noble) {
 			ob.setColor(YoldaStyle.alpha(accent, 0.16f));
 			ob.setStroke(Math.max(1, dp(1)), YoldaStyle.alpha(accent, 0.7f));
