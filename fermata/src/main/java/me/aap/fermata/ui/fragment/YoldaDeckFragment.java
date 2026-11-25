@@ -1060,6 +1060,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			phPlay.setVisibility(View.INVISIBLE);
 			sig.setVisibility(View.INVISIBLE);
 			phNowPlate.setVisibility(View.GONE); // videonun üstünde simge durmasın
+			phNowTitle.setVisibility(View.GONE); // altındaki "1. TRT 1 / CANLI · TV" boşa yer kaplıyordu: alan videoya
+			phNowTag.setVisibility(View.GONE);
 			art.post(() -> placeInlineVideo(art));
 			art.addOnLayoutChangeListener((v, l, t2, r, b, ol, ot, orr, ob) -> { // ölçü değişince yeniden yerleştir
 				if (((r - l) != (orr - ol)) || ((b - t2) != (ob - ot)) || (l != ol) || (t2 != ot)) v.post(() -> placeInlineVideo(art));
@@ -1142,15 +1144,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		spd.addView(spt);
 
 		head.addView(spd, new LinearLayout.LayoutParams(-2, dp(48)));
-		phClock = text(ctx, "", narrowRight ? 24 : 28, true, 0xFFFFFFFF);
+		phClock = text(ctx, "", narrowRight ? 28 : 34, true, 0xFFFFFFFF);
 		phClock.setSingleLine(true);
-		phClock.setPadding(dp(4), 0, dp(narrowRight ? 4 : 12), 0);
-		head.addView(phClock);
+		phClock.setIncludeFontPadding(false);
+		phClock.setPadding(0, 0, 0, 0);
+		head.addView(phClock, 0); // saat en solda (ortada boşlukta duruyordu), yanında selam / tarih
+		hello.setPadding(dp(14), 0, 0, 0);
 		// sağ sütun çok darsa (video büyük) saat gizli: saat aracın durum çubuğunda zaten var, düğmeler sığsın
 		if ((dm.widthPixels / dm.density) < 480) phClock.setVisibility(View.GONE);
 		LinearLayout.LayoutParams hb = new LinearLayout.LayoutParams(dp(48), dp(48));
 		hb.leftMargin = dp(narrowRight ? 4 : 8);
 		head.addView(roundButton(ctx, R.drawable.yi_grid, "Görünüm seç", v -> showViewPicker(ctx)), hb);
+		head.addView(roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx),
+				v -> me.aap.fermata.ui.view.YoldaThemePicker.show(a)), hb);
 		head.addView(roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> a.showFragment(R.id.yolda_menu_fragment)), hb);
 		ImageView mic = roundButton(ctx, R.drawable.yi_mic, "Hey Yolda", v -> a.startVoiceAssistant());
 		GradientDrawable mg = new GradientDrawable();
