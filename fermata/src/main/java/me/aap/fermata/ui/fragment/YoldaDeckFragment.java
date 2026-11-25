@@ -1097,6 +1097,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams wpl = new LinearLayout.LayoutParams(-2, dp(48));
 		wpl.rightMargin = dp(8);
 		head.addView(wp, wpl);
+		if (weather == null) wp.setVisibility(View.GONE); // bilgi yokken boş "☁ –" hapı durmasın
 
 		// Hız sınırı levhası ve radar uzaklığı (dokun: Sürüş ekranı); radar uyarısı ayrıca her ekranda kırmızı kartla
 		LinearLayout spd = hrow(ctx);
