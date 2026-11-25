@@ -1077,8 +1077,26 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dl.addView(iy, new LinearLayout.LayoutParams(0, -2, 1f));
 		hello.addView(dl);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
-		boolean narrowRight = (dm.widthPixels / dm.density) * (1f - PANO_NOW[panoSize()]) < 440;
-		if (narrowRight) hello.setVisibility(View.INVISIBLE); // yer tutar (öğeler sağa yaslı), yazı sığmıyordu
+		// başlık artık tam genişlikte (video + kartların üstünde tek şerit): selam her zaman sığar
+		boolean narrowRight = (dm.widthPixels / dm.density) < 560;
+
+		// hava: küçük hap (simge + derece); dokun: hava durumu
+		LinearLayout wp = hrow(ctx);
+		wp.setGravity(Gravity.CENTER_VERTICAL);
+		wp.setPadding(dp(12), 0, dp(14), 0);
+		wp.setBackground(headPill());
+		wp.setClickable(true);
+		wp.setContentDescription("Hava durumu");
+		wp.setOnClickListener(v -> a.showFragment(R.id.yolda_weather_fragment));
+		phWeatherIcon = text(ctx, (weather != null) ? YoldaWeather.emoji(weather.code()) : "☁", 18, false, 0xFFFFC857);
+		wp.addView(phWeatherIcon);
+		phWeather = text(ctx, (weather != null) ? (weather.temp() + "°") : "—", 16, true, 0xFFFFFFFF);
+		phWeather.setPadding(dp(6), 0, 0, 0);
+		wp.addView(phWeather);
+		phWeatherPlace = null;
+		LinearLayout.LayoutParams wpl = new LinearLayout.LayoutParams(-2, dp(48));
+		wpl.rightMargin = dp(8);
+		head.addView(wp, wpl);
 
 		// Hız sınırı levhası ve radar uzaklığı (dokun: Sürüş ekranı); radar uyarısı ayrıca her ekranda kırmızı kartla
 		LinearLayout spd = hrow(ctx);
@@ -1086,6 +1104,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		spd.setClickable(true);
 		spd.setContentDescription("Hız ve radar");
 		spd.setOnClickListener(v -> a.showFragment(R.id.yolda_radar_fragment));
+		spd.setPadding(dp(4), 0, 0, 0);
+		spd.setBackground(headPill()); // hız sınırı hep aynı yerde, sabit
 		phLimitSign = text(ctx, "—", 14, true, 0xFF111111);
 		phLimitSign.setGravity(Gravity.CENTER);
 		GradientDrawable sg = new GradientDrawable();
@@ -1093,24 +1113,26 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		sg.setColor(0xFFFFFFFF);
 		sg.setStroke(dp(4), 0xFFE53935);
 		phLimitSign.setBackground(sg);
-		spd.addView(phLimitSign, new LinearLayout.LayoutParams(dp(44), dp(44)));
+		spd.addView(phLimitSign, new LinearLayout.LayoutParams(dp(40), dp(40)));
 		LinearLayout spt = new LinearLayout(ctx);
 		spt.setOrientation(LinearLayout.VERTICAL);
+		spt.setGravity(Gravity.CENTER_VERTICAL);
 		spt.setPadding(dp(8), 0, dp(14), 0);
-		phLimit = text(ctx, "", 12, false, 0xFFC5CBD8);
-		spt.addView(phLimit);
-		phRadar = text(ctx, "", 14, true, 0xFFFFFFFF);
+		phRadar = text(ctx, "", 16, true, 0xFFFFFFFF); // anlık hız (büyük)
+		phRadar.setSingleLine(true);
 		spt.addView(phRadar);
+		phLimit = text(ctx, "", 11, false, 0xFFC5CBD8); // sınır / önde radar (küçük)
+		phLimit.setSingleLine(true);
+		spt.addView(phLimit);
 		spd.addView(spt);
 
-		spd.setMinimumHeight(dp(48));
-		head.addView(spd);
+		head.addView(spd, new LinearLayout.LayoutParams(-2, dp(48)));
 		phClock = text(ctx, "", narrowRight ? 24 : 28, true, 0xFFFFFFFF);
 		phClock.setSingleLine(true);
 		phClock.setPadding(dp(4), 0, dp(narrowRight ? 4 : 12), 0);
 		head.addView(phClock);
 		// sağ sütun çok darsa (video büyük) saat gizli: saat aracın durum çubuğunda zaten var, düğmeler sığsın
-		if ((dm.widthPixels / dm.density) * (1f - PANO_NOW[panoSize()]) < 320) phClock.setVisibility(View.GONE);
+		if ((dm.widthPixels / dm.density) < 480) phClock.setVisibility(View.GONE);
 		LinearLayout.LayoutParams hb = new LinearLayout.LayoutParams(dp(48), dp(48));
 		hb.leftMargin = dp(narrowRight ? 4 : 8);
 		head.addView(roundButton(ctx, R.drawable.yi_grid, "Görünüm seç", v -> showViewPicker(ctx)), hb);
@@ -1123,7 +1145,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		mic.setBackground(mg);
 		mic.setImageTintList(ColorStateList.valueOf(0xFFE0B354));
 		head.addView(mic, hb);
-		right.addView(head, new LinearLayout.LayoutParams(-1, dp(56)));
+		// başlık şeridi: ekranın tam genişliğinde, video ve kartların üstünde (önceden yalnız sağ sütunun üstündeydi,
+		// solda video yukarı taşıyor, üst taraf dengesiz duruyordu)
+		LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(-1, dp(56));
+		hlp.bottomMargin = dp(8);
+		outer.addView(head, 0, hlp);
 
 		// kartlar: 3 sütun, ekrana iki satır sığar, fazlası kayar
 		ScrollView sv = new ScrollView(ctx);
@@ -1223,6 +1249,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * Yatay Pano kartı: kartın renginde koyu geçişli yüzey, sol üstte renkli simge kutusu, sağ üstte ok, altta ad ve
 	 * kısa açıklama (ya da tek bakış değeri), arkada silik büyük simge (kartın içinde, kesik değil).
 	 */
+	/** Pano başlık şeridindeki hap zemini: yarı saydam, çerçevesiz (camlı kabuk değil). */
+	private GradientDrawable headPill() {
+		GradientDrawable g = new GradientDrawable();
+		g.setCornerRadius(dp(999));
+		g.setColor(0x26FFFFFF);
+		return g;
+	}
+
 	/** Pano kartının kısa alt yazısı: kartın uzun talimat cümlesi ("Dokun, ara · basılı tut…") yerine kısa tanım. */
 	static String panoSub(YoldaDeck.Card c, String sub) {
 		switch (c.type()) {
@@ -1595,11 +1629,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (panoWideBuilt && (phLimit != null) && (phRadar != null)) { // dar başlıkta "Yok / Yok" yer kaplamasın
 			boolean lim = YoldaRadar.limit > 0;
 			boolean rad = YoldaRadar.ahead != null;
-			phLimit.setVisibility(lim ? View.VISIBLE : View.GONE);
-			phRadar.setVisibility(rad ? View.VISIBLE : View.GONE);
-			if ((phRadar.getParent() instanceof View sp)) sp.setVisibility((lim || rad) ? View.VISIBLE : View.GONE);
-			if ((phLimitSign != null) && (phLimitSign.getParent() instanceof View box)) // boş "–" levhası biçimsiz duruyordu
-				box.setVisibility((lim || rad) ? View.VISIBLE : View.GONE);
+			// levha hep görünür (sabit yer); yanında anlık hız, altında önde radar ya da sınır durumu
+			phRadar.setText(YoldaRadar.hasFix() && (YoldaRadar.speed >= 0) ? (YoldaRadar.speed + " km/s") : "— km/s");
+			YoldaRadarCore.Ahead ah2 = YoldaRadar.ahead;
+			phLimit.setTextColor(rad ? 0xFFFDBA74 : 0xFFC5CBD8);
+			phLimit.setText(!YoldaRadar.isEnabled(ctx) ? "Radar kapalı" : (ah2 != null) ? ("Radar " + RadarFragment.meters(ah2.meters()))
+					: lim ? ("Sınır " + YoldaRadar.limit + (YoldaRadar.limitEstimated ? " ~" : "")) : "Sınır bilinmiyor");
+			boolean over = lim && (YoldaRadar.speed > YoldaRadar.limit);
+			phRadar.setTextColor(over ? 0xFFFF6B6B : 0xFFFFFFFF); // sınır aşılınca kırmızı
 		}
 		if (phPark != null) {
 			double[] pk = YoldaRadar.park(ctx);
