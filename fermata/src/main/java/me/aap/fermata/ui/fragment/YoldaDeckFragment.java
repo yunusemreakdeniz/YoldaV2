@@ -465,6 +465,32 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 	}
 
+	/**
+	 * Açılışta son video geri yüklenirken ana ekran henüz kurulmamış oluyordu: gövde tam ekran video kipinde
+	 * kalıyor, kartlar görünmüyordu (boş ekran + kabuk; ana ekran düğmesine basınca geliyordu). Ana ekran
+	 * kurulunca: video gerçekten oynuyorsa yatay Pano'da küçük pencere, değilse sayfa görünür.
+	 */
+	private void fixBodyMode() {
+		try {
+			if (!isAdded() || isHidden()) return;
+			MainActivityDelegate a = getActivityDelegate();
+			if (a.getActiveFragment() != this) return;
+			me.aap.fermata.ui.view.BodyLayout b = a.getBody();
+			if ((b == null) || b.isFrameMode()) return;
+			var eng = a.getMediaSessionCallback().getEngine();
+			var src = (eng != null) ? eng.getSource() : null;
+			boolean video = (src != null) && src.isVideo() && a.getMediaSessionCallback().isPlaying();
+			if (video && panoWideBuilt) {
+				if (!b.isBothMode()) b.setMode(me.aap.fermata.ui.view.BodyLayout.Mode.BOTH);
+			} else if (!video || b.isVideoMode()) {
+				YoldaLog.add("Açılış: gövde " + b.getMode() + " kipindeydi, ana ekran gösterildi");
+				b.setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
+			}
+		} catch (Throwable ex) {
+			YoldaLog.add("Açılış gövde kipi: " + ex);
+		}
+	}
+
 	private boolean wideScreen() {
 		android.content.res.Configuration c = getResources().getConfiguration(); // dönüşte güncel boyut
 		return (c.screenWidthDp > c.screenHeightDp) && (c.screenWidthDp >= 560);
@@ -1855,6 +1881,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			root.addView(phoneHome(ctx), new FrameLayout.LayoutParams(-1, -1));
 			if (!panoWideBuilt) root.addView(signature(ctx), signatureLp());
 			root.postDelayed(phTick, 1500);
+			root.post(this::fixBodyMode);
+			root.postDelayed(this::fixBodyMode, 1500); // geri yükleme biraz sonra da gelebiliyor
 			YoldaGlow pg = rootGlow(); // ızgara / Pano: efektler canlı, araçta ≈15 kare
 			if (pg != null) {
 				pg.setDrift(true);
@@ -1866,6 +1894,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		root = new FrameLayout(ctx);
 		YoldaStyle.applyScreenBackground(root, t);
+		root.post(this::fixBodyMode);
+		root.postDelayed(this::fixBodyMode, 1500);
 		// Ortadaki kartın renginde ışıltılar: uygulamanın en dış zemininde (tüm ekran, kenarlar dahil)
 		YoldaGlow g = rootGlow();
 		if (g != null) { // araçta da canlı (hava / mevsim efektleri), ama ≈15 kare: araca giden görüntü ağırlaşmasın
