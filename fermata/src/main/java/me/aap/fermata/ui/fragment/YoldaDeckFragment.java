@@ -883,7 +883,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	private int panoSize() {
 		Context ctx = getContext();
-		int v = (ctx == null) ? 0 : prefs(ctx).getInt(PREF_PANO_SIZE, 0);
+		int v = (ctx == null) ? 1 : prefs(ctx).getInt(PREF_PANO_SIZE, 1); // varsayılan orta: video yarım, kartlar 2 sütun
 		return ((v < 0) || (v >= PANO_NOW.length)) ? 0 : v;
 	}
 
@@ -924,15 +924,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		MainActivityDelegate a = getActivityDelegate();
 		panoBuiltWithVideo = inlineVideoShown();
 		android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+		// Üstte solda video / Şimdi çalıyor, sağda kartlar; altta tam genişlikte kısayol şeridi
+		// (Ses, Favoriler, Aç, Ev, İş, Benzinlik, Otopark)
+		LinearLayout outer = new LinearLayout(ctx);
+		outer.setOrientation(LinearLayout.VERTICAL);
+		int side = dp(16);
+		outer.setPadding(side, dp(8), side, dp(8)); // yatayda üstte durum çubuğu payı gereksiz (boşluk kalıyordu)
 		LinearLayout rootRow = hrow(ctx);
 		rootRow.setGravity(Gravity.TOP);
-		int side = dp(16);
-		rootRow.setPadding(side, dp(8), side, dp(10)); // yatayda üstte durum çubuğu payı gereksiz (boşluk kalıyordu)
+		outer.addView(rootRow, new LinearLayout.LayoutParams(-1, 0, 1f));
+		LinearLayout bar = hrow(ctx);
+		bar.setGravity(Gravity.CENTER_VERTICAL);
 
 		// ---- Sol: Şimdi çalıyor ----
 		LinearLayout now = new LinearLayout(ctx);
 		now.setOrientation(LinearLayout.VERTICAL);
-		now.setPadding(dp(14), dp(14), dp(14), dp(14));
+		now.setPadding(dp(10), dp(10), dp(10), dp(10));
 		// Deste'deki camlı "kabuk" yok: sade, çerçevesiz hafif koyu zemin
 		GradientDrawable nb = new GradientDrawable();
 		nb.setCornerRadius(dp(24));
@@ -972,15 +979,15 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		sgl.bottomMargin = dp(6);
 		art.addView(sig, sgl);
 		now.addView(art, new LinearLayout.LayoutParams(-1, 0, 1f));
-		phNowTitle = text(ctx, "Henüz bir şey çalmadı", 22, true, 0xFFFFFFFF);
-		phNowTitle.setMaxLines(2);
+		phNowTitle = text(ctx, "Henüz bir şey çalmadı", 18, true, 0xFFFFFFFF);
+		phNowTitle.setMaxLines(1); // video alanı büyük kalsın
 		phNowTitle.setEllipsize(TextUtils.TruncateAt.END);
-		phNowTitle.setPadding(0, dp(12), 0, 0);
+		phNowTitle.setPadding(dp(4), dp(8), 0, 0);
 		now.addView(phNowTitle);
 		phNowTag = text(ctx, "", 13, true, 0xFFC5CBD8);
-		phNowTag.setPadding(0, dp(2), 0, dp(10));
+		phNowTag.setPadding(0, dp(2), 0, 0);
 		now.addView(phNowTag);
-		LinearLayout acts = hrow(ctx);
+		LinearLayout acts = bar;
 		String[][] an = {{"Ses", "eq"}, {"Favoriler", "fav"}, {"Aç", "open"}};
 		int[] ai = {R.drawable.yi_settings, R.drawable.yi_star, R.drawable.yi_next};
 		for (int i = 0; i < an.length; i++) {
@@ -1003,6 +1010,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (!"open".equals(k)) { // "Aç" yalnız simge
 				TextView bt = text(ctx, an[i][0], 14, true, 0xFFFFFFFF);
 				bt.setPadding(dp(6), 0, 0, 0);
+				bt.setSingleLine(true); // "Favoriler" iki satıra bölünmesin
+				bt.setEllipsize(TextUtils.TruncateAt.END);
 				b.addView(bt);
 			}
 			LinearLayout.LayoutParams blp = "open".equals(k) ? new LinearLayout.LayoutParams(dp(56), dp(48))
@@ -1010,7 +1019,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (i > 0) blp.leftMargin = dp(8);
 			acts.addView(b, blp);
 		}
-		now.addView(acts);
 		int size = panoSize();
 		float nw = PANO_NOW[size];
 		rootRow.addView(now, new LinearLayout.LayoutParams(0, -1, nw));
@@ -1157,14 +1165,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 		});
 
-		LinearLayout quick = hrow(ctx);
+		LinearLayout quick = bar;
 		Object[][] q = {{"Ev", R.drawable.yi_home_fill, 0xFFF59E0B}, {"İş", R.drawable.yi_work, 0xFFF59E0B},
 				{"Benzinlik", R.drawable.yi_fuel, 0xFFF59E0B}, {"Otopark", R.drawable.yi_parking, 0xFFF59E0B}};
 		for (int i = 0; i < q.length; i++) {
 			String nm = (String) q[i][0];
 			LinearLayout b = hrow(ctx);
 			b.setGravity(Gravity.CENTER);
-			b.setBackground(phoneSurface(ctx, 16));
+			b.setBackground(phoneSurface(ctx, 14));
 			b.setClickable(true);
 			b.setContentDescription(nm);
 			b.setOnClickListener(v -> {
@@ -1189,16 +1197,18 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			TextView bt = text(ctx, nm, 15, true, 0xFFFFFFFF);
 			bt.setPadding(dp(8), 0, 0, 0);
 			b.addView(bt);
-			LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(0, dp(56), 1f);
-			if (i > 0) blp.leftMargin = dp(8);
+			bt.setSingleLine(true);
+			bt.setEllipsize(TextUtils.TruncateAt.END);
+			LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(0, dp(48), 1f);
+			blp.leftMargin = dp(8);
 			quick.addView(b, blp);
 		}
 		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, -2);
 		ql.topMargin = dp(8);
-		right.addView(quick, ql);
+		outer.addView(bar, ql);
 		rootRow.addView(right, new LinearLayout.LayoutParams(0, -1, 1f - nw));
 		updatePhoneLive();
-		return rootRow;
+		return outer;
 	}
 
 	/**
