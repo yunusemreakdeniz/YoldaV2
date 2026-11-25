@@ -1017,8 +1017,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout hello = new LinearLayout(ctx);
 		hello.setOrientation(LinearLayout.VERTICAL);
 		int hr = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
-		hello.addView(text(ctx, (hr < 5) ? "İyi geceler" : (hr < 12) ? "Günaydın" : (hr < 18) ? "İyi günler" : "İyi akşamlar",
-				22, true, 0xFFFFFFFF));
+		TextView hi = text(ctx, (hr < 5) ? "İyi geceler" : (hr < 12) ? "Günaydın" : (hr < 18) ? "İyi günler" : "İyi akşamlar",
+				22, true, 0xFFFFFFFF);
+		hi.setMaxLines(1); // dar ekranda iki satıra bölünmesin, küçülsün
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(hi, 13, 22, 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP);
+		hello.addView(hi, new LinearLayout.LayoutParams(-1, dp(30)));
 		LinearLayout dl = hrow(ctx);
 		phDate = text(ctx, "", 12, false, 0xFFC5CBD8);
 		phDate.setSingleLine(true);
