@@ -628,7 +628,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout drive = hrow(ctx);
 		LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(-1, dp(64));
 		dl.topMargin = dp(8);
-		phLimit = statBox(ctx, drive, "Sınır", v -> a.showFragment(R.id.yolda_radar_fragment), false);
+		// levha = hız sınırı, yanında anlık hız (önceden "Sınır / Yok" tekrar ediyordu)
+		phLimit = statBox(ctx, drive, "Hız", v -> a.showFragment(R.id.yolda_radar_fragment), false);
 		// Hız sınırı levhası: beyaz zemin, kırmızı halka, sayı (tasarım taslağı); kutunun solunda
 		phLimitSign = text(ctx, "—", 13, true, 0xFF111111);
 		phLimitSign.setGravity(Gravity.CENTER);
@@ -654,6 +655,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		lbox.addView(ltx, ltl);
 		phRadar = statBox(ctx, drive, "Radar", v -> a.showFragment(R.id.yolda_radar_fragment), true);
 		phPark = statBox(ctx, drive, "🅿 Aracım", v -> YoldaRadar.walkToPark(ctx), true);
+		if (lbox.getLayoutParams() instanceof LinearLayout.LayoutParams hl) hl.weight = 1.5f; // hız kutusu geniş: "Sınır" kesilmesin
 		col.addView(drive, dl); // Pano'da da: hız sınırı, radar, aracım
 
 		// Hızlı erişim
@@ -663,7 +665,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		quickBtn(ctx, quick, R.drawable.yi_home_fill, "Ev", v -> NavFragment.voiceGo(a, "home", null), false, 0xFF7DD3FC);
 		quickBtn(ctx, quick, R.drawable.yi_work, "İş", v -> NavFragment.voiceGo(a, "work", null), true, 0xFFA5B4FC);
 		quickBtn(ctx, quick, R.drawable.yi_nav, "Rota", v -> a.showFragment(R.id.yolda_nav_fragment), true, 0xFF86EFAC);
-		quickBtn(ctx, quick, R.drawable.yi_mic, "Hey Yolda", v -> a.startVoiceAssistant(), true, 0xFFC7D2FE);
+		// "Hey Yolda" yüzen mikrofonla aynıydı: yerine benzinlik
+		quickBtn(ctx, quick, R.drawable.yi_fuel, "Benzinlik", v -> NavFragment.navigateTo(ctx, "benzin istasyonu", false), true, 0xFFFCD34D);
 		col.addView(quick, ql);
 
 		// Kartlar
@@ -1619,7 +1622,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		boolean live = (src != null) && src.isStream();
 		boolean vid = (src != null) && src.isVideo();
 		if ((phNowTag != null) && (title == null) && (phNow == null)) { // Pano, boş: ne yapılacağını söyle
-			phNowTag.setText(panoWideBuilt ? "Sağdan bir kaynak seç" : "RADYO, TV YA DA MÜZİK SEÇ");
+			phNowTag.setText(panoWideBuilt ? "Sağdan bir kaynak seç" : "KAYNAK SEÇ"); // uzun etiket iki satıra bölünüp başlığı sıkıştırıyordu
 			phNowTag.setTextColor(t.accent | 0xFF000000);
 		} else if (phNowTag != null) {
 			phNowTag.setText((playing && live) ? ("● CANLI · " + (vid ? "TV" : "RADYO")) : playing ? "ŞİMDİ ÇALIYOR" : "KALDIĞIN YER");
@@ -1655,8 +1658,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			boolean over = lim && (YoldaRadar.speed > YoldaRadar.limit);
 			phRadar.setTextColor(over ? 0xFFFF6B6B : 0xFFFFFFFF); // sınır aşılınca kırmızı
 		}
+		if (!panoWideBuilt && (phLimit != null)) // dikey: levha sınırı, kutu anlık hızı gösterir
+			phLimit.setText(!YoldaRadar.isEnabled(ctx) ? "Kapalı"
+					: (YoldaRadar.hasFix() && (YoldaRadar.speed >= 0)) ? (YoldaRadar.speed + " km/s") : "— km/s");
 		if (phPark != null) {
 			double[] pk = YoldaRadar.park(ctx);
+			if (phPark.getParent() instanceof View pb) pb.setVisibility((pk == null) ? View.GONE : View.VISIBLE); // kayıt yokken boş "Kayıt yok" kutusu yok
 			phPark.setText((pk == null) ? "Kayıt yok" : Double.isNaN(YoldaRadar.lat) ? "Kayıtlı"
 					: YoldaDriveCore.distText(YoldaRadarCore.dist(YoldaRadar.lat, YoldaRadar.lon, pk[0], pk[1])));
 		}
