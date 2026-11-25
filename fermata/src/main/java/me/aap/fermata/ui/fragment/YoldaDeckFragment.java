@@ -988,36 +988,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		phNowTag.setPadding(0, dp(2), 0, 0);
 		now.addView(phNowTag);
 		LinearLayout acts = bar;
-		String[][] an = {{"Ses", "eq"}, {"Favoriler", "fav"}, {"Aç", "open"}};
-		int[] ai = {R.drawable.yi_settings, R.drawable.yi_star, R.drawable.yi_next};
+		// alt şerit: hepsi aynı biçim (renkli yuvarlak simge + ad); "Aç" yok: video alanına dokunmak açıyor
+		String[][] an = {{"Ses", "eq"}, {"Favoriler", "fav"}};
+		int[] ai = {R.drawable.equalizer, R.drawable.yi_star};
+		int[] ac = {0xFFC084FC, 0xFFFACC15};
 		for (int i = 0; i < an.length; i++) {
 			String k = an[i][1];
-			LinearLayout b = hrow(ctx);
-			b.setGravity(Gravity.CENTER);
-			b.setBackground(phoneSurface(ctx, 14));
-			b.setClickable(true);
-			b.setContentDescription(an[i][0]);
-			b.setOnClickListener(v -> {
+			acts.addView(barChip(ctx, an[i][0], ai[i], ac[i], v -> {
 				if ("eq".equals(k)) a.showFragment(R.id.yolda_eq_fragment);
-				else if ("fav".equals(k)) showFavorites();
-				else YoldaNowPlaying.open(a);
-			});
-			pressEffect(b);
-			ImageView ic = new ImageView(ctx);
-			ic.setImageResource(ai[i]);
-			ic.setImageTintList(ColorStateList.valueOf((i == 1) ? 0xFFFACC15 : 0xFFE5E7EB));
-			b.addView(ic, new LinearLayout.LayoutParams(dp(18), dp(18)));
-			if (!"open".equals(k)) { // "Aç" yalnız simge
-				TextView bt = text(ctx, an[i][0], 14, true, 0xFFFFFFFF);
-				bt.setPadding(dp(6), 0, 0, 0);
-				bt.setSingleLine(true); // "Favoriler" iki satıra bölünmesin
-				bt.setEllipsize(TextUtils.TruncateAt.END);
-				b.addView(bt);
-			}
-			LinearLayout.LayoutParams blp = "open".equals(k) ? new LinearLayout.LayoutParams(dp(56), dp(48))
-					: new LinearLayout.LayoutParams(0, dp(48), 1f);
-			if (i > 0) blp.leftMargin = dp(8);
-			acts.addView(b, blp);
+				else showFavorites();
+			}), barLp(i > 0));
 		}
 		int size = panoSize();
 		float nw = PANO_NOW[size];
@@ -1201,42 +1181,18 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		});
 
 		LinearLayout quick = bar;
-		Object[][] q = {{"Ev", R.drawable.yi_home_fill, 0xFFF59E0B}, {"İş", R.drawable.yi_work, 0xFFF59E0B},
-				{"Benzinlik", R.drawable.yi_fuel, 0xFFF59E0B}, {"Otopark", R.drawable.yi_parking, 0xFFF59E0B}};
-		for (int i = 0; i < q.length; i++) {
-			String nm = (String) q[i][0];
-			LinearLayout b = hrow(ctx);
-			b.setGravity(Gravity.CENTER);
-			b.setBackground(phoneSurface(ctx, 14));
-			b.setClickable(true);
-			b.setContentDescription(nm);
-			b.setOnClickListener(v -> {
+		Object[][] q = {{"Ev", R.drawable.yi_home_fill}, {"İş", R.drawable.yi_work},
+				{"Benzinlik", R.drawable.yi_fuel}, {"Otopark", R.drawable.yi_parking}};
+		for (Object[] o : q) {
+			String nm = (String) o[0];
+			quick.addView(barChip(ctx, nm, (int) o[1], 0xFFF59E0B, v -> {
 				switch (nm) {
 					case "Ev" -> NavFragment.voiceGo(a, "home", null);
 					case "İş" -> NavFragment.voiceGo(a, "work", null);
 					case "Benzinlik" -> NavFragment.navigateTo(ctx, "benzin istasyonu", false);
 					default -> NavFragment.navigateTo(ctx, "otopark", false);
 				}
-			});
-			pressEffect(b);
-			FrameLayout dot = new FrameLayout(ctx);
-			GradientDrawable dg = new GradientDrawable();
-			dg.setShape(GradientDrawable.OVAL);
-			dg.setColor((int) q[i][2]);
-			dot.setBackground(dg);
-			ImageView ic = new ImageView(ctx);
-			ic.setImageResource((int) q[i][1]);
-			ic.setImageTintList(ColorStateList.valueOf(0xFF1A1206));
-			dot.addView(ic, new FrameLayout.LayoutParams(dp(16), dp(16), Gravity.CENTER));
-			b.addView(dot, new LinearLayout.LayoutParams(dp(28), dp(28)));
-			TextView bt = text(ctx, nm, 15, true, 0xFFFFFFFF);
-			bt.setPadding(dp(8), 0, 0, 0);
-			b.addView(bt);
-			bt.setSingleLine(true);
-			bt.setEllipsize(TextUtils.TruncateAt.END);
-			LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(0, dp(48), 1f);
-			blp.leftMargin = dp(8);
-			quick.addView(b, blp);
+			}), barLp(true));
 		}
 		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, -2);
 		ql.topMargin = dp(8);
@@ -1250,6 +1206,40 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * Yatay Pano kartı: kartın renginde koyu geçişli yüzey, sol üstte renkli simge kutusu, sağ üstte ok, altta ad ve
 	 * kısa açıklama (ya da tek bakış değeri), arkada silik büyük simge (kartın içinde, kesik değil).
 	 */
+	/** Pano alt şerit düğmesi: renkli yuvarlak simge + ad, hepsi aynı biçimde. */
+	private View barChip(Context ctx, String name, @DrawableRes int icon, int color, View.OnClickListener click) {
+		LinearLayout b = hrow(ctx);
+		b.setGravity(Gravity.CENTER);
+		b.setPadding(dp(6), 0, dp(8), 0);
+		b.setBackground(headPill());
+		b.setClickable(true);
+		b.setContentDescription(name);
+		b.setOnClickListener(click);
+		pressEffect(b);
+		FrameLayout dot = new FrameLayout(ctx);
+		GradientDrawable dg = new GradientDrawable();
+		dg.setShape(GradientDrawable.OVAL);
+		dg.setColor(color);
+		dot.setBackground(dg);
+		ImageView ic = new ImageView(ctx);
+		ic.setImageResource(icon);
+		ic.setImageTintList(ColorStateList.valueOf(0xFF1A1206));
+		dot.addView(ic, new FrameLayout.LayoutParams(dp(16), dp(16), Gravity.CENTER));
+		b.addView(dot, new LinearLayout.LayoutParams(dp(30), dp(30)));
+		TextView bt = text(ctx, name, 15, true, 0xFFFFFFFF);
+		bt.setPadding(dp(8), 0, 0, 0);
+		bt.setSingleLine(true);
+		bt.setEllipsize(TextUtils.TruncateAt.END);
+		b.addView(bt);
+		return b;
+	}
+
+	private LinearLayout.LayoutParams barLp(boolean gap) {
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(48), 1f);
+		if (gap) lp.leftMargin = dp(8);
+		return lp;
+	}
+
 	/** Pano başlık şeridindeki hap zemini: yarı saydam, çerçevesiz (camlı kabuk değil). */
 	private GradientDrawable headPill() {
 		GradientDrawable g = new GradientDrawable();
