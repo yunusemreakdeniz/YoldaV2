@@ -1076,6 +1076,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dl.addView(iy, new LinearLayout.LayoutParams(0, -2, 1f));
 		hello.addView(dl);
 		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
+		boolean narrowRight = (dm.widthPixels / dm.density) * (1f - PANO_NOW[panoSize()]) < 440;
+		if (narrowRight) hello.setVisibility(View.INVISIBLE); // yer tutar (öğeler sağa yaslı), yazı sığmıyordu
 
 		// Hız sınırı levhası ve radar uzaklığı (dokun: Sürüş ekranı); radar uyarısı ayrıca her ekranda kırmızı kartla
 		LinearLayout spd = hrow(ctx);
@@ -1102,11 +1104,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		spd.setMinimumHeight(dp(48));
 		head.addView(spd);
-		phClock = text(ctx, "", 28, true, 0xFFFFFFFF);
-		phClock.setPadding(0, 0, dp(12), 0);
+		phClock = text(ctx, "", narrowRight ? 24 : 28, true, 0xFFFFFFFF);
+		phClock.setSingleLine(true);
+		phClock.setPadding(dp(4), 0, dp(narrowRight ? 4 : 12), 0);
 		head.addView(phClock);
+		// sağ sütun çok darsa (video büyük) saat gizli: saat aracın durum çubuğunda zaten var, düğmeler sığsın
+		if ((dm.widthPixels / dm.density) * (1f - PANO_NOW[panoSize()]) < 320) phClock.setVisibility(View.GONE);
 		LinearLayout.LayoutParams hb = new LinearLayout.LayoutParams(dp(48), dp(48));
-		hb.leftMargin = dp(8);
+		hb.leftMargin = dp(narrowRight ? 4 : 8);
 		head.addView(roundButton(ctx, R.drawable.yi_grid, "Görünüm seç", v -> showViewPicker(ctx)), hb);
 		head.addView(roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> a.showFragment(R.id.yolda_menu_fragment)), hb);
 		ImageView mic = roundButton(ctx, R.drawable.yi_mic, "Hey Yolda", v -> a.startVoiceAssistant());
@@ -1154,7 +1159,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		sv.post(() -> { // satır boyu gerçek alana göre: iki satır tam sığsın (tahminle hesaplanınca ikinci satır kesiliyordu)
 			int h = sv.getHeight();
 			if (h <= 0) return;
-			int rh = Math.max(dp(104), (h - dp(8)) / 2 - dp(8));
+			int rh = Math.max(dp(80), (h - dp(8)) / 2 - dp(8));
+			boolean tight = rh < dp(112); // alçak ekran: simge küçük, alt yazı yok (ad kesiliyordu)
 			for (int i = 0; i < grid.getChildCount(); i++) {
 				View r = grid.getChildAt(i);
 				ViewGroup.LayoutParams lp = r.getLayoutParams();
@@ -1162,6 +1168,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 					lp.height = rh;
 					r.setLayoutParams(lp);
 				}
+				if (tight && (r instanceof ViewGroup rg)) for (int j = 0; j < rg.getChildCount(); j++) panoCardTight(rg.getChildAt(j), rh);
 			}
 		});
 
@@ -1215,6 +1222,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * Yatay Pano kartı: kartın renginde koyu geçişli yüzey, sol üstte renkli simge kutusu, sağ üstte ok, altta ad ve
 	 * kısa açıklama (ya da tek bakış değeri), arkada silik büyük simge (kartın içinde, kesik değil).
 	 */
+	/** Alçak satırda Pano kartı: simge kutusu ve boşluk küçülür, satır çok alçaksa alt yazı gizlenir. */
+	private void panoCardTight(View card, int rh) {
+		if (!(card instanceof LinearLayout f) || (f.getChildCount() < 4)) return;
+		f.setPadding(dp(12), dp(10), dp(12), dp(8));
+		View box = f.getChildAt(0);
+		ViewGroup.LayoutParams bl = box.getLayoutParams();
+		bl.width = bl.height = dp(40);
+		box.setLayoutParams(bl);
+		if ((box instanceof FrameLayout bf) && (bf.getChildCount() > 0)) {
+			ViewGroup.LayoutParams il = bf.getChildAt(0).getLayoutParams();
+			il.width = il.height = dp(24);
+			bf.getChildAt(0).setLayoutParams(il);
+		}
+		if (rh < dp(96)) f.getChildAt(3).setVisibility(View.GONE);
+	}
+
 	private View panoCard(Context ctx, YoldaDeck.Card c) {
 		// Deste'deki camlı "kabuk" (çerçeve, köşe oku, silik simge) yok: kartın renginde sade yüzey, büyük simge
 		Look lk = look(c);
@@ -1547,6 +1570,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		if (phRadar != null) {
 			YoldaRadarCore.Ahead ah = YoldaRadar.ahead;
 			phRadar.setText((ah != null) ? RadarFragment.meters(ah.meters()) : (YoldaRadar.isEnabled(ctx) ? "Yok" : "Kapalı"));
+		}
+		if (panoWideBuilt && (phLimit != null) && (phRadar != null)) { // dar başlıkta "Yok / Yok" yer kaplamasın
+			boolean lim = YoldaRadar.limit > 0;
+			boolean rad = YoldaRadar.ahead != null;
+			phLimit.setVisibility(lim ? View.VISIBLE : View.GONE);
+			phRadar.setVisibility(rad ? View.VISIBLE : View.GONE);
+			if ((phRadar.getParent() instanceof View sp)) sp.setVisibility((lim || rad) ? View.VISIBLE : View.GONE);
 		}
 		if (phPark != null) {
 			double[] pk = YoldaRadar.park(ctx);
