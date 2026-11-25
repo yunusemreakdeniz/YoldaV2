@@ -1265,9 +1265,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ic.setImageResource(icon);
 		ic.setImageTintList(ColorStateList.valueOf(0xFF1A1206));
 		dot.addView(ic, new FrameLayout.LayoutParams(dp(16), dp(16), Gravity.CENTER));
-		b.addView(dot, new LinearLayout.LayoutParams(dp(30), dp(30)));
-		TextView bt = text(ctx, name, 15, true, 0xFFFFFFFF);
-		bt.setPadding(dp(8), 0, 0, 0);
+		boolean narrow = YoldaStyle.widthDp(ctx) < 760; // dar yatay ekranda sıkı: "Favoriler", "Benzinlik" kesilmesin
+		b.setPadding(dp(narrow ? 4 : 6), 0, dp(narrow ? 4 : 8), 0);
+		b.addView(dot, new LinearLayout.LayoutParams(dp(narrow ? 24 : 30), dp(narrow ? 24 : 30)));
+		TextView bt = text(ctx, name, narrow ? 13 : 15, true, 0xFFFFFFFF);
+		bt.setPadding(dp(narrow ? 5 : 8), 0, 0, 0);
 		bt.setSingleLine(true);
 		bt.setEllipsize(TextUtils.TruncateAt.END);
 		b.addView(bt);
@@ -1276,7 +1278,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	private LinearLayout.LayoutParams barLp(boolean gap) {
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(48), 1f);
-		if (gap) lp.leftMargin = dp(8);
+		if (gap) lp.leftMargin = dp(6);
 		return lp;
 	}
 
@@ -1993,6 +1995,36 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			top.addView(wxChip, wlp);
 		}
 		updateWeatherChip();
+		// Hız: üst satırda sabit hap (levha = sınır, yanında anlık hız); kabukta kartın üstüne biniyordu
+		LinearLayout sp = hrow(ctx);
+		sp.setGravity(Gravity.CENTER_VERTICAL);
+		sp.setPadding(dp(3), 0, dp(12), 0);
+		sp.setBackground(YoldaStyle.glass(ctx, t, 999));
+		sp.setClickable(true);
+		sp.setContentDescription("Hız ve radar");
+		sp.setOnClickListener(v -> {
+			YoldaStyle.haptic(v);
+			getActivityDelegate().showFragment(R.id.yolda_radar_fragment);
+		});
+		deckSign = text(ctx, "—", 14, true, 0xFF111111);
+		deckSign.setGravity(Gravity.CENTER);
+		GradientDrawable dsg = new GradientDrawable();
+		dsg.setShape(GradientDrawable.OVAL);
+		dsg.setColor(0xFFFFFFFF);
+		dsg.setStroke(dp(4), 0xFFE53935);
+		deckSign.setBackground(dsg);
+		sp.addView(deckSign, new LinearLayout.LayoutParams(dp(38), dp(38)));
+		deckSpeed = text(ctx, "", 15, true, t.ink);
+		deckSpeed.setSingleLine(true);
+		deckSpeed.setPadding(dp(8), 0, 0, 0);
+		sp.addView(deckSpeed);
+		LinearLayout.LayoutParams spl = new LinearLayout.LayoutParams(-2, dp(44));
+		spl.rightMargin = narrowHeader ? dp(6) : dp(10);
+		top.addView(sp, spl);
+		deckSpeedBox = sp;
+		// dar dikey telefonda üst satıra sığmıyor (saat sıkışıyordu): orada gösterge kabukta, bilgi varken
+		deckSpeedWide = car || (YoldaStyle.widthDp(ctx) >= 600);
+		updateDeckSpeed();
 		TextView playing = text(ctx, "", 15, true, 0xFFFFFFFF);
 		playing.setSingleLine(true);
 		playing.setEllipsize(TextUtils.TruncateAt.END);
@@ -2021,6 +2053,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			public void run() {
 				if (!isAdded() || (nowPill == null)) return;
 				updateNowPill();
+				updateDeckSpeed();
 				nowPill.postDelayed(this, 1500);
 			}
 		};
@@ -3724,6 +3757,31 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		c.setText(YoldaWeather.emoji(weather.code()) + " " + weather.temp() + "°");
 		c.setContentDescription("Hava: " + weather.temp() + " derece, " + YoldaWeather.text(weather.code()) + ". Ayrıntı için dokun");
 		c.setVisibility(View.VISIBLE);
+	}
+
+	@Nullable
+	private TextView deckSign, deckSpeed;
+	@Nullable
+	private View deckSpeedBox;
+	private boolean deckSpeedWide;
+
+	/** Deste üst satırındaki hız hapı: levha sınırı, yanında anlık hız; radar kapalıysa gizli. */
+	private void updateDeckSpeed() {
+		Context ctx = getContext();
+		if ((ctx == null) || (deckSign == null) || (deckSpeed == null) || (deckSpeedBox == null)) return;
+		boolean on = deckSpeedWide && YoldaRadar.isEnabled(ctx);
+		deckSpeedBox.setVisibility(on ? View.VISIBLE : View.GONE);
+		if (!on) return;
+		int lim = YoldaRadar.limit;
+		String ls = (lim > 0) ? String.valueOf(lim) : "—";
+		if (!ls.contentEquals(deckSign.getText())) deckSign.setText(ls);
+		deckSign.setTextSize((lim >= 100) ? 12 : 14);
+		deckSign.setAlpha((lim > 0) && !YoldaRadar.limitEstimated ? 1f : 0.7f);
+		int spd = YoldaRadar.speed;
+		boolean fix = YoldaRadar.hasFix() && (spd >= 0);
+		String ss = fix ? (spd + " km/s") : "— km/s";
+		if (!ss.contentEquals(deckSpeed.getText())) deckSpeed.setText(ss);
+		deckSpeed.setTextColor(fix && (lim > 0) && (spd > lim) ? 0xFFFF6B6B : t.ink);
 	}
 
 	/** Testler için: destedeki kartın görünümü (bağlıysa). */
