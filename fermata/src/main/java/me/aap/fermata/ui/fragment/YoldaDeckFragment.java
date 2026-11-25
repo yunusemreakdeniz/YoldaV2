@@ -4165,7 +4165,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			View gv = glanceRow(ctx, c.type(), x -> open(c)); // alçak kartta da kartın değeri adın yanında
 			if (gv != null) {
-				LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(-2, -2);
+				// adla yeri paylaşır: uzun değer (eczane adı) "Aç" düğmesini karttan dışarı itmesin
+				LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(0, -2, 1f);
 				glp.leftMargin = dp(8);
 				head.addView(gv, glp);
 			}
@@ -6166,9 +6167,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		side.setOrientation(LinearLayout.VERTICAL);
 		side.setPadding(dp(10), 0, dp(16), 0);
 		int sz = lowFx ? 17 : 15;
-		side.addView(text(ctx, l1, sz, true, 0xFFFFFFFF));
-		if (!l2.isEmpty()) side.addView(text(ctx, l2, sz, true, l2Color));
-		box.addView(side);
+		TextView t1 = text(ctx, l1, sz, true, 0xFFFFFFFF);
+		t1.setSingleLine(true); // dar yerde kesilmesin, "…" ile kısalsın
+		t1.setEllipsize(TextUtils.TruncateAt.END);
+		side.addView(t1);
+		if (!l2.isEmpty()) {
+			TextView t2 = text(ctx, l2, sz, true, l2Color);
+			t2.setSingleLine(true);
+			t2.setEllipsize(TextUtils.TruncateAt.END);
+			side.addView(t2);
+		}
+		box.addView(side, new LinearLayout.LayoutParams(0, -2, 1f));
 		box.setMinimumHeight(dp(48));
 		box.setContentDescription(big + ", " + l1 + (l2.isEmpty() ? "" : (", " + l2)));
 		if (click != null) {
