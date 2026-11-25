@@ -305,7 +305,7 @@ public class YoldaMenuFragment extends MainActivityFragment {
 					render();
 				}));
 		set.addView(item(ctx, R.drawable.yi_history, "Tanı günlüğü", 0xFFFECACA, 0xFFDC2626, v -> showLog(ctx, a)));
-		set.addView(item(ctx, R.drawable.yi_settings, "Gelişmiş ayarlar", 0xFFE2E8F0, 0xFF64748B,
+		set.addView(item(ctx, R.drawable.yi_settings, "Gelişmiş ayarlar · ayarları yedekle / geri yükle", 0xFFE2E8F0, 0xFF64748B,
 				v -> a.showFragment(R.id.settings_fragment)));
 		set.addView(item(ctx, R.drawable.yi_grid, "Diğer seçenekler", 0xFFBAE6FD, 0xFF0284C7,
 				v -> getNavBarMediator().showMenu(a)));
