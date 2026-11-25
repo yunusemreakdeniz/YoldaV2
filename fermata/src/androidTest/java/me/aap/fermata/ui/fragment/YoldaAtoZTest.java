@@ -589,7 +589,7 @@ public class YoldaAtoZTest {
 		waitIdle(2000);
 		try {
 			View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
-			for (String d : new String[]{"Hava durumu", "Ev", "İş", "Rota", "Hey Yolda", "Kart ekle"}) {
+			for (String d : new String[]{"Hava durumu", "Ev", "İş", "Rota", "Benzinlik", "Kart ekle"}) {
 				View v = onMain(a -> byDescExact(root, d));
 				assertNotNull("Telefon görünümünde olmalı: " + d, v);
 				int h = onMain(a -> v.getHeight());
@@ -1312,7 +1312,11 @@ public class YoldaAtoZTest {
 				android.graphics.RectF vr = new android.graphics.RectF(v.getLeft(), v.getTop(), v.getRight(), v.getBottom());
 				assertTrue(desc + " kapsülün içinde olmalı: " + vr + " / " + b, b.contains(vr));
 			}
-			assertTrue("Kapsül dar olmalı (tek sütun): " + b.width(), b.width() < 90 * c.getResources().getDisplayMetrics().density);
+			// dikey telefonda tek sıra (listelerin soluna binmesin), yatayda tek sütun
+			boolean portrait = c.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT;
+			float thin = portrait ? b.height() : b.width();
+			assertTrue("Kapsül ince olmalı (" + (portrait ? "tek sıra" : "tek sütun") + "): " + thin,
+					thin < 90 * c.getResources().getDisplayMetrics().density);
 			shot("kapsul_ic_ekran");
 			// Çentikli telefon yatayda: kök görünümün solunda boşluk olur; cam yine düğmeleri sarmalı (kaymamalı)
 			onMain(a -> {

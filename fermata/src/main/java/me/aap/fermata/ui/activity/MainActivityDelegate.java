@@ -2401,6 +2401,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		me.aap.fermata.ui.view.YoldaQualityPill.update(this); // YouTube ekranı açılınca / kapanınca da
 		if (!me.aap.fermata.ui.view.YoldaStyle.DECK) return;
 		if (yoldaPip) return;
+		applyShellRow();
 		yoldaFloatingBarMargin();
 		boolean np = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
 		if ((navBar != null) && (navBar.getVisibility() != View.GONE)) navBar.setVisibility(View.GONE);
@@ -2427,6 +2428,51 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 		updateOrb();
 		updateDock();
+	}
+
+	@Nullable
+	private Boolean shellRow;
+
+	/**
+	 * Kabuk dikey telefonda yatay sıra (mikrofon · geri · ana sayfa · aracım), yatayda / araçta dikey sütun.
+	 * Dikey telefonda sütun listelerin sol kenarına (simgelerin üstüne) biniyordu.
+	 */
+	private void applyShellRow() {
+		View vb = voiceButton, home = deckBack, back = deckPrev, park = deckPark;
+		if ((vb == null) || (home == null) || (back == null) || (park == null)) return;
+		boolean row = !isCarActivity() && (getContext().getResources().getConfiguration().orientation
+				== android.content.res.Configuration.ORIENTATION_PORTRAIT);
+		if (Boolean.valueOf(row).equals(shellRow)) return;
+		shellRow = row;
+		Context ctx = getContext();
+		View[] chain = {back, home, park}; // soldan sağa: mikrofon, geri, ana sayfa, aracım
+		View prev = vb;
+		for (View v : chain) {
+			if (!(v.getLayoutParams() instanceof ConstraintLayout.LayoutParams lp)) return;
+			lp.startToStart = lp.endToEnd = lp.bottomToTop = lp.startToEnd = lp.topToTop = lp.bottomToBottom
+					= ConstraintLayout.LayoutParams.UNSET;
+			if (row) {
+				lp.startToEnd = prev.getId();
+				lp.topToTop = vb.getId();
+				lp.bottomToBottom = vb.getId();
+				lp.leftMargin = toIntPx(ctx, 6);
+				lp.bottomMargin = 0;
+			} else { // eski sütun: mikrofonun (ya da küçük oynatıcının) üstünde, ortalı
+				lp.leftMargin = 0;
+				lp.startToStart = vb.getId();
+				lp.endToEnd = vb.getId();
+				lp.bottomMargin = toIntPx(ctx, (v == home) ? 6 : 2);
+				lp.bottomToTop = (v == home) ? ((orb != null) ? orb.getId() : vb.getId()) : (v == back) ? home.getId() : back.getId();
+			}
+			v.setLayoutParams(lp);
+			if (row) prev = v;
+		}
+		if (!row) return;
+		// sırada geri ile ana sayfanın yeri: geri önce (mikrofonun hemen sağında), sonra ana sayfa, sonra aracım
+		if (home.getLayoutParams() instanceof ConstraintLayout.LayoutParams hl) {
+			hl.startToEnd = back.getId();
+			home.setLayoutParams(hl);
+		}
 	}
 
 	private static boolean yoldaSplashShown;
