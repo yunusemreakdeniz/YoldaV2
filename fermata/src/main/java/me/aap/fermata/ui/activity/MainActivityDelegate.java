@@ -2426,8 +2426,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			if (speedRail.isVideo() != full) placeSpeedRail(full);
 			speedRail.setVideo(full);
 			speedRail.setAllowed((!np || full) && (!voiceOrbHidden || full)); // yatay Pano'da hız levhası üst satırda
-			speedRail.setPinned((getActiveFragment() instanceof me.aap.fermata.ui.fragment.YoldaDeckFragment d2)
-					&& !d2.isPhoneView()); // Deste (yığın): hız levhası hep yerinde
+			speedRail.setPinned(false); // Deste'de sabit hız üst satırda (kabukta kartın üstüne biniyordu)
 		}
 		updateOrb();
 		updateDock();
