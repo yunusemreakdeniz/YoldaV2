@@ -2417,7 +2417,8 @@ public class MainActivityDelegate extends ActivityDelegate
 		if ((deckPrev != null) && (deckPrev.getVisibility() != bv)) deckPrev.setVisibility(bv);
 		if (deckPark != null) {
 			// yatay Pano'da gizli: park altta "Otopark" düğmesinde, kutu kenarda yarım kalıp karta biniyordu
-			int pv = (full || np || voiceOrbHidden || !me.aap.fermata.ui.fragment.YoldaRadar.hasPark(getContext())) ? View.GONE : View.VISIBLE;
+			// kabukta P yok (kullanıcı isteği): park yeri Park kartında, Pano'da "Otopark", telefonda "Aracım" kutusunda
+			int pv = View.GONE;
 			if (deckPark.getVisibility() != pv) deckPark.setVisibility(pv);
 		}
 		if (speedRail != null) {
@@ -2425,6 +2426,8 @@ public class MainActivityDelegate extends ActivityDelegate
 			if (speedRail.isVideo() != full) placeSpeedRail(full);
 			speedRail.setVideo(full);
 			speedRail.setAllowed((!np || full) && (!voiceOrbHidden || full)); // yatay Pano'da hız levhası üst satırda
+			speedRail.setPinned((getActiveFragment() instanceof me.aap.fermata.ui.fragment.YoldaDeckFragment d2)
+					&& !d2.isPhoneView()); // Deste (yığın): hız levhası hep yerinde
 		}
 		updateOrb();
 		updateDock();

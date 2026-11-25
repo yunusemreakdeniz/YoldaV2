@@ -350,6 +350,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	/** Ekranda şu an telefon görünümü mü kurulu (ayar değil, gerçekte kurulan): yenilemeler buna göre. */
 	private boolean phoneBuilt;
 
+	/** Telefon / Pano görünümü kurulu mu (değilse Deste). */
+	public boolean isPhoneView() {
+		return phoneBuilt;
+	}
+
 	/**
 	 * Cihaz testleri desteyi sınar: yalnız gerçekten bir test çalışıyorsa (kayıtlı test sürücüsü varsa) varsayılan
 	 * deste. Önceden yalnız sınıfın varlığına bakılıyordu; sınıf uygulamanın içinde de olduğundan gerçek telefonda

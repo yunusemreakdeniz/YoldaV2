@@ -140,6 +140,15 @@ public class YoldaSpeedRail extends LinearLayout {
 		return video;
 	}
 
+	private boolean pin;
+
+	/** Deste (yığın) ana ekranında levha hep görünür (sabit); başka ekranlarda yalnız bilgi varken. */
+	public void setPinned(boolean pin) {
+		if (this.pin == pin) return;
+		this.pin = pin;
+		update();
+	}
+
 	/** Küçük pencere, oynatıcı ekranı gibi durumlarda gizli kalsın. */
 	public void setAllowed(boolean allowed) {
 		if (this.allowed == allowed) return;
@@ -152,12 +161,14 @@ public class YoldaSpeedRail extends LinearLayout {
 		YoldaStyle.Theme t = YoldaStyle.current(ctx);
 		setBackground(null); // cam: sol alttaki ortak kapsül (YoldaDock)
 		boolean on = allowed && YoldaRadar.isEnabled(ctx) && YoldaRadar.hasFix();
+		// Video dışında hız levhası hep yerinde (sabit): sınır bilinmiyorsa / konum yoksa soluk "—"
+		boolean pinned = pin && allowed && !video && YoldaRadar.isEnabled(ctx);
 		YoldaRadarCore.Ahead a = YoldaRadar.ahead;
 		int lim = YoldaRadar.limit;
 		int sp = YoldaRadar.speed;
 		boolean avgOn = YoldaRadar.avg.isActive() && YoldaRadar.feature(ctx, "avg");
 		me.aap.fermata.ui.fragment.YoldaDriveCore.Place z = YoldaRadar.zone;
-		boolean show = on && ((lim > 0) || (sp >= 3) || (a != null) || avgOn || (z != null));
+		boolean show = pinned || (on && ((lim > 0) || (sp >= 3) || (a != null) || avgOn || (z != null)));
 		if (video) {
 			boolean overV = YoldaRadarCore.overSpeed(sp, lim) && !YoldaRadar.limitEstimated;
 			show = show && (((a != null) && (a.meters() <= 1000)) || overV || avgOn || (z != null));
@@ -195,6 +206,11 @@ public class YoldaSpeedRail extends LinearLayout {
 			setIf(sign, String.valueOf(lim));
 			sign.setTextSize(TypedValue.COMPLEX_UNIT_SP, (lim >= 100) ? 15 : 18);
 			if (overAnim == null) sign.setAlpha(YoldaRadar.limitEstimated ? 0.75f : 1f); // tahmini sınır (etiketsiz yol) soluk
+		} else if (pinned) {
+			sign.setVisibility(VISIBLE);
+			setIf(sign, "—");
+			sign.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+			if (overAnim == null) sign.setAlpha(0.6f); // sınır bilinmiyor
 		} else {
 			sign.setVisibility(GONE);
 		}
@@ -202,7 +218,7 @@ public class YoldaSpeedRail extends LinearLayout {
 		// Kısa ekranda (araç) levha ve radar yetsin: hız aracın göstergesinde zaten var (aşımda yine görünür)
 		android.view.View parent = (android.view.View) getParent();
 		boolean compact = (parent != null) && (parent.getHeight() > 0) && (parent.getHeight() < dp(470));
-		if ((sp >= 0) && ((!compact && !video) || (lim == 0) || over)) {
+		if ((sp >= 0) && YoldaRadar.hasFix() && ((!compact && !video) || (lim == 0) || over)) {
 			speed.setVisibility(VISIBLE);
 			setIf(speed, sp + "\nkm/s");
 			speed.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
