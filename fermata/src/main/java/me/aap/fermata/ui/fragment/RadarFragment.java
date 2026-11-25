@@ -112,7 +112,7 @@ public class RadarFragment extends MainActivityFragment {
 	private String speedLine(Context ctx) {
 		if (!YoldaRadar.isEnabled(ctx)) return "Radar uyarıları kapalı";
 		if (!YoldaRadar.hasPermission(ctx)) return "Konum izni gerekli";
-		if (!YoldaRadar.hasFix()) return "Konum bekleniyor (GPS)…";
+		if (!YoldaRadar.hasFix()) return "GPS bekleniyor…"; // kısa: araçta büyük yazıda üç satıra bölünüyordu
 		return (YoldaRadar.speed >= 0) ? (YoldaRadar.speed + " km/s") : "Hız bilinmiyor";
 	}
 
