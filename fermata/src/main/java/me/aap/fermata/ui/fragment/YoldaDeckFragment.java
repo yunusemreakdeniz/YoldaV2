@@ -4208,7 +4208,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	private LinearLayout.LayoutParams openLp(Fit fz) {
-		LinearLayout.LayoutParams olp = new LinearLayout.LayoutParams(dp(fz.btn()), dp(fz.btn())); // yuvarlak simge düğmesi
+		int ob = Math.max(48, Math.min(fz.btn(), 56)); // yuvarlak simge düğmesi: alçak satırda taşmasın (en az 48dp)
+		LinearLayout.LayoutParams olp = new LinearLayout.LayoutParams(dp(ob), dp(ob));
+		olp.gravity = Gravity.CENTER_VERTICAL;
 		olp.leftMargin = dp(10);
 		return olp;
 	}
@@ -4228,7 +4230,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Kartın "Aç" düğmesi. */
 	private TextView openButton(Context ctx, YoldaDeck.Card c, boolean noble, int accent, Fit fz) {
-		TextView openBtn = text(ctx, "›", Math.max(24, Math.round(fz.btn() * 0.5f)), true, 0xFFFFFFFF); // yalnız simge
+		TextView openBtn = text(ctx, "›", 26, true, 0xFFFFFFFF); // yalnız simge
 		openBtn.setSingleLine(true);
 		openBtn.setGravity(Gravity.CENTER);
 		openBtn.setIncludeFontPadding(false);
