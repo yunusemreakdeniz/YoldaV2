@@ -4198,7 +4198,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				// adla yeri paylaşır: uzun değer (eczane adı) "Aç" düğmesini karttan dışarı itmesin
 				LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(0, -2, 1f);
 				ViewGroup.LayoutParams nlp = (head.getChildCount() > 1) ? head.getChildAt(1).getLayoutParams() : null;
-				if ((nlp instanceof LinearLayout.LayoutParams nl) && (nl.weight > 0)) nl.weight = 1.5f; // ad kesilmesin, değer kısalsın
+				if ((nlp instanceof LinearLayout.LayoutParams nl) && (nl.weight > 0)) nl.weight = 2f; // ad kesilmesin, değer kısalsın
 				glp.leftMargin = dp(8);
 				head.addView(gv, glp);
 			}
