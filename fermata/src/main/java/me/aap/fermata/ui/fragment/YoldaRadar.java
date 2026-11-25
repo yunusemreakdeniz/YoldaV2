@@ -261,6 +261,7 @@ public final class YoldaRadar {
 		Context c = app;
 		if (c == null) return;
 		App.get().getHandler().post(YoldaRadar::adjustRate); // araçta her saniye, inince seyrek
+		YoldaCarOff.carChanged(c, connected); // isteğe bağlı: araçtan inince durdur
 		if (connected) {
 			YoldaWelcome.onCarConnected(c); // isteğe bağlı sesli karşılama
 			if (isEnabled(c) && feature(c, "bg") && hasUi()) YoldaDriveService.start(c);
