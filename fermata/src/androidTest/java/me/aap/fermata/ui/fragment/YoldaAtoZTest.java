@@ -700,6 +700,41 @@ public class YoldaAtoZTest {
 			assertNotNull("Pano kartları görünmeli", onMain(a -> byDescExact(
 					((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Benzinlik")));
 			shot("pano_video");
+			// Araçta solda sistem çubuğu (≈110 px güvenli alan): sol kenarda yarım kalan öğe olmamalı
+			onMain(a -> {
+				View root = ((android.app.Activity) a.getContext()).findViewById(R.id.main_activity);
+				root.setPadding(110, root.getPaddingTop(), root.getPaddingRight(), root.getPaddingBottom());
+				return null;
+			});
+			waitIdle(1500);
+			try {
+				shot("pano_video_sol_bosluk");
+				java.util.List<String> cut = onMain(a -> {
+					java.util.List<String> out = new java.util.ArrayList<>();
+					View dv = ((android.app.Activity) a.getContext()).getWindow().getDecorView();
+					java.util.ArrayDeque<View> q = new java.util.ArrayDeque<>();
+					q.add(dv);
+					int[] xy = new int[2];
+					while (!q.isEmpty()) {
+						View v = q.poll();
+						if (!v.isShown()) continue;
+						if (v instanceof android.view.ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) q.add(g.getChildAt(i));
+						if ((v.getWidth() == 0) || (v.getWidth() >= dv.getWidth() / 2)) continue;
+						v.getLocationOnScreen(xy);
+						if ((xy[0] < 110) && (xy[0] + v.getWidth() > 110))
+							out.add(v.getClass().getSimpleName() + " " + v.getContentDescription() + " x=" + xy[0] + " w=" + v.getWidth());
+					}
+					return out;
+				});
+				android.util.Log.i("YoldaTest", "sol boşlukta kesilen: " + cut);
+				assertTrue("Sol güvenli alanın sınırında kesilen öğe olmamalı: " + cut, cut.isEmpty());
+			} finally {
+				onMain(a -> {
+					View root = ((android.app.Activity) a.getContext()).findViewById(R.id.main_activity);
+					root.setPadding(0, root.getPaddingTop(), root.getPaddingRight(), root.getPaddingBottom());
+					return null;
+				});
+			}
 		} finally {
 			onMain(a -> {
 				a.getMediaSessionCallback().onStop();
