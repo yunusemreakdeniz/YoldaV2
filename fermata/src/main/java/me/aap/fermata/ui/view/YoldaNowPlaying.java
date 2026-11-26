@@ -624,7 +624,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		ops = new LinearLayout(ctx);
 		ops.setOrientation(LinearLayout.HORIZONTAL);
 		ops.setGravity(Gravity.CENTER);
-		ops.setPadding(0, dp(12), 0, 0);
+		ops.setPadding(0, dp(wide ? 2 : 12), 0, 0); // araçta (yatay) alan dar: satır alttan taşıyordu
 		back15 = opChip(ctx, "↺ 15", "15 saniye geri", v -> me.aap.fermata.ui.fragment.YoldaPlayerOps.skip(MainActivityDelegate.get(getContext()), false));
 		fwd30 = opChip(ctx, "30 ↻", "30 saniye ileri", v -> me.aap.fermata.ui.fragment.YoldaPlayerOps.skip(MainActivityDelegate.get(getContext()), true));
 		speedChip = opChip(ctx, "1×", "Oynatma hızı", v -> {

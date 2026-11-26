@@ -2452,7 +2452,9 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 		boolean pip = false;
 		try {
-			if (android.os.Build.VERSION.SDK_INT >= 26) {
+			// Otomatik dayanıklılık testinde (monkey) küçük pencereye geçilmez: küçük pencerede odaklı pencere
+			// yokken test dokunuş göndermeyi sürdürüyor, sistem bunu "yanıt vermiyor" sayıyordu
+			if ((android.os.Build.VERSION.SDK_INT >= 26) && !android.app.ActivityManager.isUserAMonkey()) {
 				android.app.PictureInPictureParams p = new android.app.PictureInPictureParams.Builder()
 						.setAspectRatio(new android.util.Rational(16, 9)).build();
 				pip = ((android.app.Activity) getAppActivity()).enterPictureInPictureMode(p);
