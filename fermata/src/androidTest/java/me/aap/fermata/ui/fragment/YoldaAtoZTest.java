@@ -1110,6 +1110,213 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	private static Object field(Object o, String name) {
+		try {
+			java.lang.reflect.Field f = o.getClass().getDeclaredField(name);
+			f.setAccessible(true);
+			return f.get(o);
+		} catch (Exception ex) {
+			throw new RuntimeException(ex);
+		}
+	}
+
+	private static final String TEST_STREAM = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
+
+	/** Test yayınını başlat; bu ağdan açılmazsa testi atla. */
+	private void playTestStream() {
+		onMain(a -> {
+			a.getBody().playItem(new me.aap.fermata.media.lib.IntentPlayable(a, android.net.Uri.parse(TEST_STREAM)));
+			return null;
+		});
+		boolean playing = waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+		org.junit.Assume.assumeTrue("Test yayını bu ağdan açılmadı", playing);
+	}
+
+	private void stopAll(String view) {
+		onMain(a -> {
+			a.getMediaSessionCallback().onStop();
+			if (a.getBody() != null) a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
+			call(deck(a), "setHomeView", view);
+			a.showFragment(R.id.home_fragment);
+			return null;
+		});
+		scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+		waitIdle(1500);
+	}
+
+	/** Pano'da küçük pencerede oynayan TV büyütülünce tam ekran kalır (ana ekranın yenilemesi geri küçültüyordu). */
+	@Test
+	public void panoVideoBuyutunceKucukPencereyeDonmez() {
+		onMain(a -> {
+			call(deck(a), "setHomeView", "pano");
+			return null;
+		});
+		scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+		waitIdle(3000);
+		try {
+			playTestStream();
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			assertTrue("Pano'da video küçük pencerede olmalı", waitFor(6000, () -> onMain(a -> a.getBody().isBothMode())));
+			// büyüt: küçük pencereye dokunma ile aynı yol
+			onMain(a -> {
+				YoldaNowPlaying.open(a);
+				return null;
+			});
+			assertTrue("Büyütünce tam ekran", waitFor(3000, () -> onMain(a -> a.getBody().isVideoMode())));
+			SystemClock.sleep(6000); // ana ekranın 1,5 sn'lik yenilemesi birkaç kez çalışsın
+			shot("pano_video_buyutuldu");
+			assertTrue("Büyütülen video kendiliğinden küçülmemeli", onMain(a -> a.getBody().isVideoMode()));
+			// geri: yeniden küçük pencere
+			onMain(a -> {
+				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.BOTH);
+				return null;
+			});
+			assertTrue("Küçültünce yine kartta", waitFor(4000, () -> onMain(a -> a.getBody().isBothMode())));
+		} finally {
+			stopAll("deck");
+		}
+	}
+
+	/** Yatay Panel'de video kartta oynarken kart sabit: aşağı kaydırınca video yerinde kalıp sayfanın üstüne binmez. */
+	@Test
+	public void panelVideoKaydirincaTasmaz() {
+		onMain(a -> {
+			call(deck(a), "setHomeView", "dash");
+			return null;
+		});
+		scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+		waitIdle(3000);
+		try {
+			playTestStream();
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			assertTrue("Panel'de video kartta olmalı", waitFor(8000, () -> onMain(a -> a.getBody().isBothMode())));
+			waitIdle(2500);
+			View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			View now = onMain(a -> byDescExact(root, "Şimdi çalıyor"));
+			assertNotNull("Şimdi çalıyor kartı", now);
+			boolean inScroll = onMain(a -> {
+				for (android.view.ViewParent p = now.getParent(); p != null; p = p.getParent())
+					if (p instanceof android.widget.ScrollView) return true;
+				return false;
+			});
+			assertFalse("Video oynarken kart kaydırılan alanda olmamalı (video kaydırmayı izleyemez)", inScroll);
+			int[] before = onMain(a -> {
+				int[] xy = new int[2];
+				now.getLocationOnScreen(xy);
+				return xy;
+			});
+			onMain(a -> { // sayfayı aşağı kaydır
+				java.util.ArrayDeque<View> q = new java.util.ArrayDeque<>();
+				q.add(root);
+				while (!q.isEmpty()) {
+					View v = q.poll();
+					if ((v instanceof android.widget.ScrollView sv) && v.isShown()) sv.scrollBy(0, 400);
+					if (v instanceof ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) q.add(g.getChildAt(i));
+				}
+				return null;
+			});
+			waitIdle(1200);
+			int[] after = onMain(a -> {
+				int[] xy = new int[2];
+				now.getLocationOnScreen(xy);
+				return xy;
+			});
+			shot("panel_video_kaydirma");
+			assertEquals("Kart (ve video) kaydırınca yerinde kalmalı", before[1], after[1]);
+			assertTrue("Video hâlâ kartta", onMain(a -> a.getBody().isBothMode()));
+		} finally {
+			stopAll("deck");
+		}
+	}
+
+	/**
+	 * Seçilen görünüm ekran ölçüsü değişince yeniden kurulur (araç ekranı bağlanınca ilk kurulum telefonun ölçüsüyle
+	 * yapılıp Pano / Panel gelmiyordu): dikeyde kurulan Panel / Pano yataya dönünce yatay düzende.
+	 */
+	@Test
+	public void gorunumEkranOlcusuneUyar() {
+		try {
+			for (String view : new String[]{"dash", "pano"}) {
+				scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+				waitIdle(2000);
+				onMain(a -> {
+					call(deck(a), "setHomeView", view);
+					a.showFragment(R.id.home_fragment);
+					return null;
+				});
+				waitIdle(2000);
+				scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+				assertTrue(view + ": yataya dönünce görünüm ekrana uymalı",
+						waitFor(6000, () -> onMain(a -> !(Boolean) call(deck(a), "viewStale"))));
+				boolean wideBuilt = onMain(a -> (Boolean) field(deck(a), "dash".equals(view) ? "dashInline" : "panoWideBuilt"));
+				assertTrue(view + ": yatay düzen kurulmalı", wideBuilt);
+				shot("gorunum_yatay_" + view);
+			}
+		} finally {
+			stopAll("deck");
+		}
+	}
+
+	/** TV'den sonra destede kartlar küçük kalmaz: taşma payı çalan değişince sıfırlanır, kart boyu aynı. */
+	@Test
+	public void desteTvSonrasiKartBoyu() {
+		onMain(a -> {
+			call(deck(a), "setHomeView", "deck");
+			a.showFragment(R.id.home_fragment);
+			return null;
+		});
+		waitIdle(3000);
+		int w0 = onMain(a -> (Integer) field(deck(a), "cardW"));
+		int h0 = onMain(a -> (Integer) field(deck(a), "cardH"));
+		assertTrue("Deste kart boyu ölçülmeli", (w0 > 0) && (h0 > 0));
+		try {
+			playTestStream();
+			waitIdle(4000);
+			onMain(a -> {
+				a.yoldaClosePlayer();
+				return null;
+			});
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			// taşma payı (TV çalarken artmış olabilir) birkaç saniyede sıfırlanmalı
+			assertTrue("TV kapanınca taşma payı kalmamalı",
+					waitFor(8000, () -> onMain(a -> (((Integer) field(deck(a), "fitSlackDp")) == 0)
+							|| "".equals(field(deck(a), "slackKey")))));
+			waitIdle(1500);
+			shot("deste_tv_sonrasi");
+			assertEquals("Kart genişliği TV'den önceki gibi", w0, (int) onMain(a -> (Integer) field(deck(a), "cardW")));
+			assertEquals("Kart boyu TV'den önceki gibi", h0, (int) onMain(a -> (Integer) field(deck(a), "cardH")));
+			assertTrue("Destede gövde liste kipinde (bölünmüş kalmamalı)", onMain(a -> a.getBody().isFrameMode()));
+		} finally {
+			stopAll("deck");
+		}
+	}
+
+	/** Pano büyük boy: video alanı geniş, tek sütun kartlar kısa (uzun tek kart kalmasın). */
+	@Test
+	public void panoBuyukBoy() {
+		Context c = ctx();
+		int old = c.getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).getInt("pano_now_size", 1);
+		try {
+			c.getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).edit().putInt("pano_now_size", 2).commit();
+			onMain(a -> {
+				call(deck(a), "setHomeView", "pano");
+				return null;
+			});
+			scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+			waitIdle(3500);
+			View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			View tile = onMain(a -> byDescExact(root, "YouTube"));
+			assertNotNull("Pano kartı", tile);
+			int[] wh = onMain(a -> new int[]{tile.getWidth(), tile.getHeight(), root.getWidth()});
+			shot("pano_buyuk");
+			assertTrue("Tek sütun kart dar ve uzun olmamalı: " + wh[0] + "×" + wh[1], wh[0] >= wh[1]);
+			assertTrue("Video alanı geniş: kart sütunu ekranın %32'sinden dar", wh[0] <= wh[2] * 0.32f);
+		} finally {
+			c.getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).edit().putInt("pano_now_size", old).commit();
+			stopAll("deck");
+		}
+	}
+
 	/** Araç klavyesi: YouTube aramasında harf yazar, siler, 48dp tuşlar, ✕ kapatır. */
 	@Test
 	public void aracKlavyesi() {

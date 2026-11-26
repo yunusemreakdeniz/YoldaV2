@@ -182,7 +182,20 @@ public class BodyLayout extends SplitLayout
 		return getMode() == Mode.BOTH;
 	}
 
+	/**
+	 * Kullanıcı videoyu kendisi büyüttü (küçük pencereye dokundu / Şimdi çalıyor / tam ekran düğmesi): ana ekranın
+	 * yenilemesi onu küçük pencereye geri almasın. Video kipinden çıkınca kalkar.
+	 */
+	public static boolean yoldaUserFull;
+
+	/** Videoyu kullanıcı isteğiyle tam ekran yap. */
+	public void enlarge() {
+		setMode(Mode.VIDEO);
+		yoldaUserFull = true;
+	}
+
 	public void setMode(Mode mode) {
+		if (mode != Mode.VIDEO) yoldaUserFull = false;
 		this.mode = mode;
 		boolean inlineCard = (mode == Mode.BOTH) && (yoldaInlineRect != null) && inlineHome(getActivity());
 		if (!inlineCard) restoreInline(); // video kartın alanında değilse eski yerine

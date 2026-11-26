@@ -86,6 +86,42 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 * taşan kadar artar ve kartlar daha sıkı düzenle yeniden kurulur. Kart boyu değişince sıfırlanır.
 	 */
 	private int fitSlackDp;
+	/** Pay arttığında ne çalıyordu: çalan değişince (TV kapandı) pay sıfırlanır, kartlar eski boyuna döner. */
+	@Nullable
+	private String slackKey;
+
+	private String playKey() {
+		try {
+			var cb = getActivityDelegate().getMediaSessionCallback();
+			var eng = cb.getEngine();
+			var src = (eng != null) ? eng.getSource() : null;
+			return (cb.isPlaying() && (src != null)) ? src.getId() : "";
+		} catch (Throwable ex) {
+			return "";
+		}
+	}
+
+	/** TV / video bitince taşma payı kalmasın: kartlar küçük kalıyordu. @return sıfırlandıysa true */
+	private boolean resetStaleSlack() {
+		if ((fitSlackDp == 0) || (adapter == null) || (list == null)) return false;
+		if (java.util.Objects.equals(slackKey, playKey())) return false;
+		YoldaLog.add("Deste: çalan değişti, taşma payı " + fitSlackDp + " dp sıfırlandı");
+		fitSlackDp = 0;
+		slackKey = null;
+		rebuildReason = "çalan değişti";
+		adapter.notifyDataSetChanged();
+		list.post(this::transform);
+		return true;
+	}
+
+	private final Runnable slackTick = new Runnable() {
+		@Override
+		public void run() {
+			if ((list == null) || !isAdded() || phoneBuilt) return;
+			if (!isHidden()) resetStaleSlack();
+			list.postDelayed(this, 2000);
+		}
+	};
 
 	/** Kartın içeriği kartın içine sığıyor mu: sığmıyorsa payı artırıp desteyi yeniden kur. */
 	private void watchOverflow(LinearLayout v) {
@@ -111,6 +147,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaLog.add("Deste: kart içeriği " + add + " dp taştı (kart " + Math.round(cardH / dn) + " dp, iç "
 					+ Math.round(v.getHeight() / dn) + " dp, pay " + base + "→" + want + ")");
 			fitSlackDp = want;
+			slackKey = playKey();
 			rebuildReason = "içerik taştı " + add + " dp";
 			if (list != null) list.post(() -> {
 				if (adapter != null) adapter.notifyDataSetChanged();
@@ -536,6 +573,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (a.getActiveFragment() != this) return;
 			me.aap.fermata.ui.view.BodyLayout b = a.getBody();
 			if (b == null) return;
+			// kullanıcı videoyu büyüttü: küçük pencereye geri alma (TV büyütülünce hemen küçülüyordu)
+			if (b.isVideoMode() && me.aap.fermata.ui.view.BodyLayout.yoldaUserFull) return;
 			var eng = a.getMediaSessionCallback().getEngine();
 			var src = (eng != null) ? eng.getSource() : null;
 			// yatay Pano: çalan (ya da duraklatılmış) video varsa kartın alanında görünür; kanal ekranından dönünce
@@ -991,7 +1030,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	 */
 	/** Pano'da Şimdi çalıyor / video alanının boyu: 0 küçük, 1 orta, 2 büyük (kartlar 3 / 2 / 1 sütun). */
 	static final String PREF_PANO_SIZE = "pano_now_size";
-	static final float[] PANO_NOW = {0.36f, 0.5f, 0.64f};
+	static final float[] PANO_NOW = {0.36f, 0.5f, 0.70f}; // büyükte video daha geniş
 	static final int[] PANO_COLS = {3, 2, 1};
 
 	private int panoSize() {
@@ -1022,6 +1061,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 		} catch (Throwable ex) {
 			YoldaLog.add("Video karta yerleştirilemedi: " + ex.getClass().getSimpleName());
+		}
+	}
+
+	/** Kullanıcı videoyu tam ekran yaptı mı (ana ekran arkada kalır, yeniden kurulmaz). */
+	private boolean userFullVideo() {
+		try {
+			me.aap.fermata.ui.view.BodyLayout b = getActivityDelegate().getBody();
+			return (b != null) && b.isVideoMode() && me.aap.fermata.ui.view.BodyLayout.yoldaUserFull;
+		} catch (Throwable ex) {
+			return false;
 		}
 	}
 
@@ -1239,7 +1288,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			int h = sv.getHeight();
 			if (h <= 0) return;
 			// ızgarada alan yetiyorsa 3 satır görünür (kart en az 112 dp)
-			int rows = (gridBuilt && ((h - dp(8)) / 3 - dp(8) >= dp(112))) ? 3 : 2;
+			// tek sütunda (büyük video) kartlar 3 satır: iki satırda tek kart dar ve uzun kalıyordu
+			int rows = ((gridBuilt && ((h - dp(8)) / 3 - dp(8) >= dp(112))) || (cols == 1)) ? 3 : 2;
 			int rh = Math.max(dp(80), (h - dp(8)) / rows - dp(8));
 			boolean tight = rh < dp(112); // alçak ekran: simge küçük, alt yazı yok (ad kesiliyordu)
 			panoRowH = rh; // sonradan yenilenen kart da aynı sıkı düzende kurulsun
@@ -1475,7 +1525,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			}
 			now.addView(rec, new LinearLayout.LayoutParams(0, -2, 0.8f));
 		}
-		col.addView(now, new LinearLayout.LayoutParams(-1, -2));
+		if (panoBuiltWithVideo) { // video kartta oynarken kart sabit (kaydırılan alanın üstünde): içindeki canlı video kaydırınca yerinde kalıp
+			// sayfanın üstüne biniyordu; video yüzeyi kaydırmayı izleyemez
+			LinearLayout.LayoutParams nl = new LinearLayout.LayoutParams(-1, -2);
+			nl.bottomMargin = dp(10);
+			outer.addView(now, outer.indexOfChild(sv), nl);
+		} else {
+			col.addView(now, new LinearLayout.LayoutParams(-1, -2));
+		}
 		phNow = null; // kart her zaman görünür ("Henüz bir şey çalmadı")
 		if (panoBuiltWithVideo) { // video bu kartın önizleme alanında oynar
 			outer.setBackground(null); // opak zemin arkadaki video yüzeyini örtmesin
@@ -2095,8 +2152,43 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Override
 	public void onConfigurationChanged(@NonNull android.content.res.Configuration nc) {
 		super.onConfigurationChanged(nc);
-		if ((root != null) && phoneBuilt && panoMode() && (wideScreen() != panoWideBuilt)) root.post(this::rebuildPhone);
-		else if ((root != null) && dashBuilt && (wideScreen() != dashInline)) root.post(this::rebuildPhone); // Panel dikey ↔ yatay
+		if (root != null) root.post(() -> checkStale("ekran döndü"));
+	}
+
+	@Override
+	public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+		super.onViewCreated(view, savedInstanceState);
+		// Araç ekranı bağlanınca ilk kurulum telefonun ölçüsüyle yapılabiliyor (Pano / Panel yerine dikey düzen
+		// geliyordu, görünüm düğmesine basınca düzeliyordu): gerçek ölçü gelince seçilen görünüm doğru mu bak
+		view.addOnLayoutChangeListener((v, l, tp, r, b, ol, ot, or, ob) -> {
+			if ((r - l != or - ol) || (b - tp != ob - ot)) v.post(() -> checkStale("ekran ölçüsü " + (r - l) + "×" + (b - tp)));
+		});
+	}
+
+	/** Kurulu görünüm seçilenle / ekran yönüyle uyuşmuyor mu (Deste ↔ Pano / Izgara / Panel, dikey ↔ yatay). */
+	boolean viewStale() {
+		if ((getContext() == null) || (root == null)) return false;
+		if (phoneMode() != phoneBuilt) return true;
+		if (!phoneBuilt) return false;
+		boolean dash = dashMode(), grid = !dash && gridMode();
+		boolean wide = wideScreen();
+		boolean pw = !grid && !dash && panoMode() && wide;
+		return (dash != dashBuilt) || (grid != gridBuilt) || (pw != panoWideBuilt) || (dash && (wide != dashInline));
+	}
+
+	private void checkStale(String why) {
+		if (!isAdded() || isHidden() || !viewStale()) return;
+		YoldaLog.add("Görünüm yeniden kuruldu (" + why + ")");
+		if (phoneMode() != phoneBuilt) {
+			try { // görünüm türü (Deste ↔ diğerleri) değişti: sayfa yeniden kurulur
+				getParentFragmentManager().beginTransaction().detach(this).commitNow();
+				getParentFragmentManager().beginTransaction().attach(this).commitNow();
+			} catch (Throwable ex) {
+				YoldaLog.add("Görünüm değiştirilemedi: " + ex);
+			}
+		} else {
+			rebuildPhone();
+		}
 	}
 
 	private void rebuildPhone() {
@@ -2112,7 +2204,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private void updatePhoneLive() {
 		Context ctx = getContext();
 		if ((ctx == null) || (phClock == null)) return;
-		boolean inl = panoWideBuilt || dashInline;
+		boolean inl = (panoWideBuilt || dashInline) && !userFullVideo(); // büyütülmüş videoya dokunma
 		if (inl && !panoBuiltWithVideo) fixBodyMode(); // video çalıyor ama kartta değilse yerleştir
 		if (inl && (inlineVideoShown() != panoBuiltWithVideo) && (root != null)) { // video küçük pencere açıldı / kapandı
 			root.post(this::rebuildPhone);
@@ -2734,6 +2826,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		col.addView(dots, new LinearLayout.LayoutParams(-1, -2));
 
 		root.addView(signature(ctx), signatureLp());
+		list.removeCallbacks(slackTick);
+		list.postDelayed(slackTick, 2000);
 
 		loadChannels();
 		loadExtras(car);
@@ -3840,6 +3934,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Override
 	public void onResume() {
 		super.onResume();
+		if (root != null) root.post(() -> checkStale("açılış"));
 		if (list != null) list.post(this::resize);
 		me.aap.utils.app.App.get().getHandler().postDelayed(quakeTick, 4000);
 	}
@@ -3855,6 +3950,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			return;
 		}
 		if (!hidden && (list != null)) list.post(() -> {
+			if (!phoneBuilt) fixBodyMode(); // TV'den dönünce gövde bölünmüş kalmasın
+			resetStaleSlack();
 			resize();
 			transform();
 		});
