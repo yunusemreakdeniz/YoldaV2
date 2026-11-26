@@ -298,6 +298,11 @@ public final class YoldaVoice {
 				}
 				reply(a, b.toString());
 			}
+			case ROADWORKS -> {
+				NearbyFragment.mode = NearbyFragment.ROADWORKS;
+				reply(a, "Yakındaki yol çalışmalarına bakıyorum");
+				a.showFragment(R.id.yolda_nearby_fragment);
+			}
 			case PARK_DEST -> {
 				NearbyFragment.mode = NearbyFragment.PARK_DEST;
 				NearbyFragment.place = it.arg();

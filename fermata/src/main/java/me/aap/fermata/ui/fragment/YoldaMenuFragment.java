@@ -120,6 +120,10 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		LinearLayout links = group(ctx, "BAĞLANTILAR");
 		links.addView(item(ctx, R.drawable.yi_nav, "Navigasyon", 0xFF5EEAD4, 0xFF0D9488,
 				v -> a.showFragment(R.id.yolda_nav_fragment)));
+		links.addView(item(ctx, R.drawable.yi_car, "Yol çalışmaları (yakında, 30 km)", 0xFFFDE68A, 0xFFD97706, v -> {
+			NearbyFragment.mode = NearbyFragment.ROADWORKS;
+			a.showFragment(R.id.yolda_nearby_fragment);
+		}));
 		links.addView(item(ctx, R.drawable.yi_phone, "Telefonu kullan", 0xFF86EFAC, 0xFF16A34A,
 				v -> HomeFragment.phone(ctx)));
 		if (am.hasAddon(R.id.web_browser_fragment))

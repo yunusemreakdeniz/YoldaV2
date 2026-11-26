@@ -38,6 +38,70 @@ public final class YoldaNearby {
 				+ "out center tags 40;", r, la, lo);
 	}
 
+	/** Yol çalışmaları (Mola'dan): yapımı süren yollar ve yol çalışması işaretleri. */
+	static String roadworksQuery(double la, double lo, int r) {
+		return String.format(Locale.ROOT, "[out:json][timeout:25];(way(around:%d,%.5f,%.5f)[\"highway\"=\"construction\"];"
+				+ "node(around:%d,%.5f,%.5f)[\"highway\"=\"construction\"];"
+				+ "node(around:%d,%.5f,%.5f)[\"hazard\"=\"roadworks\"];"
+				+ "way(around:%d,%.5f,%.5f)[\"construction\"~\"motorway|trunk|primary|secondary|tertiary\"];);out center tags 60;",
+				r, la, lo, r, la, lo, r, la, lo, r, la, lo);
+	}
+
+	/** Yol çalışması satırı: ad (yoksa yol türü), bilgi: yol türü · bitiş tarihi (varsa). */
+	static Spot roadwork(JSONObject t, double a, double b, int m) {
+		String kind = t.optString("construction", "");
+		String kt = switch (kind) {
+			case "motorway" -> "Otoyol";
+			case "trunk" -> "Devlet yolu";
+			case "primary" -> "Ana yol";
+			case "secondary" -> "İl yolu";
+			case "tertiary" -> "Bağlantı yolu";
+			default -> "Yol";
+		};
+		String n = t.optString("name", t.optString("ref", "")).trim();
+		List<String> p = new ArrayList<>();
+		p.add(kt + " çalışması");
+		String end = t.optString("opening_date", t.optString("end_date", ""));
+		if (!end.isEmpty()) p.add("bitiş " + end);
+		String ref = t.optString("ref", "");
+		if (!ref.isEmpty() && !ref.equals(n)) p.add(ref);
+		return new Spot(n.isEmpty() ? (kt + " çalışması") : n, a, b, m, String.join(" · ", p));
+	}
+
+	public static List<Spot> roadworks(double la, double lo, int radius, int n) throws Exception {
+		String q = roadworksQuery(la, lo, radius);
+		Exception last = null;
+		for (String s : OVERPASS) {
+			try {
+				return parseRoadworks(YoldaInfo.get(s + "?data=" + URLEncoder.encode(q, "UTF-8")), la, lo, n);
+			} catch (Exception ex) {
+				last = ex;
+			}
+		}
+		throw (last != null) ? last : new IllegalStateException("Overpass yok");
+	}
+
+	static List<Spot> parseRoadworks(String json, double la, double lo, int n) throws Exception {
+		JSONArray el = new JSONObject(json).optJSONArray("elements");
+		List<Spot> out = new ArrayList<>();
+		if (el == null) return out;
+		java.util.Set<String> seen = new java.util.HashSet<>();
+		for (int i = 0; i < el.length(); i++) {
+			JSONObject o = el.getJSONObject(i);
+			JSONObject t = o.optJSONObject("tags");
+			if (t == null) t = new JSONObject();
+			JSONObject c = o.optJSONObject("center");
+			double a = (c != null) ? c.optDouble("lat", Double.NaN) : o.optDouble("lat", Double.NaN);
+			double b = (c != null) ? c.optDouble("lon", Double.NaN) : o.optDouble("lon", Double.NaN);
+			if (Double.isNaN(a) || Double.isNaN(b)) continue;
+			Spot sp = roadwork(t, a, b, (int) YoldaRadarCore.dist(la, lo, a, b));
+			if (!seen.add(sp.name() + (sp.meters() / 500))) continue; // aynı yolun parçaları tek satır
+			out.add(sp);
+		}
+		out.sort((x, y) -> Integer.compare(x.meters(), y.meters()));
+		return (out.size() > n) ? new ArrayList<>(out.subList(0, n)) : out;
+	}
+
 	/** Overpass yanıtı → yerler, yakından uzağa (en çok n). */
 	static List<Spot> parse(String json, double la, double lo, boolean charger, int n) throws Exception {
 		JSONArray el = new JSONObject(json).optJSONArray("elements");
