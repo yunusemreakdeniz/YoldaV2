@@ -2507,10 +2507,16 @@ public class MainActivityDelegate extends ActivityDelegate
 		me.aap.fermata.ui.fragment.YoldaLog.add("Video + harita: " + (pip ? "küçük pencere ve " : "") + "harita uygulaması");
 	}
 
+	/** Ayar değişince kabuğu yeniden yerleştir (Ayarlar → Sol düğmelerin yeri). */
+	public void updateYoldaShell() {
+		updateDeckButtons();
+	}
+
 	private void updateDeckButtons() {
 		me.aap.fermata.ui.view.YoldaQualityPill.update(this); // YouTube ekranı açılınca / kapanınca da
 		if (!me.aap.fermata.ui.view.YoldaStyle.DECK) return;
 		if (yoldaPip) return;
+		applyShellOffset();
 		applyShellRow();
 		yoldaToolbarMargin();
 		yoldaFloatingBarMargin();
@@ -2541,6 +2547,23 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 		updateOrb();
 		updateDock();
+	}
+
+	/** Ayardaki kabuk uzaklığını uygula: mikrofon (ve üstündeki sütun), arama kutuları ve sayfaların sol boşluğu. */
+	private void applyShellOffset() {
+		int off = me.aap.fermata.ui.view.YoldaStyle.shellOffset(getContext());
+		if ((voiceButton == null) || !(voiceButton.getLayoutParams() instanceof ConstraintLayout.LayoutParams vl)) return;
+		int want = toIntPx(getContext(), 16 + off);
+		if ((me.aap.fermata.ui.view.YoldaStyle.shellOffsetDp == off) && (vl.leftMargin == want)) return;
+		me.aap.fermata.ui.view.YoldaStyle.shellOffsetDp = off;
+		vl.leftMargin = want;
+		voiceButton.setLayoutParams(vl);
+		View tb = findViewById(R.id.tool_bar);
+		if ((tb != null) && (tb.getLayoutParams() instanceof ConstraintLayout.LayoutParams tl)) {
+			tl.leftMargin = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.searchLeftDp());
+			tb.setLayoutParams(tl);
+		}
+		updateBodyTopPadding();
 	}
 
 	@Nullable

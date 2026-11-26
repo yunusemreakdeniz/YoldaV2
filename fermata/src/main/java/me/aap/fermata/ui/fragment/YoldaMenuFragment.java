@@ -169,6 +169,16 @@ public class YoldaMenuFragment extends MainActivityFragment {
 						a.showFragment(R.id.home_fragment);
 					}));
 		}
+		// Sol düğmelerin (geri, ana sayfa, mikrofon) yeri: araç ekranında solda başka bir uygulamanın şeridi varsa içeri al
+		int so = YoldaStyle.shellOffset(ctx);
+		set.addView(item(ctx, R.drawable.yi_left, "Sol düğmelerin yeri: " + ((so == 0) ? "Kenarda" : (so == 40) ? "İçeride" : "Daha içeride")
+						+ " · dokun: değiştir", 0xFFE2E8F0, 0xFF475569, v -> {
+					int n = YoldaStyle.nextShellOffset(so);
+					ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).edit()
+							.putInt(YoldaStyle.PREF_SHELL_OFFSET, n).apply();
+					a.updateYoldaShell();
+					render();
+				}));
 		// Gemini: Yolda'nın anlamadığı sorular, sohbet ve bilgi soruları (anahtar yalnız bu telefonda saklanır)
 		boolean gem = YoldaGemini.isEnabled(ctx);
 		View gi = item(ctx, R.drawable.yi_mic, "Gemini yapay zekâ: " + (gem ? "Bağlı (kaldırmak için basılı tut)" : "Bağlı değil — anahtar gir"),
