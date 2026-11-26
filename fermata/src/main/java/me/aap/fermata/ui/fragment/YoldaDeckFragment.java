@@ -2013,17 +2013,33 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dsg.setColor(0xFFFFFFFF);
 		dsg.setStroke(dp(4), 0xFFE53935);
 		deckSign.setBackground(dsg);
-		sp.addView(deckSign, new LinearLayout.LayoutParams(dp(38), dp(38)));
-		deckSpeed = text(ctx, "", 15, true, t.ink);
+		boolean inDate = narrowHeader && (dateLine != null); // dar telefon: tarih satırında küçük (üst satıra sığmıyor)
+		int ss = inDate ? 24 : 38;
+		sp.addView(deckSign, new LinearLayout.LayoutParams(dp(ss), dp(ss)));
+		deckSpeed = text(ctx, "", inDate ? 12 : 15, true, inDate ? t.muted : t.ink);
 		deckSpeed.setSingleLine(true);
-		deckSpeed.setPadding(dp(8), 0, 0, 0);
+		deckSpeed.setPadding(dp(inDate ? 5 : 8), 0, 0, 0);
 		sp.addView(deckSpeed);
-		LinearLayout.LayoutParams spl = new LinearLayout.LayoutParams(-2, dp(44));
-		spl.rightMargin = narrowHeader ? dp(6) : dp(10);
-		top.addView(sp, spl);
+		if (inDate) {
+			sp.setOnClickListener(null); // küçük: dokunma alanı 48dp altı olmasın, tüm saat bloğu dokunulur
+			sp.setClickable(false);
+			sp.setBackground(null);
+			sp.setPadding(0, 0, dp(8), 0);
+			deckSign.setTextSize(10);
+			GradientDrawable small = new GradientDrawable();
+			small.setShape(GradientDrawable.OVAL);
+			small.setColor(0xFFFFFFFF);
+			small.setStroke(dp(3), 0xFFE53935);
+			deckSign.setBackground(small);
+			dateLine.addView(sp, 0, new LinearLayout.LayoutParams(-2, dp(28)));
+		} else {
+			LinearLayout.LayoutParams spl = new LinearLayout.LayoutParams(-2, dp(44));
+			spl.rightMargin = narrowHeader ? dp(6) : dp(10);
+			top.addView(sp, spl);
+		}
 		deckSpeedBox = sp;
-		// dar dikey telefonda üst satıra sığmıyor (saat sıkışıyordu): orada gösterge kabukta, bilgi varken
-		deckSpeedWide = car || (YoldaStyle.widthDp(ctx) >= 600);
+		deckSpeedSmall = inDate;
+		deckSpeedWide = true; // her yerde görünür (yığın görünümünde hız sınırı sabit)
 		updateDeckSpeed();
 		TextView playing = text(ctx, "", 15, true, 0xFFFFFFFF);
 		playing.setSingleLine(true);
@@ -3763,7 +3779,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private TextView deckSign, deckSpeed;
 	@Nullable
 	private View deckSpeedBox;
-	private boolean deckSpeedWide;
+	private boolean deckSpeedWide, deckSpeedSmall;
 
 	/** Deste üst satırındaki hız hapı: levha sınırı, yanında anlık hız; radar kapalıysa gizli. */
 	private void updateDeckSpeed() {
@@ -3775,7 +3791,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int lim = YoldaRadar.limit;
 		String ls = (lim > 0) ? String.valueOf(lim) : "—";
 		if (!ls.contentEquals(deckSign.getText())) deckSign.setText(ls);
-		deckSign.setTextSize((lim >= 100) ? 12 : 14);
+		deckSign.setTextSize(deckSpeedSmall ? ((lim >= 100) ? 8 : 10) : ((lim >= 100) ? 12 : 14));
 		deckSign.setAlpha((lim > 0) && !YoldaRadar.limitEstimated ? 1f : 0.7f);
 		int spd = YoldaRadar.speed;
 		boolean fix = YoldaRadar.hasFix() && (spd >= 0);

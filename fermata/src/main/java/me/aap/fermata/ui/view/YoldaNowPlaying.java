@@ -610,6 +610,34 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		ctl.addView(next, new LinearLayout.LayoutParams(dp(64), dp(64)));
 		info.addView(ctl, new LinearLayout.LayoutParams(-1, -2));
 
+		// İşlem satırı (Mola'daki tam oynatıcıdan): 15 sn geri · 30 sn ileri · hız · uyku · ses
+		ops = new LinearLayout(ctx);
+		ops.setOrientation(LinearLayout.HORIZONTAL);
+		ops.setGravity(Gravity.CENTER);
+		ops.setPadding(0, dp(12), 0, 0);
+		back15 = opChip(ctx, "↺ 15", "15 saniye geri", v -> me.aap.fermata.ui.fragment.YoldaPlayerOps.skip(MainActivityDelegate.get(getContext()), false));
+		fwd30 = opChip(ctx, "30 ↻", "30 saniye ileri", v -> me.aap.fermata.ui.fragment.YoldaPlayerOps.skip(MainActivityDelegate.get(getContext()), true));
+		speedChip = opChip(ctx, "1×", "Oynatma hızı", v -> {
+			float n = me.aap.fermata.ui.fragment.YoldaPlayerOps.cycleSpeed(MainActivityDelegate.get(getContext()));
+			((TextView) v).setText(me.aap.fermata.ui.fragment.YoldaPlayerOps.speedLabel(n));
+		});
+		sleepChip = opChip(ctx, "Uyku", "Uyku zamanlayıcısı", v -> {
+			int n = me.aap.fermata.ui.fragment.YoldaPlayerOps.cycleSleep(MainActivityDelegate.get(getContext()));
+			((TextView) v).setText(me.aap.fermata.ui.fragment.YoldaPlayerOps.sleepLabel(n));
+			YoldaStyle.toast(getContext(), (n == 0) ? "Uyku zamanlayıcısı kapatıldı" : (n + " dakika sonra oynatma duracak"));
+		});
+		TextView eq = opChip(ctx, "Ses", "Ses ayarı (ekolayzer)", v -> {
+			MainActivityDelegate a = MainActivityDelegate.get(getContext());
+			hide(a);
+			a.showFragment(R.id.yolda_eq_fragment);
+		});
+		for (TextView c : new TextView[]{back15, fwd30, speedChip, sleepChip, eq}) {
+			LinearLayout.LayoutParams ol = new LinearLayout.LayoutParams(0, dp(48), 1f);
+			ol.leftMargin = ol.rightMargin = dp(4);
+			ops.addView(c, ol);
+		}
+		info.addView(ops, new LinearLayout.LayoutParams(-1, -2));
+
 		// Sıradakiler (Yolda Müzik listesi)
 		queueBox = new LinearLayout(ctx);
 		queueBox.setOrientation(LinearLayout.VERTICAL);
@@ -745,6 +773,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		MainActivityDelegate a = MainActivityDelegate.get(getContext());
 		MediaSessionCallback cb = a.getMediaSessionCallback();
 		updateFav(a, cb);
+		updateOps(cb);
 		boolean busy = isBusy(cb);
 		ring.setBusy(busy);
 		play.setImageResource(cb.isPlaying() ? R.drawable.yi_pause : R.drawable.yi_play);
@@ -1039,6 +1068,10 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 		return YoldaPlayerBar.durationOf(pi);
 	}
 
+	public static long positionOf(MediaSessionCallback cb) {
+		return position(cb);
+	}
+
 	static long position(MediaSessionCallback cb) {
 		PlaybackStateCompat st = cb.getPlaybackState();
 		if (st == null) return 0;
@@ -1048,6 +1081,43 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			if (dt > 0) p += (long) (dt * Math.max(0.1f, st.getPlaybackSpeed()));
 		}
 		return Math.max(0, p);
+	}
+
+	private LinearLayout ops;
+	private TextView back15, fwd30, speedChip, sleepChip;
+
+	private TextView opChip(Context ctx, String label, String desc, View.OnClickListener click) {
+		TextView c = text(ctx, label, 14, true, 0xFFFFFFFF);
+		c.setGravity(Gravity.CENTER);
+		c.setSingleLine(true);
+		c.setBackground(YoldaStyle.glass(ctx, YoldaStyle.current(ctx), 999));
+		c.setContentDescription(desc);
+		c.setClickable(true);
+		c.setFocusable(true);
+		c.setOnClickListener(v -> {
+			YoldaStyle.haptic(v);
+			click.onClick(v);
+		});
+		return c;
+	}
+
+	/** İşlem satırı: sarma ve hız yalnız sarılabilen içerikte (canlı yayında yok); uyku kalan süreyi gösterir. */
+	private void updateOps(MediaSessionCallback cb) {
+		if (ops == null) return;
+		var eng = cb.getEngine();
+		boolean seek = (eng != null) && eng.canSeek();
+		int v = seek ? VISIBLE : GONE;
+		if (back15.getVisibility() != v) {
+			back15.setVisibility(v);
+			fwd30.setVisibility(v);
+			speedChip.setVisibility(v);
+		}
+		String sl = me.aap.fermata.ui.fragment.YoldaPlayerOps.sleepLabel(me.aap.fermata.ui.fragment.YoldaPlayerOps.sleepLeftMin());
+		if (!sl.contentEquals(sleepChip.getText())) sleepChip.setText(sl);
+		var cur = MainActivityDelegate.get(getContext()).getCurrentPlayable();
+		String sp = me.aap.fermata.ui.fragment.YoldaPlayerOps.speedLabel(
+				me.aap.fermata.ui.fragment.YoldaPlayerOps.speed((cur != null) ? cur.getId() : null));
+		if (!sp.contentEquals(speedChip.getText())) speedChip.setText(sp);
 	}
 
 	private ImageView iconButton(Context ctx, int icon, String desc) {
