@@ -487,7 +487,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			boolean video = (src != null) && src.isVideo() && a.getMediaSessionCallback().isPlaying();
 			if (video && panoWideBuilt) {
 				if (!b.isBothMode()) b.setMode(me.aap.fermata.ui.view.BodyLayout.Mode.BOTH);
-			} else if (!video || b.isVideoMode()) {
+			} else if (!video || b.isVideoMode() || b.isBothMode()) { // destede bölünmüş (sağda dar video) kalmasın
 				YoldaLog.add("Açılış: gövde " + b.getMode() + " kipindeydi, ana ekran gösterildi");
 				b.setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
 			}
@@ -1926,6 +1926,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		root = new FrameLayout(ctx);
 		YoldaStyle.applyScreenBackground(root, t);
+		// Deste (yığın): video her zaman tam ekran; Pano'dan kalan "küçük pencere" anahtarı kapatılır
+		// (açık kalınca video ekranın sağında dar şeritte açılıyordu)
+		me.aap.fermata.ui.view.BodyLayout.yoldaInline = false;
+		panoWideBuilt = false;
+		showVoiceOrb(true);
 		root.post(this::fixBodyMode);
 		root.postDelayed(this::fixBodyMode, 1500);
 		// Ortadaki kartın renginde ışıltılar: uygulamanın en dış zemininde (tüm ekran, kenarlar dahil)
@@ -2058,7 +2063,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		playing.setEllipsize(TextUtils.TruncateAt.END);
 		playing.setGravity(Gravity.CENTER_VERTICAL);
 		playing.setPadding(dp(16), 0, dp(18), 0);
-		pillIconOnly = !car && (YoldaStyle.widthDp(ctx) < 600); // dar ekranda yalnız simge (üst satır taşmasın)
+		// dar ekranda ve araçta (hız hapı da var) yalnız simge: üst satır taşmasın (ayarlar düğmesi kesiliyordu)
+		pillIconOnly = car || (YoldaStyle.widthDp(ctx) < 600);
 		playing.setMaxWidth(dp(car ? 340 : 260));
 		if (pillIconOnly) {
 			playing.setPadding(0, 0, 0, 0);

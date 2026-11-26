@@ -765,7 +765,17 @@ public class MainActivityDelegate extends ActivityDelegate
 	}
 
 	public void setVideoMode(boolean videoMode, @Nullable VideoView v) {
-		if (videoMode == this.videoMode) return;
+		if (videoMode == this.videoMode) {
+			// Küçük pencere → tam ekran (ikisi de video kipi): geri / ✕ düğmeleri yeniden hesaplanmalı;
+			// önceden burada dönülüyordu, tam ekranda geri düğmesi bazen hiç gelmiyordu
+			if (videoMode) {
+				boolean inl = me.aap.fermata.ui.view.BodyLayout.yoldaInline && (getBody() != null)
+						&& getBody().isBothMode() && (getActiveFragmentId() == R.id.home_fragment);
+				showYoldaBack(!inl);
+				me.aap.fermata.ui.view.YoldaQualityPill.update(this);
+			}
+			return;
+		}
 		ControlPanelView cp = getControlPanel();
 
 		if (videoMode) {
