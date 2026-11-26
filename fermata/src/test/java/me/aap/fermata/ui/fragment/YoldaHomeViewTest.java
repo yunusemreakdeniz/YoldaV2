@@ -11,10 +11,13 @@ public class YoldaHomeViewTest {
 		assertEquals("phone", YoldaDeckFragment.nextHomeView("deck", false));
 		assertEquals("pano", YoldaDeckFragment.nextHomeView("phone", false));
 		assertEquals("grid", YoldaDeckFragment.nextHomeView("pano", false));
-		assertEquals("deck", YoldaDeckFragment.nextHomeView("grid", false));
+		assertEquals("dash", YoldaDeckFragment.nextHomeView("grid", false));
+		assertEquals("deck", YoldaDeckFragment.nextHomeView("dash", false));
 		assertEquals("pano", YoldaDeckFragment.nextHomeView("deck", true));
 		assertEquals("grid", YoldaDeckFragment.nextHomeView("pano", true));
-		assertEquals("deck", YoldaDeckFragment.nextHomeView("grid", true));
+		assertEquals("dash", YoldaDeckFragment.nextHomeView("grid", true));
+		assertEquals("deck", YoldaDeckFragment.nextHomeView("dash", true));
+		assertEquals("Panel", YoldaDeckFragment.homeViewName("dash"));
 		assertEquals("Telefon", YoldaDeckFragment.homeViewName("phone"));
 		assertEquals("Izgara", YoldaDeckFragment.homeViewName("grid"));
 	}

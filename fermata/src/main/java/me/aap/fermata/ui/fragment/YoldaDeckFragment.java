@@ -272,8 +272,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private boolean phoneMode() {
 		Context ctx = getContext();
 		if (ctx == null) return false;
-		if (getActivityDelegate().isCarActivity()) // araçta: Deste, Pano ya da Izgara
-			return prefs(ctx).getBoolean(PREF_CAR_PANO, false) || prefs(ctx).getBoolean(PREF_CAR_GRID, false);
+		if (getActivityDelegate().isCarActivity()) // araçta: Deste, Pano, Izgara ya da Panel
+			return prefs(ctx).getBoolean(PREF_CAR_PANO, false) || prefs(ctx).getBoolean(PREF_CAR_GRID, false)
+					|| prefs(ctx).getBoolean(PREF_CAR_DASH, false);
 		return prefs(ctx).getBoolean(PREF_PHONE_VIEW, !underTest());
 	}
 
@@ -281,9 +282,24 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	static final String PREF_GRID = "grid_view";
 	static final String PREF_CAR_GRID = "car_grid_view";
 
+	/** Panel (Mola'nın ilk görünümü): geniş Şimdi çalıyor kartı + son açılanlar, altında yatay kutular. */
+	static final String PREF_DASH = "dash_view";
+	static final String PREF_CAR_DASH = "car_dash_view";
+
+	private boolean dashMode() {
+		Context ctx = getContext();
+		if (ctx == null) return false;
+		if (getActivityDelegate().isCarActivity()) return prefs(ctx).getBoolean(PREF_CAR_DASH, false);
+		return phoneMode() && prefs(ctx).getBoolean(PREF_DASH, false);
+	}
+
+	/** Panel kurulu mu. */
+	private boolean dashBuilt;
+
 	private boolean gridMode() {
 		Context ctx = getContext();
 		if (ctx == null) return false;
+		if (dashMode()) return false;
 		if (getActivityDelegate().isCarActivity()) return prefs(ctx).getBoolean(PREF_CAR_GRID, false);
 		return phoneMode() && prefs(ctx).getBoolean(PREF_GRID, false);
 	}
@@ -306,14 +322,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private boolean panoMode() {
 		Context ctx = getContext();
 		if (ctx == null) return false;
-		if (gridMode()) return false;
+		if (gridMode() || dashMode()) return false;
 		if (getActivityDelegate().isCarActivity()) return prefs(ctx).getBoolean(PREF_CAR_PANO, false);
 		return phoneMode() && prefs(ctx).getBoolean(PREF_PANO, false);
 	}
 
 	/** Şu an seçili görünüm: "deck", "phone" ya da "pano". */
 	String homeView() {
-		return gridMode() ? "grid" : panoMode() ? "pano" : phoneMode() ? "phone" : "deck";
+		return dashMode() ? "dash" : gridMode() ? "grid" : panoMode() ? "pano" : phoneMode() ? "phone" : "deck";
 	}
 
 	/**
@@ -330,15 +346,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Sıradaki görünüm: telefonda deck → phone → pano → deck, araçta deck ↔ pano. */
 	static String nextHomeView(String cur, boolean car) {
-		if (car) return switch (cur) { // araçta: Deste → Pano → Izgara → Deste
+		if (car) return switch (cur) { // araçta: Deste → Pano → Izgara → Panel → Deste
 			case "deck" -> "pano";
 			case "pano" -> "grid";
+			case "grid" -> "dash";
 			default -> "deck";
 		};
-		return switch (cur) { // telefonda: Deste → Telefon → Pano → Izgara → Deste
+		return switch (cur) { // telefonda: Deste → Telefon → Pano → Izgara → Panel → Deste
 			case "deck" -> "phone";
 			case "phone" -> "pano";
 			case "pano" -> "grid";
+			case "grid" -> "dash";
 			default -> "deck";
 		};
 	}
@@ -348,6 +366,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			case "phone" -> "Telefon";
 			case "pano" -> "Pano";
 			case "grid" -> "Izgara";
+			case "dash" -> "Panel";
 			default -> "Deste";
 		};
 	}
@@ -358,11 +377,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		Context ctx = getContext();
 		if (ctx == null) return;
 		if (getActivityDelegate().isCarActivity()) {
-			prefs(ctx).edit().putBoolean(PREF_CAR_PANO, "pano".equals(mode)).putBoolean(PREF_CAR_GRID, "grid".equals(mode)).apply();
+			prefs(ctx).edit().putBoolean(PREF_CAR_PANO, "pano".equals(mode)).putBoolean(PREF_CAR_GRID, "grid".equals(mode))
+					.putBoolean(PREF_CAR_DASH, "dash".equals(mode)).apply();
 			rebuildHome();
 			return;
 		}
-		prefs(ctx).edit().putBoolean(PREF_PANO, "pano".equals(mode)).putBoolean(PREF_GRID, "grid".equals(mode)).apply();
+		prefs(ctx).edit().putBoolean(PREF_PANO, "pano".equals(mode)).putBoolean(PREF_GRID, "grid".equals(mode))
+				.putBoolean(PREF_DASH, "dash".equals(mode)).apply();
 		setPhoneView(!"deck".equals(mode));
 	}
 
@@ -544,18 +565,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	private View phoneHome(Context ctx) {
 		long t0 = android.os.SystemClock.uptimeMillis();
-		gridBuilt = gridMode();
-		panoWideBuilt = !gridBuilt && panoMode() && wideScreen();
+		dashBuilt = dashMode();
+		gridBuilt = !dashBuilt && gridMode();
+		panoWideBuilt = !gridBuilt && !dashBuilt && panoMode() && wideScreen();
 		me.aap.fermata.ui.view.BodyLayout.yoldaInline = panoWideBuilt; // ana ekranda video küçük pencerede (ızgarada tam ekran)
-		if (gridBuilt) { // önceki görünümden kalan alanlar ızgarada yok
+		if (gridBuilt || dashBuilt) { // önceki görünümden kalan alanlar burada yok
 			phNowTitle = phNowTag = phPark = phWeatherPlace = null;
 			phNowIcon = null;
 			phNowPlate = null;
 			phPlay = null;
 			phNow = null;
 		}
-		View v = (panoWideBuilt || gridBuilt) ? panoWide(ctx) : phoneHomeBuild(ctx);
-		showVoiceOrb(!(panoWideBuilt || gridBuilt)); // üst şeritte mikrofon var: yüzen düğme "Ses"in üstüne biniyordu
+		View v = dashBuilt ? dashHome(ctx) : (panoWideBuilt || gridBuilt) ? panoWide(ctx) : phoneHomeBuild(ctx);
+		showVoiceOrb(!(panoWideBuilt || gridBuilt || dashBuilt)); // üst şeritte mikrofon var: yüzen düğme "Ses"in üstüne biniyordu
 		me.aap.fermata.ui.view.YoldaJank.took("Telefon görünümü", t0, 0);
 		return v;
 	}
@@ -892,6 +914,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Izgaradaki kart: renkli simge kutusu, ad, tek satır bilgi; dokun → kartın sayfası. */
 	private View phoneTile(Context ctx, YoldaDeck.Card c) {
+		if (dashBuilt) return dashTile(ctx, c);
 		if (panoWideBuilt || gridBuilt) return panoCard(ctx, c);
 		if (panoMode()) return panoTile(ctx, c);
 		Look lk = look(c);
@@ -1171,108 +1194,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout right = new LinearLayout(ctx);
 		right.setOrientation(LinearLayout.VERTICAL);
 		right.setPadding(gridBuilt ? 0 : dp(16), 0, 0, 0);
-		LinearLayout head = hrow(ctx);
-		head.setGravity(Gravity.CENTER_VERTICAL);
-		LinearLayout hello = new LinearLayout(ctx);
-		hello.setOrientation(LinearLayout.VERTICAL);
-		int hr = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
-		TextView hi = text(ctx, (hr < 5) ? "İyi geceler" : (hr < 12) ? "Günaydın" : (hr < 18) ? "İyi günler" : "İyi akşamlar",
-				22, true, 0xFFFFFFFF);
-		hi.setMaxLines(1); // dar ekranda iki satıra bölünmesin, küçülsün
-		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(hi, 13, 22, 1,
-				android.util.TypedValue.COMPLEX_UNIT_SP);
-		hello.addView(hi, new LinearLayout.LayoutParams(-1, dp(30)));
-		LinearLayout dl = hrow(ctx);
-		phDate = text(ctx, "", 12, false, 0xFFC5CBD8);
-		phDate.setSingleLine(true);
-		dl.addView(phDate);
-		TextView iy = text(ctx, "  ·  İyi yolculuklar", 12, false, 0xFFC5CBD8);
-		iy.setSingleLine(true);
-		iy.setEllipsize(TextUtils.TruncateAt.END); // dar ekranda alt satıra kaymasın
-		dl.addView(iy, new LinearLayout.LayoutParams(0, -2, 1f));
-		hello.addView(dl);
-		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
-		// başlık artık tam genişlikte (video + kartların üstünde tek şerit): selam her zaman sığar
-		boolean narrowRight = (dm.widthPixels / dm.density) < 560;
-
-		// hava: küçük hap (simge + derece); dokun: hava durumu
-		LinearLayout wp = hrow(ctx);
-		wp.setGravity(Gravity.CENTER_VERTICAL);
-		wp.setPadding(dp(12), 0, dp(14), 0);
-		wp.setBackground(headPill());
-		wp.setClickable(true);
-		wp.setContentDescription("Hava durumu");
-		wp.setOnClickListener(v -> a.showFragment(R.id.yolda_weather_fragment));
-		phWeatherIcon = text(ctx, (weather != null) ? YoldaWeather.emoji(weather.code()) : "☁", 18, false, 0xFFFFC857);
-		wp.addView(phWeatherIcon);
-		phWeather = text(ctx, (weather != null) ? (weather.temp() + "°") : "—", 16, true, 0xFFFFFFFF);
-		phWeather.setPadding(dp(6), 0, 0, 0);
-		wp.addView(phWeather);
-		phWeatherPlace = null;
-		LinearLayout.LayoutParams wpl = new LinearLayout.LayoutParams(-2, dp(48));
-		wpl.rightMargin = dp(8);
-		head.addView(wp, wpl);
-		if (weather == null) wp.setVisibility(View.GONE); // bilgi yokken boş "☁ –" hapı durmasın
-
-		// Hız sınırı levhası ve radar uzaklığı (dokun: Sürüş ekranı); radar uyarısı ayrıca her ekranda kırmızı kartla
-		LinearLayout spd = hrow(ctx);
-		spd.setGravity(Gravity.CENTER_VERTICAL);
-		spd.setClickable(true);
-		spd.setContentDescription("Hız ve radar");
-		spd.setOnClickListener(v -> a.showFragment(R.id.yolda_radar_fragment));
-		spd.setPadding(dp(4), 0, 0, 0);
-		spd.setBackground(headPill()); // hız sınırı hep aynı yerde, sabit
-		phLimitSign = text(ctx, "—", 14, true, 0xFF111111);
-		phLimitSign.setGravity(Gravity.CENTER);
-		GradientDrawable sg = new GradientDrawable();
-		sg.setShape(GradientDrawable.OVAL);
-		sg.setColor(0xFFFFFFFF);
-		sg.setStroke(dp(4), 0xFFE53935);
-		phLimitSign.setBackground(sg);
-		spd.addView(phLimitSign, new LinearLayout.LayoutParams(dp(40), dp(40)));
-		LinearLayout spt = new LinearLayout(ctx);
-		spt.setOrientation(LinearLayout.VERTICAL);
-		spt.setGravity(Gravity.CENTER_VERTICAL);
-		spt.setPadding(dp(8), 0, dp(14), 0);
-		phRadar = text(ctx, "", 16, true, 0xFFFFFFFF); // anlık hız (büyük)
-		phRadar.setSingleLine(true);
-		spt.addView(phRadar);
-		phLimit = text(ctx, "", 11, false, 0xFFC5CBD8); // sınır / önde radar (küçük)
-		phLimit.setSingleLine(true);
-		spt.addView(phLimit);
-		spd.addView(spt);
-
-		head.addView(spd, new LinearLayout.LayoutParams(-2, dp(48)));
-		phClock = text(ctx, "", narrowRight ? 28 : 34, true, 0xFFFFFFFF);
-		phClock.setSingleLine(true);
-		phClock.setIncludeFontPadding(false);
-		phClock.setPadding(0, 0, 0, 0);
-		head.addView(phClock, 0); // saat en solda (ortada boşlukta duruyordu), yanında selam / tarih
-		for (TextView tv : new TextView[]{phClock, hi, phDate, iy, phRadar, phLimit, phWeather}) if (tv != null) legible(tv);
-		phDate.setTextColor(0xFFE5E7EB);
-		iy.setTextColor(0xFFE5E7EB);
-		hello.setPadding(dp(14), 0, 0, 0);
-		// sağ sütun çok darsa (video büyük) saat gizli: saat aracın durum çubuğunda zaten var, düğmeler sığsın
-		if ((dm.widthPixels / dm.density) < 480) { // dikey telefon (ızgara): başlık sığsın, yalnız levha ve düğmeler
-			phClock.setVisibility(View.GONE);
-			wp.setVisibility(View.GONE);
-			spt.setVisibility(View.GONE);
-			hello.setVisibility(View.INVISIBLE); // "Gü / 26 K" diye kesiliyordu; yer tutar, düğmeler sağda kalır
-		}
-		LinearLayout.LayoutParams hb = new LinearLayout.LayoutParams(dp(48), dp(48));
-		hb.leftMargin = dp(narrowRight ? 4 : 8);
-		head.addView(roundButton(ctx, R.drawable.yi_grid, "Görünüm seç", v -> showViewPicker(ctx)), hb);
-		head.addView(roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx),
-				v -> me.aap.fermata.ui.view.YoldaThemePicker.show(a)), hb);
-		head.addView(roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> a.showFragment(R.id.yolda_menu_fragment)), hb);
-		ImageView mic = roundButton(ctx, R.drawable.yi_mic, "Hey Yolda", v -> a.startVoiceAssistant());
-		GradientDrawable mg = new GradientDrawable();
-		mg.setShape(GradientDrawable.OVAL);
-		mg.setColor(0x33000000);
-		mg.setStroke(dp(2), 0xFFE0B354);
-		mic.setBackground(mg);
-		mic.setImageTintList(ColorStateList.valueOf(0xFFE0B354));
-		head.addView(mic, hb);
+		LinearLayout head = wideHeader(ctx, a, dm);
 		// başlık şeridi: ekranın tam genişliğinde, video ve kartların üstünde (önceden yalnız sağ sütunun üstündeydi,
 		// solda video yukarı taşıyor, üst taraf dengesiz duruyordu)
 		LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(-1, dp(56));
@@ -1390,6 +1312,314 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(48), 1f);
 		if (gap) lp.leftMargin = dp(6);
 		return lp;
+	}
+
+	/**
+	 * Panel (Mola'nın ilk görünümü): üstte başlık şeridi; tam genişlikte Şimdi çalıyor kartı (kapak, tür, ad,
+	 * önceki / oynat / sonraki / geçmiş, sağda son açılanlar); altında tek vurgu renginde, ince çerçeveli yatay
+	 * kutular (solda simge, yanında ad ve kısa açıklama). Sade, koyu yüzeyler; araçta da.
+	 */
+	private View dashHome(Context ctx) {
+		MainActivityDelegate a = getActivityDelegate();
+		android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+		int wdp = Math.round(dm.widthPixels / dm.density);
+		boolean wide = wdp >= 560;
+		int accent = t.accent | 0xFF000000;
+		LinearLayout outer = new LinearLayout(ctx);
+		outer.setOrientation(LinearLayout.VERTICAL);
+		outer.setPadding(dp(16), YoldaStyle.cutoutTop(ctx) + dp(8), dp(16), 0);
+		LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(-1, dp(56));
+		hlp.bottomMargin = dp(8);
+		outer.addView(wideHeader(ctx, a, dm), hlp);
+
+		ScrollView sv = new ScrollView(ctx);
+		sv.setVerticalScrollBarEnabled(false);
+		sv.setOnScrollChangeListener((v, x, y, ox, oy) -> me.aap.fermata.ui.view.YoldaGlow.hold(250));
+		LinearLayout col = new LinearLayout(ctx);
+		col.setOrientation(LinearLayout.VERTICAL);
+		col.setPadding(0, 0, 0, dp(wide ? 16 : 88)); // dikeyde alttaki mikrofonun üstünde boşluk
+		sv.addView(col, new ScrollView.LayoutParams(-1, -2));
+		outer.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
+
+		// ---- Şimdi çalıyor ----
+		LinearLayout now = hrow(ctx);
+		now.setGravity(Gravity.CENTER_VERTICAL);
+		now.setPadding(dp(16), dp(14), dp(16), dp(14));
+		now.setBackground(dashSurface(accent, true));
+		now.setClickable(true);
+		now.setContentDescription("Şimdi çalıyor");
+		now.setOnClickListener(v -> YoldaNowPlaying.open(a));
+		phNowPlate = new FrameLayout(ctx);
+		GradientDrawable pg = new GradientDrawable();
+		pg.setCornerRadius(dp(18));
+		pg.setColor(YoldaStyle.alpha(accent, 0.18f));
+		phNowPlate.setBackground(pg);
+		phNowIcon = new ImageView(ctx);
+		phNowIcon.setImageResource(R.drawable.yi_music);
+		phNowPlate.addView(phNowIcon, new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER));
+		now.addView(phNowPlate, new LinearLayout.LayoutParams(dp(wide ? 104 : 72), dp(wide ? 104 : 72)));
+		LinearLayout info = new LinearLayout(ctx);
+		info.setOrientation(LinearLayout.VERTICAL);
+		info.setPadding(dp(16), 0, dp(8), 0);
+		phNowTag = text(ctx, "", 12, true, accent);
+		phNowTag.setLetterSpacing(0.08f);
+		phNowTag.setSingleLine(true);
+		info.addView(phNowTag);
+		phNowTitle = text(ctx, "", wide ? 22 : 18, true, 0xFFFFFFFF);
+		phNowTitle.setSingleLine(true);
+		phNowTitle.setEllipsize(TextUtils.TruncateAt.END);
+		info.addView(phNowTitle);
+		LinearLayout tr = hrow(ctx);
+		tr.setGravity(Gravity.CENTER_VERTICAL);
+		tr.setPadding(0, dp(10), 0, 0);
+		tr.addView(dashButton(ctx, R.drawable.yi_prev, "Önceki", false, accent,
+				v -> a.getMediaSessionCallback().onSkipToPrevious()), new LinearLayout.LayoutParams(dp(52), dp(48)));
+		phPlay = dashButton(ctx, R.drawable.yi_play, "Oynat / duraklat", true, accent, v -> {
+			var cb = a.getMediaSessionCallback();
+			if (cb.isPlaying()) cb.onPause();
+			else YoldaNowPlaying.togglePlay(a);
+			root.postDelayed(this::updatePhoneLive, 300);
+		});
+		LinearLayout.LayoutParams pl = new LinearLayout.LayoutParams(dp(64), dp(48));
+		pl.leftMargin = pl.rightMargin = dp(8);
+		tr.addView(phPlay, pl);
+		tr.addView(dashButton(ctx, R.drawable.yi_next, "Sonraki", false, accent,
+				v -> a.getMediaSessionCallback().onSkipToNext()), new LinearLayout.LayoutParams(dp(52), dp(48)));
+		LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(dp(52), dp(48));
+		ll.leftMargin = dp(8);
+		tr.addView(dashButton(ctx, R.drawable.yi_list, "Geçmiş", false, accent,
+				v -> a.showFragment(R.id.yolda_history_fragment)), ll);
+		info.addView(tr);
+		now.addView(info, new LinearLayout.LayoutParams(0, -2, 1f));
+		if (wide) { // son açılanlar (Mola'daki "Recent"): dokun → kaldığı yerden
+			View div = new View(ctx);
+			div.setBackgroundColor(0x26FFFFFF);
+			LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(Math.max(1, dp(1)), -1);
+			dl.leftMargin = dl.rightMargin = dp(16);
+			now.addView(div, dl);
+			LinearLayout rec = new LinearLayout(ctx);
+			rec.setOrientation(LinearLayout.VERTICAL);
+			rec.addView(text(ctx, "Son açılanlar", 14, true, 0xFFFFFFFF));
+			List<YoldaPlayHistory.Entry> hist = YoldaPlayHistory.all(ctx);
+			if (hist.isEmpty()) rec.addView(text(ctx, "Henüz bir şey açılmadı", 13, false, 0xFFC5CBD8));
+			for (int i = 0; i < Math.min(3, hist.size()); i++) {
+				YoldaPlayHistory.Entry e = hist.get(i);
+				TextView r = text(ctx, e.name(), 14, false, 0xFFE5E7EB);
+				r.setSingleLine(true);
+				r.setEllipsize(TextUtils.TruncateAt.END);
+				r.setGravity(Gravity.CENTER_VERTICAL);
+				r.setClickable(true);
+				r.setContentDescription("Kaldığın yerden: " + e.name());
+				r.setOnClickListener(v -> resumeEntry(a, e));
+				pressEffect(r);
+				rec.addView(r, new LinearLayout.LayoutParams(-1, dp(36)));
+			}
+			now.addView(rec, new LinearLayout.LayoutParams(0, -2, 0.8f));
+		}
+		col.addView(now, new LinearLayout.LayoutParams(-1, -2));
+		phNow = null; // kart her zaman görünür ("Henüz bir şey çalmadı")
+
+		// ---- kutular ----
+		int cols = wide ? Math.max(2, Math.min(4, wdp / 240)) : 1;
+		List<YoldaDeck.Card> cs = new ArrayList<>(phoneCards(ctx));
+		phoneTileViews.clear();
+		LinearLayout row = null;
+		for (int n = 0; n < cs.size(); n++) {
+			if (n % cols == 0) {
+				row = hrow(ctx);
+				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(wide ? 96 : 80));
+				rl.topMargin = dp(10);
+				col.addView(row, rl);
+			}
+			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
+			if (n % cols != 0) cl.leftMargin = dp(10);
+			View tile = dashTile(ctx, cs.get(n));
+			phoneTileViews.put(cs.get(n).type(), tile);
+			row.addView(tile, cl);
+		}
+		if (row != null) for (int n = cs.size(); n % cols != 0; n++) {
+			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
+			cl.leftMargin = dp(10);
+			row.addView(new View(ctx), cl);
+		}
+		updatePhoneLive();
+		return outer;
+	}
+
+	/** Panel yüzeyi: koyu, ince çerçeveli (Şimdi çalıyor kartı vurgu renginde çerçeve). */
+	private GradientDrawable dashSurface(int accent, boolean hero) {
+		GradientDrawable g = new GradientDrawable();
+		g.setCornerRadius(dp(hero ? 22 : 18));
+		g.setColor(hero ? YoldaStyle.alpha(accent, 0.10f) : 0x1AFFFFFF);
+		g.setStroke(Math.max(1, dp(1)), hero ? YoldaStyle.alpha(accent, 0.45f) : 0x24FFFFFF);
+		return g;
+	}
+
+	/** Panel oynatıcı düğmesi: yuvarlatılmış kare; oynat düğmesi vurgu renginde dolu. */
+	private ImageView dashButton(Context ctx, @DrawableRes int icon, String desc, boolean main, int accent,
+															 View.OnClickListener click) {
+		ImageView b = new ImageView(ctx);
+		b.setImageResource(icon);
+		b.setImageTintList(ColorStateList.valueOf(main ? 0xFF0B1020 : 0xFFFFFFFF));
+		int p = dp(12);
+		b.setPadding(p, p, p, p);
+		GradientDrawable g = new GradientDrawable();
+		g.setCornerRadius(dp(14));
+		g.setColor(main ? accent : 0x1FFFFFFF);
+		if (!main) g.setStroke(Math.max(1, dp(1)), 0x24FFFFFF);
+		b.setBackground(g);
+		b.setContentDescription(desc);
+		b.setClickable(true);
+		b.setOnClickListener(v -> {
+			YoldaStyle.haptic(v);
+			click.onClick(v);
+		});
+		pressEffect(b);
+		return b;
+	}
+
+	/** Panel kutusu: solda büyük simge (vurgu renginde), yanında ad ve kısa açıklama. */
+	private View dashTile(Context ctx, YoldaDeck.Card c) {
+		Look lk = look(c);
+		int accent = t.accent | 0xFF000000;
+		LinearLayout f = hrow(ctx);
+		f.setGravity(Gravity.CENTER_VERTICAL);
+		f.setPadding(dp(16), 0, dp(14), 0);
+		f.setBackground(dashSurface(accent, false));
+		f.setClickable(true);
+		f.setContentDescription(c.title());
+		f.setOnClickListener(v -> open(c));
+		f.setOnLongClickListener(v -> {
+			showPhoneCardsEditor(ctx);
+			return true;
+		});
+		pressEffect(f);
+		ImageView ic = new ImageView(ctx);
+		ic.setImageResource(lk.icon);
+		ic.setImageTintList(ColorStateList.valueOf(accent));
+		f.addView(ic, new LinearLayout.LayoutParams(dp(40), dp(40)));
+		LinearLayout tx = new LinearLayout(ctx);
+		tx.setOrientation(LinearLayout.VERTICAL);
+		tx.setPadding(dp(14), 0, 0, 0);
+		TextView ti = text(ctx, c.title(), 18, true, 0xFFFFFFFF);
+		ti.setSingleLine(true);
+		ti.setEllipsize(TextUtils.TruncateAt.END);
+		tx.addView(ti);
+		Glance g = glance(ctx, c.type());
+		TextView sub = text(ctx, (g != null) ? (g.big() + " · " + (g.l2().isEmpty() ? g.l1() : g.l2())) : panoSub(c, lk.sub),
+				13, false, 0xFFC5CBD8);
+		sub.setSingleLine(true);
+		sub.setEllipsize(TextUtils.TruncateAt.END);
+		tx.addView(sub);
+		f.addView(tx, new LinearLayout.LayoutParams(0, -2, 1f));
+		return f;
+	}
+
+	/** Yatay Pano ve Izgara başlık şeridi: saat, selam / tarih, hava, sabit hız, görünüm, tema, ayarlar, mikrofon. */
+	private LinearLayout wideHeader(Context ctx, MainActivityDelegate a, android.util.DisplayMetrics dm) {
+		LinearLayout head = hrow(ctx);
+		head.setGravity(Gravity.CENTER_VERTICAL);
+		LinearLayout hello = new LinearLayout(ctx);
+		hello.setOrientation(LinearLayout.VERTICAL);
+		int hr = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+		TextView hi = text(ctx, (hr < 5) ? "İyi geceler" : (hr < 12) ? "Günaydın" : (hr < 18) ? "İyi günler" : "İyi akşamlar",
+				22, true, 0xFFFFFFFF);
+		hi.setMaxLines(1); // dar ekranda iki satıra bölünmesin, küçülsün
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(hi, 13, 22, 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP);
+		hello.addView(hi, new LinearLayout.LayoutParams(-1, dp(30)));
+		LinearLayout dl = hrow(ctx);
+		phDate = text(ctx, "", 12, false, 0xFFC5CBD8);
+		phDate.setSingleLine(true);
+		dl.addView(phDate);
+		TextView iy = text(ctx, "  ·  İyi yolculuklar", 12, false, 0xFFC5CBD8);
+		iy.setSingleLine(true);
+		iy.setEllipsize(TextUtils.TruncateAt.END); // dar ekranda alt satıra kaymasın
+		dl.addView(iy, new LinearLayout.LayoutParams(0, -2, 1f));
+		hello.addView(dl);
+		head.addView(hello, new LinearLayout.LayoutParams(0, -2, 1f));
+		// başlık artık tam genişlikte (video + kartların üstünde tek şerit): selam her zaman sığar
+		boolean narrowRight = (dm.widthPixels / dm.density) < 560;
+
+		// hava: küçük hap (simge + derece); dokun: hava durumu
+		LinearLayout wp = hrow(ctx);
+		wp.setGravity(Gravity.CENTER_VERTICAL);
+		wp.setPadding(dp(12), 0, dp(14), 0);
+		wp.setBackground(headPill());
+		wp.setClickable(true);
+		wp.setContentDescription("Hava durumu");
+		wp.setOnClickListener(v -> a.showFragment(R.id.yolda_weather_fragment));
+		phWeatherIcon = text(ctx, (weather != null) ? YoldaWeather.emoji(weather.code()) : "☁", 18, false, 0xFFFFC857);
+		wp.addView(phWeatherIcon);
+		phWeather = text(ctx, (weather != null) ? (weather.temp() + "°") : "—", 16, true, 0xFFFFFFFF);
+		phWeather.setPadding(dp(6), 0, 0, 0);
+		wp.addView(phWeather);
+		phWeatherPlace = null;
+		LinearLayout.LayoutParams wpl = new LinearLayout.LayoutParams(-2, dp(48));
+		wpl.rightMargin = dp(8);
+		head.addView(wp, wpl);
+		if (weather == null) wp.setVisibility(View.GONE); // bilgi yokken boş "☁ –" hapı durmasın
+
+		// Hız sınırı levhası ve radar uzaklığı (dokun: Sürüş ekranı); radar uyarısı ayrıca her ekranda kırmızı kartla
+		LinearLayout spd = hrow(ctx);
+		spd.setGravity(Gravity.CENTER_VERTICAL);
+		spd.setClickable(true);
+		spd.setContentDescription("Hız ve radar");
+		spd.setOnClickListener(v -> a.showFragment(R.id.yolda_radar_fragment));
+		spd.setPadding(dp(4), 0, 0, 0);
+		spd.setBackground(headPill()); // hız sınırı hep aynı yerde, sabit
+		phLimitSign = text(ctx, "—", 14, true, 0xFF111111);
+		phLimitSign.setGravity(Gravity.CENTER);
+		GradientDrawable sg = new GradientDrawable();
+		sg.setShape(GradientDrawable.OVAL);
+		sg.setColor(0xFFFFFFFF);
+		sg.setStroke(dp(4), 0xFFE53935);
+		phLimitSign.setBackground(sg);
+		spd.addView(phLimitSign, new LinearLayout.LayoutParams(dp(40), dp(40)));
+		LinearLayout spt = new LinearLayout(ctx);
+		spt.setOrientation(LinearLayout.VERTICAL);
+		spt.setGravity(Gravity.CENTER_VERTICAL);
+		spt.setPadding(dp(8), 0, dp(14), 0);
+		phRadar = text(ctx, "", 16, true, 0xFFFFFFFF); // anlık hız (büyük)
+		phRadar.setSingleLine(true);
+		spt.addView(phRadar);
+		phLimit = text(ctx, "", 11, false, 0xFFC5CBD8); // sınır / önde radar (küçük)
+		phLimit.setSingleLine(true);
+		spt.addView(phLimit);
+		spd.addView(spt);
+
+		head.addView(spd, new LinearLayout.LayoutParams(-2, dp(48)));
+		phClock = text(ctx, "", narrowRight ? 28 : 34, true, 0xFFFFFFFF);
+		phClock.setSingleLine(true);
+		phClock.setIncludeFontPadding(false);
+		phClock.setPadding(0, 0, 0, 0);
+		head.addView(phClock, 0); // saat en solda (ortada boşlukta duruyordu), yanında selam / tarih
+		for (TextView tv : new TextView[]{phClock, hi, phDate, iy, phRadar, phLimit, phWeather}) if (tv != null) legible(tv);
+		phDate.setTextColor(0xFFE5E7EB);
+		iy.setTextColor(0xFFE5E7EB);
+		hello.setPadding(dp(14), 0, 0, 0);
+		// sağ sütun çok darsa (video büyük) saat gizli: saat aracın durum çubuğunda zaten var, düğmeler sığsın
+		if ((dm.widthPixels / dm.density) < 480) { // dikey telefon (ızgara): başlık sığsın, yalnız levha ve düğmeler
+			phClock.setVisibility(View.GONE);
+			wp.setVisibility(View.GONE);
+			spt.setVisibility(View.GONE);
+			hello.setVisibility(View.INVISIBLE); // "Gü / 26 K" diye kesiliyordu; yer tutar, düğmeler sağda kalır
+		}
+		LinearLayout.LayoutParams hb = new LinearLayout.LayoutParams(dp(48), dp(48));
+		hb.leftMargin = dp(narrowRight ? 4 : 8);
+		head.addView(roundButton(ctx, R.drawable.yi_grid, "Görünüm seç", v -> showViewPicker(ctx)), hb);
+		head.addView(roundButton(ctx, R.drawable.yi_palette, "Tema: " + YoldaStyle.label(ctx),
+				v -> me.aap.fermata.ui.view.YoldaThemePicker.show(a)), hb);
+		head.addView(roundButton(ctx, R.drawable.yi_settings, "Ayarlar", v -> a.showFragment(R.id.yolda_menu_fragment)), hb);
+		ImageView mic = roundButton(ctx, R.drawable.yi_mic, "Hey Yolda", v -> a.startVoiceAssistant());
+		GradientDrawable mg = new GradientDrawable();
+		mg.setShape(GradientDrawable.OVAL);
+		mg.setColor(0x33000000);
+		mg.setStroke(dp(2), 0xFFE0B354);
+		mic.setBackground(mg);
+		mic.setImageTintList(ColorStateList.valueOf(0xFFE0B354));
+		head.addView(mic, hb);
+		return head;
 	}
 
 	/** Pano başlık şeridindeki hap zemini: yarı saydam, çerçevesiz (camlı kabuk değil). */
@@ -1803,7 +2033,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaRadarCore.Ahead ah = YoldaRadar.ahead;
 			phRadar.setText((ah != null) ? RadarFragment.meters(ah.meters()) : (YoldaRadar.isEnabled(ctx) ? "Yok" : "Kapalı"));
 		}
-		if ((panoWideBuilt || gridBuilt) && (phLimit != null) && (phRadar != null)) { // dar başlıkta "Yok / Yok" yer kaplamasın
+		if ((panoWideBuilt || gridBuilt || dashBuilt) && (phLimit != null) && (phRadar != null)) { // dar başlıkta "Yok / Yok" yer kaplamasın
 			boolean lim = YoldaRadar.limit > 0;
 			boolean rad = YoldaRadar.ahead != null;
 			// levha hep görünür (sabit yer); yanında anlık hız, altında önde radar ya da sınır durumu
@@ -1815,7 +2045,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			boolean over = lim && (YoldaRadar.speed > YoldaRadar.limit);
 			phRadar.setTextColor(over ? 0xFFFF6B6B : 0xFFFFFFFF); // sınır aşılınca kırmızı
 		}
-		if (!panoWideBuilt && !gridBuilt && (phLimit != null)) // dikey: levha sınırı, kutu anlık hızı gösterir
+		if (!panoWideBuilt && !gridBuilt && !dashBuilt && (phLimit != null)) // dikey: levha sınırı, kutu anlık hızı gösterir
 			phLimit.setText(!YoldaRadar.isEnabled(ctx) ? "Kapalı"
 					: (YoldaRadar.hasFix() && (YoldaRadar.speed >= 0)) ? (YoldaRadar.speed + " km/s") : "— km/s");
 		if (phPark != null) {

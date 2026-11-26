@@ -937,6 +937,41 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Panel (Mola'nın ilk görünümü): Şimdi çalıyor kartı, oynatıcı düğmeleri ve kutular; yatay ve dikey. */
+	@Test
+	public void panelGorunumu() {
+		float d = ctx().getResources().getDisplayMetrics().density;
+		try {
+			for (boolean land : new boolean[]{true, false}) {
+				scenario.onActivity(act -> act.setRequestedOrientation(land
+						? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+						: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+				waitIdle(2000);
+				onMain(a -> {
+					call(deck(a), "setHomeView", "dash");
+					a.showFragment(R.id.home_fragment);
+					return null;
+				});
+				waitIdle(2500);
+				assertEquals("dash", onMain(a -> (String) call(deck(a), "homeView")));
+				View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+				for (String desc : new String[]{"Şimdi çalıyor", "Oynat / duraklat", "Önceki", "Sonraki", "Geçmiş", "YouTube", "Görünüm seç"}) {
+					View v = onMain(a -> byDescExact(root, desc));
+					assertNotNull("Panelde olmalı (" + (land ? "yatay" : "dikey") + "): " + desc, v);
+					assertTrue(desc + " en az 48dp", onMain(a -> v.getHeight()) >= Math.round(48 * d) - 1);
+				}
+				shot(land ? "panel_yatay" : "panel_dikey");
+			}
+		} finally {
+			onMain(a -> {
+				call(deck(a), "setHomeView", "deck");
+				return null;
+			});
+			scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+			waitIdle(1500);
+		}
+	}
+
 	@Test
 	public void panoVideoKucukPencerede() {
 		onMain(a -> {

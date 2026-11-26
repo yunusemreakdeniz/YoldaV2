@@ -155,13 +155,14 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		if (!a.isCarActivity()) {
 			android.content.SharedPreferences hp = ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
 			boolean phoneV = hp.getBoolean("phone_view", true), panoV = hp.getBoolean("pano_view", false),
-					gridV = hp.getBoolean("grid_view", false);
-			String cur = !phoneV ? "Deste" : gridV ? "Izgara" : panoV ? "Pano" : "Telefon";
-			set.addView(item(ctx, R.drawable.yi_phone, "Görünüm: " + cur + " · değiştir (Telefon → Pano → Izgara → Deste)",
-					0xFFBAE6FD, 0xFF0284C7, v -> { // sırayla: Telefon → Pano → Izgara → Deste → Telefon
-						var e = hp.edit();
+					gridV = hp.getBoolean("grid_view", false), dashV = hp.getBoolean("dash_view", false);
+			String cur = !phoneV ? "Deste" : dashV ? "Panel" : gridV ? "Izgara" : panoV ? "Pano" : "Telefon";
+			set.addView(item(ctx, R.drawable.yi_phone, "Görünüm: " + cur + " · değiştir (Telefon → Pano → Izgara → Panel → Deste)",
+					0xFFBAE6FD, 0xFF0284C7, v -> { // sırayla: Telefon → Pano → Izgara → Panel → Deste → Telefon
+						var e = hp.edit().putBoolean("dash_view", false);
 						if (!phoneV) e.putBoolean("phone_view", true).putBoolean("pano_view", false).putBoolean("grid_view", false);
-						else if (gridV) e.putBoolean("phone_view", false).putBoolean("pano_view", false).putBoolean("grid_view", false);
+						else if (dashV) e.putBoolean("phone_view", false).putBoolean("pano_view", false).putBoolean("grid_view", false);
+						else if (gridV) e.putBoolean("grid_view", false).putBoolean("dash_view", true);
 						else if (panoV) e.putBoolean("pano_view", false).putBoolean("grid_view", true);
 						else e.putBoolean("pano_view", true).putBoolean("grid_view", false);
 						e.apply();
