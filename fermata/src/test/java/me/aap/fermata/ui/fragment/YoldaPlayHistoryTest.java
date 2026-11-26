@@ -41,4 +41,16 @@ public class YoldaPlayHistoryTest {
 				e("s", 42_000, 100_000, 0));
 		assertEquals("TRT 1 · 5 dk önce · Ad s %42", YoldaPlayHistory.line(l, now));
 	}
+
+	/** Çıplak adres yerine okunur ad (Panel'de "https://test-streams.mux…" yazıyordu). */
+	@Test
+	public void adrestenOkunurAd() {
+		assertEquals("Film Adı", YoldaPlayHistory.displayName("https://site.com/yol/Film_Ad%C4%B1.mp4?x=1", null));
+		assertEquals("x36xhzz", YoldaPlayHistory.displayName("https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", null));
+		assertEquals("radyo.example.com", YoldaPlayHistory.displayName("https://www.radyo.example.com:8000/live/index.m3u8", null));
+		assertEquals("Şarkı", YoldaPlayHistory.displayName("Şarkı", "https://a.b/c.mp3"));
+		assertEquals("c", YoldaPlayHistory.displayName("", "https://a.b/x/cc.mp3").substring(0, 1));
+		assertEquals("a.b", YoldaPlayHistory.displayName(null, "https://a.b/"));
+		assertEquals("Film Adı", new YoldaPlayHistory.Entry("1", "https://s.com/Film_Adı.mkv", "Video", null, 0, 0, 0).name());
+	}
 }

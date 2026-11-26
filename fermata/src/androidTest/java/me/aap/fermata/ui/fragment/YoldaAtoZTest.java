@@ -974,6 +974,29 @@ public class YoldaAtoZTest {
 					return null;
 				});
 				assertNull("Panel zemini hava / mevsim sahnesini kapatmamalı: " + cover, cover);
+				// düğmeler kartta kesilmemeli (dikeyde "Sonraki" sağdan taşıyordu)
+				for (String desc : new String[]{"Önceki", "Oynat / duraklat", "Sonraki"}) {
+					String cut = onMain(a -> {
+						View v = byDescExact(root, desc);
+						android.graphics.Rect r = new android.graphics.Rect();
+						boolean vis = v.getGlobalVisibleRect(r);
+						return (vis && (r.width() >= v.getWidth() - 1)) ? null : (desc + " görünen " + r.width() + "/" + v.getWidth());
+					});
+					assertNull("Panel düğmesi kesik (" + (land ? "yatay" : "dikey") + "): " + cut, cut);
+				}
+				// saat her iki yönde görünmeli (dikeyde başlıkta yer yoktu, kayboluyordu)
+				boolean clock = onMain(a -> {
+					java.util.ArrayDeque<View> q = new java.util.ArrayDeque<>();
+					q.add(root);
+					while (!q.isEmpty()) {
+						View v = q.poll();
+						if (!v.isShown()) continue;
+						if ((v instanceof android.widget.TextView t) && t.getText().toString().matches("\d{1,2}:\d{2}")) return true;
+						if (v instanceof ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) q.add(g.getChildAt(i));
+					}
+					return false;
+				});
+				assertTrue("Panelde saat görünmeli (" + (land ? "yatay" : "dikey") + ")", clock);
 				shot(land ? "panel_yatay" : "panel_dikey");
 			}
 		} finally {
