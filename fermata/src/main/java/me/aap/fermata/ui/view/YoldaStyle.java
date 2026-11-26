@@ -543,8 +543,28 @@ public final class YoldaStyle {
 		}
 	}
 
+	/**
+	 * Sol kabuğun (geri, ana sayfa, mikrofon) kenardan uzaklığı (dp): araç ekranında solda başka bir uygulamanın
+	 * şeridi varsa kabuk onun altında kalmasın diye içeri alınır (Ayarlar → "Sol düğmelerin yeri").
+	 */
+	public static volatile int shellOffsetDp;
+	public static final String PREF_SHELL_OFFSET = "shell_offset";
+	public static final int[] SHELL_OFFSETS = {0, 40, 80};
+
+	public static int shellOffset(android.content.Context c) {
+		return c.getApplicationContext().getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+				.getInt(PREF_SHELL_OFFSET, 0);
+	}
+
+	/** Sıradaki uzaklık (0 → 40 → 80 → 0). */
+	public static int nextShellOffset(int cur) {
+		for (int i = 0; i < SHELL_OFFSETS.length; i++)
+			if (SHELL_OFFSETS[i] == cur) return SHELL_OFFSETS[(i + 1) % SHELL_OFFSETS.length];
+		return 0;
+	}
+
 	public static int searchLeftDp() {
-		if (DECK) return 16 + VOICE_DP + 12; // V2: sesli düğmenin sağında, aynı hizada (araçta gövde zaten kaydırılmış)
+		if (DECK) return 16 + shellOffsetDp + VOICE_DP + 12; // V2: sesli düğmenin sağında, aynı hizada (araçta gövde zaten kaydırılmış)
 		return railMode ? 18 : 22; // sesli asistan artık alt menünün yanında
 	}
 
