@@ -75,6 +75,7 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 			YoutubeWebClient webClient = new YoutubeWebClient();
 			YoutubeChromeClient chromeClient = new YoutubeChromeClient(webView, videoView);
 			webView.init(addon, webClient, chromeClient);
+			me.aap.fermata.ui.view.YoldaTubeInline.host = new TubeHost(webView, videoView, chromeClient);
 			registerListeners(a);
 			PreferenceStore ps = addon.getPreferenceStore();
 			long pos = ps.getLongPref(RESUME_POS);
@@ -140,6 +141,64 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 			});
 		}
 		super.onPause();
+	}
+
+	@Override
+	public void onHiddenChanged(boolean hidden) {
+		if (!hidden) me.aap.fermata.ui.view.YoldaTubeInline.restore(); // Pano'ya taşınan görüntü geri gelsin
+		super.onHiddenChanged(hidden);
+	}
+
+	/**
+	 * Pano'daki video alanı: görüntünün çizildiği görünüm (tam ekranda video yüzeyi, yoksa sayfa) geçici olarak
+	 * oraya taşınır; YouTube ekranı açılınca yerine döner. Ses ve oynatma kesilmez.
+	 */
+	private static final class TubeHost implements me.aap.fermata.ui.view.YoldaTubeInline.Host {
+		private final View web, video;
+		private final YoutubeChromeClient chrome;
+		@Nullable
+		private View moved;
+		@Nullable
+		private ViewGroup origParent;
+		private int origIndex;
+		@Nullable
+		private ViewGroup.LayoutParams origLp;
+		private int origVis;
+
+		TubeHost(View web, View video, YoutubeChromeClient chrome) {
+			this.web = web;
+			this.video = video;
+			this.chrome = chrome;
+		}
+
+		@Override
+		public boolean moveTo(ViewGroup target) {
+			View v = chrome.isFullScreen() ? video : web;
+			if ((moved == v) && (v.getParent() == target)) return true;
+			restore();
+			if (!(v.getParent() instanceof ViewGroup p)) return false;
+			origParent = p;
+			origIndex = p.indexOfChild(v);
+			origLp = v.getLayoutParams();
+			origVis = v.getVisibility();
+			p.removeView(v);
+			target.addView(v, 0, new android.widget.FrameLayout.LayoutParams(-1, -1));
+			v.setVisibility(View.VISIBLE);
+			moved = v;
+			return true;
+		}
+
+		@Override
+		public void restore() {
+			View v = moved;
+			ViewGroup p = origParent;
+			moved = null;
+			origParent = null;
+			if ((v == null) || (p == null)) return;
+			if (v.getParent() instanceof ViewGroup cur) cur.removeView(v);
+			p.addView(v, Math.min(origIndex, p.getChildCount()), origLp);
+			v.setVisibility(origVis);
+		}
 	}
 
 	@Override

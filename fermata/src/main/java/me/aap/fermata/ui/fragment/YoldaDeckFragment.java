@@ -433,6 +433,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Nullable
 	private ImageView phArtCover;
 	@Nullable
+	private FrameLayout phTubeBox;
+	@Nullable
 	private String phArtCoverKey;
 	@Nullable
 	private View phNow;
@@ -1052,6 +1054,25 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		});
 		art.addView(phArtCover, new FrameLayout.LayoutParams(-1, -1));
 		phArtCoverKey = null;
+		// YouTube görüntüsü (web oynatıcısı) buraya taşınır; üstündeki saydam katman dokununca tam ekran açar
+		phTubeBox = new FrameLayout(ctx);
+		phTubeBox.setVisibility(View.GONE);
+		phTubeBox.setClipToOutline(true);
+		phTubeBox.setOutlineProvider(new android.view.ViewOutlineProvider() {
+			@Override
+			public void getOutline(View v, android.graphics.Outline o) {
+				o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), dp(18));
+			}
+		});
+		View tubeTap = new View(ctx);
+		tubeTap.setClickable(true);
+		tubeTap.setContentDescription("YouTube'u tam ekran aç");
+		tubeTap.setOnClickListener(v -> {
+			me.aap.fermata.ui.view.YoldaTubeInline.restore();
+			YoldaNowPlaying.open(a);
+		});
+		phTubeBox.addView(tubeTap, new FrameLayout.LayoutParams(-1, -1));
+		art.addView(phTubeBox, new FrameLayout.LayoutParams(-1, -1));
 		phNowPlate = new FrameLayout(ctx);
 		phNowIcon = new ImageView(ctx);
 		phNowIcon.setImageResource(R.drawable.yi_live);
@@ -1699,6 +1720,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	private void rebuildPhone() {
 		if ((root == null) || !isAdded() || !phoneBuilt) return;
+		me.aap.fermata.ui.view.YoldaTubeInline.restore(); // eski Pano ile birlikte kopmasın
 		Context ctx = requireContext();
 		root.removeAllViews();
 		YoldaStyle.applyScreenBackground(root, t);
@@ -1732,7 +1754,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		boolean vid = (src != null) && src.isVideo();
 		if (phArtCover != null) { // Pano: kartta oynatılamayan videonun (YouTube) kapağı
 			boolean show = panoWideBuilt && !panoBuiltWithVideo && vid && (pi != null) && !live;
-			if (!show) {
+			var eng0 = cb.getEngine();
+			boolean tube = show && (eng0 != null) && eng0.getClass().getName().contains("Youtube") && isResumed() && !isHidden();
+			if (tube && (phTubeBox != null) && me.aap.fermata.ui.view.YoldaTubeInline.show(phTubeBox)) { // gerçek görüntü
+				if (phTubeBox.getVisibility() != View.VISIBLE) phTubeBox.setVisibility(View.VISIBLE);
+				phArtCover.setVisibility(View.GONE);
+				if (phPlay != null) phPlay.setVisibility(View.INVISIBLE);
+				if (phNowPlate != null) phNowPlate.setVisibility(View.GONE);
+				phArtCoverKey = pi.getId();
+			} else if (!show) {
+				if ((phTubeBox != null) && (phTubeBox.getVisibility() != View.GONE)) {
+					me.aap.fermata.ui.view.YoldaTubeInline.restore();
+					phTubeBox.setVisibility(View.GONE);
+					if (phPlay != null) phPlay.setVisibility(View.VISIBLE);
+				}
 				if (phArtCover.getVisibility() != View.GONE) phArtCover.setVisibility(View.GONE);
 				phArtCoverKey = null;
 			} else if (!pi.getId().equals(phArtCoverKey)) {
@@ -3420,6 +3455,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Override
 	public void onHiddenChanged(boolean hidden) {
 		super.onHiddenChanged(hidden);
+		if (hidden) me.aap.fermata.ui.view.YoldaTubeInline.restore(); // Pano'daki YouTube görüntüsü yerine dönsün
 		showVoiceOrb(hidden || !panoWideBuilt); // başka sayfada yüzen mikrofon görünür
 		if (!hidden) me.aap.utils.app.App.get().getHandler().postDelayed(quakeTick, 4000);
 		if (!hidden && (root != null) && (phoneMode() != phoneBuilt)) { // Menü'den görünüm değişti: yeniden kur
@@ -3853,6 +3889,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	@Override
 	public void onDestroyView() {
+		me.aap.fermata.ui.view.YoldaTubeInline.restore();
 		showVoiceOrb(true);
 		placeInlineVideo(null);
 		me.aap.fermata.ui.view.BodyLayout.yoldaInline = false;
