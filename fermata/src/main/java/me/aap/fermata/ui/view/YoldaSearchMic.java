@@ -67,17 +67,38 @@ public final class YoldaSearchMic {
 			public void onViewDetachedFromWindow(View v) {
 			}
 		});
+		boolean car = a.isCarActivity();
+		if (car) e.setShowSoftInputOnFocus(false); // araçta telefon klavyesi açılmaz: kendi klavyemiz
 		e.setOnTouchListener((v, ev) -> {
-			if (SKIP.containsKey(e) || (ev.getAction() != MotionEvent.ACTION_UP)) return false;
-			Drawable end = e.getCompoundDrawablesRelative()[2];
-			if (end == null) return false;
-			boolean rtl = e.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
-			float x = rtl ? (e.getWidth() - ev.getX()) : ev.getX();
-			if (!hitsMic(x, e.getWidth(), e.getPaddingEnd(), end.getBounds().width(), e.getResources().getDisplayMetrics().density))
-				return false;
-			dictate(a, e);
-			return true;
+			if (ev.getAction() != MotionEvent.ACTION_UP) return false;
+			Drawable end = SKIP.containsKey(e) ? null : e.getCompoundDrawablesRelative()[2];
+			if (end != null) {
+				boolean rtl = e.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+				float x = rtl ? (e.getWidth() - ev.getX()) : ev.getX();
+				if (hitsMic(x, e.getWidth(), e.getPaddingEnd(), end.getBounds().width(), e.getResources().getDisplayMetrics().density)) {
+					dictate(a, e);
+					return true;
+				}
+			}
+			if (car) { // araç klavyesi (dururken); sürüşte sesle yazma
+				YoldaCarKeyboard.onTap(a, e);
+				return true;
+			}
+			return false;
 		});
+	}
+
+	enum Edit {TEXT, CLEAR, CANCEL, SUBMIT}
+
+	/** Sesle yazarken kısa düzenleme sözleri. */
+	static Edit spokenEdit(String s) {
+		String t = s.trim().toLowerCase(new java.util.Locale("tr")).replaceAll("[.!?]+$", "");
+		return switch (t) {
+			case "temizle", "sil", "hepsini sil" -> Edit.CLEAR;
+			case "vazgeç", "iptal", "boş ver" -> Edit.CANCEL;
+			case "ara", "aramayı başlat", "tamam" -> Edit.SUBMIT;
+			default -> Edit.TEXT;
+		};
 	}
 
 	/** Konuşma tanıma: söyleneni kutuya yaz, imleci sona al, kutunun eylemini çalıştır. */
@@ -85,6 +106,23 @@ public final class YoldaSearchMic {
 		a.startSpeechRecognizer().onSuccess(q -> {
 			if ((q == null) || q.isEmpty()) return;
 			String s = q.get(0);
+			// Hey Yolda ile aynı tanıma; yazarken kısa sözler: "temizle", "vazgeç", "ara"
+			switch (spokenEdit(s)) {
+				case CLEAR -> {
+					e.setText("");
+					return;
+				}
+				case CANCEL -> {
+					return;
+				}
+				case SUBMIT -> {
+					YoldaCarKeyboard.hide();
+					e.onEditorAction(EditorInfo.IME_ACTION_SEARCH);
+					return;
+				}
+				default -> {
+				}
+			}
 			e.setText(s);
 			e.setSelection(s.length());
 			int act = e.getImeOptions() & EditorInfo.IME_MASK_ACTION;
