@@ -114,8 +114,13 @@ public class AudioEffectsFragment extends MainActivityFragment implements
 					AudioEffects effects = eng.getAudioEffects();
 
 					if (effects != null) {
-						view.init(cb, effects, pi);
-						return;
+						try {
+							view.init(cb, effects, pi);
+							return;
+						} catch (RuntimeException ex) { // cihazın ses efekti yanıt vermiyor (emülatör / bazı telefonlar): çökmesin
+							me.aap.utils.log.Log.e(ex, "Ses efektleri açılamadı");
+							me.aap.fermata.ui.view.YoldaStyle.toast(a.getContext(), "Ses efektleri bu cihazda şu an kullanılamıyor");
+						}
 					}
 				}
 			}
