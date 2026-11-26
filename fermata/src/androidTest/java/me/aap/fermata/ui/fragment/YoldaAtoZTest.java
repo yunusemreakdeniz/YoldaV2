@@ -1210,8 +1210,10 @@ public class YoldaAtoZTest {
 			waitIdle(500);
 			assertNull("Kapalıyken gösterge gizli", onMain(a -> byDesc(((android.app.Activity) a.getContext()).getWindow()
 					.getDecorView(), "Hız ve radar")));
+			// kart yenilemesi bir sonraki karede gelir: birkaç saniye bekle
+			assertTrue("Kart kapalı göstermeli", waitFor(3000,
+					() -> onMain(a -> byDesc(a.getActiveFragment().getView(), "Radar uyarıları: kapalı")) != null));
 			View sw2 = onMain(a -> byDesc(a.getActiveFragment().getView(), "Radar uyarıları: kapalı"));
-			assertNotNull("Kart kapalı göstermeli", sw2);
 
 			// Radar ekranı açılır
 			onMain(a -> a.showFragment(R.id.yolda_radar_fragment));
