@@ -1317,7 +1317,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		int m = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP);
 		// Fermata çubuğunun yüksekliği sabit; içindeki 48dp düğmeler ondan uzun olunca altından taşıyor
 		// (Klasörler, Listeler, Favoriler, TV'de ~20dp ekran dışı): taşma kadar yukarı
-		if (tb instanceof ViewGroup g) {
+		if (tb instanceof android.view.ViewGroup g) {
 			int over = 0;
 			for (int i = 0; i < g.getChildCount(); i++) {
 				View ch = g.getChildAt(i);
