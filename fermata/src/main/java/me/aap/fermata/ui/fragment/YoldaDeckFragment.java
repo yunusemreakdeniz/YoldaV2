@@ -1383,7 +1383,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		FrameLayout art = new FrameLayout(ctx);
 		GradientDrawable ag = new GradientDrawable();
 		ag.setCornerRadius(dp(16));
-		ag.setColor(K_DEEP);
+		ag.setColor(kp().deep());
 		art.setBackground(ag);
 		art.setClipToOutline(true);
 		art.setOutlineProvider(new android.view.ViewOutlineProvider() {
@@ -1450,7 +1450,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		now.addView(info, new LinearLayout.LayoutParams(0, -2, 1.3f));
 		if (wide) { // son açılanlar: dokun → kaldığı yerden
 			View div = new View(ctx);
-			div.setBackgroundColor(K_LINE);
+			div.setBackgroundColor(kp().line());
 			LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(Math.max(1, dp(1)), -1);
 			dl.leftMargin = dl.rightMargin = dp(14);
 			now.addView(div, dl);
@@ -1556,26 +1556,36 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	/** Kokpit renkleri (Mola 4.8.5). */
-	static final int K_BG = 0xFF0B0C0E, K_WELL = 0xFF1F2126, K_DEEP = 0xFF131518, K_LINE = 0xFF2A2D33, K_TEXT = 0xFFF4F4F5,
-			K_SUB = 0xFFA9ADB4, K_GOLD = 0xFFD6B46A;
+	static final int K_BG = 0xFF0B0C0E, K_TEXT = 0xFFF4F4F5, K_SUB = 0xFFA9ADB4, K_GOLD = YoldaKokpitPalette.GOLD;
 
-	/** Kokpit vurgusu: altın; tema Gümüş / Buz mavisi / Kırmızı ise onun rengi (Mola'daki desenler). */
+	/** Kokpit vurgusu: temanın en canlı rengi (renksiz temada altın). */
 	private int kokpitAccent() {
-		String n = t.name;
-		return switch (n) {
-			case "Gümüş" -> 0xFFD1D5DB;
-			case "Buz mavisi" -> 0xFF93C5FD;
-			case "Kırmızı" -> 0xFFF87171;
-			default -> K_GOLD;
-		};
+		return kp().accent();
 	}
 
-	/** Kokpit kuyusu: koyu yüzey, ince gri çerçeve (öne çıkan kart vurgu renginde çerçeve). */
+	/** Panel kart renkleri seçili temadan (tema değişince yeniden kurulur). */
+	private YoldaKokpitPalette kp() {
+		if ((kpCache == null) || (kpTheme != t)) {
+			kpTheme = t;
+			kpCache = (t == null) ? YoldaKokpitPalette.of(K_GOLD, new int[0], YoldaKokpitPalette.NOBLE)
+					: YoldaKokpitPalette.of(t.accent, t.blobs, t.cards);
+		}
+		return kpCache;
+	}
+
+	@Nullable
+	private YoldaKokpitPalette kpCache;
+	@Nullable
+	private Object kpTheme;
+
+	/** Kokpit kuyusu: temanın renginde koyu yüzey (canlı temada hafif geçiş), ince çerçeve (öne çıkan kart vurguda). */
 	private GradientDrawable kWell(int radiusDp, boolean hero, int accent) {
-		GradientDrawable g = new GradientDrawable();
+		YoldaKokpitPalette k = kp();
+		GradientDrawable g = hero ? new GradientDrawable() : new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+				new int[]{k.well(), k.wellEnd()});
 		g.setCornerRadius(dp(radiusDp));
-		g.setColor(hero ? K_DEEP : K_WELL);
-		g.setStroke(Math.max(1, dp(1)), hero ? YoldaStyle.alpha(accent, 0.40f) : K_LINE);
+		if (hero) g.setColor(k.deep());
+		g.setStroke(Math.max(1, dp(1)), hero ? YoldaStyle.alpha(accent, 0.45f) : k.line());
 		return g;
 	}
 
@@ -1588,8 +1598,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		b.setPadding(p, p, p, p);
 		GradientDrawable g = new GradientDrawable();
 		g.setShape(GradientDrawable.OVAL);
-		g.setColor(main ? accent : K_WELL);
-		if (!main) g.setStroke(Math.max(1, dp(1)), K_LINE);
+		g.setColor(main ? accent : kp().well());
+		if (!main) g.setStroke(Math.max(1, dp(1)), kp().line());
 		b.setBackground(g);
 		b.setContentDescription(desc);
 		b.setClickable(true);
@@ -2162,7 +2172,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (phNowPlate.getBackground() == null) {
 				GradientDrawable kg = new GradientDrawable();
 				kg.setCornerRadius(dp(16));
-				kg.setColor(K_WELL);
+				kg.setColor(kp().well());
 				phNowPlate.setBackground(kg);
 			}
 		} else if ((phNowPlate != null) && (phNowIcon != null)) {

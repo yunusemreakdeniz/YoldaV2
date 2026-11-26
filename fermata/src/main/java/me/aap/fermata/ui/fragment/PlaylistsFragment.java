@@ -45,10 +45,8 @@ public class PlaylistsFragment extends MediaLibFragment {
 		super.onViewCreated(view, savedInstanceState);
 		if (view instanceof me.aap.fermata.ui.view.MediaItemListView l) l.setEmptyHint(() ->
 				(getAdapter() != null) && (getAdapter().getParent() == getPlaylists())
-						? "Henüz liste yok
-Bir şarkıya uzun basıp “Listeye ekle” ile liste oluşturun"
-						: "Bu liste boş
-Bir şarkıya uzun basıp “Listeye ekle” ile şarkı ekleyin");
+						? "Henüz liste yok\nBir şarkıya uzun basıp “Listeye ekle” ile liste oluşturun"
+						: "Bu liste boş\nBir şarkıya uzun basıp “Listeye ekle” ile şarkı ekleyin");
 	}
 
 	@Override
