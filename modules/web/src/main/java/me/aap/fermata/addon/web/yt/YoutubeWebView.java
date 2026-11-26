@@ -117,6 +117,20 @@ public class YoutubeWebView extends FermataWebView {
 		super.loadUrl(url);
 	}
 
+	/**
+	 * YouTube sayfası ekran dışındayken de (ana ekran, arka plan, başka bölüm) görünür sayılır: aksi halde WebView
+	 * sayfayı gizli bildirir ve video durur. Oynatmayı yalnız kullanıcı (ya da ayar) durdurur.
+	 */
+	@Override
+	protected void onWindowVisibilityChanged(int visibility) {
+		super.onWindowVisibilityChanged(android.view.View.VISIBLE);
+	}
+
+	@Override
+	protected void onVisibilityChanged(@NonNull android.view.View changedView, int visibility) {
+		super.onVisibilityChanged(changedView, android.view.View.VISIBLE);
+	}
+
 	@Override
 	public void goBack() {
 		MediaSessionCallback cb = MainActivityDelegate.get(getContext()).getMediaSessionCallback();

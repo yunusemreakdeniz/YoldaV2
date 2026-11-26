@@ -2,6 +2,24 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-26 · v2-251 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-251 · Kokpit Panel, araç klavyesi
+
+- Panel görünümü: Mola 4.8.5 "Kokpit" dili (kömür siyahı zemin, koyu kuyu yüzeyler, altın vurgu / tema deseni), canlı video önizlemeli Şimdi çalıyor, yuvarlak oynatıcı düğmeleri, son açılanlar, çipler, 120 dp kutular. Sıra: Deste → (Telefon) → Pano → Izgara → Panel.
+- Araç klavyesi (Türkçe Q, harf / rakam, 48dp): yalnız araç dururken; sürüşte sesle yazma. Sesle yazma Hey Yolda tanımasıyla; "temizle / vazgeç / ara".
+- Pano'da YouTube görüntüsü (web oynatıcısı video alanına taşınır); TV / video kartta canlı.
+- Ayarlar → Sol düğmelerin yeri (Kenarda / İçeride / Daha içeride).
+- Fermata sayfalarında (Klasörler, Listeler, Favoriler, TV) alt araç çubuğu ekrana sığar (gövde zinciri ölçümle bulundu), 48dp; yüzen düğme çubuğun üstünde.
+- Çökmeler: liste sayfası erken gizlenince; ses efektleri cihaz yanıt vermeyince. TV eklentisi Türkçe.
+
+## 2026-11-26 · v2-249 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-249 · Mola özellikleri
+
+- Izgara görünümü (araçta da), Xtream Codes, Altın / Gümüş / Buz mavisi / Kırmızı temaları, yol çalışmaları (OSM, sesli), ekolayzer eğrisi, sesli kitap girişi.
+- TV / video Pano kartında görünür; başlık açık zeminde okunur.
+
+## 2026-11-26 · v2-248 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-248 · Oynatıcı ✕ ve işlem satırı
+
+- ✕ ile kapat (tam ekran video, Pano videosu, Şimdi çalıyor); 15 / 30 sn sarma, hız, uyku zamanlayıcısı; yığında sabit hız; yığında video tam ekran; geri düğmesi her zaman.
+
 ## 2026-11-26 · v2-246 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-246 · Kararlı gece sürümü
 
 - Açılışta boş ekran + kabuk hatası: son video geri yüklenirken gövde tam ekran video kipinde kalıyordu; ana ekran kurulunca kip düzeltilir.
