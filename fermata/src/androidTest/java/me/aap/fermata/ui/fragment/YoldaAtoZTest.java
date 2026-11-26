@@ -939,6 +939,7 @@ public class YoldaAtoZTest {
 
 			// Hız sınırı aşımı: konuşmadan çift bip, levha aşım sürdükçe yanıp söner
 			YoldaRadar.setOverspeedWarn(c, true);
+			YoldaRadar.resetOverWarn(); // önceki adımda bip çaldıysa 20 sn aralığı yenisini engellemesin
 			long beep0 = YoldaRadar.overBeepAt;
 			String alert0 = YoldaRadar.lastAlert;
 			YoldaSpeak.lastSpoken = null;
