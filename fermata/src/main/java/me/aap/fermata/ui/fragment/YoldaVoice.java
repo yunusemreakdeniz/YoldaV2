@@ -874,7 +874,7 @@ public final class YoldaVoice {
 
 	// ---- uyku zamanlayıcısı ----
 
-	static void sleep(MainActivityDelegate a, int min) {
+	public static void sleep(MainActivityDelegate a, int min) {
 		cancelSleep();
 		Runnable r = new Runnable() {
 			@Override
@@ -893,7 +893,7 @@ public final class YoldaVoice {
 		App.get().getHandler().postDelayed(r, ms);
 	}
 
-	static void cancelSleep() {
+	public static void cancelSleep() {
 		Runnable r = sleepTask;
 		sleepTask = null;
 		sleepAt = 0;
