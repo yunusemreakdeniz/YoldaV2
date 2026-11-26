@@ -677,6 +677,109 @@ public class YoldaAtoZTest {
 	 * video tam ekran değil, sağda küçük pencerede (BOTH) sürer; Pano kartları solda. Ekran görüntüsü: pano_video.
 	 * Yayın bu ağdan açılmazsa atlanır.
 	 */
+	/**
+	 * Deste (yığın) görünümünde hız sınırı hep görünür: üst satırda (geniş ekran) ya da tarih satırında (dar
+	 * telefon) levha + anlık hız. Kabuktaki gösterge değil, üst kısımdaki.
+	 */
+	@Test
+	public void desteHizSabit() {
+		android.content.Context c = ctx();
+		boolean was = YoldaRadar.isEnabled(c);
+		YoldaRadar.setEnabled(c, true);
+		try {
+			onMain(a -> {
+				call(deck(a), "setHomeView", "deck");
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(2500);
+			float d = c.getResources().getDisplayMetrics().density;
+			java.util.List<int[]> found = onMain(a -> {
+				java.util.List<int[]> out = new java.util.ArrayList<>();
+				View dv = ((android.app.Activity) a.getContext()).getWindow().getDecorView();
+				java.util.ArrayDeque<View> q = new java.util.ArrayDeque<>();
+				q.add(dv);
+				int[] xy = new int[2];
+				while (!q.isEmpty()) {
+					View v = q.poll();
+					if (!v.isShown()) continue;
+					if (v instanceof android.view.ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) q.add(g.getChildAt(i));
+					if ((v.getContentDescription() != null) && "Hız ve radar".contentEquals(v.getContentDescription())) {
+						v.getLocationOnScreen(xy);
+						out.add(new int[]{xy[1], v.getHeight()});
+					}
+				}
+				return out;
+			});
+			boolean top = false;
+			for (int[] f : found) if (f[0] < 200 * d) top = true;
+			shot("deste_hiz_sabit");
+			assertTrue("Destede üst kısımda hız göstergesi görünmeli: " + found.size(), top);
+		} finally {
+			YoldaRadar.setEnabled(c, was);
+		}
+	}
+
+	/**
+	 * Şimdi çalıyor işlem satırı (Mola'dan): sarılabilen içerikte 15 sn geri / 30 sn ileri / hız; uyku ve ses
+	 * her zaman. Hız düğmesi sırayla değişir, uyku düğmesi kalan süreyi gösterir, hepsi en az 48dp.
+	 */
+	@Test
+	public void oynaticiIslemSatiri() {
+		try {
+			onMain(a -> {
+				a.getBody().playItem(new me.aap.fermata.media.lib.IntentPlayable(a,
+						android.net.Uri.parse("https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8")));
+				return null;
+			});
+			boolean playing = waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+			org.junit.Assume.assumeTrue("Test yayını bu ağdan açılmadı", playing);
+			onMain(a -> {
+				a.showFragment(R.id.home_fragment);
+				me.aap.fermata.ui.view.YoldaNowPlaying.open(a);
+				return null;
+			});
+			waitIdle(2500);
+			View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			float d = ctx().getResources().getDisplayMetrics().density;
+			for (String desc : new String[]{"15 saniye geri", "30 saniye ileri", "Oynatma hızı", "Uyku zamanlayıcısı",
+					"Ses ayarı (ekolayzer)"}) {
+				View v = onMain(a -> byDescExact(root, desc));
+				assertNotNull("Oynatıcıda olmalı: " + desc, v);
+				assertTrue(desc + " en az 48dp", onMain(a -> v.getHeight()) >= Math.round(48 * d) - 1);
+			}
+			shot("oynatici_islem_satiri");
+			View sp = onMain(a -> byDescExact(root, "Oynatma hızı"));
+			onMain(a -> sp.performClick());
+			waitIdle(500);
+			assertEquals("1,25×", onMain(a -> ((android.widget.TextView) sp).getText().toString()));
+			// sarma: 30 sn ileri konumu ilerletir
+			long p0 = onMain(a -> me.aap.fermata.ui.view.YoldaNowPlaying.positionOf(a.getMediaSessionCallback()));
+			View fw = onMain(a -> byDescExact(root, "30 saniye ileri"));
+			onMain(a -> fw.performClick());
+			waitIdle(2500);
+			long p1 = onMain(a -> me.aap.fermata.ui.view.YoldaNowPlaying.positionOf(a.getMediaSessionCallback()));
+			assertTrue("30 sn ileri sarmalı: " + p0 + " → " + p1, p1 >= p0 + 20_000);
+			// uyku: Kapalı → 15 dk → … ; sonra kapat
+			View sl = onMain(a -> byDescExact(root, "Uyku zamanlayıcısı"));
+			onMain(a -> sl.performClick());
+			waitIdle(500);
+			assertEquals("15 dk", onMain(a -> ((android.widget.TextView) sl).getText().toString()));
+			onMain(a -> {
+				YoldaVoice.cancelSleep();
+				a.getMediaSessionCallback().onSetPlaybackSpeed(1f);
+				return null;
+			});
+		} finally {
+			onMain(a -> {
+				a.getMediaSessionCallback().onStop();
+				me.aap.fermata.ui.view.YoldaNowPlaying.hide(a);
+				return null;
+			});
+			waitIdle(1000);
+		}
+	}
+
 	@Test
 	public void panoVideoKucukPencerede() {
 		onMain(a -> {
