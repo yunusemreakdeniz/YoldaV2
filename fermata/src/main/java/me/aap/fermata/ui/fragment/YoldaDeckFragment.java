@@ -1062,6 +1062,18 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			phNowPlate.setVisibility(View.GONE); // videonun üstünde simge durmasın
 			phNowTitle.setVisibility(View.GONE); // altındaki "1. TRT 1 / CANLI · TV" boşa yer kaplıyordu: alan videoya
 			phNowTag.setVisibility(View.GONE);
+			// ✕ sol üstte: videoyu doğrudan kapat
+			ImageView cx = roundButton(ctx, R.drawable.yi_close, "Videoyu kapat", v -> {
+				YoldaStyle.haptic(v);
+				a.yoldaClosePlayer();
+			});
+			GradientDrawable cxb = new GradientDrawable();
+			cxb.setShape(GradientDrawable.OVAL);
+			cxb.setColor(0x55000000);
+			cx.setBackground(cxb);
+			FrameLayout.LayoutParams cxl = new FrameLayout.LayoutParams(dp(48), dp(48), Gravity.TOP | Gravity.START);
+			cxl.topMargin = cxl.leftMargin = dp(8);
+			art.addView(cx, cxl);
 			art.post(() -> placeInlineVideo(art));
 			art.addOnLayoutChangeListener((v, l, t2, r, b, ol, ot, orr, ob) -> { // ölçü değişince yeniden yerleştir
 				if (((r - l) != (orr - ol)) || ((b - t2) != (ob - ot)) || (l != ol) || (t2 != ot)) v.post(() -> placeInlineVideo(art));

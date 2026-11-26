@@ -49,7 +49,7 @@ public class YoldaQualityPill extends LinearLayout {
 			ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(-2, -2);
 			lp.topToTop = lp.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID;
 			lp.topMargin = YoldaStyle.cutoutTop(a.getContext()) + p.dp(16);
-			lp.rightMargin = p.dp(16);
+			lp.rightMargin = p.dp(16 + 56 + 10); // sağ üstte ✕ (videoyu kapat) var: onun solunda
 			cl.addView(p, lp);
 			p.poke();
 		} else if (!want && (cur != null)) {

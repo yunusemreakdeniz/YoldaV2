@@ -496,6 +496,16 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			toggleFav();
 		});
 		top.addView(favBtn, new LinearLayout.LayoutParams(dp(48), dp(48)));
+		// ✕: çalanı tamamen kapat (durdur, video / Şimdi çalıyor kapanır)
+		ImageView close = iconButton(ctx, R.drawable.yi_close, "Oynatıcıyı kapat");
+		close.setBackground(YoldaStyle.glass(ctx, t, 999));
+		close.setOnClickListener(v -> {
+			YoldaStyle.haptic(v);
+			MainActivityDelegate.get(getContext()).yoldaClosePlayer();
+		});
+		LinearLayout.LayoutParams cll = new LinearLayout.LayoutParams(dp(48), dp(48));
+		cll.leftMargin = dp(8);
+		top.addView(close, cll);
 		col.addView(top, new LinearLayout.LayoutParams(-1, -2));
 
 		// Gövde: kapak + bilgiler (yatayda yan yana, dikeyde alt alta)
