@@ -902,6 +902,41 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Izgara görünümü (Mola'daki ızgara): yatay ve dikeyde kartlar, alt şerit ve başlık; düğmeler en az 48dp. */
+	@Test
+	public void izgaraGorunumu() {
+		float d = ctx().getResources().getDisplayMetrics().density;
+		try {
+			for (boolean land : new boolean[]{true, false}) {
+				scenario.onActivity(act -> act.setRequestedOrientation(land
+						? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+						: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+				waitIdle(2000);
+				onMain(a -> {
+					call(deck(a), "setHomeView", "grid");
+					a.showFragment(R.id.home_fragment);
+					return null;
+				});
+				waitIdle(2500);
+				assertEquals("grid", onMain(a -> (String) call(deck(a), "homeView")));
+				View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+				for (String desc : new String[]{"Görünüm seç", "Ayarlar", "Benzinlik", "Otopark", "YouTube"}) {
+					View v = onMain(a -> byDescExact(root, desc));
+					assertNotNull("Izgarada olmalı (" + (land ? "yatay" : "dikey") + "): " + desc, v);
+					assertTrue(desc + " en az 48dp", onMain(a -> v.getHeight()) >= Math.round(48 * d) - 1);
+				}
+				shot(land ? "izgara_yatay" : "izgara_dikey");
+			}
+		} finally {
+			onMain(a -> {
+				call(deck(a), "setHomeView", "deck");
+				return null;
+			});
+			scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+			waitIdle(1500);
+		}
+	}
+
 	@Test
 	public void panoVideoKucukPencerede() {
 		onMain(a -> {

@@ -262,7 +262,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private FrameLayout.LayoutParams signatureLp() {
 		FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
 		lp.rightMargin = dp(22);
-		lp.bottomMargin = dp(10);
+		lp.bottomMargin = gridBuilt ? dp(64) : dp(10); // ızgarada alt şeridin üstünde (Otopark'a binmesin)
 		return lp;
 	}
 
@@ -272,8 +272,28 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private boolean phoneMode() {
 		Context ctx = getContext();
 		if (ctx == null) return false;
-		if (getActivityDelegate().isCarActivity()) return prefs(ctx).getBoolean(PREF_CAR_PANO, false); // araçta: Deste ya da Pano
+		if (getActivityDelegate().isCarActivity()) // araçta: Deste, Pano ya da Izgara
+			return prefs(ctx).getBoolean(PREF_CAR_PANO, false) || prefs(ctx).getBoolean(PREF_CAR_GRID, false);
 		return prefs(ctx).getBoolean(PREF_PHONE_VIEW, !underTest());
+	}
+
+	/** Izgara görünümü (Mola'daki "ızgara"): bütün kartlar ekrana sığan sütunlarda; araçta da seçilir. */
+	static final String PREF_GRID = "grid_view";
+	static final String PREF_CAR_GRID = "car_grid_view";
+
+	private boolean gridMode() {
+		Context ctx = getContext();
+		if (ctx == null) return false;
+		if (getActivityDelegate().isCarActivity()) return prefs(ctx).getBoolean(PREF_CAR_GRID, false);
+		return phoneMode() && prefs(ctx).getBoolean(PREF_GRID, false);
+	}
+
+	/** Izgara kurulu mu (Pano'nun başlık / alt şeridiyle, sol video alanı olmadan). */
+	private boolean gridBuilt;
+
+	/** Izgarada sütun sayısı: kart en az ~170 dp genişlikte, 2 ile 5 arası. */
+	static int gridCols(int widthDp) {
+		return Math.max(2, Math.min(5, widthDp / 170));
 	}
 
 	/** Araçta (Android Auto) Pano seçili mi; telefondaki seçimden ayrı saklanır. */
@@ -286,13 +306,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private boolean panoMode() {
 		Context ctx = getContext();
 		if (ctx == null) return false;
+		if (gridMode()) return false;
 		if (getActivityDelegate().isCarActivity()) return prefs(ctx).getBoolean(PREF_CAR_PANO, false);
 		return phoneMode() && prefs(ctx).getBoolean(PREF_PANO, false);
 	}
 
 	/** Şu an seçili görünüm: "deck", "phone" ya da "pano". */
 	String homeView() {
-		return panoMode() ? "pano" : phoneMode() ? "phone" : "deck";
+		return gridMode() ? "grid" : panoMode() ? "pano" : phoneMode() ? "phone" : "deck";
 	}
 
 	/**
@@ -309,18 +330,24 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Sıradaki görünüm: telefonda deck → phone → pano → deck, araçta deck ↔ pano. */
 	static String nextHomeView(String cur, boolean car) {
-		if (car) return "pano".equals(cur) ? "deck" : "pano";
-		return switch (cur) {
+		if (car) return switch (cur) { // araçta: Deste → Pano → Izgara → Deste
+			case "deck" -> "pano";
+			case "pano" -> "grid";
+			default -> "deck";
+		};
+		return switch (cur) { // telefonda: Deste → Telefon → Pano → Izgara → Deste
 			case "deck" -> "phone";
 			case "phone" -> "pano";
+			case "pano" -> "grid";
 			default -> "deck";
 		};
 	}
 
 	static String homeViewName(String v) {
 		return switch (v) {
-			case "phone" -> "Izgara";
+			case "phone" -> "Telefon";
 			case "pano" -> "Pano";
+			case "grid" -> "Izgara";
 			default -> "Deste";
 		};
 	}
@@ -331,11 +358,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		Context ctx = getContext();
 		if (ctx == null) return;
 		if (getActivityDelegate().isCarActivity()) {
-			prefs(ctx).edit().putBoolean(PREF_CAR_PANO, !"deck".equals(mode)).apply();
+			prefs(ctx).edit().putBoolean(PREF_CAR_PANO, "pano".equals(mode)).putBoolean(PREF_CAR_GRID, "grid".equals(mode)).apply();
 			rebuildHome();
 			return;
 		}
-		prefs(ctx).edit().putBoolean(PREF_PANO, "pano".equals(mode)).apply();
+		prefs(ctx).edit().putBoolean(PREF_PANO, "pano".equals(mode)).putBoolean(PREF_GRID, "grid".equals(mode)).apply();
 		setPhoneView(!"deck".equals(mode));
 	}
 
@@ -503,10 +530,18 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	private View phoneHome(Context ctx) {
 		long t0 = android.os.SystemClock.uptimeMillis();
-		panoWideBuilt = panoMode() && wideScreen();
-		me.aap.fermata.ui.view.BodyLayout.yoldaInline = panoWideBuilt; // ana ekranda video küçük pencerede
-		View v = panoWideBuilt ? panoWide(ctx) : phoneHomeBuild(ctx);
-		showVoiceOrb(!panoWideBuilt); // yatay Pano'nun üst satırında mikrofon var: yüzen düğme "Ses"in üstüne biniyordu
+		gridBuilt = gridMode();
+		panoWideBuilt = !gridBuilt && panoMode() && wideScreen();
+		me.aap.fermata.ui.view.BodyLayout.yoldaInline = panoWideBuilt; // ana ekranda video küçük pencerede (ızgarada tam ekran)
+		if (gridBuilt) { // önceki görünümden kalan alanlar ızgarada yok
+			phNowTitle = phNowTag = phPark = phWeatherPlace = null;
+			phNowIcon = null;
+			phNowPlate = null;
+			phPlay = null;
+			phNow = null;
+		}
+		View v = (panoWideBuilt || gridBuilt) ? panoWide(ctx) : phoneHomeBuild(ctx);
+		showVoiceOrb(!(panoWideBuilt || gridBuilt)); // üst şeritte mikrofon var: yüzen düğme "Ses"in üstüne biniyordu
 		me.aap.fermata.ui.view.YoldaJank.took("Telefon görünümü", t0, 0);
 		return v;
 	}
@@ -843,7 +878,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 	/** Izgaradaki kart: renkli simge kutusu, ad, tek satır bilgi; dokun → kartın sayfası. */
 	private View phoneTile(Context ctx, YoldaDeck.Card c) {
-		if (panoWideBuilt) return panoCard(ctx, c);
+		if (panoWideBuilt || gridBuilt) return panoCard(ctx, c);
 		if (panoMode()) return panoTile(ctx, c);
 		Look lk = look(c);
 		LinearLayout f = new LinearLayout(ctx);
@@ -1035,7 +1070,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 		int size = panoSize();
 		float nw = PANO_NOW[size];
-		rootRow.addView(now, new LinearLayout.LayoutParams(0, -1, nw));
+		if (!gridBuilt) rootRow.addView(now, new LinearLayout.LayoutParams(0, -1, nw)); // ızgarada sol video alanı yok
 		// büyüt / küçült: alanın sağ üstünde (Küçük → Orta → Büyük), kartlar 3 → 2 → 1 sütun
 		TextView rs = text(ctx, (size == 2) ? "−" : "+", 24, true, 0xFFFFFFFF);
 		rs.setGravity(Gravity.CENTER);
@@ -1078,12 +1113,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			art.addOnLayoutChangeListener((v, l, t2, r, b, ol, ot, orr, ob) -> { // ölçü değişince yeniden yerleştir
 				if (((r - l) != (orr - ol)) || ((b - t2) != (ob - ot)) || (l != ol) || (t2 != ot)) v.post(() -> placeInlineVideo(art));
 			});
-		} else art.post(() -> placeInlineVideo(null));
+		} else if (!gridBuilt) art.post(() -> placeInlineVideo(null));
 
 		// ---- Sağ: selam + saat, kartlar, hızlı erişim ----
 		LinearLayout right = new LinearLayout(ctx);
 		right.setOrientation(LinearLayout.VERTICAL);
-		right.setPadding(dp(16), 0, 0, 0);
+		right.setPadding(gridBuilt ? 0 : dp(16), 0, 0, 0);
 		LinearLayout head = hrow(ctx);
 		head.setGravity(Gravity.CENTER_VERTICAL);
 		LinearLayout hello = new LinearLayout(ctx);
@@ -1163,7 +1198,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		head.addView(phClock, 0); // saat en solda (ortada boşlukta duruyordu), yanında selam / tarih
 		hello.setPadding(dp(14), 0, 0, 0);
 		// sağ sütun çok darsa (video büyük) saat gizli: saat aracın durum çubuğunda zaten var, düğmeler sığsın
-		if ((dm.widthPixels / dm.density) < 480) phClock.setVisibility(View.GONE);
+		if ((dm.widthPixels / dm.density) < 480) { // dikey telefon (ızgara): başlık sığsın, yalnız levha ve düğmeler
+			phClock.setVisibility(View.GONE);
+			wp.setVisibility(View.GONE);
+			spt.setVisibility(View.GONE);
+		}
 		LinearLayout.LayoutParams hb = new LinearLayout.LayoutParams(dp(48), dp(48));
 		hb.leftMargin = dp(narrowRight ? 4 : 8);
 		head.addView(roundButton(ctx, R.drawable.yi_grid, "Görünüm seç", v -> showViewPicker(ctx)), hb);
@@ -1195,7 +1234,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		int rowH = Math.max(dp(112), (avail - dp(8)) / 2);
 		List<YoldaDeck.Card> cs = new ArrayList<>(phoneCards(ctx));
 		phoneTileViews.clear();
-		int cols = PANO_COLS[panoSize()];
+		int cols = gridBuilt ? gridCols(Math.round(dm.widthPixels / dm.density)) : PANO_COLS[panoSize()];
 		LinearLayout row = null;
 		for (int n = 0; n < cs.size(); n++) {
 			if (n % cols == 0) {
@@ -1219,7 +1258,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		sv.post(() -> { // satır boyu gerçek alana göre: iki satır tam sığsın (tahminle hesaplanınca ikinci satır kesiliyordu)
 			int h = sv.getHeight();
 			if (h <= 0) return;
-			int rh = Math.max(dp(80), (h - dp(8)) / 2 - dp(8));
+			// ızgarada alan yetiyorsa 3 satır görünür (kart en az 112 dp)
+			int rows = (gridBuilt && ((h - dp(8)) / 3 - dp(8) >= dp(112))) ? 3 : 2;
+			int rh = Math.max(dp(80), (h - dp(8)) / rows - dp(8));
 			boolean tight = rh < dp(112); // alçak ekran: simge küçük, alt yazı yok (ad kesiliyordu)
 			for (int i = 0; i < grid.getChildCount(); i++) {
 				View r = grid.getChildAt(i);
@@ -1249,7 +1290,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(-1, -2);
 		ql.topMargin = dp(8);
 		outer.addView(bar, ql);
-		rootRow.addView(right, new LinearLayout.LayoutParams(0, -1, 1f - nw));
+		rootRow.addView(right, new LinearLayout.LayoutParams(0, -1, gridBuilt ? 1f : (1f - nw)));
 		updatePhoneLive();
 		return outer;
 	}
@@ -1620,7 +1661,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		root.removeAllViews();
 		YoldaStyle.applyScreenBackground(root, t);
 		root.addView(phoneHome(ctx), new FrameLayout.LayoutParams(-1, -1));
-		if (!panoWideBuilt) root.addView(signature(ctx), signatureLp()); // yatay Pano'da imza Otopark'ın üstüne biniyordu
+		if (!panoWideBuilt) root.addView(signature(ctx), signatureLp()); // ızgarada da (alt şeridin üstünde) // yatay Pano'da imza Otopark'ın üstüne biniyordu
 	}
 
 	private void updatePhoneLive() {
@@ -1671,7 +1712,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			YoldaRadarCore.Ahead ah = YoldaRadar.ahead;
 			phRadar.setText((ah != null) ? RadarFragment.meters(ah.meters()) : (YoldaRadar.isEnabled(ctx) ? "Yok" : "Kapalı"));
 		}
-		if (panoWideBuilt && (phLimit != null) && (phRadar != null)) { // dar başlıkta "Yok / Yok" yer kaplamasın
+		if ((panoWideBuilt || gridBuilt) && (phLimit != null) && (phRadar != null)) { // dar başlıkta "Yok / Yok" yer kaplamasın
 			boolean lim = YoldaRadar.limit > 0;
 			boolean rad = YoldaRadar.ahead != null;
 			// levha hep görünür (sabit yer); yanında anlık hız, altında önde radar ya da sınır durumu
@@ -1683,7 +1724,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			boolean over = lim && (YoldaRadar.speed > YoldaRadar.limit);
 			phRadar.setTextColor(over ? 0xFFFF6B6B : 0xFFFFFFFF); // sınır aşılınca kırmızı
 		}
-		if (!panoWideBuilt && (phLimit != null)) // dikey: levha sınırı, kutu anlık hızı gösterir
+		if (!panoWideBuilt && !gridBuilt && (phLimit != null)) // dikey: levha sınırı, kutu anlık hızı gösterir
 			phLimit.setText(!YoldaRadar.isEnabled(ctx) ? "Kapalı"
 					: (YoldaRadar.hasFix() && (YoldaRadar.speed >= 0)) ? (YoldaRadar.speed + " km/s") : "— km/s");
 		if (phPark != null) {
@@ -1911,7 +1952,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			root = new FrameLayout(ctx);
 			YoldaStyle.applyScreenBackground(root, t);
 			root.addView(phoneHome(ctx), new FrameLayout.LayoutParams(-1, -1));
-			if (!panoWideBuilt) root.addView(signature(ctx), signatureLp());
+			if (!panoWideBuilt) root.addView(signature(ctx), signatureLp()); // ızgarada da (alt şeridin üstünde)
 			root.postDelayed(phTick, 1500);
 			root.post(this::fixBodyMode);
 			root.postDelayed(this::fixBodyMode, 1500); // geri yükleme biraz sonra da gelebiliyor
