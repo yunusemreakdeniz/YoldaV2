@@ -41,6 +41,17 @@ public class PlaylistsFragment extends MediaLibFragment {
 	}
 
 	@Override
+	public void onViewCreated(@androidx.annotation.NonNull android.view.View view, @androidx.annotation.Nullable android.os.Bundle savedInstanceState) {
+		super.onViewCreated(view, savedInstanceState);
+		if (view instanceof me.aap.fermata.ui.view.MediaItemListView l) l.setEmptyHint(() ->
+				(getAdapter() != null) && (getAdapter().getParent() == getPlaylists())
+						? "Henüz liste yok
+Bir şarkıya uzun basıp “Listeye ekle” ile liste oluşturun"
+						: "Bu liste boş
+Bir şarkıya uzun basıp “Listeye ekle” ile şarkı ekleyin");
+	}
+
+	@Override
 	public void contributeToNavBarMenu(OverlayMenu.Builder builder) {
 		super.contributeToNavBarMenu(builder);
 		PlaylistsAdapter a = getAdapter();
