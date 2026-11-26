@@ -704,7 +704,7 @@ public class YoldaAtoZTest {
 					View v = q.poll();
 					if (!v.isShown()) continue;
 					if (v instanceof android.view.ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) q.add(g.getChildAt(i));
-					if ((v.getContentDescription() != null) && "Hız ve radar".contentEquals(v.getContentDescription())) {
+					if ((v.getContentDescription() != null) && "Hız sınırı göstergesi".contentEquals(v.getContentDescription())) {
 						v.getLocationOnScreen(xy);
 						out.add(new int[]{xy[1], v.getHeight()});
 					}

@@ -2018,7 +2018,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		sp.setPadding(dp(3), 0, dp(12), 0);
 		sp.setBackground(YoldaStyle.glass(ctx, t, 999));
 		sp.setClickable(true);
-		sp.setContentDescription("Hız ve radar");
+		sp.setContentDescription("Hız sınırı göstergesi"); // kabuktaki "Hız ve radar" ile karışmasın
 		sp.setOnClickListener(v -> {
 			YoldaStyle.haptic(v);
 			getActivityDelegate().showFragment(R.id.yolda_radar_fragment);
