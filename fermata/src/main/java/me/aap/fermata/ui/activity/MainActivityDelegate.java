@@ -1273,13 +1273,16 @@ public class MainActivityDelegate extends ActivityDelegate
 			tl.verticalBias = 1f;
 			tl.leftMargin = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.searchLeftDp()); // solunda sesli düğme
 			tl.bottomMargin = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP);
+			// oynatıcı gizliyken de aynı boşluk (önceki zincirde çubuk ekranın altından ~20dp taşıyordu)
+			tl.goneBottomMargin = tl.bottomMargin;
 			tl.topMargin = 0;
 			tb.setLayoutParams(tl);
 			bl.topToBottom = unset;
 			bl.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
 			bl.bottomToTop = R.id.tool_bar;
 			bd.setLayoutParams(bl);
-			cl.topToBottom = R.id.tool_bar;
+			// oynatıcı yalnız alta bağlı: araç çubuğuyla karşılıklı bağ (döngü) gizliyken çubuğu ekran dışına itiyordu
+			cl.topToBottom = unset;
 			cp.setLayoutParams(cl);
 			View pr = a.findViewById(R.id.content_loading_progress);
 			if ((pr != null) && (pr.getLayoutParams() instanceof ConstraintLayout.LayoutParams pl)) {
