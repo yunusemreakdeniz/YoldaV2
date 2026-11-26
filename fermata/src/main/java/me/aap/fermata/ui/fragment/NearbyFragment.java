@@ -29,7 +29,7 @@ import me.aap.fermata.ui.view.YoldaStyle;
  * (ücret, kapasite, priz türü, güç) ve "Git".
  */
 public class NearbyFragment extends MainActivityFragment {
-	public static final String CHARGER = "charger", PARK_DEST = "park_dest";
+	public static final String CHARGER = "charger", PARK_DEST = "park_dest", ROADWORKS = "roadworks";
 	public static volatile String mode = CHARGER;
 	/** Otopark aranacak yer (boşsa son gidilen yer). */
 	@Nullable
@@ -50,7 +50,8 @@ public class NearbyFragment extends MainActivityFragment {
 
 	@Override
 	public CharSequence getTitle() {
-		return CHARGER.equals(mode) ? "Şarj istasyonları" : "Gideceğin yerdeki otoparklar";
+		return CHARGER.equals(mode) ? "Şarj istasyonları" : ROADWORKS.equals(mode) ? "Yol çalışmaları"
+				: "Gideceğin yerdeki otoparklar";
 	}
 
 	@Override
@@ -99,7 +100,8 @@ public class NearbyFragment extends MainActivityFragment {
 	private void load() {
 		if (loading) return;
 		Context ctx = requireContext();
-		boolean charger = CHARGER.equals(mode);
+		boolean works = ROADWORKS.equals(mode); // yol çalışmaları: bulunduğun yerin 30 km çevresi
+		boolean charger = CHARGER.equals(mode) || works;
 		String dest = charger ? null : destination(ctx);
 		double la = YoldaRadar.lat, lo = YoldaRadar.lon;
 		if (!charger && (dest == null)) {
@@ -114,9 +116,11 @@ public class NearbyFragment extends MainActivityFragment {
 			return;
 		}
 		loading = true;
-		status = charger ? "Yakındaki şarj istasyonları aranıyor…" : ("“" + dest + "” çevresinde otopark aranıyor…");
+		status = works ? "Yakındaki yol çalışmaları aranıyor…" : charger ? "Yakındaki şarj istasyonları aranıyor…"
+				: ("“" + dest + "” çevresinde otopark aranıyor…");
 		render();
 		me.aap.utils.function.CheckedSupplier<List<YoldaNearby.Spot>, Throwable> job = () -> {
+			if (works) return YoldaNearby.roadworks(la, lo, 30_000, 40);
 			if (charger) return YoldaNearby.find(la, lo, true, 10_000, 30);
 			double[] at = YoldaNearby.geocode(dest, la, lo);
 			if (at == null) return null;
@@ -133,9 +137,10 @@ public class NearbyFragment extends MainActivityFragment {
 				spots = new ArrayList<>();
 			} else {
 				spots = l;
-				status = l.isEmpty() ? (charger ? "10 km içinde şarj istasyonu bulunamadı." : "800 m içinde otopark bulunamadı.")
+				status = works ? (l.isEmpty() ? "30 km içinde haritada işaretli yol çalışması yok." : (l.size() + " yol çalışması · OpenStreetMap"))
+						: l.isEmpty() ? (charger ? "10 km içinde şarj istasyonu bulunamadı." : "800 m içinde otopark bulunamadı.")
 						: (l.size() + (charger ? " şarj istasyonu" : (" otopark · " + dest)));
-				if (charger) {
+				if (charger && !works) {
 					lastChargers = l;
 					lastChargersAt = System.currentTimeMillis();
 				}

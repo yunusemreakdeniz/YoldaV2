@@ -79,6 +79,11 @@ public final class YoldaStyle {
 			new Theme("Pastel", 0xFF101218, new int[]{0xFF6366F1, 0xFFEC4899, 0xFF14B8A6, 0xFF101218}, 0xFFC7D2FE, CARDS_SOFT),
 			new Theme("Gece yarısı", 0xFF07080D, new int[]{0xFF1E293B, 0xFF0F172A, 0xFF1F2937, 0xFF07080D}, 0xFF93C5FD, CARDS_NOBLE),
 			new Theme("Grafit", 0xFF0E0F11, new int[]{0xFF2B2D31, 0xFF1F2124, 0xFF34373C, 0xFF0E0F11}, 0xFFF4B860, CARDS_NOBLE),
+			// Mola'daki kart desenleri: altın, gümüş, buz mavisi, kırmızı
+			new Theme("Altın", 0xFF140F05, new int[]{0xFFD4A017, 0xFFB8860B, 0xFFF5D76E, 0xFF3D2A08}, 0xFFF5D76E),
+			new Theme("Gümüş", 0xFF0F1114, new int[]{0xFF9CA3AF, 0xFF6B7280, 0xFFD1D5DB, 0xFF1F2328}, 0xFFE5E7EB, CARDS_SOFT),
+			new Theme("Buz mavisi", 0xFF071420, new int[]{0xFF7DD3FC, 0xFFBAE6FD, 0xFF38BDF8, 0xFF0C2A40}, 0xFFE0F2FE, CARDS_SOFT),
+			new Theme("Kırmızı", 0xFF180607, new int[]{0xFFDC2626, 0xFF991B1B, 0xFFF87171, 0xFF3F0A0C}, 0xFFFCA5A5),
 	};
 
 	/** Rengi sakinleştirir: doygunluğu sat, parlaklığı val katıyla çarpar (HSV). */

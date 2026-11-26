@@ -50,6 +50,8 @@ public final class YoldaIntents {
 		FX, PRAYER, NEWS,
 		/** Telefon durumu: pil, bağlantı, bu ayki mobil veri. */
 		STATUS,
+		/** Yakındaki yol çalışmaları (Mola'dan). */
+		ROADWORKS,
 		/** Varılacak yerdeki otoparklar (arg: yer; null = son yol tarifi). */
 		PARK_DEST,
 		/** Notlar: ekle (arg: metin), oku, sil. */
@@ -296,6 +298,9 @@ public final class YoldaIntents {
 		if (c.matches("(az önce|demin|biraz önce) ne (dedin|söyledin)|ne dedin|anlamadım tekrar söyle"))
 			return Intent.of(Kind.ALERTS, 1);
 
+		// yol çalışmaları: "yol çalışması var mı", "yakında yol çalışması", "yol çalışmalarını göster"
+		if (c.matches("(yakın(da|daki)? |civarda |yolda )?yol çalışma(sı|ları)( var mı| nerede| göster| listesi)?|yol çalışmalarını (göster|aç|listele)"))
+			return Intent.of(Kind.ROADWORKS);
 		// varılacak yerin otoparkları: "gideceğim yerde otopark var mı", "kızılayda otopark", "varınca nereye park ederim"
 		if (c.matches("(gideceğim|varacağım|gittiğim) yer(de|in yakınında)? (otopark|park yeri)( var mı| nerede)?|varınca (nereye park ederim|otopark)"))
 			return Intent.of(Kind.PARK_DEST);
