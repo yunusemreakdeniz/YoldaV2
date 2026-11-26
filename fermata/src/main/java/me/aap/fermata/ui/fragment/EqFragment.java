@@ -184,6 +184,12 @@ public class EqFragment extends MainActivityFragment {
 		boolean custom = YoldaEq.CUSTOM.equals(cur);
 		box.addView(text(ctx, custom ? "Bantlar · Özel" : ("Bantlar · " + cur + " (oynatınca Özel olur)"), 17, true, t.ink));
 		int[] g = YoldaEq.gains(ctx, cur);
+		// eğri (Mola'dan): bantların birlikte nasıl bir ses verdiği bir bakışta
+		YoldaEqCurve curve = new YoldaEqCurve(ctx, 0xFFFFD27A);
+		curve.setGains(g);
+		LinearLayout.LayoutParams cvl = new LinearLayout.LayoutParams(-1, dp(a.isCarActivity() ? 64 : 88));
+		cvl.topMargin = dp(10);
+		box.addView(curve, cvl);
 		LinearLayout row = new LinearLayout(ctx);
 		row.setOrientation(LinearLayout.HORIZONTAL);
 		row.setPadding(0, dp(12), 0, 0);
@@ -204,6 +210,7 @@ public class EqFragment extends MainActivityFragment {
 			band.setContentDescription(YoldaEq.bandLabel(i) + " bandı, " + YoldaEqBand.fmt(g[i]) + " desibel");
 			band.listener = (db, done) -> {
 				g[bi] = db;
+				curve.setGains(g);
 				vals[bi].setText(YoldaEqBand.fmt(db));
 				band.setContentDescription(YoldaEq.bandLabel(bi) + " bandı, " + YoldaEqBand.fmt(db) + " desibel");
 				long now = System.currentTimeMillis();
