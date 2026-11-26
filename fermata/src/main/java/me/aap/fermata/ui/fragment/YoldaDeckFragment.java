@@ -2230,7 +2230,20 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			boolean show = (panoWideBuilt || dashBuilt) && !panoBuiltWithVideo && vid && (pi != null) && !live;
 			var eng0 = cb.getEngine();
 			boolean tube = show && (eng0 != null) && eng0.getClass().getName().contains("Youtube") && isResumed() && !isHidden();
+			boolean firstMove = tube && (phTubeBox != null) && (phTubeBox.getChildCount() <= 1);
+			boolean wasPlaying = playing;
 			if (tube && (phTubeBox != null) && me.aap.fermata.ui.view.YoldaTubeInline.show(phTubeBox)) { // gerçek görüntü
+				if (firstMove) { // taşıma sırasında sayfa duraklarsa yeniden başlat (küçük ekranda oynamıyordu)
+					YoldaLog.add("YouTube küçük ekrana taşındı, çalıyor: " + wasPlaying);
+					phTubeBox.postDelayed(() -> {
+						if (!isAdded()) return;
+						var c2 = getActivityDelegate().getMediaSessionCallback();
+						if (wasPlaying && !c2.isPlaying()) {
+							YoldaLog.add("YouTube küçük ekranda durmuştu, yeniden başlatıldı");
+							c2.onPlay();
+						}
+					}, 1200);
+				}
 				if (phTubeBox.getVisibility() != View.VISIBLE) phTubeBox.setVisibility(View.VISIBLE);
 				phArtCover.setVisibility(View.GONE);
 				if (phPlay != null) phPlay.setVisibility(View.INVISIBLE);
