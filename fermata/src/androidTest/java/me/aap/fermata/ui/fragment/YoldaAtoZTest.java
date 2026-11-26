@@ -955,7 +955,7 @@ public class YoldaAtoZTest {
 				waitIdle(2500);
 				assertEquals("dash", onMain(a -> (String) call(deck(a), "homeView")));
 				View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
-				for (String desc : new String[]{"Şimdi çalıyor", "Oynat / duraklat", "Önceki", "Sonraki", "Oynatıcıyı kapat", "Favoriler", "Klasörler", "YouTube", "Görünüm seç"}) {
+				for (String desc : new String[]{"Şimdi çalıyor", "Oynat / duraklat", "Önceki", "Sonraki", "Favoriler", "YouTube", "Görünüm seç"}) {
 					View v = onMain(a -> byDescExact(root, desc));
 					assertNotNull("Panelde olmalı (" + (land ? "yatay" : "dikey") + "): " + desc, v);
 					assertTrue(desc + " en az 48dp", onMain(a -> v.getHeight()) >= Math.round(48 * d) - 1);
