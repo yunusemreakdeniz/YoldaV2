@@ -1417,8 +1417,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		tr.addView(phPlay, kRoundLp(56, true));
 		tr.addView(kRound(ctx, R.drawable.yi_next, "Sonraki", false, accent, v -> a.getMediaSessionCallback().onSkipToNext()),
 				kRoundLp(48, true));
-		tr.addView(kRound(ctx, R.drawable.yi_close, "Oynatıcıyı kapat", false, accent, v -> a.yoldaClosePlayer()),
-				kRoundLp(48, true));
+		if (wdp >= 760) // ✕ yalnız geniş ekranda (dar kartta sığmıyor; Şimdi çalıyor'da da var)
+			tr.addView(kRound(ctx, R.drawable.yi_close, "Oynatıcıyı kapat", false, accent, v -> a.yoldaClosePlayer()),
+					kRoundLp(48, true));
 		info.addView(tr);
 		now.addView(info, new LinearLayout.LayoutParams(0, -2, 1.3f));
 		if (wide) { // son açılanlar: dokun → kaldığı yerden
@@ -2127,7 +2128,17 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			phNowTag.setText((playing && live) ? ("● CANLI · " + (vid ? "TV" : "RADYO")) : playing ? "ŞİMDİ ÇALIYOR" : "KALDIĞIN YER");
 			phNowTag.setTextColor((playing && live) ? 0xFFFF8A8A : (t.accent | 0xFF000000));
 		}
-		if ((phNowPlate != null) && (phNowIcon != null)) {
+		if (dashBuilt && (phNowPlate != null) && (phNowIcon != null)) { // Kokpit: koyu kuyu, altın simge
+			phNowIcon.setImageResource(live ? (vid ? R.drawable.yi_tv : R.drawable.yi_live)
+					: (vid ? R.drawable.yi_youtube : R.drawable.yi_music));
+			phNowIcon.setImageTintList(ColorStateList.valueOf(kokpitAccent()));
+			if (phNowPlate.getBackground() == null) {
+				GradientDrawable kg = new GradientDrawable();
+				kg.setCornerRadius(dp(16));
+				kg.setColor(K_WELL);
+				phNowPlate.setBackground(kg);
+			}
+		} else if ((phNowPlate != null) && (phNowIcon != null)) {
 			int pc = live ? (vid ? 0xFF3B82F6 : 0xFFF59E0B) : (vid ? 0xFFEF4444 : 0xFFA855F7);
 			phNowIcon.setImageResource(live ? (vid ? R.drawable.yi_tv : R.drawable.yi_live)
 					: (vid ? R.drawable.yi_youtube : R.drawable.yi_music));
