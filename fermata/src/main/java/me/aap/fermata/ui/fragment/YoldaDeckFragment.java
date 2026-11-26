@@ -3804,7 +3804,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		Context ctx = getContext();
 		if ((ctx == null) || (deckSign == null) || (deckSpeed == null) || (deckSpeedBox == null)) return;
 		boolean on = deckSpeedWide && YoldaRadar.isEnabled(ctx);
-		deckSpeedBox.setVisibility(on ? View.VISIBLE : View.GONE);
+		// kapalıyken yer tutar (INVISIBLE): üst satırın boyu değişip deste yeniden dizilmesin, kart kaymasın
+		int vis = on ? View.VISIBLE : View.INVISIBLE;
+		if (deckSpeedBox.getVisibility() != vis) deckSpeedBox.setVisibility(vis);
 		if (!on) return;
 		int lim = YoldaRadar.limit;
 		String ls = (lim > 0) ? String.valueOf(lim) : "—";
