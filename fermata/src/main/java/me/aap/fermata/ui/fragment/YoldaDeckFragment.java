@@ -2219,6 +2219,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		MediaLib.PlayableItem pi = a.getCurrentPlayable();
 		if ((title == null) && (pi != null)) title = pi.getName();
 		if ((title == null) && (lastItem != null)) title = lastItem.getName();
+		title = YoldaPlayHistory.cleanTitle(title); // "x36xhzz.m3u8" → "x36xhzz", adres → okunur ad
 		boolean playing = cb.isPlaying();
 		if (phNow != null) phNow.setVisibility((title == null) ? View.GONE : View.VISIBLE);
 		if (phNowTitle != null) phNowTitle.setText((title != null) ? title : panoWideBuilt ? "Şu an çalan yok"

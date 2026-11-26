@@ -58,4 +58,16 @@ public class YoldaPlayHistoryTest {
 			l = YoldaPlayHistory.push(l, new YoldaPlayHistory.Entry("id" + i, "x", "Video", "https://a.b/x.m3u8", 0, 0, i));
 		assertEquals(1, l.size());
 	}
+
+	/** Şimdi çalıyor başlığında dosya uzantısı / adres görünmez. */
+	@Test
+	public void temizBaslik() {
+		assertEquals("x36xhzz", YoldaPlayHistory.cleanTitle("x36xhzz.m3u8"));
+		assertEquals("Film Adı", YoldaPlayHistory.cleanTitle("Film_Adı.MKV"));
+		assertEquals("Şarkı adı.mp3 değil", YoldaPlayHistory.cleanTitle("Şarkı adı.mp3 değil"));
+		assertEquals("Dr. Dre - Still D.R.E.", YoldaPlayHistory.cleanTitle("Dr. Dre - Still D.R.E."));
+		assertEquals("TRT 1", YoldaPlayHistory.cleanTitle("TRT 1"));
+		assertEquals("x36xhzz", YoldaPlayHistory.cleanTitle("https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"));
+		assertEquals(null, YoldaPlayHistory.cleanTitle(null));
+	}
 }
