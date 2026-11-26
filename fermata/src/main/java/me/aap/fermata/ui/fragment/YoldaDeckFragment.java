@@ -3807,7 +3807,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		deckSign.setAlpha((lim > 0) && !YoldaRadar.limitEstimated ? 1f : 0.7f);
 		int spd = YoldaRadar.speed;
 		boolean fix = YoldaRadar.hasFix() && (spd >= 0);
-		String ss = fix ? (spd + " km/s") : "— km/s";
+		String ss = deckSpeedSmall ? (fix ? String.valueOf(spd) : "—") // dar satırda yalnız sayı: tarih de sığsın
+				: (fix ? (spd + " km/s") : "— km/s");
 		if (!ss.contentEquals(deckSpeed.getText())) deckSpeed.setText(ss);
 		deckSpeed.setTextColor(fix && (lim > 0) && (spd > lim) ? 0xFFFF6B6B : t.ink);
 	}
