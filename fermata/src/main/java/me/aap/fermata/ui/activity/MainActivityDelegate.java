@@ -1298,6 +1298,14 @@ public class MainActivityDelegate extends ActivityDelegate
 				pl.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
 				pr.setLayoutParams(pl);
 			}
+			// sağdaki yüzen düğme araç çubuğunun üstünde dursun (filtre / ızgara düğmelerine biniyordu)
+			View fab = a.findViewById(R.id.floating_button);
+			if ((fab != null) && (fab.getLayoutParams() instanceof ConstraintLayout.LayoutParams fl)) {
+				fl.bottomToTop = R.id.tool_bar;
+				fl.bottomToBottom = unset;
+				fl.bottomMargin = toIntPx(getContext(), 12);
+				fab.setLayoutParams(fl);
+			}
 			View tm = a.findViewById(R.id.tool_menu);
 			if ((tm != null) && (tm.getLayoutParams() instanceof ConstraintLayout.LayoutParams ml)) {
 				ml.topToBottom = unset;
@@ -1316,6 +1324,14 @@ public class MainActivityDelegate extends ActivityDelegate
 		ControlPanelView cp = getControlPanel();
 		if ((tb == null) || !(tb.getLayoutParams() instanceof ConstraintLayout.LayoutParams tl)
 				|| (tl.bottomToBottom != ConstraintLayout.LayoutParams.PARENT_ID)) return;
+		// başlık ve düğmeler en az 48dp dokunma alanı (Fermata çubuğu 40dp idi)
+		int minH = toIntPx(getContext(), 48);
+		if ((tl.height > 0) && (tl.height < minH)) {
+			tl.height = minH;
+			tb.setLayoutParams(tl);
+		}
+		View title = tb.findViewById(me.aap.utils.R.id.tool_bar_title);
+		if ((title != null) && (title.getMinimumHeight() < minH)) title.setMinimumHeight(minH);
 		int m = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP);
 		// Fermata çubuğunun yüksekliği sabit; içindeki 48dp düğmeler ondan uzun olunca altından taşıyor
 		// (Klasörler, Listeler, Favoriler, TV'de ~20dp ekran dışı): taşma kadar yukarı
