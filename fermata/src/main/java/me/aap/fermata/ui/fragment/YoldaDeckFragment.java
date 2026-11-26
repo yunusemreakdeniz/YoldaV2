@@ -1332,7 +1332,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		panoBuiltWithVideo = dashInline && inlineVideoShown();
 		LinearLayout outer = new LinearLayout(ctx);
 		outer.setOrientation(LinearLayout.VERTICAL);
-		outer.setBackgroundColor(K_BG); // Kokpit: düz koyu zemin (gökyüzü efekti yok)
+		// zemin yok: arkada hava durumu ve mevsim sahnesi (Pano gibi) görünsün; kartlar kendi koyu yüzeyinde okunur
 		outer.setPadding(dp(16), YoldaStyle.cutoutTop(ctx) + dp(8), dp(16), 0);
 		LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(-1, dp(56));
 		hlp.bottomMargin = dp(8);
