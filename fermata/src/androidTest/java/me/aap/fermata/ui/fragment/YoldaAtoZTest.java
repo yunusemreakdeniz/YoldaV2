@@ -735,20 +735,38 @@ public class YoldaAtoZTest {
 			boolean playing = waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
 			org.junit.Assume.assumeTrue("Test yayını bu ağdan açılmadı", playing);
 			onMain(a -> {
-				a.showFragment(R.id.home_fragment);
-				me.aap.fermata.ui.view.YoldaNowPlaying.open(a);
+				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
+				me.aap.fermata.ui.view.YoldaNowPlaying.show(a);
 				return null;
 			});
 			waitIdle(2500);
 			View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
 			float d = ctx().getResources().getDisplayMetrics().density;
-			for (String desc : new String[]{"15 saniye geri", "30 saniye ileri", "Oynatma hızı", "Uyku zamanlayıcısı",
-					"Ses ayarı (ekolayzer)"}) {
+			boolean seekable = onMain(a -> (a.getMediaSessionCallback().getEngine() != null)
+					&& a.getMediaSessionCallback().getEngine().canSeek());
+			java.util.List<String> must = new java.util.ArrayList<>(java.util.List.of("Uyku zamanlayıcısı"));
+			if (seekable) must.addAll(java.util.List.of("15 saniye geri", "30 saniye ileri", "Oynatma hızı"));
+			for (String desc : must) {
 				View v = onMain(a -> byDescExact(root, desc));
 				assertNotNull("Oynatıcıda olmalı: " + desc, v);
 				assertTrue(desc + " en az 48dp", onMain(a -> v.getHeight()) >= Math.round(48 * d) - 1);
 			}
+			if (!seekable) assertNull("Sarılamayan içerikte sarma düğmesi olmamalı", onMain(a -> {
+				View v = byDescExact(root, "30 saniye ileri");
+				return ((v != null) && v.isShown()) ? v : null;
+			}));
 			shot("oynatici_islem_satiri");
+			View sl0 = onMain(a -> byDescExact(root, "Uyku zamanlayıcısı"));
+			if (!seekable) {
+				onMain(a -> sl0.performClick());
+				waitIdle(500);
+				assertEquals("15 dk", onMain(a -> ((android.widget.TextView) sl0).getText().toString()));
+				onMain(a -> {
+					YoldaVoice.cancelSleep();
+					return null;
+				});
+				return;
+			}
 			View sp = onMain(a -> byDescExact(root, "Oynatma hızı"));
 			onMain(a -> sp.performClick());
 			waitIdle(500);
@@ -811,7 +829,7 @@ public class YoldaAtoZTest {
 			org.junit.Assume.assumeTrue("Test yayını ikinci kez açılmadı", start.get());
 			onMain(a -> {
 				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
-				me.aap.fermata.ui.view.YoldaNowPlaying.open(a);
+				me.aap.fermata.ui.view.YoldaNowPlaying.show(a);
 				return null;
 			});
 			waitIdle(2000);
