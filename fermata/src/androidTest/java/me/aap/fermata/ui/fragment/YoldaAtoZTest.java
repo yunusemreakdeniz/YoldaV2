@@ -972,6 +972,54 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Araç klavyesi: YouTube aramasında harf yazar, siler, 48dp tuşlar, ✕ kapatır. */
+	@Test
+	public void aracKlavyesi() {
+		onMain(a -> a.showFragment(R.id.yolda_youtube));
+		waitIdle(2500);
+		android.widget.EditText e = onMain(a -> {
+			java.util.ArrayDeque<View> q = new java.util.ArrayDeque<>();
+			q.add(((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			while (!q.isEmpty()) {
+				View v = q.poll();
+				if ((v instanceof android.widget.EditText t) && v.isShown()) return t;
+				if (v instanceof android.view.ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) q.add(g.getChildAt(i));
+			}
+			return null;
+		});
+		assertNotNull("YouTube'da arama kutusu olmalı", e);
+		try {
+			onMain(a -> {
+				e.setText("");
+				me.aap.fermata.ui.view.YoldaCarKeyboard.show(a, e);
+				return null;
+			});
+			waitIdle(800);
+			View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			assertNotNull("Klavye açılmalı", onMain(a -> byDescExact(root, "Araç klavyesi")));
+			float d = ctx().getResources().getDisplayMetrics().density;
+			for (String k : new String[]{"t", "r"}) {
+				View kv = onMain(a -> byDescExact(root, k));
+				assertNotNull("Tuş olmalı: " + k, kv);
+				assertTrue("Tuş en az 48dp", onMain(a -> kv.getHeight()) >= Math.round(48 * d) - 1);
+				onMain(a -> kv.performClick());
+			}
+			assertEquals("tr", onMain(a -> e.getText().toString()));
+			onMain(a -> byDescExact(root, "Sil").performClick());
+			assertEquals("t", onMain(a -> e.getText().toString()));
+			shot("arac_klavyesi");
+			onMain(a -> byDescExact(root, "Klavyeyi kapat").performClick());
+			waitIdle(500);
+			assertFalse("✕ ile kapanmalı", onMain(a -> me.aap.fermata.ui.view.YoldaCarKeyboard.isOpen()));
+		} finally {
+			onMain(a -> {
+				me.aap.fermata.ui.view.YoldaCarKeyboard.hide();
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+		}
+	}
+
 	@Test
 	public void panoVideoKucukPencerede() {
 		onMain(a -> {
