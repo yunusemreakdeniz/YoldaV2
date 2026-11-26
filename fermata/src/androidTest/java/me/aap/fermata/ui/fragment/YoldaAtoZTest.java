@@ -991,7 +991,7 @@ public class YoldaAtoZTest {
 					while (!q.isEmpty()) {
 						View v = q.poll();
 						if (!v.isShown()) continue;
-						if ((v instanceof android.widget.TextView t) && t.getText().toString().matches("\d{1,2}:\d{2}")) return true;
+						if ((v instanceof android.widget.TextView t) && t.getText().toString().matches("[0-9]{1,2}:[0-9]{2}")) return true;
 						if (v instanceof ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) q.add(g.getChildAt(i));
 					}
 					return false;
