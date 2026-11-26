@@ -636,14 +636,10 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			((TextView) v).setText(me.aap.fermata.ui.fragment.YoldaPlayerOps.sleepLabel(n));
 			YoldaStyle.toast(getContext(), (n == 0) ? "Uyku zamanlayıcısı kapatıldı" : (n + " dakika sonra oynatma duracak"));
 		});
-		TextView eq = opChip(ctx, "Ses", "Ses ayarı (ekolayzer)", v -> {
-			MainActivityDelegate a = MainActivityDelegate.get(getContext());
-			hide(a);
-			a.showFragment(R.id.yolda_eq_fragment);
-		});
-		for (TextView c : new TextView[]{back15, fwd30, speedChip, sleepChip, eq}) {
+		// ses ayarı ana ekrandaki "Ses" düğmesinde; burada yer araçta yetmiyordu (5 düğme taşıyordu)
+		for (TextView c : new TextView[]{back15, fwd30, speedChip, sleepChip}) {
 			LinearLayout.LayoutParams ol = new LinearLayout.LayoutParams(0, dp(48), 1f);
-			ol.leftMargin = ol.rightMargin = dp(4);
+			ol.leftMargin = ol.rightMargin = dp(3);
 			ops.addView(c, ol);
 		}
 		info.addView(ops, new LinearLayout.LayoutParams(-1, -2));
@@ -1097,9 +1093,11 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 	private TextView back15, fwd30, speedChip, sleepChip;
 
 	private TextView opChip(Context ctx, String label, String desc, View.OnClickListener click) {
-		TextView c = text(ctx, label, 14, true, 0xFFFFFFFF);
+		TextView c = text(ctx, label, 13, true, 0xFFFFFFFF);
 		c.setGravity(Gravity.CENTER);
 		c.setSingleLine(true);
+		c.setIncludeFontPadding(false);
+		c.setPadding(0, 0, 0, 0);
 		c.setBackground(YoldaStyle.glass(ctx, YoldaStyle.current(ctx), 999));
 		c.setContentDescription(desc);
 		c.setClickable(true);

@@ -497,15 +497,24 @@ public class ControlPanelView extends ConstraintLayout
 
 	@Override
 	public boolean onDoubleTap(MotionEvent e) {
-		if (!(gestureSource instanceof VideoView)) return false;
-		getActivity().getMediaServiceBinder().onPlayPauseButtonClick();
+		if (!(gestureSource instanceof VideoView) || !isAttachedToWindow()) return false;
+		try {
+			getActivity().getMediaServiceBinder().onPlayPauseButtonClick();
+		} catch (Throwable ex) { // ekran kapanırken gelen gecikmeli dokunuş: uygulama çökmesin
+			return false;
+		}
 		return true;
 	}
 
 	@Override
 	public boolean onSingleTapConfirmed(MotionEvent e) {
-		if (!(gestureSource instanceof VideoView)) return false;
-		return onTouch((VideoView) gestureSource);
+		// tek dokunuş gecikmeyle gelir: o arada ekran kapanmışsa (dayanıklılık testi, 26 Kasım) çökmesin
+		if (!(gestureSource instanceof VideoView) || !isAttachedToWindow()) return false;
+		try {
+			return onTouch((VideoView) gestureSource);
+		} catch (Throwable ex) {
+			return false;
+		}
 	}
 
 	public boolean onTouch(VideoView video) {
