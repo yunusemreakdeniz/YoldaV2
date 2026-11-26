@@ -431,6 +431,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	@Nullable
 	private ImageView phPlay;
 	@Nullable
+	private ImageView phArtCover;
+	@Nullable
+	private String phArtCoverKey;
+	@Nullable
 	private View phNow;
 	private final Runnable phTick = new Runnable() {
 		@Override
@@ -508,13 +512,21 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			MainActivityDelegate a = getActivityDelegate();
 			if (a.getActiveFragment() != this) return;
 			me.aap.fermata.ui.view.BodyLayout b = a.getBody();
-			if ((b == null) || b.isFrameMode()) return;
+			if (b == null) return;
 			var eng = a.getMediaSessionCallback().getEngine();
 			var src = (eng != null) ? eng.getSource() : null;
-			boolean video = (src != null) && src.isVideo() && a.getMediaSessionCallback().isPlaying();
-			if (video && panoWideBuilt) {
+			// yatay Pano: çalan (ya da duraklatılmış) video varsa kartın alanında görünür; kanal ekranından dönünce
+			// gövde liste kipinde kalıyor, video kartta çıkmıyordu (TV, araç ekranı)
+			boolean inlineable = (src != null) && src.isVideo() && eng.isSplitModeSupported()
+					&& (a.getMediaSessionCallback().getVideoView() == b.getVideoView());
+			if (panoWideBuilt && inlineable) {
 				if (!b.isBothMode()) b.setMode(me.aap.fermata.ui.view.BodyLayout.Mode.BOTH);
-			} else if (!video || b.isVideoMode() || b.isBothMode()) { // destede bölünmüş (sağda dar video) kalmasın
+				return;
+			}
+			if (b.isFrameMode()) return;
+			boolean video = (src != null) && src.isVideo() && a.getMediaSessionCallback().isPlaying();
+			if (video && panoWideBuilt) return;
+			if (!video || b.isVideoMode() || b.isBothMode()) { // destede bölünmüş (sağda dar video) kalmasın
 				YoldaLog.add("Açılış: gövde " + b.getMode() + " kipindeydi, ana ekran gösterildi");
 				b.setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
 			}
@@ -1021,6 +1033,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		art.setBackground(ag);
 		art.setClickable(true);
 		art.setOnClickListener(v -> YoldaNowPlaying.open(a));
+		// kartta oynatılamayan video (YouTube web oynatıcısı) için kapak: alanı doldurur, dokununca tam ekran
+		phArtCover = new ImageView(ctx);
+		phArtCover.setScaleType(ImageView.ScaleType.CENTER_CROP);
+		phArtCover.setVisibility(View.GONE);
+		phArtCover.setClipToOutline(true);
+		phArtCover.setOutlineProvider(new android.view.ViewOutlineProvider() {
+			@Override
+			public void getOutline(View v, android.graphics.Outline o) {
+				o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), dp(18));
+			}
+		});
+		art.addView(phArtCover, new FrameLayout.LayoutParams(-1, -1));
+		phArtCoverKey = null;
 		phNowPlate = new FrameLayout(ctx);
 		phNowIcon = new ImageView(ctx);
 		phNowIcon.setImageResource(R.drawable.yi_live);
@@ -1196,6 +1221,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		phClock.setIncludeFontPadding(false);
 		phClock.setPadding(0, 0, 0, 0);
 		head.addView(phClock, 0); // saat en solda (ortada boşlukta duruyordu), yanında selam / tarih
+		for (TextView tv : new TextView[]{phClock, hi, phDate, iy, phRadar, phLimit, phWeather}) if (tv != null) legible(tv);
+		phDate.setTextColor(0xFFE5E7EB);
+		iy.setTextColor(0xFFE5E7EB);
 		hello.setPadding(dp(14), 0, 0, 0);
 		// sağ sütun çok darsa (video büyük) saat gizli: saat aracın durum çubuğunda zaten var, düğmeler sığsın
 		if ((dm.widthPixels / dm.density) < 480) { // dikey telefon (ızgara): başlık sığsın, yalnız levha ve düğmeler
@@ -1339,8 +1367,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private GradientDrawable headPill() {
 		GradientDrawable g = new GradientDrawable();
 		g.setCornerRadius(dp(999));
-		g.setColor(0x26FFFFFF);
+		g.setColor(0x47000000); // koyu yarı saydam: açık (bulutlu / gündüz) zeminde de yazı okunur
+		g.setStroke(Math.max(1, dp(1)), 0x1FFFFFFF);
 		return g;
+	}
+
+	/** Açık zeminde okunsun: yazıya hafif gölge. */
+	private static void legible(TextView v) {
+		v.setShadowLayer(6f, 0f, 1.5f, 0xB3000000);
 	}
 
 	/** Pano kartının kısa alt yazısı: kartın uzun talimat cümlesi ("Dokun, ara · basılı tut…") yerine kısa tanım. */
@@ -1667,6 +1701,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private void updatePhoneLive() {
 		Context ctx = getContext();
 		if ((ctx == null) || (phClock == null)) return;
+		if (panoWideBuilt && !panoBuiltWithVideo) fixBodyMode(); // video çalıyor ama kartta değilse yerleştir
 		if (panoWideBuilt && (inlineVideoShown() != panoBuiltWithVideo) && (root != null)) { // video küçük pencere açıldı / kapandı
 			root.post(this::rebuildPhone);
 			return;
@@ -1687,6 +1722,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		MediaLib.PlayableItem src = (pi != null) ? pi : lastItem;
 		boolean live = (src != null) && src.isStream();
 		boolean vid = (src != null) && src.isVideo();
+		if (phArtCover != null) { // Pano: kartta oynatılamayan videonun (YouTube) kapağı
+			boolean show = panoWideBuilt && !panoBuiltWithVideo && vid && (pi != null) && !live;
+			if (!show) {
+				if (phArtCover.getVisibility() != View.GONE) phArtCover.setVisibility(View.GONE);
+				phArtCoverKey = null;
+			} else if (!pi.getId().equals(phArtCoverKey)) {
+				phArtCoverKey = pi.getId();
+				phArtCover.setImageDrawable(null);
+				phArtCover.setVisibility(View.VISIBLE);
+				phArtCover.setAlpha(0.85f);
+				loadItemIcon(phArtCover, null, pi);
+			}
+		}
 		if ((phNowTag != null) && (title == null) && (phNow == null)) { // Pano, boş: ne yapılacağını söyle
 			phNowTag.setText(panoWideBuilt ? "Sağdan bir kaynak seç" : "KAYNAK SEÇ"); // uzun etiket iki satıra bölünüp başlığı sıkıştırıyordu
 			phNowTag.setTextColor(t.accent | 0xFF000000);
