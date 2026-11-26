@@ -949,8 +949,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		sub.setSingleLine(true);
 		sub.setEllipsize(TextUtils.TruncateAt.END);
 		f.addView(sub);
+		// yenilenen kart (ör. Medya, videolar yüklenince): alçak satırda sıkı düzen; yoksa ad alttan kesiliyordu
+		if ((panoRowH > 0) && (panoRowH < dp(112))) panoCardTight(f, panoRowH);
 		return f;
 	}
+
+	/** Pano / ızgara satır yüksekliği (ölçülünce). */
+	private int panoRowH;
 
 	/**
 	 * Yatay Pano (araç ekranı): solda boydan Şimdi çalıyor kartı (büyük oynat, ad, Ses / Favoriler / Aç), sağda
@@ -1004,6 +1009,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private View panoWide(Context ctx) {
 		MainActivityDelegate a = getActivityDelegate();
 		panoBuiltWithVideo = inlineVideoShown();
+		panoRowH = 0;
 		android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
 		// Üstte solda video / Şimdi çalıyor, sağda kartlar; altta tam genişlikte kısayol şeridi
 		// (Ses, Favoriler, Aç, Ev, İş, Benzinlik, Otopark)
@@ -1230,6 +1236,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			phClock.setVisibility(View.GONE);
 			wp.setVisibility(View.GONE);
 			spt.setVisibility(View.GONE);
+			hello.setVisibility(View.INVISIBLE); // "Gü / 26 K" diye kesiliyordu; yer tutar, düğmeler sağda kalır
 		}
 		LinearLayout.LayoutParams hb = new LinearLayout.LayoutParams(dp(48), dp(48));
 		hb.leftMargin = dp(narrowRight ? 4 : 8);
@@ -1290,6 +1297,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			int rows = (gridBuilt && ((h - dp(8)) / 3 - dp(8) >= dp(112))) ? 3 : 2;
 			int rh = Math.max(dp(80), (h - dp(8)) / rows - dp(8));
 			boolean tight = rh < dp(112); // alçak ekran: simge küçük, alt yazı yok (ad kesiliyordu)
+			panoRowH = rh; // sonradan yenilenen kart da aynı sıkı düzende kurulsun
 			for (int i = 0; i < grid.getChildCount(); i++) {
 				View r = grid.getChildAt(i);
 				ViewGroup.LayoutParams lp = r.getLayoutParams();
