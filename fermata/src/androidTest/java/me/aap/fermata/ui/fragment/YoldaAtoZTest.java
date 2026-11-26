@@ -1241,6 +1241,7 @@ public class YoldaAtoZTest {
 			double laOver = lat0 + 650 / 110_540d;
 			for (int i = 0; i < 45; i++) {
 				onMain(a -> {
+					YoldaRadar.limitEstimated = false; // ağdan gelen tahmini sınır bipi engellemesin (kararsızlık)
 					YoldaRadar.feed(laOver, lon0, 100, 0);
 					return null;
 				});

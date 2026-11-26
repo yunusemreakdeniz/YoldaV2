@@ -1268,8 +1268,10 @@ public class MainActivityDelegate extends ActivityDelegate
 			int unset = ConstraintLayout.LayoutParams.UNSET;
 			tl.topToTop = unset;
 			tl.topToBottom = R.id.body_layout; // dikey zincir: gövde → araç çubuğu → oynatıcı → (menü şeridi)
-			tl.bottomToBottom = unset;
-			tl.bottomToTop = R.id.control_panel;
+			// doğrudan ekranın altına bağlı; oynatıcı görünürken boşluk onun boyu kadar (yoldaToolbarMargin).
+			// Oynatıcıya bağlıyken çubuk ekranın altından ~20 dp taşıyordu (Klasörler, Listeler, Favoriler, TV)
+			tl.bottomToTop = unset;
+			tl.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
 			tl.verticalBias = 1f;
 			tl.leftMargin = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.searchLeftDp()); // solunda sesli düğme
 			tl.bottomMargin = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP);
@@ -1284,6 +1286,9 @@ public class MainActivityDelegate extends ActivityDelegate
 			// oynatıcı yalnız alta bağlı: araç çubuğuyla karşılıklı bağ (döngü) gizliyken çubuğu ekran dışına itiyordu
 			cl.topToBottom = unset;
 			cp.setLayoutParams(cl);
+			cp.addOnLayoutChangeListener((v, l, t, r, b2, ol, ot, or, ob) -> { // oynatıcı açılınca / kapanınca
+				if ((b2 - t) != (ob - ot)) v.post(this::yoldaToolbarMargin);
+			});
 			View pr = a.findViewById(R.id.content_loading_progress);
 			if ((pr != null) && (pr.getLayoutParams() instanceof ConstraintLayout.LayoutParams pl)) {
 				pl.topToBottom = unset;
@@ -1299,6 +1304,22 @@ public class MainActivityDelegate extends ActivityDelegate
 			}
 		} catch (Throwable ex) {
 			Log.e(ex, "Araç çubuğu alta alınamadı");
+		}
+	}
+
+	/** Alttaki araç çubuğunun boşluğu: oynatıcı görünürse onun üstünde, değilse yalnız kenar payı. */
+	private void yoldaToolbarMargin() {
+		View tb = findViewById(R.id.tool_bar);
+		ControlPanelView cp = getControlPanel();
+		if ((tb == null) || !(tb.getLayoutParams() instanceof ConstraintLayout.LayoutParams tl)
+				|| (tl.bottomToBottom != ConstraintLayout.LayoutParams.PARENT_ID)) return;
+		int m = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP);
+		if ((cp != null) && (cp.getVisibility() == VISIBLE) && (cp.getHeight() > 0)
+				&& (cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl))
+			m += cp.getHeight() + cl.bottomMargin;
+		if (tl.bottomMargin != m) {
+			tl.bottomMargin = m;
+			tb.setLayoutParams(tl);
 		}
 	}
 
@@ -2480,6 +2501,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (!me.aap.fermata.ui.view.YoldaStyle.DECK) return;
 		if (yoldaPip) return;
 		applyShellRow();
+		yoldaToolbarMargin();
 		yoldaFloatingBarMargin();
 		boolean np = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
 		if ((navBar != null) && (navBar.getVisibility() != View.GONE)) navBar.setVisibility(View.GONE);
