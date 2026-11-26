@@ -850,6 +850,58 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/**
+	 * Pano'da küçük pencerede oynayan video, yığına (Deste) geçince bölünmüş kalmamalı (sağda dar şerit
+	 * hatası); tam ekrana geçince geri ve ✕ düğmeleri her zaman görünmeli.
+	 */
+	@Test
+	public void destedeVideoTamEkran() {
+		onMain(a -> {
+			call(deck(a), "setHomeView", "pano");
+			return null;
+		});
+		scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+		waitIdle(3000);
+		try {
+			onMain(a -> {
+				a.getBody().playItem(new me.aap.fermata.media.lib.IntentPlayable(a,
+						android.net.Uri.parse("https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8")));
+				return null;
+			});
+			boolean playing = waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+			org.junit.Assume.assumeTrue("Test yayını bu ağdan açılmadı", playing);
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			waitFor(6000, () -> onMain(a -> a.getBody().isBothMode()));
+			onMain(a -> {
+				call(deck(a), "setHomeView", "deck");
+				return null;
+			});
+			waitIdle(3000);
+			assertFalse("Destede video bölünmüş (sağda dar şerit) kalmamalı", onMain(a -> a.getBody().isBothMode()));
+			shot("deste_video_sonrasi");
+			// tam ekran video: geri ve ✕
+			onMain(a -> {
+				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.VIDEO);
+				return null;
+			});
+			waitIdle(1500);
+			View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			for (String desc : new String[]{"Geri", "Videoyu kapat"}) {
+				View v = onMain(a -> byDescExact(root, desc));
+				assertTrue("Tam ekran videoda görünmeli: " + desc, (v != null) && onMain(a -> v.isShown()));
+			}
+			shot("deste_video_tam_ekran");
+		} finally {
+			onMain(a -> {
+				a.getMediaSessionCallback().onStop();
+				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
+				return null;
+			});
+			scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+			waitIdle(1500);
+		}
+	}
+
 	@Test
 	public void panoVideoKucukPencerede() {
 		onMain(a -> {
