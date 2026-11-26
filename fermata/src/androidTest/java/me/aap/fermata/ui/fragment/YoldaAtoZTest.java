@@ -999,9 +999,23 @@ public class YoldaAtoZTest {
 		scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
 		waitIdle(2000);
 		try {
-			onMain(a -> a.showFragment(R.id.yolda_youtube));
-			waitIdle(3000);
-			onMain(a -> call(a.getActiveFragment(), "loadUrl", "https://m.youtube.com/watch?v=aqz-KE-bpKQ"));
+			// uygulamanın kendi yolu (YouTube ana sayfasında videoya dokunma): oynatıcı sayfasında aç
+			onMain(a -> {
+				Object f = a.showFragment(R.id.youtube_fragment);
+				String url = "https://m.youtube.com/watch?v=aqz-KE-bpKQ";
+				try {
+					f.getClass().getMethod("loadVideo", String.class).invoke(f, url);
+				} catch (NoSuchMethodException nm) {
+					try {
+						f.getClass().getMethod("loadUrl", String.class).invoke(f, url);
+					} catch (Exception ex) {
+						throw new RuntimeException(ex);
+					}
+				} catch (Exception ex) {
+					throw new RuntimeException(ex);
+				}
+				return null;
+			});
 			boolean playing = waitFor(45_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
 			if (!playing) {
 				// otomatik oynatma kapalıysa oynat komutu ver
