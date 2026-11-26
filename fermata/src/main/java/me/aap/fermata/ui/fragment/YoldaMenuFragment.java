@@ -130,6 +130,9 @@ public class YoldaMenuFragment extends MainActivityFragment {
 				ChannelsFragment.bypassOnce();
 				a.showFragment(R.id.tv_fragment);
 			}));
+		if (am.hasAddon(R.id.tv_fragment)) // Xtream Codes (Mola'dan): sunucu + kullanıcı + şifre
+			links.addView(item(ctx, R.drawable.yi_tv, "Xtream Codes ekle (IPTV)", 0xFFC4B5FD, 0xFF7C3AED,
+					v -> YoldaXtream.ask(a)));
 
 		LinearLayout set = group(ctx, "AYARLAR");
 		// Video kalitesi (veri kullanımı): dokundukça 360 → 480 → 720 → 1080 → Otomatik
@@ -141,13 +144,17 @@ public class YoldaMenuFragment extends MainActivityFragment {
 		// Görünüm: telefonda ızgara ya da deste (araçta her zaman deste)
 		if (!a.isCarActivity()) {
 			android.content.SharedPreferences hp = ctx.getApplicationContext().getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE);
-			boolean phoneV = hp.getBoolean("phone_view", true), panoV = hp.getBoolean("pano_view", false);
-			String cur = !phoneV ? "Araç (deste)" : panoV ? "Pano" : "Telefon (ızgara)";
-			set.addView(item(ctx, R.drawable.yi_phone, "Görünüm: " + cur + " · değiştir (Telefon → Pano → Araç)",
-					0xFFBAE6FD, 0xFF0284C7, v -> { // sırayla: ızgara → Pano → deste → ızgara
-						if (phoneV && !panoV) hp.edit().putBoolean("pano_view", true).apply();
-						else if (phoneV) hp.edit().putBoolean("phone_view", false).putBoolean("pano_view", false).apply();
-						else hp.edit().putBoolean("phone_view", true).putBoolean("pano_view", false).apply();
+			boolean phoneV = hp.getBoolean("phone_view", true), panoV = hp.getBoolean("pano_view", false),
+					gridV = hp.getBoolean("grid_view", false);
+			String cur = !phoneV ? "Deste" : gridV ? "Izgara" : panoV ? "Pano" : "Telefon";
+			set.addView(item(ctx, R.drawable.yi_phone, "Görünüm: " + cur + " · değiştir (Telefon → Pano → Izgara → Deste)",
+					0xFFBAE6FD, 0xFF0284C7, v -> { // sırayla: Telefon → Pano → Izgara → Deste → Telefon
+						var e = hp.edit();
+						if (!phoneV) e.putBoolean("phone_view", true).putBoolean("pano_view", false).putBoolean("grid_view", false);
+						else if (gridV) e.putBoolean("phone_view", false).putBoolean("pano_view", false).putBoolean("grid_view", false);
+						else if (panoV) e.putBoolean("pano_view", false).putBoolean("grid_view", true);
+						else e.putBoolean("pano_view", true).putBoolean("grid_view", false);
+						e.apply();
 						a.showFragment(R.id.home_fragment);
 					}));
 		}
