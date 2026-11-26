@@ -53,6 +53,19 @@ public final class YoldaPlayHistory {
 		return seg;
 	}
 
+	private static final java.util.regex.Pattern MEDIA_EXT = java.util.regex.Pattern.compile(
+			"(?i)^(.+)\\.(m3u8?|mp4|m4v|mkv|avi|mov|webm|ts|mp3|m4a|aac|flac|ogg|opus|wav)$");
+
+	/** Ekranda gösterilecek başlık: adresse okunur ad, dosya adıysa uzantısız ("Film_Adı.mkv" → "Film Adı"). */
+	public static String cleanTitle(@Nullable String title) {
+		if (title == null) return null;
+		String t = title.trim();
+		if (looksLikeUrl(t)) return displayName(t, null);
+		java.util.regex.Matcher m = MEDIA_EXT.matcher(t);
+		if (m.matches() && (t.indexOf(' ') < 0)) return m.group(1).replace('_', ' ').trim();
+		return t;
+	}
+
 	private static boolean looksLikeUrl(String s) {
 		return s.startsWith("http://") || s.startsWith("https://") || s.startsWith("content://") ||
 				s.startsWith("file://") || s.startsWith("rtsp://") || s.startsWith("rtmp://");
