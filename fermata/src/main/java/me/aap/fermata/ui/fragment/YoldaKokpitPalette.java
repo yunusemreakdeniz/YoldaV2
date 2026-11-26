@@ -23,27 +23,27 @@ record YoldaKokpitPalette(int accent, int well, int wellEnd, int deep, int line)
 		return new YoldaKokpitPalette(accent, well, wellEnd, deep, line);
 	}
 
-	/** Temanın vurgusu yeterince renkliyse o; değilse en renkli ışık rengi açılarak; hiçbiri renkli değilse altın. */
+	/** Temanın vurgusu yeterince renkliyse o; değilse en renkli ışık rengi açılarak; hiçbiri renkli değilse temanın açık vurgusu (yoksa altın). */
 	static int pickAccent(int themeAccent, int[] blobs) {
-		if (saturation(themeAccent) >= 0.35f && lightness(themeAccent) >= 0.55f) return themeAccent | 0xFF000000;
+		if (saturation(themeAccent) >= 0.30f && lightness(themeAccent) >= 0.55f) return themeAccent | 0xFF000000;
 		int best = 0;
-		float bs = 0.30f;
+		float bs = 0.25f; // en az bu kadar renk yoğunluğu (koyu gri-mor ışıklar renkli sayılmaz)
 		for (int i = 0; i < Math.min(3, blobs.length); i++) {
-			float s = saturation(blobs[i]);
+			float s = chroma(blobs[i]);
 			if (s > bs) {
 				bs = s;
 				best = blobs[i];
 			}
 		}
-		if (best == 0) return GOLD;
+		if (best == 0) return (lightness(themeAccent) >= 0.6f) ? (themeAccent | 0xFF000000) : GOLD; // gümüş / platin
 		// koyu ışık rengini okunur aydınlığa çek (koyu kartta ikon / etiket rengi)
-		while (lightness(best) < 0.62f) best = blend(best, 0xFFFFFFFF, 0.18f);
+		while (lightness(best) < 0.66f) best = blend(best, 0xFFFFFFFF, 0.18f);
 		return best | 0xFF000000;
 	}
 
-	/** Kart beyaz yazıyla okunur kalsın: göreli parlaklık en çok 0.06 (beyazla karşıtlık ≥ 9). */
+	/** Kart beyaz yazıyla okunur kalsın: göreli parlaklık en çok 0.045 (gri alt yazı da ≥ 4.5:1). */
 	static int darkEnough(int c) {
-		while (luminance(c) > 0.06) c = blend(c, 0xFF000000, 0.12f);
+		while (luminance(c) > 0.045) c = blend(c, 0xFF000000, 0.12f);
 		return c | 0xFF000000;
 	}
 
@@ -57,9 +57,13 @@ record YoldaKokpitPalette(int accent, int well, int wellEnd, int deep, int line)
 	static float saturation(int c) {
 		float r = ((c >> 16) & 0xFF) / 255f, g = ((c >> 8) & 0xFF) / 255f, b = (c & 0xFF) / 255f;
 		float max = Math.max(r, Math.max(g, b)), min = Math.min(r, Math.min(g, b));
-		float l = (max + min) / 2f, d = max - min;
-		if (d == 0) return 0;
-		return d / (1 - Math.abs(2 * l - 1));
+		return (max == 0) ? 0 : (max - min) / max; // HSV doygunluğu (HSL beyaza yakın renklerde yanıltıyor)
+	}
+
+	/** Renk yoğunluğu (en büyük - en küçük kanal, 0-1). */
+	static float chroma(int c) {
+		float r = ((c >> 16) & 0xFF) / 255f, g = ((c >> 8) & 0xFF) / 255f, b = (c & 0xFF) / 255f;
+		return Math.max(r, Math.max(g, b)) - Math.min(r, Math.min(g, b));
 	}
 
 	static float lightness(int c) {
