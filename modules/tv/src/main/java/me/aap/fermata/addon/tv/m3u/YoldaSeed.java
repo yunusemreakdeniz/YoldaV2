@@ -29,6 +29,20 @@ public final class YoldaSeed {
 	}
 
 	public static void seed(TvRootItem root) {
+		// Xtream Codes (Mola'dan): Yolda menüsünden verilen adresler TV kaynağı olarak eklenir
+		me.aap.fermata.ui.fragment.YoldaXtream.adder = (name, url, epg, done) -> {
+			BasicPreferenceStore xs = new BasicPreferenceStore();
+			try (PreferenceStore.Edit e = xs.editPreferenceStore()) {
+				e.setStringPref(M3uFile.NAME, name);
+				e.setStringPref(M3uFile.URL, url);
+				e.setStringPref(TvM3uFile.EPG_URL, epg);
+			}
+			TvM3uFileSystemProvider.loadSource(xs).main().onCompletion((m3u, err) -> {
+				if (m3u != null) root.addSource(m3u);
+				else Log.e(err, "Xtream listesi eklenemedi");
+				done.accept(m3u != null);
+			});
+		};
 		try {
 			Context ctx = FermataApplication.get();
 			File f = new File(ctx.getFilesDir(), FILE);

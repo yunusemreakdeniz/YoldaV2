@@ -14,6 +14,9 @@
     <string name="yolda_fav_name" translatable="false">Favorinin adı</string>
     <string name="yolda_fuel_price" translatable="false">Pompadaki litre fiyatı (ör. 72,24; boş bırak: otomatik)</string>
     <string name="yolda_gemini_key" translatable="false">Gemini API anahtarı (Google AI Studio)</string>
+    <string name="yolda_xtream_server" translatable="false">Xtream sunucusu (ör. http://iptv.ornek.com:8080)</string>
+    <string name="yolda_xtream_user" translatable="false">Xtream kullanıcı adı</string>
+    <string name="yolda_xtream_pass" translatable="false">Xtream şifresi</string>
     <string name="yolda_welcome_name" translatable="false">Sesli karşılamada adın (boş bırakabilirsin)</string>
     <string name="yolda_welcome_birthday" translatable="false">Doğum günün (GG.AA, ör. 21.11 — boş bırakabilirsin)</string>
     <string name="yolda_tomtom_key" translatable="false">TomTom API anahtarı (developer.tomtom.com, ücretsiz)</string>
