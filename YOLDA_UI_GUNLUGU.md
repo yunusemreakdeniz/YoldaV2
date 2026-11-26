@@ -2,6 +2,30 @@
 
 Her arayüz turunda yapılan iyileştirmeler. En yenisi en üstte.
 
+## 2026-11-26 · v2-246 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-246 · Kararlı gece sürümü
+
+- Açılışta boş ekran + kabuk hatası: son video geri yüklenirken gövde tam ekran video kipinde kalıyordu; ana ekran kurulunca kip düzeltilir.
+- Pano (yatay): üstte tam genişlik başlık şeridi; saat en solda, yanında selam / tarih; hava, sabit hız hapı (levha + anlık hız, altında sınır / radar), görünüm, tema, ayarlar, mikrofon. Video oynarken altındaki başlık satırı yok (alan videoya). Alt şerit tek biçim (renkli yuvarlak simge + ad), belirsiz "Aç" kalktı.
+- Deste (yığın): sabit hız üst satırda hap olarak (araçta / geniş ekranda); kabukta P yok.
+- Pano (dikey / telefon): hız kutusu anlık hızı gösterir, park yokken boş kutu yok, "Hey Yolda" yerine Benzinlik, kısa etiketler.
+- Video + harita art arda basılınca küçük pencere girip çıkıp odak kaybediyordu (donma): 3 sn içinde tekrar yok sayılır.
+- Test: araçtaki sol güvenli alan (110 px) taklidi; sınırda kesilen öğe yakalanır.
+
+## 2026-11-25 · v2-244 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-244 · Araç kenarı, Pano sadeliği
+
+- Araç / yansıtmada sol-sağ güvenli alan kökte boşluk (kabuk kenardan taşmasın); mikrofon gizliyken küçük oynatıcı yuvarlağı gösterilmez.
+- Pano: video üstünde tür simgesi yok, Kişiler (ahize) / Telefon (uygulamalar) ayrı simge, kısa alt yazılar.
+
+## 2026-11-25 · v2-243 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-243 · Yedekte anahtar yok
+
+- Ayar yedeğine Gemini / TomTom anahtarları yazılmaz; geri yüklemede telefondakiler korunur.
+
+## 2026-11-25 · v2-241 / v2-242 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-242 · Pano yeniden düzen
+
+- Yatay Pano: solda büyük video, sağda kartlar (+ ile 3 / 2 / 1 sütun), altta tam genişlik kısayol şeridi; kabuksuz sade kartlar, büyük simge.
+- Deste: "Aç" yalnız simge; çok kartta en çok 11 nokta; boş "Kaldığın yerden" kartında başlangıç kısayolları; alçak kartta ad önce.
+- Gemini doğal sesi (isteğe bağlı), araçtan inince durdur (isteğe bağlı), "GPS bekleniyor…".
+
 ## 2026-11-20 · v2-217 · https://github.com/yunusemreakdeniz/YoldaV2/releases/tag/v2-217 · Sürüş riski uyarısı
 
 - Saatlik tahminden (rüzgâr hamlesi, görüş, yağış) buzlanma, yoğun sis, fırtına, kuvvetli yağış / rüzgâr uyarısı: hava kartı, telefon karosu, hava sayfası. Resmî uyarı değildir.

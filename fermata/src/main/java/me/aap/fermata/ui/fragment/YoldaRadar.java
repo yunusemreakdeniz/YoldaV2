@@ -105,6 +105,12 @@ public final class YoldaRadar {
 	private static long overSince, overWarnAt;
 	private static int overWarnLimit;
 
+	/** Testler için: hız aşımı bip aralığını sıfırla (önceki adımın bipi 20 sn içinde yenisini engelliyordu). */
+	static void resetOverWarn() {
+		overSince = overWarnAt = 0;
+		overWarnLimit = 0;
+	}
+
 	// ---- sürüş yardımcıları ----
 	public static final YoldaDriveCore.AvgSpeed avg = new YoldaDriveCore.AvgSpeed();
 	public static final YoldaDriveCore.Fatigue fatigue = new YoldaDriveCore.Fatigue();
