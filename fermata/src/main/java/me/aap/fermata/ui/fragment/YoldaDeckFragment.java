@@ -6856,7 +6856,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		FrameLayout f = new FrameLayout(ctx);
 		GradientDrawable g = new GradientDrawable();
 		g.setCornerRadius(dp(18));
-		g.setColor(white ? 0xF2FFFFFF : 0x40FFFFFF);
+		// logo yüklenene dek koyu cam plaka (logosuz yayında koyu temada beyaz kutu sırıtıyordu); logo gelince beyaz
+		g.setColor(0x40FFFFFF);
 		f.setBackground(g);
 		f.setClipToOutline(true);
 		f.setOutlineProvider(new android.view.ViewOutlineProvider() {
@@ -6872,7 +6873,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		pressEffect(f);
 		ImageView ph = new ImageView(ctx);
 		ph.setImageResource(white ? R.drawable.yi_tv : R.drawable.yi_music);
-		ph.setImageTintList(ColorStateList.valueOf(white ? 0x44000000 : 0xCCFFFFFF));
+		ph.setImageTintList(ColorStateList.valueOf(0xCCFFFFFF));
 		int pp = size / 4;
 		ph.setPadding(pp, pp, pp, pp);
 		f.addView(ph, new FrameLayout.LayoutParams(-1, -1));
@@ -6902,6 +6903,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				if (b == null) return;
 				img.setImageBitmap(b);
 				if (ph != null) ph.setVisibility(View.INVISIBLE);
+				// kanal logosu: beyaz plaka üzerinde okunur
+				if ((img.getScaleType() == ImageView.ScaleType.FIT_CENTER) && (img.getParent() instanceof View pv)
+						&& (pv.getBackground() instanceof GradientDrawable pg)) pg.setColor(0xF2FFFFFF);
 			});
 		} catch (Throwable ex) {
 			Log.e(ex, "Resim yüklenemedi: ", url);
