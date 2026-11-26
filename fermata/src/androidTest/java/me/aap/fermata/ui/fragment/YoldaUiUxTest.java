@@ -350,6 +350,31 @@ public class YoldaUiUxTest {
 	/** Etkin pencerenin görünür öğelerini kurallara göre denetler, ekran görüntüsünü kaydeder. */
 	private List<String> audit(String name) {
 		screenshot(name);
+		if (name.contains("folders")) onMain(a -> { // tanı: alt araç çubuğu ölçüleri
+			Activity act = (Activity) a.getContext();
+			View root = act.findViewById(R.id.main_activity);
+			View tb = act.findViewById(R.id.tool_bar);
+			View cp = act.findViewById(R.id.control_panel);
+			StringBuilder sb = new StringBuilder("çubuk tanı: kök " + root.getHeight() + " pad " + root.getPaddingTop() + "/" + root.getPaddingBottom());
+			int[] xy = new int[2];
+			root.getLocationInWindow(xy);
+			sb.append(" kökY ").append(xy[1]);
+			tb.getLocationInWindow(xy);
+			sb.append(" | tb y ").append(xy[1]).append(" h ").append(tb.getHeight()).append(" vis ").append(tb.getVisibility())
+					.append(" tY ").append(tb.getTranslationY()).append(" lp ").append(tb.getLayoutParams().height);
+			if (tb.getLayoutParams() instanceof androidx.constraintlayout.widget.ConstraintLayout.LayoutParams tl)
+				sb.append(" bm ").append(tl.bottomMargin).append(" b2b ").append(tl.bottomToBottom).append(" b2t ").append(tl.bottomToTop);
+			if (tb instanceof android.view.ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) {
+				View ch = g.getChildAt(i);
+				if (ch.getVisibility() == View.VISIBLE) sb.append(" [").append(ch.getClass().getSimpleName()).append(' ')
+						.append(ch.getTop()).append('-').append(ch.getBottom()).append(" tY ").append(ch.getTranslationY()).append(']');
+			}
+			cp.getLocationInWindow(xy);
+			sb.append(" | cp y ").append(xy[1]).append(" h ").append(cp.getHeight()).append(" vis ").append(cp.getVisibility());
+			android.util.Log.i(TAG, sb.toString());
+			report.add(sb.toString());
+			return null;
+		});
 		List<String> issues = onMain(a -> {
 			List<String> out = new ArrayList<>();
 			Activity act = (Activity) a.getContext();
