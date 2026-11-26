@@ -360,7 +360,10 @@ public abstract class MediaLibFragment extends MainActivityFragment implements M
 	}
 
 	public void discardSelection() {
-		getAdapter().getListView().discardSelection();
+		// liste kurulmadan gizlenince (hızlı ekran geçişi) bağdaştırıcı yok: çökmesin
+		ListAdapter ad = getAdapter();
+		if ((ad == null) || (ad.getListView() == null)) return;
+		ad.getListView().discardSelection();
 	}
 
 	private void scrollToPosition() {
