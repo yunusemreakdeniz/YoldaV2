@@ -1337,6 +1337,31 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(-1, dp(56));
 		hlp.bottomMargin = dp(8);
 		outer.addView(wideHeader(ctx, a, dm), hlp);
+		if (wdp < 480) { // dikey: başlık şeridinde yalnız düğmeler sığıyor; saat ve selam üstte kendi satırında
+			LinearLayout hr = hrow(ctx);
+			hr.setGravity(Gravity.CENTER_VERTICAL);
+			phClock = text(ctx, "", 30, true, 0xFFFFFFFF);
+			phClock.setSingleLine(true);
+			phClock.setIncludeFontPadding(false);
+			hr.addView(phClock);
+			LinearLayout hc = new LinearLayout(ctx);
+			hc.setOrientation(LinearLayout.VERTICAL);
+			hc.setPadding(dp(12), 0, 0, 0);
+			int h = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+			TextView hi = text(ctx, (h < 5) ? "İyi geceler" : (h < 12) ? "Günaydın" : (h < 18) ? "İyi günler" : "İyi akşamlar",
+					17, true, 0xFFFFFFFF);
+			hi.setSingleLine(true);
+			hc.addView(hi);
+			phDate = text(ctx, "", 12, false, 0xFFE5E7EB);
+			phDate.setSingleLine(true);
+			phDate.setEllipsize(TextUtils.TruncateAt.END);
+			hc.addView(phDate);
+			hr.addView(hc, new LinearLayout.LayoutParams(0, -2, 1f));
+			for (TextView tv : new TextView[]{phClock, hi, phDate}) legible(tv);
+			LinearLayout.LayoutParams hrl = new LinearLayout.LayoutParams(-1, -2);
+			hrl.bottomMargin = dp(6);
+			outer.addView(hr, 0, hrl);
+		}
 
 		ScrollView sv = new ScrollView(ctx);
 		sv.setVerticalScrollBarEnabled(false);
@@ -1388,12 +1413,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		phNowIcon.setImageResource(R.drawable.yi_music);
 		phNowPlate.addView(phNowIcon, new FrameLayout.LayoutParams(dp(wide ? 40 : 34), dp(wide ? 40 : 34), Gravity.CENTER));
 		art.addView(phNowPlate, new FrameLayout.LayoutParams(-1, -1));
-		int artW = wide ? dp(Math.min(300, Math.round(wdp * 0.30f))) : dp(76);
-		int artH = wide ? Math.round(artW * 9f / 16f) : dp(76);
+		// dikeyde küçük kare: yanında üç düğme (48 + 56 + 48) kesilmeden sığsın
+		int artW = wide ? dp(Math.min(300, Math.round(wdp * 0.30f))) : dp(56);
+		int artH = wide ? Math.round(artW * 9f / 16f) : dp(56);
 		now.addView(art, new LinearLayout.LayoutParams(artW, artH));
 		LinearLayout info = new LinearLayout(ctx);
 		info.setOrientation(LinearLayout.VERTICAL);
-		info.setPadding(dp(16), 0, dp(8), 0);
+		info.setPadding(dp(wide ? 16 : 12), 0, dp(wide ? 8 : 0), 0);
 		phNowTag = text(ctx, "", 12, true, accent);
 		phNowTag.setLetterSpacing(0.1f);
 		phNowTag.setSingleLine(true);
@@ -2058,6 +2084,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	public void onConfigurationChanged(@NonNull android.content.res.Configuration nc) {
 		super.onConfigurationChanged(nc);
 		if ((root != null) && phoneBuilt && panoMode() && (wideScreen() != panoWideBuilt)) root.post(this::rebuildPhone);
+		else if ((root != null) && dashBuilt && (wideScreen() != dashInline)) root.post(this::rebuildPhone); // Panel dikey ↔ yatay
 	}
 
 	private void rebuildPhone() {

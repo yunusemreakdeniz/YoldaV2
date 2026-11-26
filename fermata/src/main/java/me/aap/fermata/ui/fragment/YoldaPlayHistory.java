@@ -18,12 +18,61 @@ import java.util.List;
 public final class YoldaPlayHistory {
 	private static final String PREFS = "yolda_history";
 	static final int MAX = 12;
+	private static final java.util.Set<String> GENERIC = java.util.Set.of("index", "playlist", "master", "manifest",
+			"live", "stream", "chunklist", "play", "video", "audio", "watch", "mono", "stereo");
+
+	/** Gösterilecek ad: düzgün ad olduğu gibi; adres ise dosya adı (uzantısız) ya da site adı. */
+	static String displayName(@Nullable String name, @Nullable String url) {
+		String n = (name == null) ? "" : name.trim();
+		if (!n.isEmpty() && !looksLikeUrl(n)) return n;
+		String u = !n.isEmpty() ? n : ((url == null) ? "" : url.trim());
+		if (u.isEmpty()) return n;
+		int sch = u.indexOf("://");
+		String rest = (sch >= 0) ? u.substring(sch + 3) : u;
+		int cut = indexOfAny(rest, "?#");
+		if (cut >= 0) rest = rest.substring(0, cut);
+		int slash = rest.indexOf('/');
+		String host = (slash >= 0) ? rest.substring(0, slash) : rest;
+		if (host.startsWith("www.")) host = host.substring(4);
+		int at = host.lastIndexOf('@');
+		if (at >= 0) host = host.substring(at + 1);
+		int colon = host.indexOf(':');
+		if (colon >= 0) host = host.substring(0, colon);
+		String path = (slash >= 0) ? rest.substring(slash + 1) : "";
+		while (path.endsWith("/")) path = path.substring(0, path.length() - 1);
+		String seg = path.substring(path.lastIndexOf('/') + 1);
+		try {
+			seg = java.net.URLDecoder.decode(seg.replace("+", "%2B"), "UTF-8");
+		} catch (Exception ignore) {
+		}
+		int dot = seg.lastIndexOf('.');
+		if (dot > 0) seg = seg.substring(0, dot);
+		seg = seg.replace('_', ' ').trim();
+		if ((seg.length() < 2) || GENERIC.contains(seg.toLowerCase(java.util.Locale.ROOT)))
+			return host.isEmpty() ? n : host;
+		return seg;
+	}
+
+	private static boolean looksLikeUrl(String s) {
+		return s.startsWith("http://") || s.startsWith("https://") || s.startsWith("content://") ||
+				s.startsWith("file://") || s.startsWith("rtsp://") || s.startsWith("rtmp://");
+	}
+
+	private static int indexOfAny(String s, String chars) {
+		for (int i = 0; i < s.length(); i++) if (chars.indexOf(s.charAt(i)) >= 0) return i;
+		return -1;
+	}
 
 	/**
 	 * Bir kayıt. {@code url}: adresle açılan akış (radyo dizini, yedek TV adresi) için; yoksa kütüphane kimliği
 	 * {@code id} ile bulunur. Süre bilinmiyorsa 0.
 	 */
 	public record Entry(String id, String name, String kind, @Nullable String url, long posMs, long durMs, long at) {
+		/** Ad yoksa ya da çıplak adresse okunur ad (ör. "https://site/yol/Film_Adı.mp4" → "Film Adı"). */
+		public Entry {
+			name = displayName(name, url);
+		}
+
 		/** İlerleme yüzdesi (0-100); canlı yayında ya da süre bilinmiyorsa -1. */
 		public int percent() {
 			if ((durMs <= 0) || (posMs <= 0)) return -1;
