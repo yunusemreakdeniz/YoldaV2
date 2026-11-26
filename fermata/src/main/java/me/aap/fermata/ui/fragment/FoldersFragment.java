@@ -114,8 +114,7 @@ public class FoldersFragment extends MediaLibFragment {
 	public void onViewCreated(@NonNull View view, @androidx.annotation.Nullable android.os.Bundle savedInstanceState) {
 		super.onViewCreated(view, savedInstanceState);
 		if (view instanceof me.aap.fermata.ui.view.MediaItemListView l) l.setEmptyHint(() -> isRootFolder()
-				? "Henüz klasör yok
-+ düğmesiyle (ya da menüden “Klasör ekle”) müzik veya video klasörü ekleyin"
+				? "Henüz klasör yok\n+ düğmesiyle (ya da menüden “Klasör ekle”) müzik veya video klasörü ekleyin"
 				: "Bu klasör boş");
 	}
 
