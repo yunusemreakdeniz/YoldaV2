@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sub_ch">Kanal: %1$d</string>
+    <string name="sub_gr">Grup: %1$d</string>
+    <string name="sub_ch_gr">Kanal: %1$d · Grup: %2$d</string>
+    <string name="add_tv_source">M3U IPTV kaynağı ekle</string>
+    <string name="epg_time_shift">Yayın akışı saat farkı (saat)</string>
+    <string name="logo">Kanal logoları</string>
+    <string name="logo_location">Konum</string>
+    <string name="logo_location_hint">Klasör ya da http(s) adresi</string>
+    <string name="logo_prefer_epg">Logoları yayın akışından al</string>
+    <string name="catchup_query">Sorgu biçimi</string>
+    <string name="catchup_type">Geriye dönük izleme türü</string>
+    <string name="catchup_type_cur">Geçerli tür: %1$s</string>
+    <string name="catchup_type_auto">Otomatik</string>
+    <string name="catchup_days">Gün sayısı</string>
+    <string name="connection_settings">Bağlantı ayarları</string>
+    <string name="err_failed_to_add_tv_source">Kaynak eklenemedi: %1$s</string>
+</resources>
