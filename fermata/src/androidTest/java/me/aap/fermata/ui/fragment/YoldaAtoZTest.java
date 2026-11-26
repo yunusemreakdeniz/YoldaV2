@@ -972,6 +972,59 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/**
+	 * YouTube arka planda sürer: video çalarken ana ekrana (Pano) dönünce ve uygulama arka plana geçince (Android ana
+	 * ekran tuşu) durmamalı. YouTube bu ağdan açılmazsa atlanır.
+	 */
+	@Test
+	public void youtubeArkaPlandaSurer() {
+		onMain(a -> {
+			call(deck(a), "setHomeView", "pano");
+			return null;
+		});
+		scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+		waitIdle(2000);
+		try {
+			onMain(a -> a.showFragment(R.id.yolda_youtube));
+			waitIdle(3000);
+			onMain(a -> call(a.getActiveFragment(), "loadUrl", "https://m.youtube.com/watch?v=aqz-KE-bpKQ"));
+			boolean playing = waitFor(45_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+			if (!playing) {
+				// otomatik oynatma kapalıysa oynat komutu ver
+				onMain(a -> {
+					a.getMediaSessionCallback().onPlay();
+					return null;
+				});
+				playing = waitFor(20_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+			}
+			org.junit.Assume.assumeTrue("YouTube bu ağdan açılmadı", playing);
+			waitIdle(3000);
+			shot("youtube_caliyor");
+			// uygulamanın ana ekran tuşu: Pano
+			onMain(a -> a.showFragment(R.id.home_fragment));
+			waitIdle(6000);
+			shot("youtube_pano");
+			assertTrue("Pano'ya dönünce YouTube çalmayı sürdürmeli",
+					onMain(a -> a.getMediaSessionCallback().isPlaying()));
+			// Android ana ekran tuşu: uygulama arka plana geçer
+			scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED);
+			SystemClock.sleep(8000);
+			boolean bg = onMain(a -> a.getMediaSessionCallback().isPlaying());
+			scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED);
+			waitIdle(2000);
+			assertTrue("Uygulama arka plandayken YouTube çalmayı sürdürmeli", bg);
+		} finally {
+			onMain(a -> {
+				a.getMediaSessionCallback().onStop();
+				call(deck(a), "setHomeView", "deck");
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT));
+			waitIdle(1500);
+		}
+	}
+
 	/** Araç klavyesi: YouTube aramasında harf yazar, siler, 48dp tuşlar, ✕ kapatır. */
 	@Test
 	public void aracKlavyesi() {

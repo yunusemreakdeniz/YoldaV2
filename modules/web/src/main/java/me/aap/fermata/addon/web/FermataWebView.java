@@ -131,6 +131,15 @@ public class FermataWebView extends WebView
 		// Engelleyici açıkken sayfa dokunulmadan pencere açamaz (kendiliğinden açılan reklam sekmeleri / yönlendirme)
 		s.setJavaScriptCanOpenWindowsAutomatically(!FermataWebClient.enabled);
 		// YouTube sayfaları açılmadan önce reklam ayıklayıcı betik
+		// YouTube sayfası gizlendiğini anlayınca videoyu durdurur (ana ekrana / arka plana geçince): sayfa hep görünür sayılsın
+		if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+			try {
+				androidx.webkit.WebViewCompat.addDocumentStartJavaScript(this, KEEP_VISIBLE_JS,
+						java.util.Set.of("https://*.youtube.com", "https://youtube.com"));
+			} catch (Throwable ex) {
+				me.aap.utils.log.Log.e(ex, "Görünürlük betiği eklenemedi");
+			}
+		}
 		if (FermataWebClient.enabled && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
 			try {
 				androidx.webkit.WebViewCompat.addDocumentStartJavaScript(this, FermataWebClient.PRUNE_JS,
@@ -140,6 +149,25 @@ public class FermataWebView extends WebView
 			}
 		}
 	}
+
+	/** Sayfa gizli olsa da (arka plan, başka ekran) görünür sayılır; YouTube bu yüzden videoyu kendiliğinden durdurmaz. */
+	public static final String KEEP_VISIBLE_JS = """
+			(function() {
+			  if (window.__yoldaVis) return; window.__yoldaVis = 1;
+			  try {
+			    Object.defineProperty(Document.prototype, 'hidden', {configurable: true, get: function() { return false; }});
+			    Object.defineProperty(Document.prototype, 'visibilityState', {configurable: true, get: function() { return 'visible'; }});
+			    Object.defineProperty(Document.prototype, 'webkitHidden', {configurable: true, get: function() { return false; }});
+			    Object.defineProperty(Document.prototype, 'webkitVisibilityState', {configurable: true, get: function() { return 'visible'; }});
+			    Document.prototype.hasFocus = function() { return true; };
+			  } catch (e) {}
+			  var stop = function(e) { e.stopImmediatePropagation(); };
+			  ['visibilitychange', 'webkitvisibilitychange', 'pagehide', 'freeze'].forEach(function(t) {
+			    document.addEventListener(t, stop, true); window.addEventListener(t, stop, true);
+			  });
+			  window.addEventListener('blur', stop, true);
+			})();
+			""";
 
 	@Override
 	protected void onWindowVisibilityChanged(int visibility) {

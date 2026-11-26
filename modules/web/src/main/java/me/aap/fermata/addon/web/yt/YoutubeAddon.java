@@ -47,7 +47,7 @@ public class YoutubeAddon extends WebBrowserAddon implements PreferenceStore.Lis
 			AUTO ? Pref.i("YT_REOPEN_VIDEO_MIN", 10) : null;
 	private static final Pref<BooleanSupplier> YT_PLAYER_CONTROLS =
 			Pref.b("YT_PLAYER_CONTROLS", false);
-	private static final Pref<BooleanSupplier> YT_PAUSE_ON_LEAVE = Pref.b("YT_PAUSE_ON_LEAVE", !AUTO);
+	private static final Pref<BooleanSupplier> YT_PAUSE_ON_LEAVE = Pref.b("YT_PAUSE_ON_LEAVE_V2", false); // Yolda: varsayılan arka planda çalmayı sürdür (eski kayıt yok sayılır)
 	private boolean ignorePrefChange;
 
 	@IdRes
