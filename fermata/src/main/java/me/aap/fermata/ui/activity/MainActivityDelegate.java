@@ -1065,6 +1065,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (!show) {
 			if (yoldaBack != null) yoldaBack.setVisibility(GONE);
 			if (yoldaSplit != null) yoldaSplit.setVisibility(GONE);
+			if (yoldaClose != null) yoldaClose.setVisibility(GONE);
 			return;
 		}
 		Context ctx = getContext();
@@ -1094,6 +1095,61 @@ public class MainActivityDelegate extends ActivityDelegate
 		yoldaBack.setAlpha(0f);
 		yoldaBack.animate().alpha(0.92f).setDuration(200).start();
 		showSplitButton(cl);
+		showCloseButton(cl);
+	}
+
+	/** Tam ekran videoda sağ üstte ✕: videoyu doğrudan kapatır (durdurur, video ekranından çıkar). */
+	@Nullable
+	private AppCompatImageView yoldaClose;
+
+	private void showCloseButton(ConstraintLayout cl) {
+		Context ctx = getContext();
+		if (yoldaClose == null) {
+			AppCompatImageView v = new AppCompatImageView(ctx);
+			v.setImageResource(R.drawable.yi_close);
+			v.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
+			int p = toIntPx(ctx, 13);
+			v.setPadding(p, p, p, p);
+			v.setBackground(me.aap.fermata.ui.view.YoldaStyle.glass(ctx,
+					me.aap.fermata.ui.view.YoldaStyle.current(ctx), 999));
+			v.setContentDescription("Videoyu kapat");
+			v.setClickable(true);
+			v.setFocusable(true);
+			v.setElevation(toIntPx(ctx, 25));
+			v.setOnClickListener(x -> {
+				me.aap.fermata.ui.view.YoldaStyle.haptic(x);
+				yoldaClosePlayer();
+			});
+			int s = toIntPx(ctx, isCarActivity() ? 56 : 52);
+			ConstraintLayout.LayoutParams lp = new ConstraintLayout.LayoutParams(s, s);
+			lp.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+			lp.rightMargin = toIntPx(ctx, 16);
+			lp.topMargin = me.aap.fermata.ui.view.YoldaStyle.cutoutTop(ctx) + toIntPx(ctx, 14);
+			cl.addView(v, lp);
+			yoldaClose = v;
+		}
+		yoldaClose.setVisibility(VISIBLE);
+		yoldaClose.setAlpha(0f);
+		yoldaClose.animate().alpha(0.92f).setDuration(200).start();
+	}
+
+	/** Çalanı tamamen kapat (video / müzik): durdurur, video ekranından ve Şimdi çalıyor'dan çıkar. */
+	public void yoldaClosePlayer() {
+		me.aap.fermata.ui.fragment.YoldaLog.add("Oynatıcı ✕ ile kapatıldı");
+		ControlPanelView cp = getControlPanel();
+		if (cp != null) {
+			cp.closePlayer();
+			return;
+		}
+		try {
+			getMediaSessionCallback().onPause();
+			getMediaSessionCallback().onStop();
+		} catch (Throwable ignore) {
+		}
+		BodyLayout b = getBody();
+		if ((b != null) && !b.isFrameMode()) b.setMode(BodyLayout.Mode.FRAME);
+		me.aap.fermata.ui.view.YoldaNowPlaying.hide(this);
 	}
 
 	/** Video + navigasyon: video izlerken ekranı bölüp yanında haritayı açan düğme (geri düğmesinin sağında). */

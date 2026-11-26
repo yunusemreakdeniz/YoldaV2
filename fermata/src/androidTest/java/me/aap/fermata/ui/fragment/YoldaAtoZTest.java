@@ -780,6 +780,58 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** ✕ düğmesi: tam ekran videoda ve Şimdi çalıyor'da çalanı doğrudan kapatır (durur, liste görünür). */
+	@Test
+	public void kapatDugmesi() {
+		java.util.function.Supplier<Boolean> start = () -> {
+			onMain(a -> {
+				a.getBody().playItem(new me.aap.fermata.media.lib.IntentPlayable(a,
+						android.net.Uri.parse("https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8")));
+				return null;
+			});
+			return waitFor(25_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
+		};
+		try {
+			org.junit.Assume.assumeTrue("Test yayını bu ağdan açılmadı", start.get());
+			onMain(a -> {
+				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.VIDEO);
+				return null;
+			});
+			waitIdle(1500);
+			View root = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			View x = onMain(a -> byDescExact(root, "Videoyu kapat"));
+			assertNotNull("Tam ekran videoda ✕ olmalı", x);
+			float d = ctx().getResources().getDisplayMetrics().density;
+			assertTrue("✕ en az 48dp", onMain(a -> x.getHeight()) >= Math.round(48 * d) - 1);
+			shot("video_kapat_dugmesi");
+			onMain(a -> x.performClick());
+			assertTrue("✕ sonrası oynatma durmalı", waitFor(5000, () -> onMain(a -> !a.getMediaSessionCallback().isPlaying())));
+			assertTrue("✕ sonrası video ekranından çıkmalı", waitFor(3000, () -> onMain(a -> a.getBody().isFrameMode())));
+			// Şimdi çalıyor ekranında da ✕
+			org.junit.Assume.assumeTrue("Test yayını ikinci kez açılmadı", start.get());
+			onMain(a -> {
+				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
+				me.aap.fermata.ui.view.YoldaNowPlaying.open(a);
+				return null;
+			});
+			waitIdle(2000);
+			View root2 = onMain(a -> ((android.app.Activity) a.getContext()).getWindow().getDecorView());
+			View x2 = onMain(a -> byDescExact(root2, "Oynatıcıyı kapat"));
+			assertNotNull("Şimdi çalıyor'da ✕ olmalı", x2);
+			onMain(a -> x2.performClick());
+			assertTrue("Şimdi çalıyor ✕ sonrası oynatma durmalı",
+					waitFor(5000, () -> onMain(a -> !a.getMediaSessionCallback().isPlaying())));
+			assertTrue("Şimdi çalıyor kapanmalı", waitFor(3000, () -> onMain(a -> !me.aap.fermata.ui.view.YoldaNowPlaying.isShown(a))));
+		} finally {
+			onMain(a -> {
+				a.getMediaSessionCallback().onStop();
+				me.aap.fermata.ui.view.YoldaNowPlaying.hide(a);
+				return null;
+			});
+			waitIdle(1000);
+		}
+	}
+
 	@Test
 	public void panoVideoKucukPencerede() {
 		onMain(a -> {
