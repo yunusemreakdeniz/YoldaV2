@@ -1372,25 +1372,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		LinearLayout tr = hrow(ctx);
 		tr.setGravity(Gravity.CENTER_VERTICAL);
 		tr.setPadding(0, dp(10), 0, 0);
+		// düğmeler esnek genişlikte (sabit genişlikte dar kartta sağdakiler kesiliyordu)
 		tr.addView(dashButton(ctx, R.drawable.yi_prev, "Önceki", false, accent,
-				v -> a.getMediaSessionCallback().onSkipToPrevious()), new LinearLayout.LayoutParams(dp(52), dp(48)));
+				v -> a.getMediaSessionCallback().onSkipToPrevious()), dashBtnLp(1f, false));
 		phPlay = dashButton(ctx, R.drawable.yi_play, "Oynat / duraklat", true, accent, v -> {
 			var cb = a.getMediaSessionCallback();
 			if (cb.isPlaying()) cb.onPause();
 			else YoldaNowPlaying.togglePlay(a);
 			root.postDelayed(this::updatePhoneLive, 300);
 		});
-		LinearLayout.LayoutParams pl = new LinearLayout.LayoutParams(dp(64), dp(48));
-		pl.leftMargin = pl.rightMargin = dp(8);
-		tr.addView(phPlay, pl);
+		tr.addView(phPlay, dashBtnLp(1.3f, true));
 		tr.addView(dashButton(ctx, R.drawable.yi_next, "Sonraki", false, accent,
-				v -> a.getMediaSessionCallback().onSkipToNext()), new LinearLayout.LayoutParams(dp(52), dp(48)));
-		LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(dp(52), dp(48));
-		ll.leftMargin = dp(8);
+				v -> a.getMediaSessionCallback().onSkipToNext()), dashBtnLp(1f, true));
 		tr.addView(dashButton(ctx, R.drawable.yi_list, "Geçmiş", false, accent,
-				v -> a.showFragment(R.id.yolda_history_fragment)), ll);
+				v -> a.showFragment(R.id.yolda_history_fragment)), dashBtnLp(1f, true));
 		info.addView(tr);
-		now.addView(info, new LinearLayout.LayoutParams(0, -2, 1f));
+		now.addView(info, new LinearLayout.LayoutParams(0, -2, 1.4f));
 		if (wide) { // son açılanlar (Mola'daki "Recent"): dokun → kaldığı yerden
 			View div = new View(ctx);
 			div.setBackgroundColor(0x26FFFFFF);
@@ -1446,6 +1443,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return outer;
 	}
 
+	private LinearLayout.LayoutParams dashBtnLp(float w, boolean gap) {
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(48), w);
+		if (gap) lp.leftMargin = dp(8);
+		return lp;
+	}
+
 	/** Panel yüzeyi: koyu, ince çerçeveli (Şimdi çalıyor kartı vurgu renginde çerçeve). */
 	private GradientDrawable dashSurface(int accent, boolean hero) {
 		GradientDrawable g = new GradientDrawable();
@@ -1496,7 +1499,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		pressEffect(f);
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
-		ic.setImageTintList(ColorStateList.valueOf(accent));
+		if (lk.tint()) ic.setImageTintList(ColorStateList.valueOf(accent)); // marka simgesi (YouTube) kendi renginde
 		f.addView(ic, new LinearLayout.LayoutParams(dp(40), dp(40)));
 		LinearLayout tx = new LinearLayout(ctx);
 		tx.setOrientation(LinearLayout.VERTICAL);
