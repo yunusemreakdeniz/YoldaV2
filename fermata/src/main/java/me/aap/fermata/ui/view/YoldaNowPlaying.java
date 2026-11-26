@@ -324,7 +324,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			}
 			BodyLayout b = a.getBody();
 			if (b != null) {
-				b.setMode(BodyLayout.Mode.VIDEO);
+				b.enlarge();
 				return;
 			}
 		}

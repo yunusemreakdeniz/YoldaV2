@@ -1209,7 +1209,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (b == null) return;
 		if (b.isBothMode()) {
 			BodyLayout.yoldaSplit = false;
-			b.setMode(BodyLayout.Mode.VIDEO);
+			b.enlarge();
 			updateSplitButton();
 			return;
 		}

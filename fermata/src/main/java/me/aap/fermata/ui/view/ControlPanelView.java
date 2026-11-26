@@ -522,7 +522,7 @@ public class ControlPanelView extends ConstraintLayout
 		BodyLayout b = a.getBody();
 
 		if (b.getMode() == BodyLayout.Mode.BOTH) {
-			b.setMode(BodyLayout.Mode.VIDEO);
+			b.enlarge();
 			return true;
 		}
 
