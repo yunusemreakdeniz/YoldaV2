@@ -116,6 +116,12 @@ public class YoldaMenuFragment extends MainActivityFragment {
 				v -> a.showFragment(R.id.folders_fragment)));
 		lib.addView(item(ctx, R.drawable.yi_list, "Çalma listeleri", 0xFFF9A8D4, 0xFFEC4899,
 				v -> a.showFragment(R.id.playlists_fragment)));
+		// Sesli kitap (Mola'dan): telefondaki ses kitabı klasörleri; kaldığı yerden sürer, Şimdi çalıyor'da hız,
+		// 15 / 30 sn sarma ve uyku zamanlayıcısı
+		lib.addView(item(ctx, R.drawable.yi_music, "Sesli kitaplar · klasörden, kaldığı yerden", 0xFFFDE68A, 0xFFB45309, v -> {
+			YoldaStyle.toast(ctx, "Kitabın klasörünü seç; kaldığın yerden sürer. Hız ve uyku Şimdi çalıyor'da");
+			a.showFragment(R.id.folders_fragment);
+		}));
 
 		LinearLayout links = group(ctx, "BAĞLANTILAR");
 		links.addView(item(ctx, R.drawable.yi_nav, "Navigasyon", 0xFF5EEAD4, 0xFF0D9488,
