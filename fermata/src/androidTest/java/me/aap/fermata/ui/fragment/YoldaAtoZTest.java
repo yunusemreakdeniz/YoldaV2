@@ -1053,6 +1053,39 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Boş Klasörler / Listeler ekranı ortada ne yapılacağını söyler (boş beyaz ekran kalmaz). */
+	@Test
+	public void bosListeIpucu() {
+		try {
+			for (int id : new int[]{R.id.folders_fragment, R.id.playlists_fragment}) {
+				onMain(a -> a.showFragment(id));
+				waitIdle(2500);
+				me.aap.fermata.ui.view.MediaItemListView l = onMain(a -> {
+					java.util.ArrayDeque<View> q = new java.util.ArrayDeque<>();
+					q.add(((android.app.Activity) a.getContext()).getWindow().getDecorView());
+					while (!q.isEmpty()) {
+						View v = q.poll();
+						if ((v instanceof me.aap.fermata.ui.view.MediaItemListView m) && v.isShown()) return m;
+						if (v instanceof ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) q.add(g.getChildAt(i));
+					}
+					return null;
+				});
+				assertNotNull("Liste görünmeli", l);
+				int n = onMain(a -> l.getAdapter().getItemCount());
+				if (n != 0) continue; // dolu liste: ipucu gerekmez
+				onMain(a -> {
+					l.invalidate();
+					return null;
+				});
+				assertTrue("Boş listede ipucu görünmeli (" + (id == R.id.folders_fragment ? "Klasörler" : "Listeler") + ")",
+						waitFor(4000, () -> onMain(a -> l.getShownEmptyHint() != null)));
+				shot(id == R.id.folders_fragment ? "bos_klasorler" : "bos_listeler");
+			}
+		} finally {
+			onMain(a -> a.showFragment(R.id.home_fragment));
+		}
+	}
+
 	/** Araç klavyesi: YouTube aramasında harf yazar, siler, 48dp tuşlar, ✕ kapatır. */
 	@Test
 	public void aracKlavyesi() {

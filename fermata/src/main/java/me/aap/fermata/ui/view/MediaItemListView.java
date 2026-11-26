@@ -35,6 +35,14 @@ public class MediaItemListView extends RecyclerView implements PreferenceStore.L
 	private boolean isSelectionActive;
 	private boolean grid;
 	private int focusReq;
+	/** Liste boşken ortada gösterilen ipucu (null: yok). */
+	@androidx.annotation.Nullable
+	private java.util.function.Supplier<CharSequence> emptyHint;
+	private long emptySince;
+	@androidx.annotation.Nullable
+	private android.text.StaticLayout hintLayout;
+	@androidx.annotation.Nullable
+	private CharSequence hintText;
 
 	public MediaItemListView(Context ctx, AttributeSet attrs) {
 		super(ctx, attrs);
@@ -62,6 +70,59 @@ public class MediaItemListView extends RecyclerView implements PreferenceStore.L
 				setLayoutManager(new LinearLayoutManager(ctx));
 			}
 		});
+	}
+
+	/** Liste boşken gösterilecek ipucu (ör. "Henüz klasör yok — + ile ekleyin"). */
+	public void setEmptyHint(@androidx.annotation.Nullable java.util.function.Supplier<CharSequence> hint) {
+		emptyHint = hint;
+		invalidate();
+	}
+
+	/** Boş liste ipucu şu an görünüyor mu (testler için). */
+	@androidx.annotation.Nullable
+	public CharSequence getShownEmptyHint() {
+		return (hintLayout != null) ? hintText : null;
+	}
+
+	@Override
+	protected void dispatchDraw(@NonNull android.graphics.Canvas c) {
+		super.dispatchDraw(c);
+		hintLayout = null;
+		java.util.function.Supplier<CharSequence> h = emptyHint;
+		RecyclerView.Adapter<?> ad = super.getAdapter();
+		if ((h == null) || (ad == null) || (ad.getItemCount() != 0) || (getWidth() == 0)) {
+			emptySince = 0;
+			return;
+		}
+		long now = android.os.SystemClock.uptimeMillis();
+		if (emptySince == 0) emptySince = now;
+		if (now - emptySince < 700) { // yüklenirken kısa süre boş kalır: hemen gösterme
+			postInvalidateDelayed(750);
+			return;
+		}
+		CharSequence text = h.get();
+		if ((text == null) || (text.length() == 0)) return;
+		float d = getResources().getDisplayMetrics().density;
+		android.text.TextPaint p = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+		p.setTextSize(16 * d * getResources().getConfiguration().fontScale);
+		android.util.TypedValue tv = new android.util.TypedValue();
+		int color = 0xB3FFFFFF;
+		if (getContext().getTheme().resolveAttribute(android.R.attr.textColorSecondary, tv, true)) {
+			try {
+				color = (tv.resourceId != 0) ? getContext().getColorStateList(tv.resourceId).getDefaultColor() : tv.data;
+			} catch (Throwable ignore) {
+			}
+		}
+		p.setColor(color);
+		int w = Math.max(1, Math.min(getWidth() - Math.round(48 * d), Math.round(420 * d)));
+		android.text.StaticLayout l = android.text.StaticLayout.Builder.obtain(text, 0, text.length(), p, w)
+				.setAlignment(android.text.Layout.Alignment.ALIGN_CENTER).setLineSpacing(4 * d, 1f).build();
+		c.save();
+		c.translate((getWidth() - w) / 2f, Math.max(0, (getHeight() - l.getHeight()) / 2f));
+		l.draw(c);
+		c.restore();
+		hintLayout = l;
+		hintText = text;
 	}
 
 	@NonNull
