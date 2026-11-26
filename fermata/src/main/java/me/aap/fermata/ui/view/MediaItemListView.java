@@ -78,6 +78,28 @@ public class MediaItemListView extends RecyclerView implements PreferenceStore.L
 		invalidate();
 	}
 
+	/** Boş listede ipucuna dokununca yapılacak iş (ör. klasör ekle); null: yok. */
+	public void setEmptyHintAction(@androidx.annotation.Nullable Runnable action) {
+		emptyAction = action;
+	}
+
+	@androidx.annotation.Nullable
+	private Runnable emptyAction;
+
+	@Override
+	@android.annotation.SuppressLint("ClickableViewAccessibility")
+	public boolean onTouchEvent(android.view.MotionEvent e) {
+		Runnable act = emptyAction;
+		if ((act != null) && (hintLayout != null)) {
+			if (e.getActionMasked() == android.view.MotionEvent.ACTION_UP) {
+				me.aap.fermata.ui.view.YoldaStyle.haptic(this);
+				act.run();
+			}
+			return true;
+		}
+		return super.onTouchEvent(e);
+	}
+
 	/** Boş liste ipucu şu an görünüyor mu (testler için). */
 	@androidx.annotation.Nullable
 	public CharSequence getShownEmptyHint() {

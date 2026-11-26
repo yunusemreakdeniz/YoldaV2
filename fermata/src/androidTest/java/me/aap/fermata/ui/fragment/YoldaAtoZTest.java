@@ -1784,7 +1784,15 @@ public class YoldaAtoZTest {
 			assertTrue("Videoda radar uyarısı kartı görünmeli",
 					waitFor(2000, () -> onMain(me.aap.fermata.ui.view.YoldaAlertOverlay::isShown)));
 			// ✕ ekran görüntüsünden önce aranır: uyarı 5 sn'de kendiliğinden kapanır, görüntü almak yavaş olabilir
-			View x = onMain(a -> byDesc(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Uyarıyı kapat"));
+			// yavaş emülatörde ana iş parçacığı 5 sn takılırsa uyarı aranmadan kapanabiliyor: kapandıysa yeniden göster,
+			// gösterim ve ✕ araması aynı ana iş parçacığı adımında
+			AtomicReference<View> xr = new AtomicReference<>();
+			waitFor(6000, () -> onMain(a -> {
+				if (!me.aap.fermata.ui.view.YoldaAlertOverlay.isShown(a)) YoldaRadar.testAlert(c, false);
+				xr.set(byDesc(((android.app.Activity) a.getContext()).getWindow().getDecorView(), "Uyarıyı kapat"));
+				return xr.get() != null;
+			}));
+			View x = xr.get();
 			assertNotNull("Uyarıda kapat düğmesi olmalı", x);
 			shot("video_radar_uyarisi");
 			onMain(a -> x.performClick());

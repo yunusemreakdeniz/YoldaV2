@@ -1651,7 +1651,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ti.setSingleLine(true);
 		ti.setEllipsize(TextUtils.TruncateAt.END);
 		ti.setIncludeFontPadding(false);
-		tx.addView(ti);
+		// dar kutuda ("Kaldığın yerden") kesilmesin: 14 sp'ye kadar küçülür
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(ti, 14, 18, 1,
+				android.util.TypedValue.COMPLEX_UNIT_SP);
+		tx.addView(ti, new LinearLayout.LayoutParams(-1, dp(24)));
 		Glance g = glance(ctx, c.type());
 		TextView sub = text(ctx, (g != null) ? (g.big() + " · " + (g.l2().isEmpty() ? g.l1() : g.l2())) : panoSub(c, lk.sub),
 				13, false, K_SUB);
