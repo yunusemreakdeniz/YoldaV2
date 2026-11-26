@@ -1144,49 +1144,6 @@ public class MainActivityDelegate extends ActivityDelegate
 		yoldaClose.animate().alpha(0.92f).setDuration(200).start();
 	}
 
-	private long leftEdgeDumpAt;
-
-	/**
-	 * Tanı: araç ekranında sol alt köşeye denk gelen görünür öğeleri tanı günlüğüne yaz (kenarda yarım kalan
-	 * mavi şeridin kaynağı için). Dakikada en çok bir kez.
-	 */
-	public void yoldaDumpLeftEdge() {
-		long now = android.os.SystemClock.elapsedRealtime();
-		if (!isCarActivity() || (now - leftEdgeDumpAt < 60_000)) return;
-		leftEdgeDumpAt = now;
-		try {
-			View dv = getWindow().getDecorView();
-			int w = dv.getWidth(), h = dv.getHeight();
-			View root = findViewById(R.id.main_activity);
-			int padL = (root != null) ? root.getPaddingLeft() : 0;
-			StringBuilder sb = new StringBuilder("Sol kenar (pencere " + w + "x" + h + ", sol boşluk " + padL + "): ");
-			java.util.ArrayDeque<View> q = new java.util.ArrayDeque<>();
-			q.add(dv);
-			int[] xy = new int[2];
-			int n = 0;
-			while (!q.isEmpty() && (n < 25)) {
-				View v = q.poll();
-				if (!v.isShown()) continue;
-				if (v instanceof android.view.ViewGroup g) for (int i = 0; i < g.getChildCount(); i++) q.add(g.getChildAt(i));
-				v.getLocationOnScreen(xy);
-				if ((v.getWidth() == 0) || (v.getWidth() > w / 3) || (xy[0] > padL + 60) || (xy[1] + v.getHeight() < h * 0.6)) continue;
-				String id;
-				try {
-					id = (v.getId() != View.NO_ID) ? getContext().getResources().getResourceEntryName(v.getId()) : "-";
-				} catch (Exception ex) {
-					id = "?";
-				}
-				sb.append(" | ").append(v.getClass().getSimpleName()).append('#').append(id).append(" \"")
-						.append(v.getContentDescription()).append("\" ").append(xy[0]).append(',').append(xy[1])
-						.append(' ').append(v.getWidth()).append('x').append(v.getHeight());
-				n++;
-			}
-			me.aap.fermata.ui.fragment.YoldaLog.add(sb.toString());
-		} catch (Throwable ex) {
-			me.aap.fermata.ui.fragment.YoldaLog.add("Sol kenar tanısı: " + ex);
-		}
-	}
-
 	/** Çalanı tamamen kapat (video / müzik): durdurur, video ekranından ve Şimdi çalıyor'dan çıkar. */
 	public void yoldaClosePlayer() {
 		me.aap.fermata.ui.fragment.YoldaLog.add("Oynatıcı ✕ ile kapatıldı");
@@ -2520,7 +2477,6 @@ public class MainActivityDelegate extends ActivityDelegate
 		if (!me.aap.fermata.ui.view.YoldaStyle.DECK) return;
 		if (yoldaPip) return;
 		applyShellRow();
-		if (isCarActivity()) App.get().getHandler().postDelayed(this::yoldaDumpLeftEdge, 4000); // tanı (dakikada bir)
 		yoldaFloatingBarMargin();
 		boolean np = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
 		if ((navBar != null) && (navBar.getVisibility() != View.GONE)) navBar.setVisibility(View.GONE);
