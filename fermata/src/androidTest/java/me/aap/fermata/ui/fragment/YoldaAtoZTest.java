@@ -1048,6 +1048,7 @@ public class YoldaAtoZTest {
 				});
 				playing = waitFor(20_000, () -> onMain(a -> a.getMediaSessionCallback().isPlaying()));
 			}
+			if (!playing) shot("youtube_acilmadi"); // neden çalmadığı görülsün (izin sayfası, yükleme, reklam…)
 			org.junit.Assume.assumeTrue("YouTube bu ağdan açılmadı", playing);
 			waitIdle(3000);
 			shot("youtube_caliyor");
