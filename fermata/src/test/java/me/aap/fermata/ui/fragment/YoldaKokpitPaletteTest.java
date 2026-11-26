@@ -44,7 +44,10 @@ public class YoldaKokpitPaletteTest {
 		assertNotEquals("Canlı temada hafif renk geçişi", gece.well(), gece.wellEnd());
 		assertEquals("Gün batımının vurgusu kendi sarısı", 0xFFFFC857, of(THEMES[1]).accent());
 		assertTrue("Gece: beyaz vurgu yerine morumsu", YoldaKokpitPalette.saturation(gece.accent()) > 0.3f);
-		assertEquals("Renksiz Asil temada altın", YoldaKokpitPalette.GOLD, of(THEMES[2]).accent());
+		assertEquals("Renksiz Asil temada kendi platin vurgusu", 0xFFE6E8EE, of(THEMES[2]).accent());
+		assertEquals("Gümüş temada gümüş", 0xFFE5E7EB, of(THEMES[3]).accent());
+		assertEquals("Koyu vurgulu renksiz temada altın", YoldaKokpitPalette.GOLD,
+				YoldaKokpitPalette.pickAccent(0xFF333333, new int[]{0xFF222222, 0xFF2A2A2A}));
 		YoldaKokpitPalette asil = of(THEMES[2]);
 		assertEquals("Asil: düz yüzey", asil.well(), asil.wellEnd());
 	}
