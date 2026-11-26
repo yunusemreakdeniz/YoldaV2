@@ -52,5 +52,10 @@ public class YoldaPlayHistoryTest {
 		assertEquals("c", YoldaPlayHistory.displayName("", "https://a.b/x/cc.mp3").substring(0, 1));
 		assertEquals("a.b", YoldaPlayHistory.displayName(null, "https://a.b/"));
 		assertEquals("Film Adı", new YoldaPlayHistory.Entry("1", "https://s.com/Film_Adı.mkv", "Video", null, 0, 0, 0).name());
+		// aynı adres farklı kimlikle: tek kayıt
+		List<YoldaPlayHistory.Entry> l = new ArrayList<>();
+		for (int i = 0; i < 3; i++)
+			l = YoldaPlayHistory.push(l, new YoldaPlayHistory.Entry("id" + i, "x", "Video", "https://a.b/x.m3u8", 0, 0, i));
+		assertEquals(1, l.size());
 	}
 }

@@ -132,6 +132,8 @@ public final class YoldaPlayHistory {
 	public static synchronized void add(Context ctx, String id, String name, String kind, @Nullable String url,
 																			long posMs, long durMs) {
 		if ((name == null) || name.isEmpty()) return;
+		// adla açılan akış (adı adresin kendisi): adres olarak da sakla, aynı yayın tekrar tekrar eklenmesin
+		if ((url == null) && looksLikeUrl(name.trim())) url = name.trim();
 		List<Entry> l = push(decode(prefs(ctx).getString("l", null)),
 				new Entry(id, name, kind, url, Math.max(0, posMs), Math.max(0, durMs), System.currentTimeMillis()));
 		prefs(ctx).edit().putString("l", encode(l)).apply();
