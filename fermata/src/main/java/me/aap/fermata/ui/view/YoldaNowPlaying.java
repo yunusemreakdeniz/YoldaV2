@@ -643,6 +643,9 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 			ops.addView(c, ol);
 		}
 		info.addView(ops, new LinearLayout.LayoutParams(-1, -2));
+		// alçak ekranda (araç, küçük yatay) sığmıyor, alttan taşıyordu: orada satır yok (uyku menüde de var)
+		android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+		if ((dm.heightPixels / dm.density) < 480) ops.setVisibility(GONE);
 
 		// Sıradakiler (Yolda Müzik listesi)
 		queueBox = new LinearLayout(ctx);
@@ -1111,7 +1114,7 @@ public final class YoldaNowPlaying extends FrameLayout implements MediaSessionCa
 
 	/** İşlem satırı: sarma ve hız yalnız sarılabilen içerikte (canlı yayında yok); uyku kalan süreyi gösterir. */
 	private void updateOps(MediaSessionCallback cb) {
-		if (ops == null) return;
+		if ((ops == null) || (ops.getVisibility() != VISIBLE)) return;
 		var eng = cb.getEngine();
 		boolean seek = (eng != null) && eng.canSeek();
 		int v = seek ? VISIBLE : GONE;
