@@ -905,6 +905,7 @@ public class MainActivityDelegate extends ActivityDelegate
 		// ses sürer, videoya üstteki "▶ çalan" düğmesiyle dönülür. Bölünmüş ekran yalnız bilerek açılınca.
 		if (b.isVideoMode()) b.setMode(me.aap.fermata.ui.view.YoldaStyle.DECK && !BodyLayout.yoldaSplit
 				? BodyLayout.Mode.FRAME : BodyLayout.Mode.BOTH);
+		if (me.aap.fermata.ui.view.YoldaCarKeyboard.isOpen()) me.aap.fermata.ui.view.YoldaCarKeyboard.hide(); // ekran değişti
 		int prev = getActiveFragmentId();
 		if (!yoldaGoingBack && (prev != 0) && (prev != id)) { // geri düğmesi için ekran geçmişi
 			yoldaHistory.push(prev);
