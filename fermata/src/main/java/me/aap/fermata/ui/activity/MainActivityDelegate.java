@@ -1289,6 +1289,7 @@ public class MainActivityDelegate extends ActivityDelegate
 			cp.addOnLayoutChangeListener((v, l, t, r, b2, ol, ot, or, ob) -> { // oynatıcı açılınca / kapanınca
 				if ((b2 - t) != (ob - ot)) v.post(this::yoldaToolbarMargin);
 			});
+			tb.addOnLayoutChangeListener((v, l, t, r, b2, ol, ot, or, ob) -> v.post(this::yoldaToolbarMargin)); // düğmeler değişince
 			View pr = a.findViewById(R.id.content_loading_progress);
 			if ((pr != null) && (pr.getLayoutParams() instanceof ConstraintLayout.LayoutParams pl)) {
 				pl.topToBottom = unset;
@@ -1314,6 +1315,16 @@ public class MainActivityDelegate extends ActivityDelegate
 		if ((tb == null) || !(tb.getLayoutParams() instanceof ConstraintLayout.LayoutParams tl)
 				|| (tl.bottomToBottom != ConstraintLayout.LayoutParams.PARENT_ID)) return;
 		int m = toIntPx(getContext(), me.aap.fermata.ui.view.YoldaStyle.VOICE_BOTTOM_DP);
+		// Fermata çubuğunun yüksekliği sabit; içindeki 48dp düğmeler ondan uzun olunca altından taşıyor
+		// (Klasörler, Listeler, Favoriler, TV'de ~20dp ekran dışı): taşma kadar yukarı
+		if (tb instanceof ViewGroup g) {
+			int over = 0;
+			for (int i = 0; i < g.getChildCount(); i++) {
+				View ch = g.getChildAt(i);
+				if (ch.getVisibility() == VISIBLE) over = Math.max(over, ch.getBottom() - g.getHeight());
+			}
+			m += Math.max(0, over);
+		}
 		if ((cp != null) && (cp.getVisibility() == VISIBLE) && (cp.getHeight() > 0)
 				&& (cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl))
 			m += cp.getHeight() + cl.bottomMargin;
