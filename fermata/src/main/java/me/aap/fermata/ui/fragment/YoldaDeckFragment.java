@@ -293,8 +293,8 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return phoneMode() && prefs(ctx).getBoolean(PREF_DASH, false);
 	}
 
-	/** Panel kurulu mu. */
-	private boolean dashBuilt;
+	/** Panel kurulu mu; yatay Panel'de video kartın önizleme alanında oynar mı. */
+	private boolean dashBuilt, dashInline;
 
 	private boolean gridMode() {
 		Context ctx = getContext();
@@ -542,13 +542,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			// gövde liste kipinde kalıyor, video kartta çıkmıyordu (TV, araç ekranı)
 			boolean inlineable = (src != null) && src.isVideo() && eng.isSplitModeSupported()
 					&& (a.getMediaSessionCallback().getVideoView() == b.getVideoView());
-			if (panoWideBuilt && inlineable) {
+			if ((panoWideBuilt || dashInline) && inlineable) {
 				if (!b.isBothMode()) b.setMode(me.aap.fermata.ui.view.BodyLayout.Mode.BOTH);
 				return;
 			}
 			if (b.isFrameMode()) return;
 			boolean video = (src != null) && src.isVideo() && a.getMediaSessionCallback().isPlaying();
-			if (video && panoWideBuilt) return;
+			if (video && (panoWideBuilt || dashInline)) return;
 			if (!video || b.isVideoMode() || b.isBothMode()) { // destede bölünmüş (sağda dar video) kalmasın
 				YoldaLog.add("Açılış: gövde " + b.getMode() + " kipindeydi, ana ekran gösterildi");
 				b.setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
@@ -568,7 +568,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		dashBuilt = dashMode();
 		gridBuilt = !dashBuilt && gridMode();
 		panoWideBuilt = !gridBuilt && !dashBuilt && panoMode() && wideScreen();
-		me.aap.fermata.ui.view.BodyLayout.yoldaInline = panoWideBuilt; // ana ekranda video küçük pencerede (ızgarada tam ekran)
+		dashInline = dashBuilt && wideScreen(); // yatay Panel: Şimdi çalıyor kartında canlı önizleme
+		// ana ekranda video küçük pencerede (Pano / yatay Panel); ızgarada tam ekran
+		me.aap.fermata.ui.view.BodyLayout.yoldaInline = panoWideBuilt || dashInline;
 		if (gridBuilt || dashBuilt) { // önceki görünümden kalan alanlar burada yok
 			phNowTitle = phNowTag = phPark = phWeatherPlace = null;
 			phNowIcon = null;
@@ -1315,18 +1317,22 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	}
 
 	/**
-	 * Panel (Mola'nın ilk görünümü): üstte başlık şeridi; tam genişlikte Şimdi çalıyor kartı (kapak, tür, ad,
-	 * önceki / oynat / sonraki / geçmiş, sağda son açılanlar); altında tek vurgu renginde, ince çerçeveli yatay
-	 * kutular (solda simge, yanında ad ve kısa açıklama). Sade, koyu yüzeyler; araçta da.
+	 * Panel — Mola 4.8.5'teki "Kokpit" ana ekranının diliyle: kömür siyahı düz zemin, koyu "kuyu" yüzeyler, ince gri
+	 * çerçeve, altın vurgu (tema deseni Gümüş / Buz / Kırmızı ise onun rengi). Üstte başlık şeridi; büyük Şimdi
+	 * çalıyor kartı (yatayda solda canlı video önizlemesi, kapak ya da simge; tür etiketi, ad, yuvarlak oynatıcı
+	 * düğmeleri, sağda son açılanlar); altında Son açılanlar / Favoriler / Klasörler / Listeler çipleri ve
+	 * 120 dp'lik kutular (sol üstte simge, sağ üstte altın etiket, altta ad + açıklama).
 	 */
 	private View dashHome(Context ctx) {
 		MainActivityDelegate a = getActivityDelegate();
 		android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
 		int wdp = Math.round(dm.widthPixels / dm.density);
 		boolean wide = wdp >= 560;
-		int accent = t.accent | 0xFF000000;
+		int accent = kokpitAccent();
+		panoBuiltWithVideo = dashInline && inlineVideoShown();
 		LinearLayout outer = new LinearLayout(ctx);
 		outer.setOrientation(LinearLayout.VERTICAL);
+		outer.setBackgroundColor(K_BG); // Kokpit: düz koyu zemin (gökyüzü efekti yok)
 		outer.setPadding(dp(16), YoldaStyle.cutoutTop(ctx) + dp(8), dp(16), 0);
 		LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(-1, dp(56));
 		hlp.bottomMargin = dp(8);
@@ -1334,7 +1340,6 @@ public class YoldaDeckFragment extends MainActivityFragment {
 
 		ScrollView sv = new ScrollView(ctx);
 		sv.setVerticalScrollBarEnabled(false);
-		sv.setOnScrollChangeListener((v, x, y, ox, oy) -> me.aap.fermata.ui.view.YoldaGlow.hold(250));
 		LinearLayout col = new LinearLayout(ctx);
 		col.setOrientation(LinearLayout.VERTICAL);
 		col.setPadding(0, 0, 0, dp(wide ? 16 : 88)); // dikeyde alttaki mikrofonun üstünde boşluk
@@ -1344,64 +1349,94 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		// ---- Şimdi çalıyor ----
 		LinearLayout now = hrow(ctx);
 		now.setGravity(Gravity.CENTER_VERTICAL);
-		now.setPadding(dp(16), dp(14), dp(16), dp(14));
-		now.setBackground(dashSurface(accent, true));
+		now.setPadding(dp(14), dp(14), dp(16), dp(14));
+		now.setBackground(kWell(22, true, accent));
 		now.setClickable(true);
 		now.setContentDescription("Şimdi çalıyor");
 		now.setOnClickListener(v -> YoldaNowPlaying.open(a));
+		// önizleme: yatayda 16:9 alan (TV / video canlı oynar, YouTube görüntüsü taşınır), dikeyde kare simge
+		FrameLayout art = new FrameLayout(ctx);
+		GradientDrawable ag = new GradientDrawable();
+		ag.setCornerRadius(dp(16));
+		ag.setColor(K_DEEP);
+		art.setBackground(ag);
+		art.setClipToOutline(true);
+		art.setOutlineProvider(new android.view.ViewOutlineProvider() {
+			@Override
+			public void getOutline(View v, android.graphics.Outline o) {
+				o.setRoundRect(0, 0, v.getWidth(), v.getHeight(), dp(16));
+			}
+		});
+		phArtCover = new ImageView(ctx);
+		phArtCover.setScaleType(ImageView.ScaleType.CENTER_CROP);
+		phArtCover.setVisibility(View.GONE);
+		art.addView(phArtCover, new FrameLayout.LayoutParams(-1, -1));
+		phArtCoverKey = null;
+		phTubeBox = new FrameLayout(ctx);
+		phTubeBox.setVisibility(View.GONE);
+		View tubeTap = new View(ctx);
+		tubeTap.setClickable(true);
+		tubeTap.setContentDescription("YouTube'u tam ekran aç");
+		tubeTap.setOnClickListener(v -> {
+			me.aap.fermata.ui.view.YoldaTubeInline.restore();
+			YoldaNowPlaying.open(a);
+		});
+		phTubeBox.addView(tubeTap, new FrameLayout.LayoutParams(-1, -1));
+		art.addView(phTubeBox, new FrameLayout.LayoutParams(-1, -1));
 		phNowPlate = new FrameLayout(ctx);
-		GradientDrawable pg = new GradientDrawable();
-		pg.setCornerRadius(dp(18));
-		pg.setColor(YoldaStyle.alpha(accent, 0.18f));
-		phNowPlate.setBackground(pg);
 		phNowIcon = new ImageView(ctx);
 		phNowIcon.setImageResource(R.drawable.yi_music);
-		phNowPlate.addView(phNowIcon, new FrameLayout.LayoutParams(dp(44), dp(44), Gravity.CENTER));
-		now.addView(phNowPlate, new LinearLayout.LayoutParams(dp(wide ? 104 : 72), dp(wide ? 104 : 72)));
+		phNowPlate.addView(phNowIcon, new FrameLayout.LayoutParams(dp(wide ? 40 : 34), dp(wide ? 40 : 34), Gravity.CENTER));
+		art.addView(phNowPlate, new FrameLayout.LayoutParams(-1, -1));
+		int artW = wide ? dp(Math.min(300, Math.round(wdp * 0.30f))) : dp(76);
+		int artH = wide ? Math.round(artW * 9f / 16f) : dp(76);
+		now.addView(art, new LinearLayout.LayoutParams(artW, artH));
 		LinearLayout info = new LinearLayout(ctx);
 		info.setOrientation(LinearLayout.VERTICAL);
 		info.setPadding(dp(16), 0, dp(8), 0);
 		phNowTag = text(ctx, "", 12, true, accent);
-		phNowTag.setLetterSpacing(0.08f);
+		phNowTag.setLetterSpacing(0.1f);
 		phNowTag.setSingleLine(true);
 		info.addView(phNowTag);
-		phNowTitle = text(ctx, "", wide ? 22 : 18, true, 0xFFFFFFFF);
+		phNowTitle = text(ctx, "", wide ? 22 : 18, true, K_TEXT);
 		phNowTitle.setSingleLine(true);
 		phNowTitle.setEllipsize(TextUtils.TruncateAt.END);
+		phNowTitle.setPadding(0, dp(2), 0, 0);
 		info.addView(phNowTitle);
 		LinearLayout tr = hrow(ctx);
 		tr.setGravity(Gravity.CENTER_VERTICAL);
-		tr.setPadding(0, dp(10), 0, 0);
-		// düğmeler esnek genişlikte (sabit genişlikte dar kartta sağdakiler kesiliyordu)
-		tr.addView(dashButton(ctx, R.drawable.yi_prev, "Önceki", false, accent,
-				v -> a.getMediaSessionCallback().onSkipToPrevious()), dashBtnLp(1f, false));
-		phPlay = dashButton(ctx, R.drawable.yi_play, "Oynat / duraklat", true, accent, v -> {
+		tr.setPadding(0, dp(12), 0, 0);
+		tr.addView(kRound(ctx, R.drawable.yi_prev, "Önceki", false, accent, v -> a.getMediaSessionCallback().onSkipToPrevious()),
+				kRoundLp(48, false));
+		phPlay = kRound(ctx, R.drawable.yi_play, "Oynat / duraklat", true, accent, v -> {
 			var cb = a.getMediaSessionCallback();
 			if (cb.isPlaying()) cb.onPause();
 			else YoldaNowPlaying.togglePlay(a);
 			root.postDelayed(this::updatePhoneLive, 300);
 		});
-		tr.addView(phPlay, dashBtnLp(1.3f, true));
-		tr.addView(dashButton(ctx, R.drawable.yi_next, "Sonraki", false, accent,
-				v -> a.getMediaSessionCallback().onSkipToNext()), dashBtnLp(1f, true));
-		tr.addView(dashButton(ctx, R.drawable.yi_list, "Geçmiş", false, accent,
-				v -> a.showFragment(R.id.yolda_history_fragment)), dashBtnLp(1f, true));
+		tr.addView(phPlay, kRoundLp(56, true));
+		tr.addView(kRound(ctx, R.drawable.yi_next, "Sonraki", false, accent, v -> a.getMediaSessionCallback().onSkipToNext()),
+				kRoundLp(48, true));
+		tr.addView(kRound(ctx, R.drawable.yi_close, "Oynatıcıyı kapat", false, accent, v -> a.yoldaClosePlayer()),
+				kRoundLp(48, true));
 		info.addView(tr);
-		now.addView(info, new LinearLayout.LayoutParams(0, -2, 1.4f));
-		if (wide) { // son açılanlar (Mola'daki "Recent"): dokun → kaldığı yerden
+		now.addView(info, new LinearLayout.LayoutParams(0, -2, 1.3f));
+		if (wide) { // son açılanlar: dokun → kaldığı yerden
 			View div = new View(ctx);
-			div.setBackgroundColor(0x26FFFFFF);
+			div.setBackgroundColor(K_LINE);
 			LinearLayout.LayoutParams dl = new LinearLayout.LayoutParams(Math.max(1, dp(1)), -1);
-			dl.leftMargin = dl.rightMargin = dp(16);
+			dl.leftMargin = dl.rightMargin = dp(14);
 			now.addView(div, dl);
 			LinearLayout rec = new LinearLayout(ctx);
 			rec.setOrientation(LinearLayout.VERTICAL);
-			rec.addView(text(ctx, "Son açılanlar", 14, true, 0xFFFFFFFF));
+			TextView rh = text(ctx, "SON AÇILANLAR", 11, true, accent);
+			rh.setLetterSpacing(0.1f);
+			rec.addView(rh);
 			List<YoldaPlayHistory.Entry> hist = YoldaPlayHistory.all(ctx);
-			if (hist.isEmpty()) rec.addView(text(ctx, "Henüz bir şey açılmadı", 13, false, 0xFFC5CBD8));
+			if (hist.isEmpty()) rec.addView(text(ctx, "Henüz bir şey açılmadı", 13, false, K_SUB));
 			for (int i = 0; i < Math.min(3, hist.size()); i++) {
 				YoldaPlayHistory.Entry e = hist.get(i);
-				TextView r = text(ctx, e.name(), 14, false, 0xFFE5E7EB);
+				TextView r = text(ctx, e.name(), 14, false, K_TEXT);
 				r.setSingleLine(true);
 				r.setEllipsize(TextUtils.TruncateAt.END);
 				r.setGravity(Gravity.CENTER_VERTICAL);
@@ -1415,61 +1450,119 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		}
 		col.addView(now, new LinearLayout.LayoutParams(-1, -2));
 		phNow = null; // kart her zaman görünür ("Henüz bir şey çalmadı")
+		if (panoBuiltWithVideo) { // video bu kartın önizleme alanında oynar
+			outer.setBackground(null); // opak zemin arkadaki video yüzeyini örtmesin
+			now.setBackground(null);
+			art.setBackground(null);
+			phNowPlate.setVisibility(View.GONE);
+			art.post(() -> placeInlineVideo(art));
+			art.addOnLayoutChangeListener((v, l, t2, r, b, ol, ot, orr, ob) -> {
+				if (((r - l) != (orr - ol)) || ((b - t2) != (ob - ot)) || (l != ol) || (t2 != ot)) v.post(() -> placeInlineVideo(art));
+			});
+		} else art.post(() -> placeInlineVideo(null));
+
+		// ---- çipler ----
+		HorizontalScrollView chs = new HorizontalScrollView(ctx);
+		chs.setHorizontalScrollBarEnabled(false);
+		LinearLayout chips = hrow(ctx);
+		Object[][] cd = {{"Son açılanlar", R.drawable.yi_history}, {"Favoriler", R.drawable.yi_star},
+				{"Klasörler", R.drawable.yi_list}, {"Listeler", R.drawable.yi_music}};
+		for (int i = 0; i < cd.length; i++) {
+			String nm = (String) cd[i][0];
+			LinearLayout ch = hrow(ctx);
+			ch.setGravity(Gravity.CENTER_VERTICAL);
+			ch.setPadding(dp(14), 0, dp(18), 0);
+			ch.setBackground(kWell(999, false, accent));
+			ch.setClickable(true);
+			ch.setContentDescription(nm);
+			ch.setOnClickListener(v -> {
+				switch (nm) {
+					case "Son açılanlar" -> a.showFragment(R.id.yolda_history_fragment);
+					case "Favoriler" -> showFavorites();
+					case "Klasörler" -> a.showFragment(R.id.folders_fragment);
+					default -> a.showFragment(R.id.playlists_fragment);
+				}
+			});
+			pressEffect(ch);
+			ImageView ic = new ImageView(ctx);
+			ic.setImageResource((int) cd[i][1]);
+			ic.setImageTintList(ColorStateList.valueOf(accent));
+			ch.addView(ic, new LinearLayout.LayoutParams(dp(20), dp(20)));
+			TextView tx = text(ctx, nm, 15, true, K_TEXT);
+			tx.setPadding(dp(8), 0, 0, 0);
+			tx.setSingleLine(true);
+			ch.addView(tx);
+			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(-2, dp(48));
+			if (i > 0) cl.leftMargin = dp(10);
+			chips.addView(ch, cl);
+		}
+		chs.addView(chips);
+		LinearLayout.LayoutParams csl = new LinearLayout.LayoutParams(-1, -2);
+		csl.topMargin = dp(12);
+		col.addView(chs, csl);
 
 		// ---- kutular ----
-		int cols = wide ? Math.max(2, Math.min(4, wdp / 240)) : 1;
+		int cols = wide ? Math.max(2, Math.min(4, wdp / 230)) : 2;
 		List<YoldaDeck.Card> cs = new ArrayList<>(phoneCards(ctx));
 		phoneTileViews.clear();
 		LinearLayout row = null;
 		for (int n = 0; n < cs.size(); n++) {
 			if (n % cols == 0) {
 				row = hrow(ctx);
-				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(wide ? 96 : 80));
-				rl.topMargin = dp(10);
+				LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, dp(wide ? 120 : 112));
+				rl.topMargin = dp(12);
 				col.addView(row, rl);
 			}
 			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
-			if (n % cols != 0) cl.leftMargin = dp(10);
+			if (n % cols != 0) cl.leftMargin = dp(12);
 			View tile = dashTile(ctx, cs.get(n));
 			phoneTileViews.put(cs.get(n).type(), tile);
 			row.addView(tile, cl);
 		}
 		if (row != null) for (int n = cs.size(); n % cols != 0; n++) {
 			LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(0, -1, 1f);
-			cl.leftMargin = dp(10);
+			cl.leftMargin = dp(12);
 			row.addView(new View(ctx), cl);
 		}
 		updatePhoneLive();
 		return outer;
 	}
 
-	private LinearLayout.LayoutParams dashBtnLp(float w, boolean gap) {
-		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(48), w);
-		if (gap) lp.leftMargin = dp(8);
-		return lp;
+	/** Kokpit renkleri (Mola 4.8.5). */
+	static final int K_BG = 0xFF0B0C0E, K_WELL = 0xFF1F2126, K_DEEP = 0xFF131518, K_LINE = 0xFF2A2D33, K_TEXT = 0xFFF4F4F5,
+			K_SUB = 0xFFA9ADB4, K_GOLD = 0xFFD6B46A;
+
+	/** Kokpit vurgusu: altın; tema Gümüş / Buz mavisi / Kırmızı ise onun rengi (Mola'daki desenler). */
+	private int kokpitAccent() {
+		String n = t.name;
+		return switch (n) {
+			case "Gümüş" -> 0xFFD1D5DB;
+			case "Buz mavisi" -> 0xFF93C5FD;
+			case "Kırmızı" -> 0xFFF87171;
+			default -> K_GOLD;
+		};
 	}
 
-	/** Panel yüzeyi: koyu, ince çerçeveli (Şimdi çalıyor kartı vurgu renginde çerçeve). */
-	private GradientDrawable dashSurface(int accent, boolean hero) {
+	/** Kokpit kuyusu: koyu yüzey, ince gri çerçeve (öne çıkan kart vurgu renginde çerçeve). */
+	private GradientDrawable kWell(int radiusDp, boolean hero, int accent) {
 		GradientDrawable g = new GradientDrawable();
-		g.setCornerRadius(dp(hero ? 22 : 18));
-		g.setColor(hero ? YoldaStyle.alpha(accent, 0.10f) : 0x1AFFFFFF);
-		g.setStroke(Math.max(1, dp(1)), hero ? YoldaStyle.alpha(accent, 0.45f) : 0x24FFFFFF);
+		g.setCornerRadius(dp(radiusDp));
+		g.setColor(hero ? K_DEEP : K_WELL);
+		g.setStroke(Math.max(1, dp(1)), hero ? YoldaStyle.alpha(accent, 0.40f) : K_LINE);
 		return g;
 	}
 
-	/** Panel oynatıcı düğmesi: yuvarlatılmış kare; oynat düğmesi vurgu renginde dolu. */
-	private ImageView dashButton(Context ctx, @DrawableRes int icon, String desc, boolean main, int accent,
-															 View.OnClickListener click) {
+	/** Kokpit yuvarlak düğme: koyu daire; ana düğme vurgu renginde dolu. */
+	private ImageView kRound(Context ctx, @DrawableRes int icon, String desc, boolean main, int accent, View.OnClickListener click) {
 		ImageView b = new ImageView(ctx);
 		b.setImageResource(icon);
-		b.setImageTintList(ColorStateList.valueOf(main ? 0xFF0B1020 : 0xFFFFFFFF));
-		int p = dp(12);
+		b.setImageTintList(ColorStateList.valueOf(main ? K_BG : K_TEXT));
+		int p = dp(main ? 15 : 13);
 		b.setPadding(p, p, p, p);
 		GradientDrawable g = new GradientDrawable();
-		g.setCornerRadius(dp(14));
-		g.setColor(main ? accent : 0x1FFFFFFF);
-		if (!main) g.setStroke(Math.max(1, dp(1)), 0x24FFFFFF);
+		g.setShape(GradientDrawable.OVAL);
+		g.setColor(main ? accent : K_WELL);
+		if (!main) g.setStroke(Math.max(1, dp(1)), K_LINE);
 		b.setBackground(g);
 		b.setContentDescription(desc);
 		b.setClickable(true);
@@ -1481,14 +1574,19 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return b;
 	}
 
-	/** Panel kutusu: solda büyük simge (vurgu renginde), yanında ad ve kısa açıklama. */
+	private LinearLayout.LayoutParams kRoundLp(int sizeDp, boolean gap) {
+		LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp));
+		if (gap) lp.leftMargin = dp(10);
+		return lp;
+	}
+
+	/** Kokpit kutusu (120 dp): sol üstte simge, sağ üstte altın etiket, altta ad ve açıklama. */
 	private View dashTile(Context ctx, YoldaDeck.Card c) {
 		Look lk = look(c);
-		int accent = t.accent | 0xFF000000;
-		LinearLayout f = hrow(ctx);
-		f.setGravity(Gravity.CENTER_VERTICAL);
-		f.setPadding(dp(16), 0, dp(14), 0);
-		f.setBackground(dashSurface(accent, false));
+		int accent = kokpitAccent();
+		FrameLayout f = new FrameLayout(ctx);
+		f.setPadding(dp(16), dp(14), dp(16), dp(14));
+		f.setBackground(kWell(18, false, accent));
 		f.setClickable(true);
 		f.setContentDescription(c.title());
 		f.setOnClickListener(v -> open(c));
@@ -1500,21 +1598,31 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
 		if (lk.tint()) ic.setImageTintList(ColorStateList.valueOf(accent)); // marka simgesi (YouTube) kendi renginde
-		f.addView(ic, new LinearLayout.LayoutParams(dp(40), dp(40)));
+		f.addView(ic, new FrameLayout.LayoutParams(dp(36), dp(36), Gravity.TOP | Gravity.START));
+		String tg = tagText(lk.tag, c.title());
+		if (!tg.isEmpty()) {
+			TextView tag = text(ctx, tg, 11, true, accent);
+			tag.setLetterSpacing(0.08f);
+			tag.setSingleLine(true);
+			tag.setEllipsize(TextUtils.TruncateAt.END);
+			tag.setMaxWidth(dp(140));
+			f.addView(tag, new FrameLayout.LayoutParams(-2, -2, Gravity.TOP | Gravity.END));
+		}
 		LinearLayout tx = new LinearLayout(ctx);
 		tx.setOrientation(LinearLayout.VERTICAL);
-		tx.setPadding(dp(14), 0, 0, 0);
-		TextView ti = text(ctx, c.title(), 18, true, 0xFFFFFFFF);
+		TextView ti = text(ctx, c.title(), 18, true, K_TEXT);
 		ti.setSingleLine(true);
 		ti.setEllipsize(TextUtils.TruncateAt.END);
+		ti.setIncludeFontPadding(false);
 		tx.addView(ti);
 		Glance g = glance(ctx, c.type());
 		TextView sub = text(ctx, (g != null) ? (g.big() + " · " + (g.l2().isEmpty() ? g.l1() : g.l2())) : panoSub(c, lk.sub),
-				13, false, 0xFFC5CBD8);
+				13, false, K_SUB);
 		sub.setSingleLine(true);
 		sub.setEllipsize(TextUtils.TruncateAt.END);
+		sub.setPadding(0, dp(2), 0, 0);
 		tx.addView(sub);
-		f.addView(tx, new LinearLayout.LayoutParams(0, -2, 1f));
+		f.addView(tx, new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM));
 		return f;
 	}
 
@@ -1964,8 +2072,9 @@ public class YoldaDeckFragment extends MainActivityFragment {
 	private void updatePhoneLive() {
 		Context ctx = getContext();
 		if ((ctx == null) || (phClock == null)) return;
-		if (panoWideBuilt && !panoBuiltWithVideo) fixBodyMode(); // video çalıyor ama kartta değilse yerleştir
-		if (panoWideBuilt && (inlineVideoShown() != panoBuiltWithVideo) && (root != null)) { // video küçük pencere açıldı / kapandı
+		boolean inl = panoWideBuilt || dashInline;
+		if (inl && !panoBuiltWithVideo) fixBodyMode(); // video çalıyor ama kartta değilse yerleştir
+		if (inl && (inlineVideoShown() != panoBuiltWithVideo) && (root != null)) { // video küçük pencere açıldı / kapandı
 			root.post(this::rebuildPhone);
 			return;
 		}
@@ -1986,7 +2095,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		boolean live = (src != null) && src.isStream();
 		boolean vid = (src != null) && src.isVideo();
 		if (phArtCover != null) { // Pano: kartta oynatılamayan videonun (YouTube) kapağı
-			boolean show = panoWideBuilt && !panoBuiltWithVideo && vid && (pi != null) && !live;
+			boolean show = (panoWideBuilt || dashBuilt) && !panoBuiltWithVideo && vid && (pi != null) && !live;
 			var eng0 = cb.getEngine();
 			boolean tube = show && (eng0 != null) && eng0.getClass().getName().contains("Youtube") && isResumed() && !isHidden();
 			if (tube && (phTubeBox != null) && me.aap.fermata.ui.view.YoldaTubeInline.show(phTubeBox)) { // gerçek görüntü
