@@ -960,6 +960,20 @@ public class YoldaAtoZTest {
 					assertNotNull("Panelde olmalı (" + (land ? "yatay" : "dikey") + "): " + desc, v);
 					assertTrue(desc + " en az 48dp", onMain(a -> v.getHeight()) >= Math.round(48 * d) - 1);
 				}
+				// hava durumu / mevsim sahnesi Panel'in arkasında görünmeli: tam ekranı kapatan opak zemin olmamalı
+				String cover = onMain(a -> {
+					View v = byDescExact(root, "Şimdi çalıyor");
+					int sw = root.getWidth();
+					for (android.view.ViewParent p = v.getParent(); p instanceof View pv; p = pv.getParent()) {
+						if (pv.getClass().getSimpleName().contains("Backdrop")) break;
+						if (pv.getId() == R.id.main_activity) break;
+						android.graphics.drawable.Drawable bg = pv.getBackground();
+						if ((pv.getWidth() >= sw * 9 / 10) && (bg != null) && (bg.getOpacity() == android.graphics.PixelFormat.OPAQUE))
+							return pv.getClass().getSimpleName();
+					}
+					return null;
+				});
+				assertNull("Panel zemini hava / mevsim sahnesini kapatmamalı: " + cover, cover);
 				shot(land ? "panel_yatay" : "panel_dikey");
 			}
 		} finally {
