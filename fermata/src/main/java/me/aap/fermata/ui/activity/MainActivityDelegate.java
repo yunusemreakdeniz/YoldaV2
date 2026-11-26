@@ -1267,7 +1267,8 @@ public class MainActivityDelegate extends ActivityDelegate
 					|| !(cp.getLayoutParams() instanceof ConstraintLayout.LayoutParams cl)) return;
 			int unset = ConstraintLayout.LayoutParams.UNSET;
 			tl.topToTop = unset;
-			tl.topToBottom = R.id.body_layout; // dikey zincir: gövde → araç çubuğu → oynatıcı → (menü şeridi)
+			// gövdeyle zincir YOK: zincir çubuğu gövdenin altına itiyordu (ölçüm: kök 640, çubuk 620-660, 20 ekran dışı)
+			tl.topToBottom = unset;
 			// doğrudan ekranın altına bağlı; oynatıcı görünürken boşluk onun boyu kadar (yoldaToolbarMargin).
 			// Oynatıcıya bağlıyken çubuk ekranın altından ~20 dp taşıyordu (Klasörler, Listeler, Favoriler, TV)
 			tl.bottomToTop = unset;
