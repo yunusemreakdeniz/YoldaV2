@@ -185,6 +185,11 @@ public class YoutubeFragment extends WebBrowserFragment implements FermataServic
 			target.addView(v, 0, new android.widget.FrameLayout.LayoutParams(-1, -1));
 			v.setVisibility(View.VISIBLE);
 			moved = v;
+			// pencereden ayrılıp yeniden bağlanan sayfa duraklatılmış olabilir: çizim ve zamanlayıcılar sürsün
+			if (web instanceof android.webkit.WebView wv) {
+				wv.onResume();
+				wv.resumeTimers();
+			}
 			return true;
 		}
 
