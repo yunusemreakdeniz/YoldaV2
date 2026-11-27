@@ -1288,13 +1288,14 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			row.addView(new View(ctx), cl);
 		}
 		right.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1f));
-		sv.post(() -> { // satır boyu gerçek alana göre: iki satır tam sığsın (tahminle hesaplanınca ikinci satır kesiliyordu)
+		Runnable fitRows = () -> { // satır boyu gerçek alana göre: iki satır tam sığsın (tahminle hesaplanınca ikinci satır kesiliyordu)
 			int h = sv.getHeight();
 			if (h <= 0) return;
 			// ızgarada alan yetiyorsa 3 satır görünür (kart en az 112 dp)
 			// tek sütunda (büyük video) kartlar 3 satır: iki satırda tek kart dar ve uzun kalıyordu
 			int rows = ((gridBuilt && ((h - dp(8)) / 3 - dp(8) >= dp(112))) || (cols == 1)) ? 3 : 2;
-			int rh = Math.max(dp(80), (h - dp(8)) / rows - dp(8));
+			// tek sütunda üç kart alçak araç ekranında da tam sığsın (80 dp alt sınırda üçüncü kart kesiliyordu)
+			int rh = Math.max(dp((cols == 1) ? 56 : 80), (h - dp(8)) / rows - dp(8));
 			boolean tight = rh < dp(112); // alçak ekran: simge küçük, alt yazı yok (ad kesiliyordu)
 			panoRowH = rh; // sonradan yenilenen kart da aynı sıkı düzende kurulsun
 			for (int i = 0; i < grid.getChildCount(); i++) {
@@ -1306,6 +1307,12 @@ public class YoldaDeckFragment extends MainActivityFragment {
 				}
 				if (tight && (r instanceof ViewGroup rg)) for (int j = 0; j < rg.getChildCount(); j++) panoCardTight(rg.getChildAt(j), rh);
 			}
+		};
+		sv.post(fitRows);
+		// alan sonradan değişince (TV'den dönüş, araç çubuğu, alt boşluk düzeltmesi) kartlar yeniden sığdırılır:
+		// bir kez hesaplanınca alt kart kesik kalıyordu
+		sv.addOnLayoutChangeListener((v, l, t2, r, b, ol, ot, orr, ob) -> {
+			if ((b - t2) != (ob - ot)) v.post(fitRows);
 		});
 
 		LinearLayout quick = bar;
