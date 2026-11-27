@@ -1201,10 +1201,21 @@ public class MainActivityDelegate extends ActivityDelegate
 	 */
 	public boolean yoldaFixHomeGap(@Nullable View homeRoot) {
 		try {
-			if (videoMode || (getActiveFragmentId() != R.id.home_fragment)) return false;
+			if (getActiveFragmentId() != R.id.home_fragment) return false;
+			BodyLayout body = getBody();
+			if (body == null) return false;
+			if (videoMode) {
+				// TV'den çıkıldı, ana ekranda video yok ama video kipi açık kalmış: oynatıcı / sistem çubukları video
+				// düzeninde kalıp ana ekranın altında boşluk bırakıyordu (araç) — kipi kapat, düzeni yeniden kur
+				if (!body.isFrameMode()) return false;
+				var eng = getMediaSessionCallback().getEngine(); // YouTube tam ekranı kendi kipini yönetir (Pano'da önizleme)
+				if ((eng != null) && eng.getClass().getName().contains("Youtube")) return false;
+				me.aap.fermata.ui.fragment.YoldaLog.add("Ana ekran: video kipi açık kalmıştı (TV'den dönüş), kapatıldı");
+				setVideoMode(false, null);
+				homeGapSeen = 0;
+			}
 			View main = findViewById(R.id.main_activity);
-			View body = getBody();
-			if ((main == null) || (body == null) || (body.getHeight() == 0)) return false;
+			if ((main == null) || (body.getHeight() == 0)) return false;
 			View content = ((homeRoot != null) && (homeRoot.getHeight() > 0)) ? homeRoot : body;
 			int[] loc = new int[2], mloc = new int[2];
 			content.getLocationInWindow(loc);

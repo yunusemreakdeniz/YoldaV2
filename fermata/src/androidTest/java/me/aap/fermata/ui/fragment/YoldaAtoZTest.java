@@ -1377,6 +1377,21 @@ public class YoldaAtoZTest {
 						waitFor(6000, () -> homeGap() <= Math.round(8 * d)));
 				shot("alt_bosluk_" + view);
 			}
+			// TV'den dönüşte video kipi açık kalmışsa (ana ekranda video yokken) ana ekran onu kapatır
+			onMain(a -> {
+				call(deck(a), "setHomeView", "pano");
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(2500);
+			onMain(a -> {
+				a.setVideoMode(true, a.getBody().getVideoView());
+				return null;
+			});
+			assertTrue("Ana ekranda takılı kalan video kipi kapatılmalı",
+					waitFor(6000, () -> onMain(a -> !((Boolean) field(a, "videoMode")))));
+			assertTrue("Video kipi kapanınca altta boşluk kalmamalı (" + homeGap() + " px)",
+					waitFor(4000, () -> homeGap() <= Math.round(8 * d)));
 			// gerçek akış: Pano'da TV aç, büyüt, kapat, ana ekranda boşluk kalmasın
 			onMain(a -> {
 				call(deck(a), "setHomeView", "pano");
