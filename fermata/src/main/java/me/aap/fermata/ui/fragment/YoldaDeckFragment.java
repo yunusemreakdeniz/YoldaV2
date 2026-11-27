@@ -1356,11 +1356,13 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		FrameLayout dot = new FrameLayout(ctx);
 		GradientDrawable dg = new GradientDrawable();
 		dg.setShape(GradientDrawable.OVAL);
-		dg.setColor(color);
+		// kartlarla aynı dil: dolgulu parlak daire yerine hafif renkli halka, simge açık tonda
+		dg.setColor(YoldaStyle.alpha(color, 0.20f));
+		dg.setStroke(Math.max(1, dp(1)), YoldaStyle.alpha(color, 0.45f));
 		dot.setBackground(dg);
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(icon);
-		ic.setImageTintList(ColorStateList.valueOf(0xFF1A1206));
+		ic.setImageTintList(ColorStateList.valueOf(YoldaKokpitPalette.blend(color | 0xFF000000, 0xFFFFFFFF, 0.3f)));
 		dot.addView(ic, new FrameLayout.LayoutParams(dp(16), dp(16), Gravity.CENTER));
 		boolean narrow = YoldaStyle.widthDp(ctx) < 760; // dar yatay ekranda sıkı: "Favoriler", "Benzinlik" kesilmesin
 		b.setPadding(dp(narrow ? 4 : 6), 0, dp(narrow ? 4 : 8), 0);
@@ -2329,10 +2331,16 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			int pc = live ? (vid ? 0xFF3B82F6 : 0xFFF59E0B) : (vid ? 0xFFEF4444 : 0xFFA855F7);
 			phNowIcon.setImageResource(live ? (vid ? R.drawable.yi_tv : R.drawable.yi_live)
 					: (vid ? R.drawable.yi_youtube : R.drawable.yi_music));
-			phNowIcon.setImageTintList(ColorStateList.valueOf((live && !vid) ? 0xFF1A1206 : 0xFFFFFFFF));
 			GradientDrawable pg = new GradientDrawable();
 			pg.setCornerRadius(dp(14));
-			pg.setColor(pc);
+			if (panoWideBuilt || gridBuilt) { // Pano kartlarıyla aynı dil: hafif renkli yuva, açık ton simge
+				phNowIcon.setImageTintList(ColorStateList.valueOf(YoldaKokpitPalette.blend(pc, 0xFFFFFFFF, 0.28f)));
+				pg.setColor(YoldaStyle.alpha(pc, 0.18f));
+				pg.setStroke(Math.max(1, dp(1)), YoldaStyle.alpha(pc, 0.38f));
+			} else {
+				phNowIcon.setImageTintList(ColorStateList.valueOf((live && !vid) ? 0xFF1A1206 : 0xFFFFFFFF));
+				pg.setColor(pc);
+			}
 			phNowPlate.setBackground(pg);
 		}
 		if (phPlay != null) phPlay.setImageResource(playing ? R.drawable.yi_pause : R.drawable.yi_play);
