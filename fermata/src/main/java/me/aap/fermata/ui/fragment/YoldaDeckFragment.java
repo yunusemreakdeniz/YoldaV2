@@ -1293,9 +1293,11 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			if (h <= 0) return;
 			// ızgarada alan yetiyorsa 3 satır görünür (kart en az 112 dp)
 			// tek sütunda (büyük video) kartlar 3 satır: iki satırda tek kart dar ve uzun kalıyordu
-			int rows = ((gridBuilt && ((h - dp(8)) / 3 - dp(8) >= dp(112))) || (cols == 1)) ? 3 : 2;
-			// tek sütunda üç kart alçak araç ekranında da tam sığsın (80 dp alt sınırda üçüncü kart kesiliyordu)
-			int rh = Math.max(dp((cols == 1) ? 56 : 80), (h - dp(8)) / rows - dp(8));
+			// tek sütunda kartlar 3 satır (sığıyorsa; çok alçak ekranda 2)
+			int rows = ((gridBuilt && ((h - dp(8)) / 3 - dp(8) >= dp(112)))
+					|| ((cols == 1) && ((h - dp(8)) / 3 - dp(8) >= dp(56)))) ? 3 : 2;
+			// satırlar alana tam sığar: alttaki kart ortadan kesilmez (alt sınır yalnız çok alçak ekranda)
+			int rh = Math.max(dp(48), (h - dp(8)) / rows - dp(8));
 			boolean tight = rh < dp(112); // alçak ekran: simge küçük, alt yazı yok (ad kesiliyordu)
 			panoRowH = rh; // sonradan yenilenen kart da aynı sıkı düzende kurulsun
 			for (int i = 0; i < grid.getChildCount(); i++) {
