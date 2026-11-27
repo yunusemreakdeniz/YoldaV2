@@ -2033,6 +2033,11 @@ public class MainActivityDelegate extends ActivityDelegate
 			};
 			ctx.getApplicationContext().getSharedPreferences(me.aap.fermata.ui.view.YoldaStyle.PREFS,
 					Context.MODE_PRIVATE).registerOnSharedPreferenceChangeListener(themeListener);
+			if (isCarActivity()) { // araç açılışı: gece / gündüz kipi ve aracın son teması ilk kurulumdan önce
+				int m = ctx.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+				me.aap.fermata.ui.view.YoldaStyle.setCarNight(m == Configuration.UI_MODE_NIGHT_YES);
+				me.aap.fermata.ui.view.YoldaStyle.rememberCarTheme(ctx);
+			}
 			appliedTheme = me.aap.fermata.ui.view.YoldaStyle.index(ctx);
 			themeTickOn = true;
 			App.get().getHandler().postDelayed(autoThemeTick, 5_000);
