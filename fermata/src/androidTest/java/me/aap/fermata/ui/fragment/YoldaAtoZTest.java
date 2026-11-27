@@ -1317,6 +1317,66 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Ana ekranın altında boşluk: gövdenin alt kenarı ile ekranın alt kenarı arasındaki fark (px). */
+	private int homeGap() {
+		return onMain(a -> {
+			View main = ((android.app.Activity) a.getContext()).findViewById(R.id.main_activity);
+			return (main.getHeight() - main.getPaddingBottom()) - a.getBody().getBottom();
+		});
+	}
+
+	/**
+	 * TV'den sonra ana ekranın altında boş şerit kalmaz (araçta Pano'nun altında boşluk kalıyordu): gereksiz araç
+	 * çubuğu görünür kalsa da ana ekran kendini düzeltir; TV açılıp büyütülüp kapatılınca da boşluk yok.
+	 */
+	@Test
+	public void anaEkranAltBosluguKalmaz() {
+		float d = ctx().getResources().getDisplayMetrics().density;
+		try {
+			for (String view : new String[]{"pano", "deck"}) {
+				onMain(a -> {
+					call(deck(a), "setHomeView", view);
+					a.showFragment(R.id.home_fragment);
+					return null;
+				});
+				scenario.onActivity(act -> act.setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE));
+				waitIdle(3000);
+				// hatayı canlandır: video kipinden dönüşte olduğu gibi araç çubuğu ana ekranda görünür kalsın
+				onMain(a -> {
+					((android.app.Activity) a.getContext()).findViewById(R.id.tool_bar).setVisibility(View.VISIBLE);
+					return null;
+				});
+				assertTrue(view + ": ana ekran alttaki boşluğu kendiliğinden kapatmalı (" + homeGap() + " px)",
+						waitFor(6000, () -> homeGap() <= Math.round(8 * d)));
+				shot("alt_bosluk_" + view);
+			}
+			// gerçek akış: Pano'da TV aç, büyüt, kapat, ana ekranda boşluk kalmasın
+			onMain(a -> {
+				call(deck(a), "setHomeView", "pano");
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			waitIdle(2500);
+			playTestStream();
+			onMain(a -> {
+				YoldaNowPlaying.open(a);
+				return null;
+			});
+			waitFor(3000, () -> onMain(a -> a.getBody().isVideoMode()));
+			waitIdle(2000);
+			onMain(a -> {
+				a.yoldaClosePlayer();
+				a.showFragment(R.id.home_fragment);
+				return null;
+			});
+			assertTrue("TV kapanınca ana ekranın altında boşluk kalmamalı (" + homeGap() + " px)",
+					waitFor(6000, () -> homeGap() <= Math.round(8 * d)));
+			shot("alt_bosluk_tv_sonrasi");
+		} finally {
+			stopAll("deck");
+		}
+	}
+
 	/** Araç klavyesi: YouTube aramasında harf yazar, siler, 48dp tuşlar, ✕ kapatır. */
 	@Test
 	public void aracKlavyesi() {

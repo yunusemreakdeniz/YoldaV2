@@ -118,7 +118,10 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		@Override
 		public void run() {
 			if ((list == null) || !isAdded() || phoneBuilt) return;
-			if (!isHidden()) resetStaleSlack();
+			if (!isHidden()) {
+				resetStaleSlack();
+				getActivityDelegate().yoldaFixHomeGap();
+			}
 			list.postDelayed(this, 2000);
 		}
 	};
@@ -501,6 +504,7 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		public void run() {
 			if ((root == null) || !isAdded() || !phoneBuilt) return;
 			updatePhoneLive();
+			if (!isHidden()) getActivityDelegate().yoldaFixHomeGap(); // TV'den sonra altta boşluk kalmasın
 			root.postDelayed(this, 1500);
 		}
 	};

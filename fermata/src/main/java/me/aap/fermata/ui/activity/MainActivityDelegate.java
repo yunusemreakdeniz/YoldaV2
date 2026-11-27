@@ -1145,6 +1145,56 @@ public class MainActivityDelegate extends ActivityDelegate
 		yoldaClose.animate().alpha(0.92f).setDuration(200).start();
 	}
 
+	/**
+	 * Ana ekranın altında boşluk kalmasın: TV / video kipinden dönünce ana ekranda gereksiz araç çubuğu (görünmez ama
+	 * yer kaplayan) ya da görünmez oynatıcı gövdeyi kısaltıyor, Pano'nun altında boş şerit kalıyordu (araç ekranı).
+	 * Ana ekran düzenli olarak çağırır: boşluk ölçülür, sebebi kaldırılır, düzen yeniden kurulur.
+	 * @return boşluk bulunup düzeltildiyse true
+	 */
+	public boolean yoldaFixHomeGap() {
+		try {
+			if (videoMode || (getActiveFragmentId() != R.id.home_fragment)) return false;
+			View main = findViewById(R.id.main_activity);
+			View body = getBody();
+			if ((main == null) || (body == null) || (body.getHeight() == 0)) return false;
+			int gap = (main.getHeight() - main.getPaddingBottom()) - body.getBottom();
+			if (gap <= toIntPx(getContext(), 8)) {
+				homeGapSeen = 0;
+				return false;
+			}
+			View tb = findViewById(R.id.tool_bar);
+			ControlPanelView cp = getControlPanel();
+			String why = "araç çubuğu " + visName(tb) + ", oynatıcı " + visName(cp);
+			boolean fixed = false;
+			if ((tb != null) && (tb.getVisibility() != GONE)) { // ana ekranın araç çubuğu yok
+				tb.setVisibility(GONE);
+				fixed = true;
+			}
+			if ((cp != null) && (cp.getVisibility() == View.INVISIBLE)) { // görünmez ama yer kaplıyor
+				cp.setVisibility(GONE);
+				fixed = true;
+			}
+			if (!fixed && (gap == homeGapSeen)) return false; // aynı boşluk için günlüğü ve yeniden kurmayı tekrarlama
+			homeGapSeen = gap;
+			me.aap.fermata.ui.fragment.YoldaLog.add("Ana ekran altında " + Math.round(gap / getContext().getResources()
+					.getDisplayMetrics().density) + " dp boşluk vardı (" + why + "), düzen yeniden kuruldu");
+			yoldaToolbarMargin();
+			body.requestLayout();
+			main.requestLayout();
+			return true;
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
+
+	private int homeGapSeen;
+
+	private static String visName(@Nullable View v) {
+		if (v == null) return "yok";
+		int vis = v.getVisibility();
+		return ((vis == VISIBLE) ? "görünür" : (vis == GONE) ? "kapalı" : "görünmez") + " " + v.getHeight() + "px";
+	}
+
 	/** Çalanı tamamen kapat (video / müzik): durdurur, video ekranından ve Şimdi çalıyor'dan çıkar. */
 	public void yoldaClosePlayer() {
 		me.aap.fermata.ui.fragment.YoldaLog.add("Oynatıcı ✕ ile kapatıldı");
