@@ -2109,7 +2109,11 @@ public class YoldaAtoZTest {
 				YoldaRadar.setFeature(c, "cams", true);
 				YoldaRadar.setOverspeedWarn(c, false);
 				YoldaRadar.setCams(java.util.List.of(new YoldaRadarCore.Cam(55, lat0 + 600 / 111_195d, lon0, 50, -1, 'r')));
-				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.VIDEO); // gerçek video ekranı (gövde video kipinde)
+				return null;
+			});
+			waitIdle(1500); // ana ekran kurulsun (kurulunca gövde kipini düzeltir)
+			onMain(a -> {
+				a.getBody().enlarge(); // kullanıcının büyüttüğü video ekranı: açılış / ana ekran denetimleri dokunmaz
 				return null;
 			});
 			waitIdle(1000);
