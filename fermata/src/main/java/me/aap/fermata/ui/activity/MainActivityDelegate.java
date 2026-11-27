@@ -1151,34 +1151,45 @@ public class MainActivityDelegate extends ActivityDelegate
 	 * Ana ekran düzenli olarak çağırır: boşluk ölçülür, sebebi kaldırılır, düzen yeniden kurulur.
 	 * @return boşluk bulunup düzeltildiyse true
 	 */
-	public boolean yoldaFixHomeGap() {
+	public boolean yoldaFixHomeGap(@Nullable View homeRoot) {
 		try {
 			if (videoMode || (getActiveFragmentId() != R.id.home_fragment)) return false;
 			View main = findViewById(R.id.main_activity);
 			View body = getBody();
 			if ((main == null) || (body == null) || (body.getHeight() == 0)) return false;
-			int gap = (main.getHeight() - main.getPaddingBottom()) - body.getBottom();
-			if (gap <= toIntPx(getContext(), 8)) {
+			View content = ((homeRoot != null) && (homeRoot.getHeight() > 0)) ? homeRoot : body;
+			int[] loc = new int[2], mloc = new int[2];
+			content.getLocationInWindow(loc);
+			main.getLocationInWindow(mloc);
+			// ana ekran içeriğinin altı ile uygulama alanının altı arasındaki boşluk (sebebi ne olursa olsun)
+			// telefonda kökün alt payı gezinme çubuğu / klavye içindir (gerçek); araçta alt çubuk uygulama alanı dışında
+			int gap = (mloc[1] + main.getHeight() - (isCarActivity() ? 0 : main.getPaddingBottom()))
+					- (loc[1] + content.getHeight());
+			int slack = toIntPx(getContext(), 8);
+			if (gap <= slack) {
 				homeGapSeen = 0;
 				return false;
 			}
+			if (gap == homeGapSeen) return false; // aynı boşluk: günlüğü ve yeniden kurmayı tekrarlama
+			homeGapSeen = gap;
 			View tb = findViewById(R.id.tool_bar);
 			ControlPanelView cp = getControlPanel();
-			String why = "araç çubuğu " + visName(tb) + ", oynatıcı " + visName(cp);
-			boolean fixed = false;
-			if ((tb != null) && (tb.getVisibility() != GONE)) { // ana ekranın araç çubuğu yok
-				tb.setVisibility(GONE);
-				fixed = true;
-			}
-			if ((cp != null) && (cp.getVisibility() == View.INVISIBLE)) { // görünmez ama yer kaplıyor
-				cp.setVisibility(GONE);
-				fixed = true;
-			}
-			if (!fixed && (gap == homeGapSeen)) return false; // aynı boşluk için günlüğü ve yeniden kurmayı tekrarlama
-			homeGapSeen = gap;
-			me.aap.fermata.ui.fragment.YoldaLog.add("Ana ekran altında " + Math.round(gap / getContext().getResources()
-					.getDisplayMetrics().density) + " dp boşluk vardı (" + why + "), düzen yeniden kuruldu");
+			int bodyGap = (main.getHeight() - main.getPaddingBottom()) - body.getBottom();
+			float dn = getContext().getResources().getDisplayMetrics().density;
+			String why = "kök alt pay " + Math.round(main.getPaddingBottom() / dn) + " dp, gövde boşluğu "
+					+ Math.round(bodyGap / dn) + " dp, gövde alt pay " + Math.round(body.getPaddingBottom() / dn)
+					+ " dp, araç çubuğu " + visName(tb) + ", oynatıcı " + visName(cp) + (isCarActivity() ? ", araç" : "");
+			if ((tb != null) && (tb.getVisibility() != GONE)) tb.setVisibility(GONE); // ana ekranın araç çubuğu yok
+			if ((cp != null) && (cp.getVisibility() == View.INVISIBLE)) cp.setVisibility(GONE); // görünmez ama yer kaplıyor
+			// araçta alttaki çubuk uygulama alanının dışında: kökte alt pay kalmışsa (videodan dönüşte) sıfırla
+			if (isCarActivity() && (main.getPaddingBottom() > 0))
+				main.setPadding(main.getPaddingLeft(), main.getPaddingTop(), main.getPaddingRight(), 0);
+			if (body.getPaddingBottom() > 0)
+				body.setPadding(body.getPaddingLeft(), body.getPaddingTop(), body.getPaddingRight(), 0);
+			me.aap.fermata.ui.fragment.YoldaLog.add("Ana ekran altında " + Math.round(gap / dn) + " dp boşluk vardı ("
+					+ why + "), düzen yeniden kuruldu");
 			yoldaToolbarMargin();
+			if (homeRoot != null) homeRoot.requestLayout();
 			body.requestLayout();
 			main.requestLayout();
 			return true;
