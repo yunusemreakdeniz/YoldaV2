@@ -1311,6 +1311,33 @@ public class YoldaAtoZTest {
 			shot("pano_buyuk");
 			assertTrue("Tek sütun kart dar ve uzun olmamalı: " + wh[0] + "×" + wh[1], wh[0] >= wh[1]);
 			assertTrue("Video alanı geniş: kart sütunu ekranın %32'sinden dar", wh[0] <= wh[2] * 0.32f);
+			// alan sonradan alçalınca (araç çubuğu, alt boşluk) üç kart yeniden sığdırılır, alttaki kesik kalmaz
+			for (int pad : new int[]{0, Math.round(90 * c.getResources().getDisplayMetrics().density)}) {
+				onMain(a -> {
+					View m = ((android.app.Activity) a.getContext()).findViewById(R.id.main_activity);
+					m.setPadding(m.getPaddingLeft(), m.getPaddingTop(), m.getPaddingRight(), pad);
+					return null;
+				});
+				waitIdle(1500);
+				String cut = onMain(a -> {
+					View t0 = byDescExact(root, "YouTube");
+					if (t0 == null) return "kart yok";
+					// kartın satırı → ızgara → kaydırma alanı: ilk üç satır kaydırma alanına tam sığmalı
+					View rowV = (View) t0.getParent();
+					ViewGroup grid = (ViewGroup) rowV.getParent();
+					View sv = (View) grid.getParent();
+					if (grid.getChildCount() < 3) return null;
+					int bottom = grid.getChildAt(2).getBottom();
+					return (bottom <= sv.getHeight() + 2) ? null : ("üçüncü kart " + bottom + " > alan " + sv.getHeight());
+				});
+				shot("pano_buyuk_pay_" + pad);
+				assertNull("Büyük Pano'da üç kart alana sığmalı (alt pay " + pad + "px): " + cut, cut);
+			}
+			onMain(a -> {
+				View m = ((android.app.Activity) a.getContext()).findViewById(R.id.main_activity);
+				m.setPadding(m.getPaddingLeft(), m.getPaddingTop(), m.getPaddingRight(), 0);
+				return null;
+			});
 		} finally {
 			c.getSharedPreferences(YoldaStyle.PREFS, Context.MODE_PRIVATE).edit().putInt("pano_now_size", old).commit();
 			stopAll("deck");
