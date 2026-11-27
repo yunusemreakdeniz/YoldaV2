@@ -251,6 +251,9 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 
 		String[] perms = getRequiredPermissions();
+		// açılış bekçisi: sayfa gösterilmediyse / gövde gizli kaldıysa boş ekran + kabuk kalmasın
+		App.get().getHandler().postDelayed(() -> yoldaStartupGuard("2,5 sn"), 2500);
+		App.get().getHandler().postDelayed(() -> yoldaStartupGuard("6 sn"), 6000);
 		a.checkPermissions(perms).onCompletion((result, fail) -> {
 			if (fail != null) {
 				if (!isCarActivityNotMirror()) Log.e(fail);
@@ -353,6 +356,51 @@ public class MainActivityDelegate extends ActivityDelegate
 		}
 
 		return completed(false);
+	}
+
+	/**
+	 * Açılışta boş ekran + kabuk kalmasın (ana ekran düğmesine basınca geliyordu): etkin sayfa yoksa, gizli ya da
+	 * görünümü yoksa, gövde gizli kaldıysa ya da çalan video yokken gövde video kipindeyse düzeltilir; günlüğe yazılır.
+	 */
+	void yoldaStartupGuard(String when) {
+		try {
+			android.app.Activity act = (android.app.Activity) getAppActivity();
+			if (act.isFinishing() || act.isDestroyed()) return;
+			var f = getActiveFragment();
+			String fix = null;
+			if (f == null) {
+				fix = "sayfa yoktu";
+				defaultIntent();
+			} else if (f.isHidden() || (f.getView() == null) || !f.isAdded()) {
+				fix = "sayfa " + (f.isHidden() ? "gizliydi" : "görünümsüzdü");
+				showFragment(R.id.home_fragment);
+			}
+			BodyLayout b = getBody();
+			boolean nowPlaying = me.aap.fermata.ui.view.YoldaNowPlaying.isShown(this);
+			if ((b != null) && (b.getVisibility() != VISIBLE) && !nowPlaying) { // Şimdi çalıyor kapanmış, gövde gizli kalmış
+				b.setVisibility(VISIBLE);
+				fix = ((fix == null) ? "" : fix + ", ") + "gövde gizliydi";
+			}
+			if ((b != null) && b.isVideoMode() && !BodyLayout.yoldaUserFull) {
+				var cb = getMediaSessionCallback();
+				var eng = cb.getEngine();
+				var src = (eng != null) ? eng.getSource() : null;
+				if ((src == null) || !src.isVideo()) { // çalan video yok ama tam ekran video kipi: boş siyah ekran
+					b.setMode(BodyLayout.Mode.FRAME);
+					fix = ((fix == null) ? "" : fix + ", ") + "gövde video kipindeydi";
+				}
+			}
+			if ((b != null) && b.isFrameMode()) { // liste kipinde sayfa alanı görünür olmalı
+				View sr = b.findViewById(R.id.swiperefresh);
+				if ((sr != null) && (sr.getVisibility() != VISIBLE)) {
+					sr.setVisibility(VISIBLE);
+					fix = ((fix == null) ? "" : fix + ", ") + "sayfa alanı gizliydi";
+				}
+			}
+			if (fix != null) me.aap.fermata.ui.fragment.YoldaLog.add("Açılış bekçisi (" + when + "): " + fix + ", düzeltildi");
+		} catch (Throwable ex) {
+			me.aap.fermata.ui.fragment.YoldaLog.add("Açılış bekçisi: " + ex.getClass().getSimpleName());
+		}
 	}
 
 	private void defaultIntent() {

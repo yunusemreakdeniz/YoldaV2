@@ -1377,6 +1377,55 @@ public class YoldaAtoZTest {
 		}
 	}
 
+	/** Ana ekranda görünür, boyutu olan içerik var mı (boş ekran + kabuk değil). */
+	private boolean homeContentShown() {
+		return onMain(a -> {
+			if (a.getActiveFragmentId() != R.id.home_fragment) return false;
+			var f = a.getActiveFragment();
+			if ((f == null) || f.isHidden() || (f.getView() == null) || !f.getView().isShown()) return false;
+			if ((a.getBody() == null) || !a.getBody().isShown() || !a.getBody().isFrameMode()) return false;
+			View v = f.getView();
+			return (v.getWidth() > 0) && (v.getHeight() > 0) && (v instanceof ViewGroup g) && (g.getChildCount() > 0);
+		});
+	}
+
+	/**
+	 * Açılışta boş ekran + kabuk kalmaz: her görünümde (Deste, Pano, Izgara, Panel) uygulama soğuk açılınca ve
+	 * yeniden oluşturulunca ana ekran içeriği görünür; açılış bekçisi gizli kalan gövdeyi / boş video kipini düzeltir.
+	 */
+	@Test
+	public void acilistaBosEkranKalmaz() {
+		try {
+			for (String view : new String[]{"deck", "pano", "grid", "dash"}) {
+				onMain(a -> {
+					call(deck(a), "setHomeView", view);
+					return null;
+				});
+				// soğuk açılış
+				scenario.close();
+				scenario = ActivityScenario.launch(MainActivity.class);
+				assertTrue(view + ": soğuk açılışta ana ekran içeriği görünmeli",
+						waitFor(8000, this::homeContentShown));
+				shot("acilis_" + view);
+				// yeniden oluşturma (ekran dönüşü / sistemin geri yüklemesi)
+				scenario.recreate();
+				assertTrue(view + ": yeniden oluşturulunca ana ekran içeriği görünmeli",
+						waitFor(8000, this::homeContentShown));
+			}
+			// bekçi: gövde gizli kalmış ve çalan video yokken video kipi (açılışta görülen boş ekranın sebepleri)
+			onMain(a -> {
+				a.getBody().setVisibility(View.INVISIBLE);
+				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.VIDEO);
+				return null;
+			});
+			assertFalse("hata canlandırıldı", homeContentShown());
+			onMain(a -> call(a, "yoldaStartupGuard", "test"));
+			assertTrue("Açılış bekçisi gövdeyi ve kipi düzeltmeli", waitFor(3000, this::homeContentShown));
+		} finally {
+			stopAll("deck");
+		}
+	}
+
 	/** Araç klavyesi: YouTube aramasında harf yazar, siler, 48dp tuşlar, ✕ kapatır. */
 	@Test
 	public void aracKlavyesi() {
