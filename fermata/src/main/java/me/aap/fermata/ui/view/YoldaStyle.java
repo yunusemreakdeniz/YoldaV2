@@ -140,7 +140,7 @@ public final class YoldaStyle {
 	public static final String PREF_AUTO = "theme_auto", PREF_DAY = "theme_day", PREF_NIGHT = "theme_night";
 	/** Tema seçimini etkileyen ayarlar (değişince ekranlar yenilenir). */
 	public static final java.util.Set<String> THEME_KEYS = java.util.Collections.unmodifiableSet(
-			new java.util.HashSet<>(java.util.Arrays.asList("theme", PREF_AUTO, PREF_DAY, PREF_NIGHT)));
+			new java.util.HashSet<>(java.util.Arrays.asList("theme", "car_theme", PREF_AUTO, PREF_DAY, PREF_NIGHT)));
 	public static final int DEFAULT_DAY = 1, DEFAULT_NIGHT = 5; // Gece mavi / Asil
 	/** Araç gece kipi (farlar / araç ışık algılayıcısı): araç ekranı açıkken o belirler. */
 	private static volatile boolean carNight;
@@ -156,7 +156,32 @@ public final class YoldaStyle {
 			boolean night = isNight(ctx);
 			return Math.floorMod(p.getInt(night ? PREF_NIGHT : PREF_DAY, night ? DEFAULT_NIGHT : DEFAULT_DAY), THEMES.length);
 		}
+		// Araç kendi son temasıyla açılır: telefonda seçilen tema Android Auto açılışını değiştirmesin
+		if (isCar(ctx) && p.contains(PREF_CAR_THEME)) return Math.floorMod(p.getInt(PREF_CAR_THEME, 0), THEMES.length);
 		return Math.floorMod(p.getInt("theme", 0), THEMES.length);
+	}
+
+	/** Araç ekranında en son seçilen tema (otomatik tema kapalıyken). */
+	public static final String PREF_CAR_THEME = "car_theme";
+
+	private static boolean isCar(Context ctx) {
+		try {
+			return me.aap.fermata.ui.activity.MainActivityDelegate.get(ctx).isCarActivity();
+		} catch (Throwable ex) {
+			return false;
+		}
+	}
+
+	/** Araç ilk kez açılınca o anki temayı aracın teması olarak sakla: sonra telefonda değişse de araç aynı açılır. */
+	public static void rememberCarTheme(Context ctx) {
+		android.content.SharedPreferences p = prefs(ctx);
+		if (!p.contains(PREF_CAR_THEME))
+			p.edit().putInt(PREF_CAR_THEME, Math.floorMod(p.getInt("theme", 0), THEMES.length)).apply();
+	}
+
+	/** Tek tema kaydı: araçta aracın, telefonda telefonun anahtarına. */
+	private static void putTheme(Context ctx, int i) {
+		prefs(ctx).edit().putInt(isCar(ctx) ? PREF_CAR_THEME : "theme", Math.floorMod(i, THEMES.length)).apply();
 	}
 
 	public static boolean isAuto(Context ctx) {
@@ -236,7 +261,7 @@ public final class YoldaStyle {
 			else setDayTheme(ctx, i);
 			return;
 		}
-		prefs(ctx).edit().putInt("theme", Math.floorMod(i, THEMES.length)).apply();
+		putTheme(ctx, i);
 	}
 
 	// ---- video kalitesi (veri kullanımı) ----
@@ -310,7 +335,7 @@ public final class YoldaStyle {
 			if (isNight(ctx)) setNightTheme(ctx, best);
 			else setDayTheme(ctx, best);
 		} else {
-			prefs(ctx).edit().putInt("theme", best).apply();
+			putTheme(ctx, best);
 		}
 		return best;
 	}
@@ -322,7 +347,7 @@ public final class YoldaStyle {
 			else setDayTheme(ctx, n);
 			return;
 		}
-		prefs(ctx).edit().putInt("theme", n).apply();
+		putTheme(ctx, n);
 	}
 
 	/** Tema adı ve otomatikse hangi dilimde olduğu: "Asil (gece, otomatik)". */
