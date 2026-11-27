@@ -1326,12 +1326,16 @@ public class YoldaAtoZTest {
 					View rowV = (View) t0.getParent();
 					ViewGroup grid = (ViewGroup) rowV.getParent();
 					View sv = (View) grid.getParent();
-					if (grid.getChildCount() < 3) return null;
-					int bottom = grid.getChildAt(2).getBottom();
-					return (bottom <= sv.getHeight() + 2) ? null : ("üçüncü kart " + bottom + " > alan " + sv.getHeight());
+					// görünen alanın alt kenarı bir kartı ortadan kesmemeli (kartlar alana tam sığdırılır)
+					int h = sv.getHeight();
+					for (int i2 = 0; i2 < grid.getChildCount(); i2++) {
+						View rr = grid.getChildAt(i2);
+						if ((rr.getTop() < h - 2) && (rr.getBottom() > h + 2)) return "kart " + rr.getTop() + "-" + rr.getBottom() + " alan " + h;
+					}
+					return null;
 				});
 				shot("pano_buyuk_pay_" + pad);
-				assertNull("Büyük Pano'da üç kart alana sığmalı (alt pay " + pad + "px): " + cut, cut);
+				assertNull("Büyük Pano'da alttaki kart kesik kalmamalı (alt pay " + pad + "px): " + cut, cut);
 			}
 			onMain(a -> {
 				View m = ((android.app.Activity) a.getContext()).findViewById(R.id.main_activity);
@@ -2105,7 +2109,7 @@ public class YoldaAtoZTest {
 				YoldaRadar.setFeature(c, "cams", true);
 				YoldaRadar.setOverspeedWarn(c, false);
 				YoldaRadar.setCams(java.util.List.of(new YoldaRadarCore.Cam(55, lat0 + 600 / 111_195d, lon0, 50, -1, 'r')));
-				a.setVideoMode(true, a.getBody().getVideoView());
+				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.VIDEO); // gerçek video ekranı (gövde video kipinde)
 				return null;
 			});
 			waitIdle(1000);
@@ -2160,6 +2164,7 @@ public class YoldaAtoZTest {
 				View host = a.findViewById(R.id.main_activity);
 				if (host instanceof android.view.ViewGroup g) for (int i = g.getChildCount() - 1; i >= 0; i--)
 					if (g.getChildAt(i) instanceof me.aap.fermata.ui.view.YoldaAlertOverlay o) o.dismiss();
+				a.getBody().setMode(me.aap.fermata.ui.view.BodyLayout.Mode.FRAME);
 				a.setVideoMode(false, null);
 				YoldaRadar.setCams(old);
 				YoldaRadar.setOverspeedWarn(c, overWas);
