@@ -1876,31 +1876,39 @@ public class YoldaDeckFragment extends MainActivityFragment {
 		return sub;
 	}
 
-	/** Alçak satırda Pano kartı: simge kutusu ve boşluk küçülür, satır çok alçaksa alt yazı gizlenir. */
+	/** Alçak satırda Pano kartı: simge yuvası ve boşluk küçülür, satır çok alçaksa alt yazı gizlenir. */
 	private void panoCardTight(View card, int rh) {
 		if (!(card instanceof LinearLayout f) || (f.getChildCount() < 4)) return;
 		f.setPadding(dp(12), dp(10), dp(12), dp(8));
-		View box = f.getChildAt(0);
+		View first = f.getChildAt(0);
+		// Pano kartında simge yuvası üst satırın içinde; telefon karosunda doğrudan ilk öğe
+		View box = ((first instanceof LinearLayout head) && (head.getChildCount() > 0)) ? head.getChildAt(0) : first;
 		ViewGroup.LayoutParams bl = box.getLayoutParams();
-		bl.width = bl.height = dp(40);
+		bl.width = bl.height = dp(34);
 		box.setLayoutParams(bl);
 		if ((box instanceof FrameLayout bf) && (bf.getChildCount() > 0)) {
 			ViewGroup.LayoutParams il = bf.getChildAt(0).getLayoutParams();
-			il.width = il.height = dp(24);
+			il.width = il.height = dp(20);
 			bf.getChildAt(0).setLayoutParams(il);
 		}
 		if (rh < dp(96)) f.getChildAt(3).setVisibility(View.GONE);
 	}
 
+	/**
+	 * Pano / Izgara kartı (Panel ile aynı dil): temanın renginde koyu cam yüzey ve ince çizgi; kartın kendi rengi
+	 * yalnız simge yuvasında (açık tonda simge, hafif renkli yuva); sağ üstte ince büyük harfli etiket, altta ad ve
+	 * gri alt yazı (ya da tek bakış değeri). Önceden kartın tamamı kendi renginde parlıyordu (karışık, amatör).
+	 */
 	private View panoCard(Context ctx, YoldaDeck.Card c) {
-		// Deste'deki camlı "kabuk" (çerçeve, köşe oku, silik simge) yok: kartın renginde sade yüzey, büyük simge
 		Look lk = look(c);
+		YoldaKokpitPalette k = kp();
 		LinearLayout f = new LinearLayout(ctx);
 		f.setOrientation(LinearLayout.VERTICAL);
-		f.setPadding(dp(14), dp(14), dp(14), dp(12));
+		f.setPadding(dp(16), dp(14), dp(16), dp(12));
 		GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-				new int[]{YoldaStyle.alpha(lk.c1, 0.34f), YoldaStyle.alpha(lk.c2, 0.18f)});
-		bg.setCornerRadius(dp(22));
+				new int[]{(k.well() & 0x00FFFFFF) | 0xEB000000, (k.wellEnd() & 0x00FFFFFF) | 0xEB000000});
+		bg.setCornerRadius(dp(20));
+		bg.setStroke(Math.max(1, dp(1)), k.line());
 		f.setBackground(bg);
 		f.setClickable(true);
 		f.setContentDescription(c.title());
@@ -1910,26 +1918,47 @@ public class YoldaDeckFragment extends MainActivityFragment {
 			return true;
 		});
 		pressEffect(f);
+		// üst satır: simge yuvası, sağda etiket
+		LinearLayout head = hrow(ctx);
+		head.setGravity(Gravity.TOP);
+		int tone = YoldaKokpitPalette.blend(lk.c1 | 0xFF000000, 0xFFFFFFFF, 0.28f); // koyu zeminde okunur açık ton
 		FrameLayout box = new FrameLayout(ctx);
-		GradientDrawable cb = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{lk.c1, lk.c2});
-		cb.setCornerRadius(dp(16));
+		GradientDrawable cb = new GradientDrawable();
+		cb.setCornerRadius(dp(14));
+		cb.setColor(YoldaStyle.alpha(lk.c1, 0.18f));
+		cb.setStroke(Math.max(1, dp(1)), YoldaStyle.alpha(lk.c1, 0.38f));
 		box.setBackground(cb);
 		ImageView ic = new ImageView(ctx);
 		ic.setImageResource(lk.icon);
-		ic.setImageTintList(ColorStateList.valueOf(0xFFFFFFFF));
-		box.addView(ic, new FrameLayout.LayoutParams(dp(30), dp(30), Gravity.CENTER));
-		f.addView(box, new LinearLayout.LayoutParams(dp(52), dp(52)));
+		if (lk.tint()) ic.setImageTintList(ColorStateList.valueOf(tone)); // marka simgesi (YouTube) kendi renginde
+		box.addView(ic, new FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER));
+		head.addView(box, new LinearLayout.LayoutParams(dp(44), dp(44)));
+		head.addView(new View(ctx), new LinearLayout.LayoutParams(0, 1, 1f));
+		String tg = tagText(lk.tag, c.title());
+		if (!tg.isEmpty()) {
+			TextView tag = text(ctx, tg, 10, true, YoldaStyle.alpha(tone, 0.9f));
+			tag.setLetterSpacing(0.1f);
+			tag.setSingleLine(true);
+			tag.setEllipsize(TextUtils.TruncateAt.END);
+			tag.setMaxWidth(dp(120));
+			tag.setPadding(dp(6), dp(2), 0, 0);
+			head.addView(tag);
+		}
+		f.addView(head, new LinearLayout.LayoutParams(-1, -2));
 		f.addView(new View(ctx), new LinearLayout.LayoutParams(-1, 0, 1f));
-		TextView ti = text(ctx, c.title(), 18, true, 0xFFFFFFFF);
+		TextView ti = text(ctx, c.title(), 17, true, K_TEXT);
 		ti.setMaxLines(1);
-		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(ti, 13, 18, 1,
+		ti.setIncludeFontPadding(false);
+		androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(ti, 12, 17, 1,
 				android.util.TypedValue.COMPLEX_UNIT_SP); // dar kartta ad küçülür, kesilmez
-		f.addView(ti, new LinearLayout.LayoutParams(-1, dp(24)));
+		f.addView(ti, new LinearLayout.LayoutParams(-1, dp(22)));
 		Glance g = glance(ctx, c.type());
-		TextView sub = text(ctx, (g != null) ? (g.big() + " · " + (g.l2().isEmpty() ? g.l1() : g.l2())) : panoSub(c, lk.sub), 12, false,
-				(g != null) && !g.l2().isEmpty() ? g.color() : 0xFFD1D5DB);
+		boolean alert = (g != null) && !g.l2().isEmpty();
+		TextView sub = text(ctx, (g != null) ? (g.big() + " · " + (g.l2().isEmpty() ? g.l1() : g.l2())) : panoSub(c, lk.sub), 12,
+				false, alert ? g.color() : K_SUB);
 		sub.setSingleLine(true);
 		sub.setEllipsize(TextUtils.TruncateAt.END);
+		sub.setPadding(0, dp(3), 0, 0);
 		f.addView(sub);
 		return f;
 	}
